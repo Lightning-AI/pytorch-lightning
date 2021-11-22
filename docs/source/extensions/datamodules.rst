@@ -30,10 +30,10 @@ This class can then be shared and used anywhere:
     trainer = Trainer()
 
     imagenet = ImagenetDataModule()
-    trainer.fit(model, imagenet)
+    trainer.fit(model, datamodule=imagenet)
 
     cifar10 = CIFAR10DataModule()
-    trainer.fit(model, cifar10)
+    trainer.fit(model, datamodule=cifar10)
 
 ---------------
 
@@ -53,8 +53,8 @@ Datamodules are for you if you ever asked the questions:
 
 What is a DataModule
 --------------------
-A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) along with the
-matching transforms and data processing/downloads steps required.
+A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) and
+predict_dataloader(s) along with the matching transforms and data processing/downloads steps required.
 
 Here's a simple PyTorch example:
 
@@ -62,12 +62,14 @@ Here's a simple PyTorch example:
 
     # regular PyTorch
     test_data = MNIST(my_path, train=False, download=True)
+    predict_data = MNIST(my_path, train=False, download=True)
     train_data = MNIST(my_path, train=True, download=True)
     train_data, val_data = random_split(train_data, [55000, 5000])
 
     train_loader = DataLoader(train_data, batch_size=32)
     val_loader = DataLoader(val_data, batch_size=32)
     test_loader = DataLoader(test_data, batch_size=32)
+    predict_loader = DataLoader(predict_data, batch_size=32)
 
 The equivalent DataModule just organizes the same exact code, but makes it reusable across projects.
 
@@ -81,6 +83,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
         def setup(self, stage: Optional[str] = None):
             self.mnist_test = MNIST(self.data_dir, train=False)
+            self.mnist_predict = MNIST(self.data_dir, train=False)
             mnist_full = MNIST(self.data_dir, train=True)
             self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
 
@@ -92,6 +95,9 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+        def predict_dataloader(self):
+            return DataLoader(self.mnist_predict, batch_size=self.batch_size)
 
         def teardown(self, stage: Optional[str] = None):
             # Used to clean-up when the run is finished
@@ -127,10 +133,6 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             self.data_dir = data_dir
             self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-            # Setting default dims here because we know them.
-            # Could optionally be assigned dynamically in dm.setup()
-            self.dims = (1, 28, 28)
-
         def prepare_data(self):
             # download
             MNIST(self.data_dir, train=True, download=True)
@@ -143,15 +145,12 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
                 mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
 
-                # Optionally...
-                # self.dims = tuple(self.mnist_train[0][0].shape)
-
             # Assign test dataset for use in dataloader(s)
             if stage == "test" or stage is None:
                 self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
-                # Optionally...
-                # self.dims = tuple(self.mnist_test[0][0].shape)
+            if stage == "predict" or stage is None:
+                self.mnist_predict = MNIST(self.data_dir, train=False, transform=self.transform)
 
         def train_dataloader(self):
             return DataLoader(self.mnist_train, batch_size=32)
@@ -162,25 +161,27 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=32)
 
+        def predict_dataloader(self):
+            return DataLoader(self.mnist_predict, batch_size=32)
+
 ---------------
 
 LightningDataModule API
 -----------------------
-To define a DataModule define 5 methods:
+To define a DataModule the following methods are needed:
 
-- prepare_data (how to download(), tokenize, etc...)
-- setup (how to split, etc...)
-- train_dataloader
-- val_dataloader(s)
-- test_dataloader(s)
-
-and optionally one or multiple predict_dataloader(s).
+- :meth:`pytorch_lightning.core.hooks.DataHooks.prepare_data` (how to download(), tokenize, etc...)
+- :meth:`pytorch_lightning.core.hooks.DataHooks.setup` (how to split, define dataset, etc...)
+- :meth:`pytorch_lightning.core.hooks.DataHooks.train_dataloader`
+- :meth:`pytorch_lightning.core.hooks.DataHooks.val_dataloader`
+- :meth:`pytorch_lightning.core.hooks.DataHooks.test_dataloader`
+- :meth:`pytorch_lightning.core.hooks.DataHooks.predict_dataloader`
 
 
 prepare_data
 ^^^^^^^^^^^^
 Use this method to do things that might write to disk or that need to be done only from a single process in distributed
-settings.
+setting.
 
 - download
 - tokenize
@@ -195,7 +196,7 @@ settings.
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
 
-.. warning:: ``prepare_data`` is called from a single process (e.g. GPU 0). Do not use it to assign state (`self.x = y`).
+.. warning:: ``prepare_data`` is called from a single process (e.g. GPU 0). It is not recommended to assign state here (``self.x = y``).
 
 
 setup
@@ -205,6 +206,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
+- create datasets
 - apply transforms (defined explicitly in your datamodule)
 - etc...
 
@@ -220,25 +222,25 @@ There are also data operations you might want to perform on every GPU. Use setup
             if stage in (None, "fit"):
                 mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
-                self.dims = self.mnist_train[0][0].shape
 
             # Assign Test split(s) for use in Dataloaders
             if stage in (None, "test"):
                 self.mnist_test = MNIST(self.data_dir, train=False, download=True, transform=self.transform)
-                self.dims = getattr(self, "dims", self.mnist_test[0][0].shape)
 
 
-:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` expects an ``stage: Optional[str]`` argument.
-It is used to separate setup logic for ``trainer.{fit,validate,test}``. If ``setup`` is called with ``stage = None``,
+:meth:`~pytorch_lightning.core.hooks.DataHooks.setup` expects a ``stage`` argument.
+It is used to separate setup logic for ``trainer.{fit,validate,test,predict}``. If ``setup`` is called with ``stage=None``,
 we assume all stages have been set-up.
 
-.. note:: ``setup`` is called from every process. Setting state here is okay.
-.. note:: ``teardown`` can be used to clean up the state. It is also called from every process
+.. note:: :meth:`pytorch_lightning.core.hooks.DataHooks.setup` is called from every process. Setting state here is okay.
+.. note:: :meth:`pytorch_lightning.core.hooks.DataHooks.teardown` can be used to clean up the state. It is also called from every process
 
 
 train_dataloader
 ^^^^^^^^^^^^^^^^
-Use this method to generate the train dataloader. Usually you just wrap the dataset you defined in ``setup``.
+Use the :meth:`pytorch_lightning.core.hooks.DataHooks.train_dataloader` method to generate the train dataloader(s).
+Usually you just wrap the dataset you defined in ``setup``. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` method uses.
 
 .. code-block:: python
 
@@ -252,7 +254,9 @@ Use this method to generate the train dataloader. Usually you just wrap the data
 
 val_dataloader
 ^^^^^^^^^^^^^^
-Use this method to generate the val dataloader. Usually you just wrap the dataset you defined in ``setup``.
+Use the :meth:`pytorch_lightning.core.hooks.DataHooks.val_dataloader` method to generate the val dataloader(s).
+Usually you just wrap the dataset you defined in ``setup``. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` methods uses.
 
 .. code-block:: python
 
@@ -264,11 +268,11 @@ Use this method to generate the val dataloader. Usually you just wrap the datase
             return DataLoader(self.mnist_val, batch_size=64)
 
 
-.. _datamodule-test-dataloader-label:
-
 test_dataloader
 ^^^^^^^^^^^^^^^
-Use this method to generate the test dataloader. Usually you just wrap the dataset you defined in ``setup``.
+Use the :meth:`pytorch_lightning.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
+Usually you just wrap the dataset you defined in ``setup``. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method uses.
 
 .. code-block:: python
 
@@ -282,7 +286,8 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
 
 predict_dataloader
 ^^^^^^^^^^^^^^^^^^
-Returns a special dataloader for inference. This is the dataloader that the Trainer
+Use the :meth:`pytorch_lightning.core.hooks.DataHooks.predict_dataloader` method to generate the predict dataloader(s).
+Usually you just wrap the dataset you defined in ``setup``. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
 
 .. code-block:: python
@@ -292,76 +297,62 @@ Returns a special dataloader for inference. This is the dataloader that the Trai
 
     class MNISTDataModule(pl.LightningDataModule):
         def predict_dataloader(self):
-            return DataLoader(self.mnist_test, batch_size=64)
+            return DataLoader(self.mnist_predict, batch_size=64)
 
 
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Override to define how you want to move an arbitrary batch to a device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
-so that you can add different logic as per your requirement.
 
-.. testcode::
-
-    class MNISTDataModule(LightningDataModule):
-        def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            x = batch["x"]
-            x = CustomDataWrapper(x)
-            batch["x"] = x.to(device)
-            return batch
-
-
-.. note:: This hook only runs on single GPU training and DDP (no data-parallel).
-
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
+    :noindex:
 
 on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Override to alter or apply augmentations to your batch before it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
-so that you can add different logic as per your requirement.
 
-.. testcode::
-
-    class MNISTDataModule(LightningDataModule):
-        def on_before_batch_transfer(self, batch, dataloader_idx):
-            batch["x"] = transforms(batch["x"])
-            return batch
-
-
-.. note:: This hook only runs on single GPU training and DDP (no data-parallel).
-
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_before_batch_transfer
+    :noindex:
 
 on_after_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^
-Override to alter or apply augmentations to your batch after it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting/sanity_checking``
-so that you can add different logic as per your requirement.
 
-.. testcode::
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_after_batch_transfer
+    :noindex:
 
-    class MNISTDataModule(LightningDataModule):
-        def on_after_batch_transfer(self, batch, dataloader_idx):
-            batch["x"] = gpu_transforms(batch["x"])
-            return batch
+on_load_checkpoint
+~~~~~~~~~~~~~~~~~~
 
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint
+    :noindex:
 
-.. note::
-    This hook only runs on single GPU training and DDP (no data-parallel). This hook
-    will also be called when using CPU device, so adding augmentations here or in
-    ``on_before_batch_transfer`` means the same thing.
+on_save_checkpoint
+~~~~~~~~~~~~~~~~~~
 
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
+    :noindex:
 
+on_train_dataloader
+~~~~~~~~~~~~~~~~~~~
 
-.. note:: To decouple your data from transforms you can parametrize them via ``__init__``.
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_train_dataloader
+    :noindex:
 
-.. code-block:: python
+on_val_dataloader
+~~~~~~~~~~~~~~~~~
 
-    class MNISTDataModule(pl.LightningDataModule):
-        def __init__(self, train_transforms, val_transforms, test_transforms):
-            super().__init__()
-            self.train_transforms = train_transforms
-            self.val_transforms = val_transforms
-            self.test_transforms = test_transforms
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_val_dataloader
+    :noindex:
+
+on_test_dataloader
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_test_dataloader
+    :noindex:
+
+on_predict_dataloader
+~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.on_predict_dataloader
+    :noindex:
 
 
 ------------------
@@ -375,12 +366,14 @@ The recommended way to use a DataModule is simply:
 
     dm = MNISTDataModule()
     model = Model()
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
     trainer.test(datamodule=dm)
+    trainer.validate(datamodule=dm)
+    trainer.predict(datamodule=dm)
 
 If you need information from the dataset to build your model, then run
-:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data` and
-:meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` manually (Lightning ensures
+:meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` and
+:meth:`~pytorch_lightning.core.hooks.DataHooks.setup` manually (Lightning ensures
 the method runs on the correct devices).
 
 .. code-block:: python
@@ -413,6 +406,7 @@ You can of course use DataModules in plain PyTorch code as well.
     # use data
     for batch in dm.train_dataloader():
         ...
+
     for batch in dm.val_dataloader():
         ...
 
@@ -444,4 +438,8 @@ Like LightningModules, DataModules support hyperparameters with the same API.
             super().__init__()
             self.save_hyperparameters()
 
-Refer to `save_hyperparameters` in :doc:`lightning module <../common/lightning_module>` for more details.
+        def configure_optimizers(self):
+            # access the saved hyperparameters
+            opt = optim.Adam(self.parameters(), lr=self.hparams.lr)
+
+Refer to ``save_hyperparameters`` in :doc:`lightning module <../common/lightning_module>` for more details.
