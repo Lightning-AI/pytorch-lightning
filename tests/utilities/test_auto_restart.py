@@ -1256,13 +1256,9 @@ class StatefulRandomSampler(RandomSampler):
 
 
 class StatefulRandomDataset(RandomDataset):
-
-    provide_workers_id = False
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.counter = 0
-        self.provide_workers_id = False
 
     def __getitem__(self, index):
         self.counter += 1
@@ -1270,7 +1266,7 @@ class StatefulRandomDataset(RandomDataset):
 
     def state_dict(self):
         info = get_worker_info()
-        if info and self.provide_workers_id:
+        if info:
             return {info.id: {"counter": self.counter}}
         return {"counter": self.counter}
 
@@ -1278,7 +1274,7 @@ class StatefulRandomDataset(RandomDataset):
         self.counter = state_dict["counter"]
 
 
-@pytest.mark.parametrize("num_workers", [2])
+@pytest.mark.parametrize("num_workers", [0, 2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
 
@@ -1298,20 +1294,11 @@ def test_stateful_workers(num_workers):
     # This would attach the `data_fetcher` to the DataLoader.
     data_fetcher.setup(dataloader)
 
-    dataloader_iter = iter(dataloader)
+    data_fetcher_iter = iter(data_fetcher)
+
+    dataloader_iter = data_fetcher.dataloader_iter
     worker_type = _SingleProcessDataLoaderIterStateful if num_workers == 0 else _MultiProcessingDataLoaderIterStateful
     assert isinstance(dataloader_iter, worker_type)
-
-    if num_workers == 2:
-        with pytest.raises(MisconfigurationException, match="The state_dict returned by"):
-            data_fetcher_iter = iter(data_fetcher)
-
-    data_fetcher = DataFetcher()
-    dataset.provide_workers_id = True
-    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset), num_workers=num_workers)
-    data_fetcher.setup(dataloader)
-
-    data_fetcher_iter = iter(data_fetcher)
 
     next(data_fetcher_iter)
     state = data_fetcher.dataloader_iter.state.state
