@@ -146,7 +146,7 @@ class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
 
-    Use `__AcceleratorType` instead.
+    Use `_AcceleratorType` instead.
     """
 
     CPU = "CPU"
