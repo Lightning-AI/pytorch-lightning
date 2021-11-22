@@ -462,7 +462,6 @@ def _capture_metadata_collate(
         }
     """
     data = collate_fn(samples)
-    fault_tolerant_mode
     if not fault_tolerant_mode.is_enabled:
         return data
     metadata = None
@@ -613,7 +612,7 @@ class _SupportsStateDict(Protocol):
         ...
 
 
-class _StatefulMixin:
+class _StatefulDataLoaderIter:
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
     def _reset(self, loader: DataLoader, first_iter: bool = False):
@@ -687,13 +686,13 @@ class _StatefulMixin:
         return batch
 
 
-class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
+class _SingleProcessDataLoaderIterStateful(_StatefulDataLoaderIter, _SingleProcessDataLoaderIter):
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
 
 
-class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
+class _MultiProcessingDataLoaderIterStateful(_StatefulDataLoaderIter, _MultiProcessingDataLoaderIter):
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
