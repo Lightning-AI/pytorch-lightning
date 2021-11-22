@@ -111,8 +111,8 @@ class _LiteModule(DeviceDtypeModuleMixin):
 
 
 def _wrap_init(init: Callable) -> Callable:
-    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom
-    (subclasses)."""
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
+    :class:`~torch.utils.data.DataLoader`."""
 
     @functools.wraps(init)
     def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
