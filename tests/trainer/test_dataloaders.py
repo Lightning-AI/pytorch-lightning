@@ -26,7 +26,7 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
@@ -505,7 +505,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
             assert mocked.call_count == limit_test_batches * len(trainer.test_dataloaders)
 
 
-@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1, "temp"])
+@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = EvalModelTemplate()
@@ -518,10 +518,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
 
-    if fast_dev_run == "temp":
-        with pytest.raises(MisconfigurationException, match="either a bool or an int"):
-            Trainer(**trainer_options)
-    elif fast_dev_run == -1:
+    if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
             Trainer(**trainer_options)
     else:
@@ -768,27 +765,26 @@ def test_auto_add_worker_init_fn():
     """Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used."""
     dataset = Mock()
     dataloader = DataLoader(dataset)
-    trainer = Trainer()
 
     # without pl.seed_everything()
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # with forcefully avoiding it
     seed_everything(0, workers=False)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # when user already has a worker_init_fn
     user_function = _user_worker_init_fn
     dataloader.worker_init_fn = user_function
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is user_function
     dataloader.worker_init_fn = None
 
     # main use case
     seed_everything(0, workers=True)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is not None
 
 
@@ -1276,7 +1272,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # the val dataloader on the first epoch because this only tracks the training epoch
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_epoch=True
+        # This breaks the assumption behind reload_dataloaders_every_n_epochs=True
         call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),
@@ -1466,7 +1462,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
 
 
 def test_request_dataloader(tmpdir):
-    """This test asserts dataloader can be modified and properly set to the trainer."""
+    """This test asserts dataloader can be wrapped."""
 
     class DataLoaderWrapper:
         def __init__(self, loader):
@@ -1480,46 +1476,35 @@ def test_request_dataloader(tmpdir):
         def __next__(self):
             return next(self._iter)
 
-    class DataLoaderFunc:
-        def __init__(self, loader):
-            self.loader = loader
-
-        def __call__(self):
-            return self.loader
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.on_train_dataloader_called = False
             self.on_train_batch_start_called = False
-            self.on_val_dataloader_called = False
             self.on_val_batch_start_called = False
 
-        def on_train_dataloader(self) -> None:
-            loader = self.train_dataloader()
-            self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_train_dataloader_called = True
+        def train_dataloader(self):
+            loader = super().train_dataloader()
+            return DataLoaderWrapper(loader)
 
         def on_train_batch_start(self, batch, batch_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
             self.on_train_batch_start_called = True
 
-        def on_val_dataloader(self) -> None:
-            loader = self.val_dataloader()
-            self.val_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_val_dataloader_called = True
+        def val_dataloader(self):
+            loader = super().val_dataloader()
+            return DataLoaderWrapper(loader)
 
         def on_validation_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
             self.on_val_batch_start_called = True
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+    )
     model = TestModel()
     trainer.fit(model)
     trainer.test(model)
-    assert model.on_train_dataloader_called
     assert model.on_train_batch_start_called
-    assert model.on_val_dataloader_called
     assert model.on_val_batch_start_called
 
 

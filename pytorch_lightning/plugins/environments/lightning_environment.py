@@ -59,6 +59,10 @@ class LightningEnvironment(ClusterEnvironment):
             self._main_port = os.environ.get("MASTER_PORT", find_free_network_port())
         return int(self._main_port)
 
+    @staticmethod
+    def detect() -> bool:
+        return True
+
     def world_size(self) -> int:
         return self._world_size
 

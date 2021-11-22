@@ -86,7 +86,7 @@ class YieldLoop(OptimizerLoop):
         # Here, instead of calling `lightning_module.training_step()`
         # we call next() on the generator!
         training_step_output = next(generator)
-        self.trainer.accelerator.post_training_step()
+        self.trainer.training_type_plugin.post_training_step()
 
         training_step_output = self.trainer._call_hook(
             self.trainer.lightning_module, "training_step_end", training_step_output

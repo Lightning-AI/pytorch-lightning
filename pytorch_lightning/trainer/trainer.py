@@ -53,7 +53,6 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
@@ -75,6 +74,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.argparse import (
+    _defaults_from_env_vars,
     add_argparse_args,
     from_argparse_args,
     parse_argparser,
@@ -162,7 +162,6 @@ class Trainer(
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
@@ -341,12 +340,6 @@ class Trainer(
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
-
-                .. deprecated:: v1.4
-                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
-                    Please use ``reload_dataloaders_every_n_epochs``.
-
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
@@ -515,7 +508,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
 
@@ -592,29 +584,24 @@ class Trainer(
         overfit_batches,
         fast_dev_run,
     ):
-        if not isinstance(fast_dev_run, (bool, int)):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
-            )
-
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
         self.fast_dev_run = fast_dev_run
-        fast_dev_run = int(fast_dev_run)
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
 
         if fast_dev_run:
-            limit_train_batches = fast_dev_run
-            limit_val_batches = fast_dev_run
-            limit_test_batches = fast_dev_run
-            limit_predict_batches = fast_dev_run
-            self.fit_loop.max_steps = fast_dev_run
+            num_batches = int(fast_dev_run)
+            limit_train_batches = num_batches
+            limit_val_batches = num_batches
+            limit_test_batches = num_batches
+            limit_predict_batches = num_batches
+            self.fit_loop.max_steps = num_batches
             self.num_sanity_val_steps = 0
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
@@ -623,7 +610,7 @@ class Trainer(
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+                f" val, test and prediction loop using {num_batches} batch(es)."
             )
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
@@ -632,9 +619,9 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self.determine_data_use_amount(self.overfit_batches)
+        self._determine_data_use_amount(self.overfit_batches)
 
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
+    def _determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
@@ -1618,7 +1605,7 @@ class Trainer(
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self.accelerator.precision_plugin
+        return self.training_type_plugin.precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -1722,7 +1709,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):
@@ -1814,10 +1801,6 @@ class Trainer(
         )
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        return self._progress_bar_callback
-
-    @property
     def progress_bar_dict(self) -> dict:
         """Read-only for progress bar metrics."""
         rank_zero_deprecation(
@@ -1894,6 +1877,15 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
+        """An instance of :class:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase` found in the
+        Trainer.callbacks list, or ``None`` if one doesn't exist."""
+        for c in self.callbacks:
+            if isinstance(c, ProgressBarBase):
+                return c
+        return None
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
