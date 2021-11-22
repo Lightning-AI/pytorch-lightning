@@ -279,7 +279,7 @@ class _FaultTolerantTrainingMode(LightningEnum):
         return self is _FaultTolerantTrainingMode.MANUAL
 
     @classmethod
-    def _detect_fault_tolerant_training_mode(cls) -> "_FaultTolerantTrainingMode":
+    def detect_fault_tolerant_training_mode(cls) -> "_FaultTolerantTrainingMode":
         """This classmethod detects if `Fault Tolerant` is activated and maps its value to
         `_FaultTolerantTrainingMode`."""
         env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()

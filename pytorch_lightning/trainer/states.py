@@ -96,7 +96,7 @@ class TrainerState:
 
     # detect the fault tolerant flag
     _fault_tolerant_mode: _FaultTolerantTrainingMode = field(
-        default_factory=_FaultTolerantTrainingMode._detect_fault_tolerant_training_mode
+        default_factory=_FaultTolerantTrainingMode.detect_fault_tolerant_training_mode
     )
 
     @property
