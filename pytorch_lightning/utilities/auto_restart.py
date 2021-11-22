@@ -32,7 +32,7 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -449,7 +449,9 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
-def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
+def _capture_metadata_collate(
+    samples: List, dataset: Dataset, default_collate: Callable, fault_tolerant_mode: _FaultTolerantMode
+) -> Dict:
     """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or
     :class:`CaptureMapDataset` used in the worker processes. This function gets executed within the worker
     processes. The structure will be:
@@ -462,9 +464,25 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         }
     """
     data = default_collate(samples)
-    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
+    fault_tolerant_mode
+    if not fault_tolerant_mode.is_enabled:
         return data
-    metadata = dataset.state_dict()
+    metadata = None
+    if fault_tolerant_mode.is_automatic:
+        metadata = dataset.state_dict()
+    else:
+        state_dict_fn = getattr(dataset, "state_dict", None)
+        info = get_worker_info()
+        worker_id = info.id if info else 0
+        if state_dict_fn:
+            metadata = state_dict_fn()
+            if worker_id not in metadata:
+                raise MisconfigurationException(
+                    f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
+                )
+        if metadata is None:
+            metadata = {worker_id: {}}
+
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
@@ -493,6 +511,9 @@ def patch_dataloader_iterator(
     as part of the sample and then a special collate function :func:`_capture_metadata_collate`
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
+
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
+        return
 
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
 
@@ -542,7 +563,10 @@ def patch_dataloader_iterator(
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
     dataloader.collate_fn = partial(
-        _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        _capture_metadata_collate,
+        dataset=dataloader.dataset,
+        default_collate=dataloader.collate_fn,
+        fault_tolerant_mode=_FaultTolerantMode.detect_current_mode(),
     )
 
 

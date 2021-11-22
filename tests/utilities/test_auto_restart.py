@@ -35,6 +35,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
@@ -48,7 +49,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -1227,8 +1228,37 @@ def test_is_obj_stateful():
     assert not _is_obj_stateful(obj)
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers():
+    class StatefulRandomSampler(RandomSampler):
+
+        counter = 0
+
+        def state_dict(self):
+            self.counter += 1
+            return {"counter": self.counter}
+
+        def load_state_dict(self, state_dict):
+            self.counter = state_dict["counter"]
+
+    class FailingStatefulRandomDataset(RandomDataset):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.counter = 0
+
+        def __getitem__(self, index):
+            self.counter += 1
+            return super().__getitem__(index)
+
+        def state_dict(self):
+            return {"counter": self.counter}
+
+        def load_state_dict(self, state_dict):
+            self.counter = state_dict["counter"]
+
+    class StatefulRandomDataset(FailingStatefulRandomDataset):
+        def state_dict(self):
+            return {0: {"counter": self.counter}}
 
     seed_everything(42)
 
@@ -1236,7 +1266,7 @@ def test_stateful_workers():
     assert DataLoader._ori_get_iterator is not None
 
     data_fetcher = DataFetcher()
-    dataloader = DataLoader(range(10), shuffle=True)
+    dataloader = DataLoader(FailingStatefulRandomDataset(1, 64), shuffle=True)
 
     with pytest.raises(MisconfigurationException, match="A stateful iterator should be used"):
         iter(dataloader)
@@ -1247,7 +1277,49 @@ def test_stateful_workers():
     dataloader_iter = iter(dataloader)
     assert isinstance(dataloader_iter, _SingleProcessDataLoaderIterStateful)
 
-    batch = next(dataloader_iter)
-    print(batch)
+    with pytest.raises(MisconfigurationException, match="he state_dict returned by"):
+        next(dataloader_iter)
+
+    data_fetcher = DataFetcher()
+    dataset = StatefulRandomDataset(1, 64)
+    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset))
+
+    # This would attach the `data_fetcher` to the DataLoader.
+    data_fetcher.setup(dataloader)
+    data_fetcher_iter = iter(data_fetcher)
+
+    next(data_fetcher_iter)
+    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 1}}
+    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 1}
+    next(data_fetcher_iter)
+    assert data_fetcher.dataloader_iter.previous_state.state[0].dataset_state == {0: {"counter": 1}}
+    assert data_fetcher.dataloader_iter.previous_state.state[0].sampler_state["sampler"] == {"counter": 1}
+    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 2}}
+    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 2}
+    next(data_fetcher_iter)
+    assert data_fetcher.dataloader_iter.previous_state.state[0].dataset_state == {0: {"counter": 2}}
+    assert data_fetcher.dataloader_iter.previous_state.state[0].sampler_state["sampler"] == {"counter": 2}
+    assert data_fetcher.dataloader_iter.state.state[0].dataset_state == {0: {"counter": 3}}
+    assert data_fetcher.dataloader_iter.state.state[0].sampler_state["sampler"] == {"counter": 3}
 
     _teardown_dataloader_get_iterators()
+
+
+def test_fault_tolerant_mode_enum():
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
+        assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
+        assert not TrainerState()._fault_tolerant_mode.is_enabled
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
+        assert _FaultTolerantMode.AUTOMATIC == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_automatic
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "MANUAL"}):
+        assert _FaultTolerantMode.MANUAL == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_manual
+
+    with pytest.raises(
+        MisconfigurationException, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
+    ):
+        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
+            _FaultTolerantMode.detect_current_mode()
