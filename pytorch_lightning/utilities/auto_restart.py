@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -579,6 +580,18 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
 
+def _is_obj_stateful(obj: Any) -> bool:
+    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
+    load_state_dict_fn = getattr(obj, "load_state_dict", None)
+    if not isinstance(load_state_dict_fn, Callable):
+        return False
+    params = inspect.signature(load_state_dict_fn).parameters
+    if len(params) == 0:
+        return False
+
+    return isinstance(getattr(obj, "state_dict", None), Callable)
+
+
 class _StatefulMixin:
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
@@ -600,7 +613,7 @@ class _StatefulMixin:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict() for k, v in self._loader.__dict__.items() if is_obj_stateful(v) and k != "dataset"
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if _is_obj_stateful(v) and k != "dataset"
         }
 
         self.__accumulate_state(sampler_state)

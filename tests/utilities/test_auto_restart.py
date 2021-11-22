@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _is_obj_stateful,
     _patch_dataloader_get_iterators,
     _SingleProcessDataLoaderIterStateful,
     _teardown_dataloader_get_iterators,
@@ -1195,6 +1196,35 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_is_obj_stateful():
+    class StatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self, state_dict):
+            pass
+
+    obj = StatefulClass()
+    assert _is_obj_stateful(obj)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self):
+            pass
+
+    obj = NotStatefulClass()
+    assert not _is_obj_stateful(obj)
+
+    class NotStatefulClass:
+        def load_state_dict(self):
+            pass
+
+    obj = NotStatefulClass()
+    assert not _is_obj_stateful(obj)
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
