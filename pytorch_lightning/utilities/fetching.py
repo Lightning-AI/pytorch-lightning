@@ -28,6 +28,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _patch_dataloader_get_iterators,
+    _teardown_dataloader_get_iterators,
     IteratorState,
     MergedIteratorState,
     patch_dataloader_iterator,
@@ -100,6 +101,8 @@ class AbstractDataFetcher(ABC):
         if self.profiler is not None and stage is None:
             raise MisconfigurationException("When providing a profiler, the stage should be provided too.")
 
+        self._attach_data_fetcher()
+
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
         if not isinstance(dataloader, (DataLoader, CombinedLoader)):
@@ -132,16 +135,6 @@ class AbstractDataFetcher(ABC):
                 patch_dataloader_iterator(loader, iterator, self)
 
         apply_to_collections(self.loaders, self.loader_iters, (Iterator, DataLoader), _apply_patch_fn)
-
-    def _attach_data_fetcher(self):
-        def _attach_data_fetcher_fn(loader: DataLoader):
-            if isinstance(loader, CycleIterator):
-                loader = loader.loader
-
-            if isinstance(loader, DataLoader) and _fault_tolerant_training():
-                loader._lightning_fetcher = self
-
-        apply_to_collection(self.loaders, (DataLoader, CycleIterator), _attach_data_fetcher_fn)
 
     def _store_dataloader_iter_state(
         self, dataloader_iter: Iterator, dataloader_iter_states: List[IteratorState]
@@ -201,6 +194,16 @@ class AbstractDataFetcher(ABC):
 
         return apply_to_collection(self.loader_iters, Iterator, collect_state)
 
+    def _attach_data_fetcher(self):
+        def _attach_data_fetcher_fn(loader: DataLoader):
+            if isinstance(loader, CycleIterator):
+                loader = loader.loader
+
+            if isinstance(loader, DataLoader) and _fault_tolerant_training():
+                loader._lightning_fetcher = self
+
+        apply_to_collection(self.loaders, (DataLoader, CycleIterator), _attach_data_fetcher_fn)
+
     def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
@@ -227,6 +230,7 @@ class AbstractDataFetcher(ABC):
         if isinstance(self.dataloader, DataLoader):
             CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
         self.dataloader_iter = None
+        _teardown_dataloader_get_iterators()
 
 
 class DataFetcher(AbstractDataFetcher):

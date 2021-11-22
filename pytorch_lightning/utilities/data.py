@@ -24,8 +24,9 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -36,17 +37,18 @@ warning_cache = WarningCache()
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, torch.Tensor):
-        yield batch.size(0)
-    elif isinstance(batch, str):
-        yield len(batch)
-    elif isinstance(batch, (Iterable, Mapping)):
+        if batch.ndim == 0:
+            yield 1
+        else:
+            yield batch.size(0)
+    elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
 
         for sample in batch:
             yield from _extract_batch_size(sample)
     else:
-        yield 1
+        yield None
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -55,16 +57,26 @@ def extract_batch_size(batch: BType) -> int:
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
+    error_msg = (
+        "We could not infer the batch_size from the batch. Either simplify its structure"
+        " or provide the batch_size as `self.log(..., batch_size=batch_size)`."
+    )
     batch_size = None
-    for bs in _extract_batch_size(batch):
-        if batch_size is None:
-            batch_size = bs
-        elif batch_size != bs:
-            warning_cache.warn(
-                "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
-                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
-            )
-            break
+    try:
+        for bs in _extract_batch_size(batch):
+            if batch_size is None:
+                batch_size = bs
+            elif batch_size != bs:
+                warning_cache.warn(
+                    "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                    f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+                )
+                break
+    except RecursionError:
+        raise RecursionError(error_msg)
+
+    if batch_size is None:
+        raise MisconfigurationException(error_msg)
 
     return batch_size
 
@@ -173,8 +185,6 @@ def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[
 def _get_dataloader_init_kwargs(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
-    from pytorch_lightning.utilities.auto_restart import _apply_fault_tolerant_automatic_capture_dataset_wrapper
-
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
@@ -237,7 +247,7 @@ def _get_dataloader_init_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
 
-    if _fault_tolerant_training_mode().is_automatic:
+    if _FaultTolerantMode.detect_current_mode().is_automatic:
         dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
 
     return dl_kwargs
