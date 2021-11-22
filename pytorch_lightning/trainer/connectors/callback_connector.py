@@ -216,6 +216,8 @@ class CallbackConnector:
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
     ) -> Optional[ProgressBarBase]:
 
+        refresh_rate = refresh_rate or 1
+
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -229,7 +231,7 @@ class CallbackConnector:
                     "Trainer was configured with `enable_progress_bar=False`"
                     f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
                 )
-        elif (refresh_rate is None or refresh_rate > 0) and enable_progress_bar:
+        elif refresh_rate > 0 and enable_progress_bar:
             progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
             self.trainer.callbacks.append(progress_bar_callback)
         else:

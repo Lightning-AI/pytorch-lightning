@@ -26,6 +26,7 @@ else:
     from tqdm import tqdm as _tqdm
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
+from pytorch_lightning.utilities.distributed import rank_zero_debug
 
 _PAD_SIZE = 5
 
@@ -118,11 +119,12 @@ class TQDMProgressBar(ProgressBarBase):
         return state
 
     @staticmethod
-    def _resolve_refresh_rate(refresh_rate: Optional[int]) -> int:
-        if os.getenv("COLAB_GPU") and refresh_rate in [None, 1]:
+    def _resolve_refresh_rate(refresh_rate: int) -> int:
+        if os.getenv("COLAB_GPU") and refresh_rate == 1:
             # smaller refresh rate on colab causes crashes, choose a higher value
+            rank_zero_debug("Using a higher refresh rate on Colab. Setting it to `20`")
             refresh_rate = 20
-        return 1 if refresh_rate is None else refresh_rate
+        return refresh_rate
 
     @property
     def refresh_rate(self) -> int:
