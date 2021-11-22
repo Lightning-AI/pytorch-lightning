@@ -900,7 +900,7 @@ def test_disabled_validation(tmpdir):
 
 
 def test_disable_validation_when_overfit_batches_larger_than_zero(tmpdir):
-    """Verify that when `overfit_batches` > 0,  there will be no validation"""
+    """Verify that when `overfit_batches` > 0,  there will be no validation."""
 
     class CurrentModel(EvalModelTemplate):
 
