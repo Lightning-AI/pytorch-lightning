@@ -28,11 +28,12 @@ from torch.utils.data.dataloader import (
     DataLoader,
     IterableDataset,
 )
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _fault_tolerant_training_mode
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -456,8 +457,10 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
     return {"num_workers": num_workers, "previous_worker": previous_worker}
 
 
-def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
-    """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or
+def _capture_metadata_collate(
+    samples: List, dataset: Dataset, collate_fn: Callable, fault_tolerant_mode: _FaultTolerantMode
+) -> Any:
+    """A collate_fn function that adds the state dict of a :class:`CaptureIterableDataset` or
     :class:`CaptureMapDataset` used in the worker processes. This function gets executed within the worker
     processes. The structure will be:
 
@@ -468,12 +471,11 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    data = default_collate(samples)
-    mode = _fault_tolerant_training_mode()
-    if not mode.is_enabled:
+    data = collate_fn(samples)
+    if not fault_tolerant_mode.is_enabled:
         return data
     metadata = None
-    if mode.is_automatic:
+    if fault_tolerant_mode.is_automatic:
         metadata = dataset.state_dict()
     else:
         state_dict_fn = getattr(dataset, "state_dict", None)
@@ -482,9 +484,11 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
         if state_dict_fn:
             metadata = state_dict_fn()
             if worker_id not in metadata:
-                raise MisconfigurationException(
-                    f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
-                )
+                if info and info.num_workers > 1:
+                    raise MisconfigurationException(
+                        f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
+                    )
+                metadata = {0: metadata}
         if metadata is None:
             metadata = {worker_id: {}}
 
@@ -558,8 +562,10 @@ def patch_dataloader_iterator(
     as part of the sample and then a special collate function :func:`_capture_metadata_collate`
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
-    if not _fault_tolerant_training_mode().is_automatic:
+
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
         return
+
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
     iterator._next_data = _next_data_wrapper(
         iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
@@ -569,7 +575,10 @@ def patch_dataloader_iterator(
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
     dataloader.collate_fn = partial(
-        _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        _capture_metadata_collate,
+        dataset=dataloader.dataset,
+        collate_fn=dataloader.collate_fn,
+        fault_tolerant_mode=_FaultTolerantMode.detect_current_mode(),
     )
 
 
@@ -604,7 +613,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         )
 
     else:
-        if _fault_tolerant_training_mode().is_automatic:
+        if _FaultTolerantMode.detect_current_mode().is_automatic:
             raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
 
         latest_worker_id = state_dict["latest_worker_id"]
@@ -631,7 +640,18 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
 
-class _StatefulMixin:
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
+class _StatefulDataLoaderIter:
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
     def _reset(self, loader: DataLoader, first_iter: bool = False):
@@ -652,7 +672,9 @@ class _StatefulMixin:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict() for k, v in self._loader.__dict__.items() if is_obj_stateful(v) and k != "dataset"
+            k: v.state_dict()
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _SupportsStateDict) and k != "dataset"
         }
 
         self.__accumulate_state(sampler_state)
@@ -664,14 +686,16 @@ class _StatefulMixin:
 
     def _prepare_loader(self, loader):
         if not isinstance(loader.collate_fn, partial):
-            loader.collate_fn = partial(
-                _capture_metadata_collate, dataset=loader.dataset, default_collate=loader.collate_fn
-            )
+            loader.collate_fn = partial(_capture_metadata_collate, dataset=loader.dataset, collate_fn=loader.collate_fn)
         self._loader = loader
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
+        self.num_batches_fetched = 0
+        self._sampler_state = []
+        self._sampler_state_idx = 0
 
     def __del__(self) -> None:
         if isinstance(self._loader.collate_fn, partial):
-            self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
+            self._loader.collate_fn = self._loader.collate_fn.keywords["collate_fn"]
 
     def _next_data(self) -> Any:
         combined_batch = super()._next_data()
@@ -699,23 +723,23 @@ class _StatefulMixin:
         return batch
 
 
-class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
+class _SingleProcessDataLoaderIterStateful(_StatefulDataLoaderIter, _SingleProcessDataLoaderIter):
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
-        self.num_batches_fetched = 0
 
 
-class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
+class _MultiProcessingDataLoaderIterStateful(_StatefulDataLoaderIter, _MultiProcessingDataLoaderIter):
     def __init__(self, loader: DataLoader):
         self._prepare_loader(loader)
         super().__init__(loader)
-        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
-        self.num_batches_fetched = 0
 
 
 def _get_iterator(self) -> "_BaseDataLoaderIter":
+    if not hasattr(self, "_lightning_fetcher"):
+        raise MisconfigurationException(
+            "A stateful iterator should be used only when a DataFetcher has been attached to the DataLoader."
+        )
     if self.num_workers == 0:
         return _SingleProcessDataLoaderIterStateful(self)
     else:
@@ -726,10 +750,9 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
 
 def _patch_dataloader_get_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
-    if _fault_tolerant_training_mode().is_manual:
-        if not hasattr(DataLoader, "_ori_get_iterator"):
-            DataLoader._ori_get_iterator = DataLoader._get_iterator
-        DataLoader._get_iterator = _get_iterator
+    if not hasattr(DataLoader, "_ori_get_iterator"):
+        DataLoader._ori_get_iterator = DataLoader._get_iterator
+    DataLoader._get_iterator = _get_iterator
 
 
 def _teardown_dataloader_get_iterators() -> None:

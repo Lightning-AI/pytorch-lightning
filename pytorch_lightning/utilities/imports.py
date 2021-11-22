@@ -14,7 +14,6 @@
 """General utilities."""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -24,8 +23,6 @@ import pkg_resources
 import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
-
-import pytorch_lightning as pl
 
 
 def _module_available(module_path: str) -> bool:
@@ -87,7 +84,7 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.grou
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
@@ -111,12 +108,8 @@ else:
     _IPU_AVAILABLE = False
 
 
-def _fault_tolerant_training_mode() -> "pl.utilities.enums.FaultTolerantTrainingMode":
-    from pytorch_lightning.utilities.enums import FaultTolerantTrainingMode
-
-    return FaultTolerantTrainingMode(os.getenv("PL_FAULT_TOLERANT_TRAINING", "0"))
-
-
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _fault_tolerant_training_mode().is_enabled
+    from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+    return _FaultTolerantMode.detect_current_mode().is_enabled

@@ -39,10 +39,6 @@ class DDPShardedPlugin(DDPPlugin):
     distributed_backend = _StrategyType.DDP_SHARDED
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._precision = None
-
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
         if "reduce_buffer_size" not in self._ddp_kwargs:
@@ -75,8 +71,7 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    precision = self._precision or self.precision_plugin.precision
-                    is_fp16 = precision in ("mixed", 16)
+                    is_fp16 = self.precision_plugin.precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.

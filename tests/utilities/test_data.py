@@ -12,6 +12,7 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 
 
@@ -19,18 +20,19 @@ def test_extract_batch_size():
     """Tests the behavior of extracting the batch size."""
 
     def _check_warning_not_raised(data, expected):
-        with pytest.warns(None) as record:
+        with no_warning_call(match="Trying to infer the `batch_size`"):
             assert extract_batch_size(data) == expected
-        assert len(record) == 0
 
     def _check_warning_raised(data, expected):
         with pytest.warns(UserWarning, match=f"Trying to infer the `batch_size` .* we found is {expected}."):
             assert extract_batch_size(batch) == expected
         warning_cache.clear()
 
-    batch = "test string"
-    _check_warning_not_raised(batch, 11)
+    def _check_error_raised(data):
+        with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
+            extract_batch_size(batch)
 
+    # Warning not raised
     batch = torch.zeros(11, 10, 9, 8)
     _check_warning_not_raised(batch, 11)
 
@@ -43,6 +45,10 @@ def test_extract_batch_size():
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
 
+    # Warning raised
+    batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
+    _check_warning_raised(batch, 1)
+
     batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
     _check_warning_raised(batch, 11)
 
@@ -51,6 +57,20 @@ def test_extract_batch_size():
 
     batch = [{"test": torch.zeros(10, 10), "test_1": torch.zeros(11, 10)}]
     _check_warning_raised(batch, 10)
+
+    # Error raised
+    batch = "test string"
+    _check_error_raised(batch)
+
+    data = {"test": ["some text"] * 7}
+    _check_error_raised(data)
+
+    class CustomBatch:
+        def __init__(self):
+            self.x = torch.randn(7, 2)
+
+    data = CustomBatch()
+    _check_error_raised(data)
 
 
 def test_has_iterable_dataset():
