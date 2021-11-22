@@ -46,6 +46,7 @@ class FastForwardSampler(Sampler):
         self._sampler = sampler
         self.restarting: bool = False
         self._current_iteration = 0
+        self._counter = 0
         self._dataloader_batch_size: Optional[int] = None
         self._cached_state_dict: Optional[Dict[int, Any]] = None
         self._attr_name = attr_name
@@ -69,32 +70,39 @@ class FastForwardSampler(Sampler):
         return worker_info.id if worker_info else 0
 
     def __iter__(self) -> Iterator[Any]:
+        self.sampler_iter = iter(self._sampler)
         self._current_iteration = 0
+        self._counter = 0
+        return self
+
+    def __next__(self):
         # the `state dict` was cached as workers were unavailable before.
         if self._cached_state_dict is not None:
             self._load_non_random_state(self._cached_state_dict)
 
-        i = 0
-        sampler_iter = iter(self._sampler)
-        while i < self._current_iteration:
-            next(sampler_iter)
-            i += 1
+        while self._counter < self._current_iteration:
+            next(self.sampler_iter)
+            self._counter += 1
 
         # here: i == self._current_iteration
         if self._cached_state_dict is not None:
             self._cached_state_dict = None
 
         # recreate iterator to be sure loading is reflected there as well
-        while True:
-            self._current_iteration += 1
-            try:
-                yield next(sampler_iter)
-            except StopIteration:
-                break
+        self._current_iteration += 1
+        self._counter += 1
+        has_raised = False
+        try:
+            return next(self.sampler_iter)
+        except StopIteration:
+            has_raised = True
 
         self._current_iteration = 0
+        self._counter = 0
         self._cached_state_dict = None
         self.restarting = False
+        if has_raised:
+            raise StopIteration
 
     def __len__(self) -> int:
         return len(self._sampler)
@@ -297,9 +305,6 @@ class CaptureIterableDataset(IterableDataset):
         # access wrapped dataset attributes
         dataset_dict = self.dataset.__dict__
 
-        # create a tuple of sampler names
-        samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
-
         # create a dictionary of generator present within the dataset attributes
         dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
@@ -310,31 +315,17 @@ class CaptureIterableDataset(IterableDataset):
             if isinstance(generator, Sampler):
                 continue
 
-            # used to handle a weird behaviour from PyTorch 1.6
-            # where the sampler is converted to a list_iterator
-            is_legacy = False
+            # wrap the generator into a `FastForwardSampler`
+            sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
-            if isinstance(generator, Generator):
-                # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split(".")[0]
-            else:
-                # assume the retrieved iterator is coming from sampler.
-                is_legacy = True
+            # if `CaptureIterableDataset` was available, the sampler should reload its own state.
+            if self._state_dict is not None:
+                sampler.load_state_dict(self._state_dict[generator_attr_name])
+            # store the samplers
+            self.samplers[generator_attr_name] = sampler
 
-            # validate the base generator name matches a sampler name.
-            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
-
-                # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
-
-                # if `CaptureIterableDataset` was available, the sampler should reload its own state.
-                if self._state_dict is not None:
-                    sampler.load_state_dict(self._state_dict[generator_attr_name])
-                # store the samplers
-                self.samplers[generator_attr_name] = sampler
-
-                # replace generator with the generator from the `FastForwardSampler`.
-                dataset_dict[generator_attr_name] = iter(sampler)
+            # replace generator with the generator from the `FastForwardSampler`.
+            dataset_dict[generator_attr_name] = iter(sampler)
 
         self.reset_on_epoch()
 

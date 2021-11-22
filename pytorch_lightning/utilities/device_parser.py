@@ -16,6 +16,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -48,6 +49,20 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     return root_gpu
 
 
+def _parse_devices(
+    gpus: Optional[Union[List[int], str, int]],
+    auto_select_gpus: bool,
+    tpu_cores: Optional[Union[List[int], str, int]],
+) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+    if auto_select_gpus and isinstance(gpus, int):
+        gpus = pick_multiple_gpus(gpus)
+
+    # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+    gpu_ids = parse_gpu_ids(gpus)
+    tpu_cores = parse_tpu_cores(tpu_cores)
+    return gpu_ids, tpu_cores
+
+
 def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
@@ -70,7 +85,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or isinstance(gpus, int) and gpus == 0 or str(gpus).strip() == "0":
+    if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() in ("0", "[]"):
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -79,7 +94,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
-    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+    if TorchElasticEnvironment.detect() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
 
@@ -89,7 +104,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     return _sanitize_gpu_ids(gpus)
 
 
-def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, List[int]]]:
+def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.

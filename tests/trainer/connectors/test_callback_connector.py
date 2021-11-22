@@ -22,7 +22,8 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
+    ProgressBarBase,
+    TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from tests.helpers import BoringModel
@@ -33,9 +34,9 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
     model_summary = ModelSummary()
-    early_stopping = EarlyStopping()
+    early_stopping = EarlyStopping(monitor="foo")
     lr_monitor = LearningRateMonitor()
-    progress_bar = ProgressBar()
+    progress_bar = TQDMProgressBar()
 
     # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
@@ -143,16 +144,20 @@ def test_attach_model_callbacks():
     def _attach_callbacks(trainer_callbacks, model_callbacks):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
+        has_progress_bar = any(isinstance(cb, ProgressBarBase) for cb in trainer_callbacks + model_callbacks)
         trainer = Trainer(
-            checkpoint_callback=False, enable_progress_bar=False, weights_summary=None, callbacks=trainer_callbacks
+            enable_checkpointing=False,
+            enable_progress_bar=has_progress_bar,
+            enable_model_summary=False,
+            callbacks=trainer_callbacks,
         )
         trainer.model = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         return trainer
 
-    early_stopping = EarlyStopping()
-    progress_bar = ProgressBar()
+    early_stopping = EarlyStopping(monitor="foo")
+    progress_bar = TQDMProgressBar()
     lr_monitor = LearningRateMonitor()
     grad_accumulation = GradientAccumulationScheduler({1: 1})
 
@@ -166,14 +171,19 @@ def test_attach_model_callbacks():
 
     # same callback type twice, different instance
     trainer = _attach_callbacks(
-        trainer_callbacks=[progress_bar, EarlyStopping()],
+        trainer_callbacks=[progress_bar, EarlyStopping(monitor="foo")],
         model_callbacks=[early_stopping],
     )
     assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping]
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
-        trainer_callbacks=[LearningRateMonitor(), EarlyStopping(), LearningRateMonitor(), EarlyStopping()],
+        trainer_callbacks=[
+            LearningRateMonitor(),
+            EarlyStopping(monitor="foo"),
+            LearningRateMonitor(),
+            EarlyStopping(monitor="foo"),
+        ],
         model_callbacks=[early_stopping, lr_monitor],
     )
     assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping, lr_monitor]
@@ -183,9 +193,9 @@ def test_attach_model_callbacks():
         trainer_callbacks=[
             LearningRateMonitor(),
             progress_bar,
-            EarlyStopping(),
+            EarlyStopping(monitor="foo"),
             LearningRateMonitor(),
-            EarlyStopping(),
+            EarlyStopping(monitor="foo"),
         ],
         model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
     )
@@ -195,8 +205,10 @@ def test_attach_model_callbacks():
 def test_attach_model_callbacks_override_info(caplog):
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = LightningModule()
-    model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping()]
-    trainer = Trainer(checkpoint_callback=False, callbacks=[EarlyStopping(), LearningRateMonitor(), ProgressBar()])
+    model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping(monitor="foo")]
+    trainer = Trainer(
+        enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
+    )
     trainer.model = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):

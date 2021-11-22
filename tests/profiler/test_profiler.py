@@ -22,11 +22,11 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel, ManualOptimBoringModel
@@ -52,9 +52,8 @@ def simple_profiler():
     return SimpleProfiler()
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
@@ -67,9 +66,8 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -127,13 +125,50 @@ def test_simple_profiler_log_dir(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True)
+def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
+    """Ensure the profiler dirpath defaults to `trainer.log_dir`and creates it when not present."""
+    nonexisting_tmpdir = tmpdir / "nonexisting"
+
+    profiler = SimpleProfiler(filename="profiler")
+    assert profiler._log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
+    trainer.fit(model)
+
+    expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
+    assert expected.exists()
+    assert trainer.log_dir == expected
+    assert profiler._log_dir == trainer.log_dir
+    assert expected.join("fit-profiler.txt").exists()
+
+
+def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
+    """Ensure the profiler creates non-existing dirpath."""
+    nonexisting_tmpdir = tmpdir / "nonexisting"
+
+    profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
+    assert profiler._log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+    )
+    trainer.fit(model)
+
+    assert nonexisting_tmpdir.exists()
+    assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
+
+
+@RunIf(skip_windows=True, skip_49370=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, accelerator="ddp_cpu", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -151,7 +186,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
         trainer.fit(model)
         trainer.test(model)
 
@@ -163,9 +198,8 @@ def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
@@ -179,9 +213,8 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
-@pytest.mark.parametrize(
-    ["action", "expected"], [pytest.param("a", [3, 1]), pytest.param("b", [2]), pytest.param("c", [1])]
-)
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
@@ -194,6 +227,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
 
 
+@pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
@@ -255,7 +289,9 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", stochastic_weight_avg=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+    )
     trainer.fit(model)
 
 
@@ -270,7 +306,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         limit_train_batches=5,
         limit_val_batches=5,
         profiler=pytorch_profiler,
-        accelerator="ddp",
+        strategy="ddp",
         gpus=2,
     )
     trainer.fit(model)
@@ -293,10 +329,11 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         files = [file for file in files if file.endswith(".json")]
         assert len(files) == 2, files
         local_rank = trainer.local_rank
-        assert any(f"{local_rank}-optimizer_step_and_closure_" in f for f in files)
+        assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
+@RunIf(special=True)
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
@@ -360,8 +397,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
     names = {"a", "b", "c"}
     ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
-    if _TORCH_GREATER_EQUAL_1_7:
-        ops = {"aten::" + op for op in ops}
+    ops = {"aten::" + op for op in ops}
 
     expected = names.union(ops)
     assert events_name == expected, (events_name, torch.__version__, platform.system())

@@ -33,7 +33,7 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
@@ -114,8 +114,14 @@ class ModelCheckpoint(Callback):
             guaranteed to execute at the exact time specified, but should be close.
             This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_epochs``.
         every_n_epochs: Number of epochs between checkpoints.
-            If ``every_n_epochs == None or every_n_epochs == 0``, we skip saving when the epoch ends.
-            To disable, set ``every_n_epochs = 0``. This value must be ``None`` or non-negative.
+            This value must be ``None`` or non-negative.
+            To disable saving after each epoch, set ``every_n_epochs = 0``.
+            If all of ``every_n_epochs``, ``every_n_train_steps`` and
+            ``train_time_interval`` are ``None``, we save a checkpoint at the end of every epoch
+            (equivalent to ``every_n_epochs = 1``).
+            If ``every_n_epochs == None`` and either ``every_n_train_steps != None`` or ``train_time_interval != None``,
+            saving at the end of each epoch is disabled
+            (equivalent to ``every_n_epochs = 0``).
             This must be mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``.
             Setting both ``ModelCheckpoint(..., every_n_epochs=V, save_on_train_epoch_end=False)`` and
             ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
@@ -123,13 +129,6 @@ class ModelCheckpoint(Callback):
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
-        every_n_val_epochs: Number of epochs between checkpoints.
-
-            .. warning::
-               This argument has been deprecated in v1.4 and will be removed in v1.6.
-
-            Use ``every_n_epochs`` instead.
-
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -147,7 +146,7 @@ class ModelCheckpoint(Callback):
 
     Raises:
         MisconfigurationException:
-            If ``save_top_k`` is neither ``None`` nor more than or equal to ``-1``,
+            If ``save_top_k`` is smaller than ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
             if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
@@ -215,7 +214,6 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-        every_n_val_epochs: Optional[int] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -233,13 +231,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
-
-        if every_n_val_epochs is not None:
-            rank_zero_deprecation(
-                "`ModelCheckpoint(every_n_val_epochs)` is deprecated in v1.4 and will be removed in v1.6."
-                " Please use `every_n_epochs` instead."
-            )
-            every_n_epochs = every_n_val_epochs
 
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
@@ -279,7 +270,6 @@ class ModelCheckpoint(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         if self._should_skip_saving_checkpoint(trainer):
@@ -304,9 +294,7 @@ class ModelCheckpoint(Callback):
 
         self.save_checkpoint(trainer)
 
-    def on_train_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
-    ) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
         # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
         trainer.fit_loop.global_step -= 1
@@ -430,11 +418,7 @@ class ModelCheckpoint(Callback):
                     f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                     " configuration. No quantity for top_k to track."
                 )
-            if self.save_last:
-                rank_zero_warn(
-                    "ModelCheckpoint(save_last=True, save_top_k=None, monitor=None) is a redundant configuration."
-                    " You can save the last checkpoint with ModelCheckpoint(save_top_k=None, monitor=None)."
-                )
+
             if self.save_top_k == -1 and self.save_last:
                 rank_zero_info(
                     "ModelCheckpoint(save_last=True, save_top_k=-1, monitor=None)"
@@ -541,7 +525,9 @@ class ModelCheckpoint(Callback):
 
         return filename
 
-    def format_checkpoint_name(self, metrics: Dict[str, _METRIC], ver: Optional[int] = None) -> str:
+    def format_checkpoint_name(
+        self, metrics: Dict[str, _METRIC], filename: Optional[str] = None, ver: Optional[int] = None
+    ) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -556,6 +542,8 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.12), filename='{epoch:d}'))
+            'epoch=2.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
             ... auto_insert_metric_name=False)
@@ -568,9 +556,8 @@ class ModelCheckpoint(Callback):
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(step=0)))
             'step=0.ckpt'
         """
-        filename = self._format_checkpoint_name(
-            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name
-        )
+        filename = filename or self.filename
+        filename = self._format_checkpoint_name(filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name)
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
@@ -614,7 +601,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
+        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
@@ -657,9 +644,7 @@ class ModelCheckpoint(Callback):
         if not self.save_last:
             return
 
-        filepath = self._format_checkpoint_name(self.CHECKPOINT_NAME_LAST, monitor_candidates)
-        filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
-
+        filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.last_model_path and self.last_model_path != filepath:
@@ -707,7 +692,7 @@ class ModelCheckpoint(Callback):
 
         # do not save nan, replace with +/- inf
         if isinstance(current, torch.Tensor) and torch.isnan(current):
-            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"))
+            current = torch.tensor(float("inf" if self.mode == "min" else "-inf"), device=current.device)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)
 

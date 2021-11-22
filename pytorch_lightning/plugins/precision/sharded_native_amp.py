@@ -11,25 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Optional, Union
+
+import torch
 
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
 
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
-    """Mixed Precision for Sharded Training."""
+    """Native AMP for Sharded Training."""
 
-    def __init__(self, precision: Union[int, str] = 16, use_cpu: bool = False) -> None:
-        super().__init__(precision, use_cpu=use_cpu)
-        if not self.use_cpu:
-            self.scaler = ShardedGradScaler()
-
-    def clip_grad_by_norm(
-        self, optimizer: "OSS", clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
+    def __init__(
+        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
-        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
+        if not _FAIRSCALE_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for sharded AMP but you have not installed it."
+                " Install `fairscale` using this guide: https://https://github.com/facebookresearch/fairscale"
+            )
+        super().__init__(precision, device, scaler=scaler or ShardedGradScaler())
+
+    def clip_grad_by_norm(self, optimizer: "OSS", clip_val: Union[int, float]) -> None:
+        optimizer.clip_grad_norm(clip_val)

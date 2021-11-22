@@ -533,7 +533,7 @@ Or multiple nodes
 
     # (32 GPUs)
     model = LitMNIST()
-    trainer = Trainer(gpus=8, num_nodes=4, accelerator="ddp")
+    trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
 Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
@@ -883,7 +883,7 @@ but it can be overridden to add any processing logic.
             imgs = self.decoder(z)
             return imgs
 
-        def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             return self(batch)
 
 

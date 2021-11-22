@@ -27,7 +27,6 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
-    _NATIVE_AMP_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -61,7 +60,6 @@ class RunIf:
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
-        amp_native: bool = False,
         tpu: bool = False,
         ipu: bool = False,
         horovod: bool = False,
@@ -72,6 +70,7 @@ class RunIf:
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
+        skip_49370: bool = False,
         **kwargs,
     ):
         """
@@ -83,7 +82,6 @@ class RunIf:
             min_python: minimum python version required to run test
             quantization: if `torch.quantization` package is required to run test
             amp_apex: NVIDIA Apex is installed
-            amp_native: if native PyTorch native AMP is supported
             tpu: if TPU is available
             ipu: if IPU is available
             horovod: if Horovod is installed
@@ -94,6 +92,7 @@ class RunIf:
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
+            skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -123,10 +122,6 @@ class RunIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
-        if amp_native:
-            conditions.append(not _NATIVE_AMP_AVAILABLE)
-            reasons.append("native AMP")
-
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
@@ -155,6 +150,8 @@ class RunIf:
             env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
             conditions.append(env_flag != "1")
             reasons.append("Special execution")
+            # used in tests/conftest.py::pytest_collection_modifyitems
+            kwargs["special"] = True
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
@@ -171,6 +168,15 @@ class RunIf:
         if rich:
             conditions.append(not _RICH_AVAILABLE)
             reasons.append("Rich")
+
+        if skip_49370:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            ge_3_9 = Version(py_version) >= Version("3.9")
+            torch_version = get_distribution("torch").version
+            old_torch = Version(torch_version) < Version("1.8")
+            conditions.append(ge_3_9 and old_torch)
+            reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

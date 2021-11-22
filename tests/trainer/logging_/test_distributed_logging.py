@@ -59,19 +59,19 @@ class TestModel(BoringModel):
         assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_all_rank_logging_ddp_cpu(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
     trainer = Trainer(
-        accelerator="ddp_cpu",
+        strategy="ddp_spawn",
         num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
         logger=all_rank_logger,
         log_every_n_steps=1,
     )
@@ -85,14 +85,14 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     all_rank_logger = AllRankLogger()
     model.training_epoch_end = None
     trainer = Trainer(
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
         logger=all_rank_logger,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

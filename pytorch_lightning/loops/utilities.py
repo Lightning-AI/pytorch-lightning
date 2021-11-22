@@ -114,7 +114,7 @@ def _build_training_step_kwargs(
     return step_kwargs
 
 
-def _prepare_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
+def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
     """Attach the dataloader."""
     if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
         # restore iteration
@@ -168,3 +168,16 @@ def _get_active_optimizers(
     # find optimizer index by looking for the first {item > current_place} in the cumsum list
     opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
     return [(opt_idx, optimizers[opt_idx])]
+
+
+def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
+    """Check if the limit has been reached (if enabled).
+
+    Args:
+        current: the current value
+        maximum: the maximum value (or -1 to disable limit)
+
+    Returns:
+        bool: whether the limit has been reached
+    """
+    return maximum != -1 and current >= maximum

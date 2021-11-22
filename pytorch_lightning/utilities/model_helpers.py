@@ -12,26 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Optional, Type, Union
+from typing import Optional, Type
 from unittest.mock import Mock
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_deprecation
 
 
-def is_overridden(
-    method_name: str,
-    instance: Optional[object] = None,
-    parent: Optional[Type[object]] = None,
-    model: Optional[Union["pl.LightningModule", "pl.LightningDataModule"]] = None,
-) -> bool:
-    if model is not None and instance is None:
-        rank_zero_deprecation(
-            "`is_overriden(model=...)` has been deprecated and will be removed in v1.6."
-            "Please use `is_overriden(instance=...)`"
-        )
-        instance = model
-
+def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         # if `self.lightning_module` was passed as instance, it can be `None`
         return False
@@ -64,10 +51,4 @@ def is_overridden(
     if parent_attr is None:
         raise ValueError("The parent should define the method")
 
-    # cannot pickle `__code__` so cannot verify if `PatchDataloader`
-    # exists which shows dataloader methods have been overwritten.
-    # so, we hack it by using the string representation
-    instance_code = getattr(instance_attr, "patch_loader_code", None) or instance_attr.__code__
-    parent_code = parent_attr.__code__
-
-    return instance_code != parent_code
+    return instance_attr.__code__ != parent_attr.__code__

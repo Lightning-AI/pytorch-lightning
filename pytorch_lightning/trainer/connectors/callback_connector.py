@@ -20,9 +20,9 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBar,
     ProgressBarBase,
     RichProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
@@ -38,12 +38,14 @@ class CallbackConnector:
     def on_trainer_init(
         self,
         callbacks: Optional[Union[List[Callback], Callback]],
-        checkpoint_callback: bool,
+        checkpoint_callback: Optional[bool],
+        enable_checkpointing: bool,
         enable_progress_bar: bool,
         progress_bar_refresh_rate: Optional[int],
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
+        enable_model_summary: bool,
         weights_summary: Optional[str],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
@@ -52,6 +54,12 @@ class CallbackConnector:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
+        if stochastic_weight_avg:
+            rank_zero_deprecation(
+                "Setting `Trainer(stochastic_weight_avg=True)` is deprecated in v1.5 and will be removed in v1.7."
+                " Please pass `pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`"
+                " directly to the Trainer's `callbacks` argument instead."
+            )
         self.trainer._stochastic_weight_avg = stochastic_weight_avg
 
         # init callbacks
@@ -61,7 +69,7 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self._configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback, enable_checkpointing)
 
         # configure swa callback
         self._configure_swa_callbacks()
@@ -74,27 +82,22 @@ class CallbackConnector:
         if process_position != 0:
             rank_zero_deprecation(
                 f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
 
         if progress_bar_refresh_rate is not None:
             rank_zero_deprecation(
                 f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.ProgressBar` with"
+                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
                 " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
                 " bar pass `enable_progress_bar = False` to the Trainer."
             )
 
-        if enable_progress_bar:
-            self.trainer._progress_bar_callback = self.configure_progress_bar(
-                progress_bar_refresh_rate, process_position
-            )
-        else:
-            self.trainer._progress_bar_callback = None
+        self.configure_progress_bar(progress_bar_refresh_rate, process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
-        self._configure_model_summary_callback(weights_summary)
+        self._configure_model_summary_callback(enable_model_summary, weights_summary)
 
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
@@ -134,42 +137,69 @@ class CallbackConnector:
         self.trainer.accumulate_grad_batches = grad_accum_callback.get_accumulate_grad_batches(0)
         self.trainer.accumulation_scheduler = grad_accum_callback
 
-    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
-        # TODO: Remove this error in v1.5 so we rely purely on the type signature
-        if not isinstance(checkpoint_callback, bool):
-            error_msg = (
-                "Invalid type provided for checkpoint_callback:"
-                f" Expected bool but received {type(checkpoint_callback)}."
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: Optional[bool], enable_checkpointing: bool) -> None:
+        if checkpoint_callback is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will "
+                f"be removed in v1.7. Please consider using `Trainer(enable_checkpointing={checkpoint_callback})`."
             )
-            if isinstance(checkpoint_callback, Callback):
-                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
-            raise MisconfigurationException(error_msg)
-        if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
+            # if both are set then checkpoint only if both are True
+            enable_checkpointing = checkpoint_callback and enable_checkpointing
+
+        if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
             raise MisconfigurationException(
-                "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint in callbacks list."
+                "Trainer was configured with `enable_checkpointing=False`"
+                " but found `ModelCheckpoint` in callbacks list."
             )
 
-        if not self._trainer_has_checkpoint_callbacks() and checkpoint_callback is True:
+        if not self._trainer_has_checkpoint_callbacks() and enable_checkpointing is True:
             self.trainer.callbacks.append(ModelCheckpoint())
 
-    def _configure_model_summary_callback(self, weights_summary: Optional[str] = None) -> None:
-        if any(isinstance(cb, ModelSummary) for cb in self.trainer.callbacks):
+    def _configure_model_summary_callback(
+        self, enable_model_summary: bool, weights_summary: Optional[str] = None
+    ) -> None:
+        if weights_summary is None:
+            rank_zero_deprecation(
+                "Setting `Trainer(weights_summary=None)` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please set `Trainer(enable_model_summary=False)` instead."
+            )
             return
-        if weights_summary is not None:
+        if not enable_model_summary:
+            return
+
+        model_summary_cbs = [type(cb) for cb in self.trainer.callbacks if isinstance(cb, ModelSummary)]
+        if model_summary_cbs:
+            rank_zero_info(
+                f"Trainer already configured with model summary callbacks: {model_summary_cbs}."
+                " Skipping setting a default `ModelSummary` callback."
+            )
+            return
+
+        if weights_summary == "top":
+            # special case the default value for weights_summary to preserve backward compatibility
+            max_depth = 1
+        else:
+            rank_zero_deprecation(
+                f"Setting `Trainer(weights_summary={weights_summary})` is deprecated in v1.5 and will be removed"
+                " in v1.7. Please pass `pytorch_lightning.callbacks.model_summary.ModelSummary` with"
+                " `max_depth` directly to the Trainer's `callbacks` argument instead."
+            )
             if weights_summary not in ModelSummaryMode.supported_types():
                 raise MisconfigurationException(
                     f"`weights_summary` can be None, {', '.join(ModelSummaryMode.supported_types())}",
                     f" but got {weights_summary}",
                 )
             max_depth = ModelSummaryMode.get_max_depth(weights_summary)
-            if self.trainer._progress_bar_callback is not None and isinstance(
-                self.trainer._progress_bar_callback, RichProgressBar
-            ):
-                model_summary = RichModelSummary(max_depth=max_depth)
-            else:
-                model_summary = ModelSummary(max_depth=max_depth)
-            self.trainer.callbacks.append(model_summary)
-            self.trainer.weights_summary = weights_summary
+
+        progress_bar_callback = self.trainer.progress_bar_callback
+        is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
+
+        if progress_bar_callback is not None and is_progress_bar_rich:
+            model_summary = RichModelSummary(max_depth=max_depth)
+        else:
+            model_summary = ModelSummary(max_depth=max_depth)
+        self.trainer.callbacks.append(model_summary)
+        self.trainer._weights_summary = weights_summary
 
     def _configure_swa_callbacks(self):
         if not self.trainer._stochastic_weight_avg:
@@ -181,12 +211,9 @@ class CallbackConnector:
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
-    def configure_progress_bar(self, refresh_rate=None, process_position=0):
-        if os.getenv("COLAB_GPU") and refresh_rate is None:
-            # smaller refresh rate on colab causes crashes, choose a higher value
-            refresh_rate = 20
-        refresh_rate = 1 if refresh_rate is None else refresh_rate
-
+    def configure_progress_bar(
+        self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
+    ) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -194,14 +221,28 @@ class CallbackConnector:
                 " progress bar is supported."
             )
         if len(progress_bars) == 1:
-            progress_bar_callback = progress_bars[0]
-        elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position)
-            self.trainer.callbacks.append(progress_bar_callback)
-        else:
-            progress_bar_callback = None
+            # the user specified the progress bar in the callbacks list
+            # so the trainer doesn't need to provide a default one
+            if enable_progress_bar:
+                return
 
-        return progress_bar_callback
+            # otherwise the user specified a progress bar callback but also
+            # elected to disable the progress bar with the trainer flag
+            progress_bar_callback = progress_bars[0]
+            raise MisconfigurationException(
+                "Trainer was configured with `enable_progress_bar=False`"
+                f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
+            )
+
+        # Return early if the user intends to disable the progress bar callback
+        if refresh_rate == 0 or not enable_progress_bar:
+            return
+        if refresh_rate is None:
+            # smaller refresh rate on colab causes crashes, choose a higher value
+            refresh_rate = 20 if os.getenv("COLAB_GPU") else 1
+
+        progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+        self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:

@@ -35,7 +35,7 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
             return delay_dispatch
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=CustomPlugin(device=torch.device("cpu")))
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=CustomPlugin(device=torch.device("cpu")))
     trainer.fit(model)
 
 
@@ -43,7 +43,7 @@ def test_restore_checkpoint_after_pre_dispatch_default():
     """Assert default for restore_checkpoint_after_pre_dispatch is False."""
     plugin = SingleDevicePlugin(torch.device("cpu"))
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
-    assert not accelerator.restore_checkpoint_after_pre_dispatch
+    assert not accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch
     assert not plugin.restore_checkpoint_after_pre_dispatch
 
 
@@ -77,13 +77,11 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
     accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
 
-    assert accelerator.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+    assert accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
-    )
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True)
+    trainer.fit(model, ckpt_path=checkpoint_path)
     for func in (trainer.test, trainer.validate, trainer.predict):
         accelerator.training_type_plugin.predispatched_called = False
         func(model, ckpt_path=checkpoint_path)

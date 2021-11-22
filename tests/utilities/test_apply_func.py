@@ -13,8 +13,9 @@
 # limitations under the License.
 import dataclasses
 import numbers
-from collections import namedtuple, OrderedDict
-from typing import List
+from collections import defaultdict, namedtuple, OrderedDict
+from dataclasses import InitVar
+from typing import Any, ClassVar, List, Optional
 
 import numpy as np
 import pytest
@@ -31,11 +32,86 @@ def test_recursive_application_to_collection():
         input_ids: torch.Tensor
         segment_ids: np.ndarray
 
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, Feature):
+                return NotImplemented
+            else:
+                return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
+
     @dataclasses.dataclass
     class ModelExample:
         example_ids: List[str]
         feature: Feature
         label: torch.Tensor
+        some_constant: int = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.some_constant = 7
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, ModelExample):
+                return NotImplemented
+            else:
+                return (
+                    self.example_ids == o.example_ids
+                    and self.feature == o.feature
+                    and torch.equal(self.label, o.label)
+                    and self.some_constant == o.some_constant
+                )
+
+    @dataclasses.dataclass
+    class WithClassVar:
+        class_var: ClassVar[int] = 0
+        dummy: Any
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithClassVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
+
+    @dataclasses.dataclass
+    class WithInitVar:
+        dummy: Any
+        override: InitVar[Optional[Any]] = None
+
+        def __post_init__(self, override: Optional[Any]):
+            if override is not None:
+                self.dummy = override
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithInitVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
+
+    @dataclasses.dataclass
+    class WithClassAndInitVar:
+        class_var: ClassVar[torch.Tensor] = torch.tensor(0)
+        dummy: Any
+        override: InitVar[Optional[Any]] = torch.tensor(1)
+
+        def __post_init__(self, override: Optional[Any]):
+            if override is not None:
+                self.dummy = override
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, WithClassAndInitVar):
+                return NotImplemented
+            elif isinstance(self.dummy, torch.Tensor):
+                return torch.equal(self.dummy, o.dummy)
+            else:
+                return self.dummy == o.dummy
+
+    model_example = ModelExample(
+        example_ids=["i-1", "i-2", "i-3"],
+        feature=Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0])),
+        label=torch.tensor([7.0, 8.0, 9.0]),
+    )
 
     to_reduce = {
         "a": torch.tensor([1.0]),  # Tensor
@@ -46,12 +122,17 @@ def test_recursive_application_to_collection():
         "f": "this_is_a_dummy_str",  # string
         "g": 12.0,  # number
         "h": Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0])),  # dataclass
-        "i": ModelExample(
-            example_ids=["i-1", "i-2", "i-3"],
-            feature=Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0])),
-            label=torch.tensor([7.0, 8.0, 9.0]),
-        ),  # nested dataclass
+        "i": model_example,  # nested dataclass
+        "j": WithClassVar(torch.arange(3)),  # dataclass with class variable
+        "k": WithInitVar("this_gets_overridden", torch.tensor([2.0])),  # dataclass with init-only variable
+        "l": WithClassAndInitVar(model_example, None),  # nested dataclass with class and init-only variables
     }
+
+    model_example_result = ModelExample(
+        example_ids=["i-1", "i-2", "i-3"],
+        feature=Feature(input_ids=torch.tensor([2.0, 4.0, 6.0]), segment_ids=np.array([8.0, 10.0, 12.0])),
+        label=torch.tensor([14.0, 16.0, 18.0]),
+    )
 
     expected_result = {
         "a": torch.tensor([2.0]),
@@ -62,32 +143,31 @@ def test_recursive_application_to_collection():
         "f": "this_is_a_dummy_str",
         "g": 24.0,
         "h": Feature(input_ids=torch.tensor([2.0, 4.0, 6.0]), segment_ids=np.array([8.0, 10.0, 12.0])),
-        "i": ModelExample(
-            example_ids=["i-1", "i-2", "i-3"],
-            feature=Feature(input_ids=torch.tensor([2.0, 4.0, 6.0]), segment_ids=np.array([8.0, 10.0, 12.0])),
-            label=torch.tensor([14.0, 16.0, 18.0]),
-        ),
+        "i": model_example_result,
+        "j": WithClassVar(torch.arange(0, 6, 2)),
+        "k": WithInitVar(torch.tensor([4.0])),
+        "l": WithClassAndInitVar(model_example_result, None),
     }
 
     reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray), lambda x: x * 2)
 
-    assert isinstance(reduced, dict), " Type Consistency of dict not preserved"
+    assert isinstance(reduced, dict), "Type Consistency of dict not preserved"
     assert all(x in reduced for x in to_reduce), "Not all entries of the dict were preserved"
     assert all(
         isinstance(reduced[k], type(expected_result[k])) for k in to_reduce
     ), "At least one type was not correctly preserved"
 
     assert isinstance(reduced["a"], torch.Tensor), "Reduction Result of a Tensor should be a Tensor"
-    assert torch.allclose(expected_result["a"], reduced["a"]), "Reduction of a tensor does not yield the expected value"
+    assert torch.equal(expected_result["a"], reduced["a"]), "Reduction of a tensor does not yield the expected value"
 
     assert isinstance(reduced["b"], list), "Reduction Result of a list should be a list"
     assert all(
-        torch.allclose(x, y) for x, y in zip(reduced["b"], expected_result["b"])
+        torch.equal(x, y) for x, y in zip(reduced["b"], expected_result["b"])
     ), "At least one value of list reduction did not come out as expected"
 
     assert isinstance(reduced["c"], tuple), "Reduction Result of a tuple should be a tuple"
     assert all(
-        torch.allclose(x, y) for x, y in zip(reduced["c"], expected_result["c"])
+        torch.equal(x, y) for x, y in zip(reduced["c"], expected_result["c"])
     ), "At least one value of tuple reduction did not come out as expected"
 
     assert isinstance(reduced["d"], ntc), "Type Consistency for named tuple not given"
@@ -105,34 +185,30 @@ def test_recursive_application_to_collection():
     assert isinstance(reduced["g"], numbers.Number), "Reduction of a number should result in a number"
     assert reduced["g"] == expected_result["g"], "Reduction of a number did not yield the desired result"
 
-    assert dataclasses.is_dataclass(reduced["h"]) and not isinstance(
-        reduced["h"], type
-    ), "Reduction of a dataclass should result in a dataclass"
-    assert torch.allclose(
-        reduced["h"].input_ids, expected_result["h"].input_ids
-    ), "Reduction of a dataclass did not yield the desired result"
-    assert np.allclose(
-        reduced["h"].segment_ids, expected_result["h"].segment_ids
-    ), "Reduction of a dataclass did not yield the desired result"
+    def _assert_dataclass_reduction(actual, expected, dataclass_type: str = ""):
+        assert dataclasses.is_dataclass(actual) and not isinstance(
+            actual, type
+        ), f"Reduction of a {dataclass_type} dataclass should result in a dataclass"
+        for field in dataclasses.fields(actual):
+            if dataclasses.is_dataclass(field.type):
+                _assert_dataclass_reduction(getattr(actual, field.name), getattr(expected, field.name), "nested")
+        assert actual == expected, f"Reduction of a {dataclass_type} dataclass did not yield the desired result"
 
-    assert dataclasses.is_dataclass(reduced["i"]) and not isinstance(
-        reduced["i"], type
-    ), "Reduction of a dataclass should result in a dataclass"
-    assert dataclasses.is_dataclass(reduced["i"].feature) and not isinstance(
-        reduced["i"].feature, type
-    ), "Reduction of a nested dataclass should result in a nested dataclass"
-    assert (
-        reduced["i"].example_ids == expected_result["i"].example_ids
-    ), "Reduction of a nested dataclass did not yield the desired result"
-    assert torch.allclose(
-        reduced["i"].label, expected_result["i"].label
-    ), "Reduction of a nested dataclass did not yield the desired result"
-    assert torch.allclose(
-        reduced["i"].feature.input_ids, expected_result["i"].feature.input_ids
-    ), "Reduction of a nested dataclass did not yield the desired result"
-    assert np.allclose(
-        reduced["i"].feature.segment_ids, expected_result["i"].feature.segment_ids
-    ), "Reduction of a nested dataclass did not yield the desired result"
+    _assert_dataclass_reduction(reduced["h"], expected_result["h"])
+
+    _assert_dataclass_reduction(reduced["i"], expected_result["i"])
+
+    dataclass_type = "ClassVar-containing"
+    _assert_dataclass_reduction(reduced["j"], expected_result["j"], dataclass_type)
+    assert WithClassVar.class_var == 0, f"Reduction of a {dataclass_type} dataclass should not change the class var"
+
+    _assert_dataclass_reduction(reduced["k"], expected_result["k"], "InitVar-containing")
+
+    dataclass_type = "Class-and-InitVar-containing"
+    _assert_dataclass_reduction(reduced["l"], expected_result["l"], dataclass_type)
+    assert torch.equal(
+        WithClassAndInitVar.class_var, torch.tensor(0)
+    ), f"Reduction of a {dataclass_type} dataclass should not change the class var"
 
     # mapping support
     reduced = apply_to_collection({"a": 1, "b": 2}, int, lambda x: str(x))
@@ -148,6 +224,11 @@ def test_recursive_application_to_collection():
     to_reduce = _CustomCollection({"a": 1, "b": 2, "c": 3})
     reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
     assert reduced == _CustomCollection({"a": "1", "b": "2", "c": "3"})
+
+    # defaultdict
+    to_reduce = defaultdict(int, {"a": 1, "b": 2, "c": 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == defaultdict(int, {"a": "1", "b": "2", "c": "3"})
 
 
 def test_apply_to_collection_include_none():

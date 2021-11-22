@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import set_random_master_port
+from tests.helpers.utils import set_random_main_port
 
 
 class SyncBNModule(LightningModule):
@@ -70,7 +70,7 @@ class SyncBNModule(LightningModule):
 @RunIf(min_gpus=2, special=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
-    set_random_master_port()
+    set_random_main_port()
 
     # define datamodule and dataloader
     dm = MNISTDataModule()
@@ -114,13 +114,12 @@ def test_sync_batchnorm_ddp(tmpdir):
         default_root_dir=tmpdir,
         gpus=2,
         num_nodes=1,
-        accelerator="ddp_spawn",
+        strategy=ddp,
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
-        plugins=[ddp],
     )
 
     trainer.fit(model, dm)

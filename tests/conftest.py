@@ -14,15 +14,15 @@
 import os
 import sys
 import threading
-from functools import partial, wraps
+from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 
 import pytest
 import torch.distributed
-import torch.multiprocessing as mp
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -53,6 +53,7 @@ def restore_env_variables():
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
     allowlist = {
+        "CUBLAS_WORKSPACE_CONFIG",  # enabled with deterministic flag
         "CUDA_DEVICE_ORDER",
         "LOCAL_RANK",
         "NODE_RANK",
@@ -66,8 +67,15 @@ def restore_env_variables():
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
         # set by XLA
+        "TF2_BEHAVIOR",
         "XRT_MESH_SERVICE_ADDRESS",
         "XRT_TORCH_DIST_ROOT",
+        "XRT_MULTI_PROCESSING_DEVICE",
+        "XRT_SHARD_WORLD_SIZE",
+        "XRT_LOCAL_WORKER",
+        "XRT_HOST_WORLD_SIZE",
+        "XRT_SHARD_ORDINAL",
+        "XRT_SHARD_LOCAL_ORDINAL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -81,19 +89,29 @@ def teardown_process_group():
         torch.distributed.destroy_process_group()
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "spawn: spawn test in a separate process using torch.multiprocessing.spawn")
+@pytest.fixture(scope="function", autouse=True)
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    if _TORCH_GREATER_EQUAL_1_8:
+        torch.use_deterministic_algorithms(False)
+    else:
+        torch.set_deterministic(False)
 
 
-@pytest.mark.tryfirst
-def pytest_pyfunc_call(pyfuncitem):
-    if pyfuncitem.get_closest_marker("spawn"):
-        testfunction = pyfuncitem.obj
-        funcargs = pyfuncitem.funcargs
-        testargs = tuple(funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames)
+@pytest.fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
-        mp.spawn(wraps, (testfunction, testargs))
-        return True
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    propagate = lightning_logger.propagate
+    lightning_logger.propagate = True
+    yield caplog
+    lightning_logger.propagate = propagate
 
 
 @pytest.fixture
@@ -151,3 +169,16 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+def pytest_collection_modifyitems(items):
+    if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") != "1":
+        return
+    # filter out non-special tests
+    items[:] = [
+        item
+        for item in items
+        for marker in item.own_markers
+        # has `@RunIf(special=True)`
+        if marker.name == "skipif" and marker.kwargs.get("special")
+    ]

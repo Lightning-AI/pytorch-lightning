@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 import pytest
-import torch
 
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
@@ -23,14 +22,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 def test_loops_state_dict():
     trainer = Trainer()
-    trainer.train_dataloader = Mock()
 
     fit_loop = FitLoop()
     with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
         fit_loop.trainer = object()
 
     fit_loop.trainer = trainer
-    fit_loop.connect(Mock())
     state_dict = fit_loop.state_dict()
 
     new_fit_loop = FitLoop()
@@ -46,7 +43,7 @@ def test_loops_state_dict_structure():
     state_dict = trainer.checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
-            "state_dict": {"dataloader_state_dict": ANY},
+            "state_dict": {},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -79,16 +76,19 @@ def test_loops_state_dict_structure():
             "epoch_loop.val_loop.epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "epoch_loop.val_loop._results": {
+                "batch": None,
+                "batch_size": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
             "epoch_loop._results": {
+                "batch": None,
+                "batch_size": None,
                 "training": True,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
@@ -104,10 +104,12 @@ def test_loops_state_dict_structure():
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "_results": {
+                "batch": None,
+                "batch_size": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
@@ -119,10 +121,12 @@ def test_loops_state_dict_structure():
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                "is_last_batch": False,
             },
             "_results": {
+                "batch": None,
+                "batch_size": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },

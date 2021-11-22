@@ -507,7 +507,7 @@ For research, LightningModules are best structured as systems.
             reconstruction_loss = nn.functional.mse_loss(recons, x)
             self.log("val_reconstruction", reconstruction_loss)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             x, _ = batch
 
             # encode
@@ -617,7 +617,7 @@ In the case where you want to scale your inference, you should be using
         def forward(self, x):
             return self.decoder(x)
 
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             # this calls forward
             return self(batch)
 
@@ -667,7 +667,7 @@ For cases like production, you might want to iterate different models inside a L
             acc = FM.accuracy(y_hat, y)
             return loss, acc
 
-        def predict_step(self, batch, batch_idx, dataloader_idx):
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
             x, y = batch
             y_hat = self.model(x)
 
@@ -1167,14 +1167,14 @@ for more information.
 
         on_train_start()
         for epoch in epochs:
-            train_loop()
+            fit_loop()
         on_train_end()
 
         on_fit_end()
         teardown("fit")
 
 
-    def train_loop():
+    def fit_loop():
         on_epoch_start()
         on_train_epoch_start()
 
@@ -1195,6 +1195,7 @@ for more information.
             on_after_backward()
 
             on_before_optimizer_step()
+            configure_gradient_clipping()
             optimizer_step()
 
             on_train_batch_end()
@@ -1450,6 +1451,12 @@ on_before_optimizer_step
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_optimizer_step
+    :noindex:
+
+configure_gradient_clipping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping
     :noindex:
 
 optimizer_step

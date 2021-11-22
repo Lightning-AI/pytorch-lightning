@@ -15,7 +15,7 @@ import torch
 from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import _StrategyType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
@@ -67,7 +67,7 @@ def run_model_test(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
-    assert change_ratio > 0.1, f"the model is changed of {change_ratio}"
+    assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
@@ -82,7 +82,7 @@ def run_model_test(
             run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
 
     if with_hpc:
-        if trainer._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2):
+        if trainer._distrib_type in (_StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2):
             # on hpc this would work fine... but need to hack it for the purpose of the test
             trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
                 pretrained_model

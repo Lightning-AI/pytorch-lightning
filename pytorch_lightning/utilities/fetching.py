@@ -204,12 +204,16 @@ class AbstractDataFetcher(ABC):
 
     def reset(self) -> None:
         self.batches: List = []
-        self.dataloader: Optional[Iterable]
         self.fetched: int = 0
         self.done: bool = False
 
     def teardown(self) -> None:
         self.reset()
+        if isinstance(self.dataloader, CombinedLoader):
+            self.dataloader.reset()
+        if isinstance(self.dataloader, DataLoader):
+            CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
+        self.dataloader_iter = None
 
 
 class DataFetcher(AbstractDataFetcher):
@@ -305,8 +309,6 @@ class DataFetcher(AbstractDataFetcher):
     def _get_queued_batch(self) -> Tuple[Any, bool]:
         self.wait()
         batch = self.batches.pop(0)
-        if not self.store_on_device:
-            batch = self.move_data_to_device(batch)
         is_last = len(self.batches) == 0
         return batch, is_last
 

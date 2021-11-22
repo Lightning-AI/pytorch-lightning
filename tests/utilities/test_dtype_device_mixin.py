@@ -38,7 +38,7 @@ class TopModule(BoringModel):
 
 
 class DeviceAssertCallback(Callback):
-    def on_train_batch_start(self, trainer, model, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, trainer, model, batch, batch_idx):
         rank = trainer.local_rank
         assert isinstance(model, TopModule)
         # index = None also means first device
@@ -46,10 +46,8 @@ class DeviceAssertCallback(Callback):
         assert model.device == model.module.module.device
 
 
-@pytest.mark.parametrize(
-    ["dst_dtype"], [pytest.param(torch.float), pytest.param(torch.double), pytest.param(torch.half)]
-)
-@pytest.mark.parametrize(["dst_device"], [pytest.param(torch.device("cpu")), pytest.param(torch.device("cuda", 0))])
+@pytest.mark.parametrize("dst_dtype", [torch.float, torch.double, torch.half])
+@pytest.mark.parametrize("dst_device", [torch.device("cpu"), torch.device("cuda", 0)])
 @RunIf(min_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
@@ -69,9 +67,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
 @RunIf(min_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="dp", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, strategy="dp", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1)
     trainer.fit(model)
 
 
@@ -79,17 +75,17 @@ def test_submodules_multi_gpu_dp(tmpdir):
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="ddp_spawn", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1
+        default_root_dir=tmpdir, strategy="ddp_spawn", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1
     )
     trainer.fit(model)
 
 
 @pytest.mark.parametrize(
-    ["device"],
+    "device",
     [
-        pytest.param(None),  # explicitly call without an index to see if the returning device contains an index
-        pytest.param(0),
-        pytest.param(torch.device("cuda", 0)),
+        None,  # explicitly call without an index to see if the returning device contains an index
+        0,
+        torch.device("cuda", 0),
     ],
 )
 @RunIf(min_gpus=1)

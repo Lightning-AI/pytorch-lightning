@@ -31,7 +31,7 @@ def main():
     parser.add_argument("--tmpdir")
     parser.add_argument("--workdir")
     parser.set_defaults(gpus=2)
-    parser.set_defaults(accelerator="ddp")
+    parser.set_defaults(strategy="ddp")
     args = parser.parse_args()
 
     dm = ClassifDataModule()

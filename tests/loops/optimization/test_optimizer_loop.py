@@ -24,7 +24,6 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 def test_closure_result_deepcopy():
@@ -110,6 +109,10 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
+        def training_epoch_end(self, outputs):
+            assert len(outputs[0]) == sum(idx == 0 for idx, _ in expected)
+            assert len(outputs[1]) == sum(idx == 1 for idx, _ in expected)
+
         def configure_optimizers(self):
             opt0 = SGD(self.parameters(), lr=0.1)
             opt1 = Adam(self.parameters(), lr=0.1)
@@ -136,7 +139,6 @@ class CustomException(Exception):
     pass
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (0, 1))
 @pytest.mark.parametrize("stop_batch", (0, 1, 2))
@@ -190,7 +192,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -209,7 +211,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -223,16 +225,15 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
-        resume_from_checkpoint=str(tmpdir / ".pl_auto_save.ckpt"),
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
         limit_val_batches=0,
         num_sanity_val_steps=0,
         logger=False,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))
     weights_resumed = model.parameters()
 
     # check that the final weights of a resumed run match the weights of a run that never failed

@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
     CALLBACK_REGISTRY,
+    DATAMODULE_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
@@ -125,7 +126,7 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         ("--tpu_cores=1,", dict(tpu_cores="1,")),
         ("--limit_train_batches=100", dict(limit_train_batches=100)),
         ("--limit_train_batches 0.8", dict(limit_train_batches=0.8)),
-        ("--weights_summary=null", dict(weights_summary=None)),
+        ("--enable_model_summary FALSE", dict(enable_model_summary=False)),
         (
             "",
             dict(
@@ -133,11 +134,8 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 # with None as default. They should not be changed by the argparse
                 # interface.
                 min_steps=None,
-                max_steps=None,
-                log_gpu_memory=None,
-                distributed_backend=None,
+                accelerator=None,
                 weights_save_path=None,
-                resume_from_checkpoint=None,
                 profiler=None,
             ),
         ),
@@ -202,7 +200,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         ({}, {}),
         (dict(logger=False), {}),
         (dict(logger=False), dict(logger=True)),
-        (dict(logger=False), dict(checkpoint_callback=True)),
+        (dict(logger=False), dict(enable_checkpointing=True)),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
@@ -321,7 +319,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
     class TestModel(BoringModel):
         def on_fit_start(self):
             # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
-            assert isinstance(self.trainer.accelerator_connector._cluster_environment, SLURMEnvironment)
+            assert isinstance(self.trainer._accelerator_connector._cluster_environment, SLURMEnvironment)
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.plugins={json.dumps(plugins)}"]):
@@ -337,7 +335,7 @@ def test_lightning_cli_args(tmpdir):
         f"--data.data_dir={tmpdir}",
         f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
-        "--trainer.weights_summary=null",
+        "--trainer.enable_model_summary=False",
         "--seed_everything=1234",
     ]
 
@@ -350,7 +348,7 @@ def test_lightning_cli_args(tmpdir):
         loaded_config = yaml.safe_load(f.read())
 
     loaded_config = loaded_config["fit"]
-    cli_config = cli.config["fit"]
+    cli_config = cli.config["fit"].as_dict()
 
     assert cli_config["seed_everything"] == 1234
     assert "model" not in loaded_config and "model" not in cli_config  # no arguments to include
@@ -384,7 +382,7 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
         "fit": {
             "model": {"class_path": "tests.helpers.BoringModel"},
             "data": {"class_path": "tests.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
-            "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "weights_summary": None},
+            "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
     config_path = tmpdir / "config.yaml"
@@ -406,7 +404,7 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
         loaded_config = yaml.safe_load(f.read())
 
     loaded_config = loaded_config["fit"]
-    cli_config = cli.config["fit"]
+    cli_config = cli.config["fit"].as_dict()
 
     assert loaded_config["model"] == cli_config["model"]
     assert loaded_config["data"] == cli_config["data"]
@@ -574,20 +572,22 @@ def test_lightning_cli_link_arguments(tmpdir):
 
 class EarlyExitTestModel(BoringModel):
     def on_fit_start(self):
-        raise Exception("Error on fit start")
+        raise MisconfigurationException("Error on fit start")
 
 
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        dict(accelerator="ddp_cpu"),
-        dict(accelerator="ddp_cpu", plugins="ddp_find_unused_parameters_false"),
+        dict(strategy="ddp_spawn"),
+        dict(strategy="ddp"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),
 )
-def test_cli_ddp_spawn_save_config_callback(tmpdir, logger, trainer_kwargs):
-    with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(Exception, match=r"Error on fit start"):
+def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
+    with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
+        MisconfigurationException, match=r"Error on fit start"
+    ):
         LightningCLI(
             EarlyExitTestModel,
             trainer_defaults={
@@ -907,13 +907,72 @@ def test_lightning_cli_model_choices():
     ) as run:
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
-        run.assert_called_once_with(cli.model, ANY, ANY, ANY)
+        run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
 
     with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, TestModel)
         assert cli.model.foo == 123
         assert cli.model.bar == 5
+
+
+@DATAMODULE_REGISTRY
+class MyDataModule(BoringDataModule):
+    def __init__(self, foo, bar=5):
+        super().__init__()
+        self.foo = foo
+        self.bar = bar
+
+
+DATAMODULE_REGISTRY(cls=BoringDataModule)
+
+
+def test_lightning_cli_datamodule_choices():
+    # with set model
+    with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.datamodule, BoringDataModule)
+        run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
+
+    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]):
+        cli = LightningCLI(BoringModel, run=False)
+        assert isinstance(cli.datamodule, MyDataModule)
+        assert cli.datamodule.foo == 123
+        assert cli.datamodule.bar == 5
+
+    # with configurable model
+    with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run:
+        cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
+        assert isinstance(cli.model, BoringModel)
+        assert isinstance(cli.datamodule, BoringDataModule)
+        run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
+
+    with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]):
+        cli = LightningCLI(run=False)
+        assert isinstance(cli.model, BoringModel)
+        assert isinstance(cli.datamodule, MyDataModule)
+
+    assert len(DATAMODULE_REGISTRY)  # needs a value initially added
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, run=False)
+        # data was not passed but we are adding it automatically because there are datamodules registered
+        assert "data" in cli.parser.groups
+        assert not hasattr(cli.parser.groups["data"], "group_class")
+
+    with mock.patch("sys.argv", ["any.py"]), mock.patch.dict(DATAMODULE_REGISTRY, clear=True):
+        cli = LightningCLI(BoringModel, run=False)
+        # no registered classes so not added automatically
+        assert "data" not in cli.parser.groups
+    assert len(DATAMODULE_REGISTRY)  # check state was not modified
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(BoringModel, BoringDataModule, run=False)
+        # since we are passing the DataModule, that's whats added to the parser
+        assert cli.parser.groups["data"].group_class is BoringDataModule
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])

@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -68,7 +67,7 @@ class DoublePrecisionBoringModel(BoringModel):
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert batch.dtype == torch.float64
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
@@ -111,7 +110,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
@@ -137,10 +136,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
     [
         DoublePrecisionBoringModel,
         DoublePrecisionBoringModelNoForward,
-        pytest.param(
-            DoublePrecisionBoringModelComplexBuffer,
-            marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="torch.complex not available"),
-        ),
+        DoublePrecisionBoringModelComplexBuffer,
     ],
 )
 def test_double_precision(tmpdir, boring_model):
@@ -159,7 +155,7 @@ def test_double_precision_ddp(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
         fast_dev_run=2,
         precision=64,

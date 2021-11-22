@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, Optional
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -33,24 +36,38 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedPlugin(DDPPlugin):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    _REDUCE_BUFFER_SIZE_DEFAULT = 2 ** 23  # 8M
+    distributed_backend = _StrategyType.DDP_SHARDED
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._precision = None
 
     def configure_ddp(self) -> None:
-        self._wrap_optimizers()
-
+        trainer = self.lightning_module.trainer
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
-        self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model),
-            sharded_optimizer=self.lightning_module.trainer.optimizers,
-            **self._ddp_kwargs
+        self._model, optimizers = self._setup_model_and_optimizers(
+            model=LightningShardedDataParallel(self.model),
+            optimizers=trainer.optimizers,
         )
-        setattr(self._model, "require_backward_grad_sync", False)
+        trainer.optimizers = optimizers
+        trainer.convert_to_lightning_optimizers()
 
-    def _reinit_optimizers_with_oss(self):
-        optimizers = self.lightning_module.trainer.optimizers
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Wraps the model and optimizers with fairscale components.
+
+        Return:
+            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
+        """
+        optimizers = self._wrap_optimizers(optimizers)
+        model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
+        return model, optimizers
+
+    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
@@ -58,7 +75,7 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    precision = self.lightning_module.trainer.precision
+                    precision = self._precision or self.precision_plugin.precision
                     is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
@@ -66,14 +83,13 @@ class DDPShardedPlugin(DDPPlugin):
                     zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
                 optimizers[x] = zero_optimizer
                 del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
+        return optimizers
 
-    def _wrap_optimizers(self):
-        if self.model.trainer.state.fn != TrainerFn.FITTING:
-            return
-        self._reinit_optimizers_with_oss()
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
+        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
+            return optimizers
+
+        return self._reinit_optimizers_with_oss(optimizers)
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, LightningOptimizer):
