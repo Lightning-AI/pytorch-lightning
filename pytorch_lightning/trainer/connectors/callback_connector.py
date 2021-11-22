@@ -215,7 +215,6 @@ class CallbackConnector:
     def configure_progress_bar(
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
     ) -> Optional[ProgressBarBase]:
-
         refresh_rate = refresh_rate or 1
 
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
