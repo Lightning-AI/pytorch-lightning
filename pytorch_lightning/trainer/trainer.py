@@ -1465,7 +1465,12 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> Optional[Any]:
+        pl_module = self.lightning_module
         output = None
+
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
 
         for callback in self.callbacks:
             if hook_name in ("on_init_start", "on_init_end"):
@@ -1479,6 +1484,10 @@ class Trainer(
                 if callable(fn):
                     with self.profiler.profile(f"{callback.__class__.__name__}.{callback.state_key}.{hook_name}"):
                         output = fn(self, self.lightning_module, *args, **kwargs)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
         return output
 
