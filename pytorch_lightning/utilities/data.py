@@ -60,8 +60,8 @@ def extract_batch_size(batch: BType) -> int:
         "We could not infer the batch_size from the batch. Either simplify its structure"
         " or provide the batch_size as `self.log(..., batch_size=batch_size)`."
     )
+    batch_size = None
     try:
-        batch_size = None
         for bs in _extract_batch_size(batch):
             if batch_size is None:
                 batch_size = bs
