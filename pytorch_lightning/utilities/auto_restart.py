@@ -359,13 +359,6 @@ def _rotate_worker_indices(state, latest_worker_id: int, num_workers: int):
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
 
 
-def is_obj_stateful(obj: Any) -> bool:
-    """In order to be stateful, an object should implement a ``state_dict`` and ``load_state_dict`` method."""
-    return isinstance(getattr(obj, "state_dict", None), Callable) and isinstance(
-        getattr(obj, "load_state_dict", None), Callable
-    )
-
-
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
     """If the ``DataLoader`` is wrapping a mapping based Dataset, return the ``FastForwardSampler``."""
     if isinstance(dataloader.sampler, FastForwardSampler):
@@ -622,7 +615,7 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         if sampler_state:
             for k in sampler_state:
                 obj = getattr(dataloader, k)
-                if not is_obj_stateful(obj):
+                if not isinstance(obj, _SupportsStateDict):
                     raise MisconfigurationException(
                         f"The DataLoader attribute should have a `load_state_dict` method. Found {obj}"
                     )
