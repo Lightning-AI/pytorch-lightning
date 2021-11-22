@@ -28,7 +28,6 @@ from pytorch_lightning.lite.wrappers import (
     _LiteDataLoader,
     _LiteModule,
     _LiteOptimizer,
-    _replace_dataloader_init_method,
 )
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities import _StrategyType
