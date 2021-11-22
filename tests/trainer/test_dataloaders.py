@@ -505,7 +505,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
             assert mocked.call_count == limit_test_batches * len(trainer.test_dataloaders)
 
 
-@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1, "temp"])
+@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = EvalModelTemplate()
@@ -518,10 +518,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
 
-    if fast_dev_run == "temp":
-        with pytest.raises(MisconfigurationException, match="either a bool or an int"):
-            Trainer(**trainer_options)
-    elif fast_dev_run == -1:
+    if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
             Trainer(**trainer_options)
     else:

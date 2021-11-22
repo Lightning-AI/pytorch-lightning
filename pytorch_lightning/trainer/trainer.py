@@ -584,29 +584,24 @@ class Trainer(
         overfit_batches,
         fast_dev_run,
     ):
-        if not isinstance(fast_dev_run, (bool, int)):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
-            )
-
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
         self.fast_dev_run = fast_dev_run
-        fast_dev_run = int(fast_dev_run)
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
 
         if fast_dev_run:
-            limit_train_batches = fast_dev_run
-            limit_val_batches = fast_dev_run
-            limit_test_batches = fast_dev_run
-            limit_predict_batches = fast_dev_run
-            self.fit_loop.max_steps = fast_dev_run
+            num_batches = int(fast_dev_run)
+            limit_train_batches = num_batches
+            limit_val_batches = num_batches
+            limit_test_batches = num_batches
+            limit_predict_batches = num_batches
+            self.fit_loop.max_steps = num_batches
             self.num_sanity_val_steps = 0
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
@@ -615,7 +610,7 @@ class Trainer(
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+                f" val, test and prediction loop using {num_batches} batch(es)."
             )
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
@@ -624,9 +619,9 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self.determine_data_use_amount(self.overfit_batches)
+        self._determine_data_use_amount(self.overfit_batches)
 
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
+    def _determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
