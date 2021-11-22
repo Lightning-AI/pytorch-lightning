@@ -82,3 +82,7 @@ def test_teardown():
     assert "WORLD_SIZE" in os.environ
     env.teardown()
     assert "WORLD_SIZE" not in os.environ
+
+
+def test_detect():
+    assert LightningEnvironment.detect()

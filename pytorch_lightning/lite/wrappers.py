@@ -15,7 +15,7 @@ import functools
 import inspect
 from contextlib import contextmanager
 from itertools import chain
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Set, Sized, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
@@ -24,6 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
@@ -64,7 +65,7 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(nn.Module):
+class _LiteModule(DeviceDtypeModuleMixin):
     def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -113,8 +114,8 @@ def _wrap_init(f: Callable) -> Callable:
     @functools.wraps(f)
     def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
         params = dict(inspect.signature(module._old_init).parameters)
-        params.pop("args")
-        params.pop("kwargs")
+        params.pop("args", None)
+        params.pop("kwargs", None)
         for init_name, init_arg in chain(zip(params, args), kwargs.items()):
             setattr(module, init_name, init_arg)
         f(module, *args, **kwargs)
@@ -156,28 +157,25 @@ def _replace_dataloader_init_method() -> Generator:
 
 
 class _LiteDataLoader:
-    def __init__(self, dataloader: Union[Iterable, DataLoader], device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is an extension of an Iterator. It would move the data to the device automatically if
-        the device is specified.
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
 
         Args:
-            dataloader: The current dataloader to be used.
+            dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
         """
-        super().__init__()
-        self.__dict__.update(getattr(dataloader, "__dict__", {}))
+        self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
         self._device = device
-
-    def __len__(self) -> Union[int, float]:
-        if isinstance(self._dataloader, Sized):
-            return len(self._dataloader)
-        return float("inf")
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
+
+    def __len__(self) -> int:
+        return len(self._dataloader)
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
         iterator = iter(self._dataloader)

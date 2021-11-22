@@ -193,8 +193,8 @@ def test_mixed_precision(tmpdir):
 
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
-    assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert isinstance(trainer.training_type_plugin.precision_plugin, IPUPrecisionPlugin)
+    assert trainer.training_type_plugin.precision_plugin.precision == 16
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -213,8 +213,8 @@ def test_pure_half_precision(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
 
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert isinstance(trainer.training_type_plugin.precision_plugin, IPUPrecisionPlugin)
+    assert trainer.training_type_plugin.precision_plugin.precision == 16
 
     with pytest.raises(SystemExit):
         trainer.fit(model)

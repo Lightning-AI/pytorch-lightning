@@ -385,7 +385,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
             assert torch.save.call_count == 0
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = LogInTwoMethods()

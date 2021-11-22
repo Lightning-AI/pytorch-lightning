@@ -31,7 +31,7 @@ from tests.helpers.simple_models import RegressionModel
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.quantization import FakeQuantizeBase
 else:
-    # For torch 1.6 and 1.7.
+    # For torch 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
