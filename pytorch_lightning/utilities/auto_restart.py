@@ -571,3 +571,113 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
     else:
         raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+
+class _StatefulMixin:
+    """This mixin is used to make PyTorch DataLoaderIter stateful."""
+
+    def _reset(self, loader: DataLoader, first_iter: bool = False):
+        super()._reset(loader, first_iter=first_iter)
+        self._loader = loader
+        self.num_batches_fetched = 0
+
+    def __accumulate_state(self, sampler_state: Dict[str, Any]) -> None:
+        # initialize the queue if it doesn't exist.
+        if not hasattr(self, "_sampler_state"):
+            self._sampler_state = []
+            self._sampler_state_idx = 0
+
+        # store sampler state within a queue alongside its idx.
+        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
+        self._sampler_state.append((sampler_state, self._sampler_state_idx))
+
+    def _store_sampler_state(self) -> None:
+        """This function is used to extract the sampler states if any."""
+        sampler_state = {
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if is_obj_stateful(v) and k != "dataset"
+        }
+
+        self.__accumulate_state(sampler_state)
+
+    def _next_index(self) -> Any:
+        indexes = super()._next_index()
+        self._store_sampler_state()
+        return indexes
+
+    def _prepare_loader(self, loader):
+        if not isinstance(loader.collate_fn, partial):
+            loader.collate_fn = partial(
+                _capture_metadata_collate, dataset=loader.dataset, default_collate=loader.collate_fn
+            )
+        self._loader = loader
+
+    def __del__(self) -> None:
+        if isinstance(self._loader.collate_fn, partial):
+            self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
+
+    def _next_data(self) -> Any:
+        combined_batch = super()._next_data()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+
+        self.num_batches_fetched += 1
+
+        sampler_state, sampler_state_idx = self._sampler_state.pop(0)
+        # there is no workers within the samplers
+        worker_id = list(state.keys())[0]
+
+        state = [
+            IteratorState(
+                num_workers=self._loader.num_workers,
+                sampler_state=sampler_state,
+                dataset_state=state,
+                worker_id=worker_id,
+                num_batches_fetched=self.num_batches_fetched,
+            )
+        ]
+        # ensures there is an alignement between the sampler state and currently fetched batch
+        assert sampler_state_idx == self.num_batches_fetched
+        self._data_fetcher._store_dataloader_iter_state(self, state)
+        return batch
+
+
+class _SingleProcessDataLoaderIterStateful(_StatefulMixin, _SingleProcessDataLoaderIter):
+    def __init__(self, loader: DataLoader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
+        self.num_batches_fetched = 0
+
+
+class _MultiProcessingDataLoaderIterStateful(_StatefulMixin, _MultiProcessingDataLoaderIter):
+    def __init__(self, loader: DataLoader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
+        self.num_batches_fetched = 0
+
+
+def _get_iterator(self) -> "_BaseDataLoaderIter":
+    if self.num_workers == 0:
+        return _SingleProcessDataLoaderIterStateful(self)
+    else:
+        if hasattr(self, "check_worker_number_rationality"):
+            self.check_worker_number_rationality()
+        return _MultiProcessingDataLoaderIterStateful(self)
+
+
+def _patch_dataloader_get_iterators() -> None:
+    """This function is used to replace the DataLoader iterator by their stateful version."""
+    if _fault_tolerant_training_mode().is_manual:
+        if not hasattr(DataLoader, "_ori_get_iterator"):
+            DataLoader._ori_get_iterator = DataLoader._get_iterator
+        DataLoader._get_iterator = _get_iterator
+
+
+def _teardown_dataloader_get_iterators() -> None:
+    """This function is used to restore the DataLoader `get_iterator` with its original one."""
+    # cleanup the get_iterator replacement in case of Fault Tolerant Training.
+    get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
+    if get_iterator:
+        DataLoader._get_iterator = get_iterator
+        del DataLoader._ori_get_iterator

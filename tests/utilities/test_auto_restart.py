@@ -43,6 +43,8 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureMapDataset,
     FastForwardSampler,
     MergedIteratorState,
+    _patch_dataloader_get_iterators,
+    _teardown_dataloader_get_iterators,
 )
 from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
@@ -1192,3 +1194,8 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_stateful_workers():
+
+    _patch_dataloader_get_iterators()
