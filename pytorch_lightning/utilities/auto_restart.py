@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Protocol, runtime_checkable, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -28,6 +28,7 @@ from torch.utils.data.dataloader import (
     DataLoader,
     IterableDataset,
 )
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
