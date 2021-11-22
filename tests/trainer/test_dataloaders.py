@@ -26,7 +26,7 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.data import has_iterable_dataset, has_len_all_ranks
+from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
@@ -505,7 +505,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
             assert mocked.call_count == limit_test_batches * len(trainer.test_dataloaders)
 
 
-@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1, "temp"])
+@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = EvalModelTemplate()
@@ -518,10 +518,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
 
-    if fast_dev_run == "temp":
-        with pytest.raises(MisconfigurationException, match="either a bool or an int"):
-            Trainer(**trainer_options)
-    elif fast_dev_run == -1:
+    if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
             Trainer(**trainer_options)
     else:
@@ -768,27 +765,26 @@ def test_auto_add_worker_init_fn():
     """Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used."""
     dataset = Mock()
     dataloader = DataLoader(dataset)
-    trainer = Trainer()
 
     # without pl.seed_everything()
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # with forcefully avoiding it
     seed_everything(0, workers=False)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is None
 
     # when user already has a worker_init_fn
     user_function = _user_worker_init_fn
     dataloader.worker_init_fn = user_function
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is user_function
     dataloader.worker_init_fn = None
 
     # main use case
     seed_everything(0, workers=True)
-    trainer._auto_add_worker_init_fn(dataloader, 0)
+    _auto_add_worker_init_fn(dataloader, 0)
     assert dataloader.worker_init_fn is not None
 
 
