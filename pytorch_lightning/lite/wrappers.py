@@ -115,13 +115,13 @@ def _wrap_init(init: Callable) -> Callable:
     :class:`~torch.utils.data.DataLoader`."""
 
     @functools.wraps(init)
-    def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
+    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
         params = dict(inspect.signature(obj._old_init).parameters)
         params.pop("args", None)
         params.pop("kwargs", None)
         for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
             setattr(obj, arg_name, arg_value)
-        init(module, *args, **kwargs)
+        init(obj, *args, **kwargs)
 
     return wrapper
 
