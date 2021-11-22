@@ -1200,17 +1200,17 @@ def test_fault_tolerant_manual_mode_enum():
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
         assert _FaultTolerantTrainingMode.DISABLED == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
-        assert not trainer._fault_tolerant_mode.is_enabled
+        assert not trainer.state._fault_tolerant_mode.is_enabled
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
         assert _FaultTolerantTrainingMode.AUTOMATIC == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
-        assert trainer._fault_tolerant_mode.is_automatic
+        assert trainer.state._fault_tolerant_mode.is_automatic
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"}):
         assert _FaultTolerantTrainingMode.MANUAL == _detect_fault_tolerant_training_mode()
         trainer = Trainer()
-        assert trainer._fault_tolerant_mode.is_manual
+        assert trainer.state._fault_tolerant_mode.is_manual
 
     with pytest.raises(
         MisconfigurationException, match="The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either"
