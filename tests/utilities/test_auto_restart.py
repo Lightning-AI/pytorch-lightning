@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _rotate_worker_indices,
     _SupportsStateDict,
     CaptureIterableDataset,
     CaptureMapDataset,
@@ -1194,6 +1195,19 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" not in state_dict
     else:
         assert "dataloader_state_dict" in state_dict
+
+
+def test_rotate_worker_indices():
+    """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
+    state_dict = {0: 0, 1: 1}
+    assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
+    assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
+
+    with pytest.raises(MisconfigurationException, match="The `latest_worker_id` should be within"):
+        _rotate_worker_indices(state_dict, 2, 2)
+
+    with pytest.raises(MisconfigurationException, match="The `state` should contain"):
+        _rotate_worker_indices(state_dict, 2, 3)
 
 
 def test_supports_state_dict_protocol():
