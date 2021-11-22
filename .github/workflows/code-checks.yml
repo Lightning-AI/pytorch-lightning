@@ -18,4 +18,7 @@ jobs:
         run: |
           grep mypy requirements/test.txt | xargs -0 pip install
           pip list
+          pip install -r requirements.txt
+          pip install “.[dev, examples]”
+          pip install pre-commit
       - run: mypy --install-types --non-interactive
