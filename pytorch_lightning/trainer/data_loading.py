@@ -15,7 +15,6 @@ import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -29,7 +28,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _update_dataloader,
@@ -441,9 +440,7 @@ class TrainerDataLoadingMixin(ABC):
     def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
         """Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is
         enabled."""
-        dataloader.collate_fn = partial(
-            _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
-        )
+        _add_capture_metadata_collate(dataloader)
 
     @staticmethod
     def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:

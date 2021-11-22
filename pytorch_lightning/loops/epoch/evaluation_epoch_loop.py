@@ -24,7 +24,6 @@ from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.utilities.auto_restart import MergedIteratorState, reload_dataloader_state_dict
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
@@ -134,10 +133,13 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
-        if self._should_track_batch_outputs_for_epoch_end():
-            output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
-            if output is not None:
-                self.outputs.append(output)
+        if self._should_track_batch_outputs_for_epoch_end() and output is not None:
+            self.outputs.append(output)
+
+        if self.trainer.move_metrics_to_cpu:
+            # the evaluation step output is not moved as they are not considered "metrics"
+            assert self.trainer._results is not None
+            self.trainer._results.cpu()
 
         if not self.batch_progress.is_last_batch:
             # if fault tolerant is enabled and process has been notified, exit.

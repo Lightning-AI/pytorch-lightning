@@ -605,6 +605,8 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
 
 @runtime_checkable
 class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
     def state_dict(self) -> Dict[str, Any]:
         ...
 
@@ -647,9 +649,7 @@ class _StatefulDataLoaderIter:
 
     def _prepare_loader(self, loader):
         if not isinstance(loader.collate_fn, partial):
-            loader.collate_fn = partial(
-                _capture_metadata_collate, dataset=loader.dataset, default_collate=loader.collate_fn
-            )
+            loader.collate_fn = partial(_capture_metadata_collate, dataset=loader.dataset, collate_fn=loader.collate_fn)
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
