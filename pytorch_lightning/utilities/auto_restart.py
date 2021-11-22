@@ -448,9 +448,9 @@ def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
 
 
 def _capture_metadata_collate(
-    samples: List, dataset: Dataset, collate: Callable, fault_tolerant_mode: _FaultTolerantMode
+    samples: List, dataset: Dataset, collate_fn: Callable, fault_tolerant_mode: _FaultTolerantMode
 ) -> Any:
-    """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or
+    """A collate_fn function that adds the state dict of a :class:`CaptureIterableDataset` or
     :class:`CaptureMapDataset` used in the worker processes. This function gets executed within the worker
     processes. The structure will be:
 
@@ -461,7 +461,7 @@ def _capture_metadata_collate(
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    data = collate(samples)
+    data = collate_fn(samples)
     fault_tolerant_mode
     if not fault_tolerant_mode.is_enabled:
         return data
@@ -475,9 +475,11 @@ def _capture_metadata_collate(
         if state_dict_fn:
             metadata = state_dict_fn()
             if worker_id not in metadata:
-                raise MisconfigurationException(
-                    f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
-                )
+                if info and info.num_workers > 1:
+                    raise MisconfigurationException(
+                        f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
+                    )
+                metadata = {0: metadata}
         if metadata is None:
             metadata = {worker_id: {}}
 
@@ -563,7 +565,7 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     dataloader.collate_fn = partial(
         _capture_metadata_collate,
         dataset=dataloader.dataset,
-        default_collate=dataloader.collate_fn,
+        collate_fn=dataloader.collate_fn,
         fault_tolerant_mode=_FaultTolerantMode.detect_current_mode(),
     )
 
@@ -652,10 +654,12 @@ class _StatefulMixin:
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
+        self._sampler_state = []
+        self._sampler_state_idx = 0
 
     def __del__(self) -> None:
         if isinstance(self._loader.collate_fn, partial):
-            self._loader.collate_fn = self._loader.collate_fn.keywords["default_collate"]
+            self._loader.collate_fn = self._loader.collate_fn.keywords["collate_fn"]
 
     def _next_data(self) -> Any:
         combined_batch = super()._next_data()

@@ -1272,13 +1272,17 @@ class FailingStatefulRandomDataset(RandomDataset):
 
 
 class StatefulRandomDataset(FailingStatefulRandomDataset):
+
+    provide_workers_id = False
+
     def state_dict(self):
         info = get_worker_info()
-        worker_id = info.id if info else 0
-        return {worker_id: {"counter": self.counter}}
+        if info and self.provide_workers_id:
+            return {info.id: {"counter": self.counter}}
+        return {"counter": self.counter}
 
 
-@pytest.mark.parametrize("num_workers", [0, 2])
+@pytest.mark.parametrize("num_workers", [2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
 
@@ -1300,8 +1304,7 @@ def test_stateful_workers(num_workers):
     dataloader_iter = iter(dataloader)
     assert isinstance(dataloader_iter, _SingleProcessDataLoaderIterStateful)
 
-    with pytest.raises(MisconfigurationException, match="he state_dict returned by"):
-        next(dataloader_iter)
+    next(dataloader_iter)
 
     data_fetcher = DataFetcher()
     dataset = StatefulRandomDataset(1, 64)
@@ -1309,6 +1312,16 @@ def test_stateful_workers(num_workers):
 
     # This would attach the `data_fetcher` to the DataLoader.
     data_fetcher.setup(dataloader)
+
+    if num_workers == 2:
+        with pytest.raises(MisconfigurationException, match="The state_dict returned by"):
+            data_fetcher_iter = iter(data_fetcher)
+
+    data_fetcher = DataFetcher()
+    dataset.provide_workers_id = True
+    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset), num_workers=num_workers)
+    data_fetcher.setup(dataloader)
+
     data_fetcher_iter = iter(data_fetcher)
 
     worker_type = _SingleProcessDataLoaderIterStateful if num_workers == 0 else _MultiProcessingDataLoaderIterStateful
