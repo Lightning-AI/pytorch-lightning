@@ -63,12 +63,12 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_init_end(self)
 
     def on_fit_start(self):
-        """Called when the trainer initialization begins, model has not yet been set."""
+        """Called when fit begins, model has not yet been set."""
         for callback in self.callbacks:
             callback.on_fit_start(self, self.lightning_module)
 
     def on_fit_end(self):
-        """Called when the trainer initialization begins, model has not yet been set."""
+        """Called when fit ends, model has not yet been set."""
         for callback in self.callbacks:
             callback.on_fit_end(self, self.lightning_module)
 
@@ -83,17 +83,17 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_sanity_check_end(self, self.lightning_module)
 
     def on_train_epoch_start(self):
-        """Called when the epoch begins."""
+        """Called when the train epoch begins."""
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
     def on_train_epoch_end(self):
-        """Called when the epoch ends."""
+        """Called when the train epoch ends."""
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
-        """Called when the epoch begins."""
+        """Called when the validation epoch begins."""
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
@@ -113,12 +113,12 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_predict_epoch_start(self) -> None:
-        """Called when the epoch begins."""
+        """Called when the predict epoch begins."""
         for callback in self.callbacks:
             callback.on_predict_epoch_start(self, self.lightning_module)
 
     def on_predict_epoch_end(self, outputs: List[Any]) -> None:
-        """Called when the epoch ends."""
+        """Called when the predict epoch ends."""
         for callback in self.callbacks:
             callback.on_predict_epoch_end(self, self.lightning_module, outputs)
 

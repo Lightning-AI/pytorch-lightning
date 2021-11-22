@@ -1435,66 +1435,31 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
-    def call_hook(
-        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
-    ) -> Any:
-        pl_module = self.lightning_module or pl_module
+    def _call_lightning_module_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        pl_module: Optional["pl.LightningModule"] = None,
+        **kwargs: Any,
+    ) -> Optional[Any]:
+        pl_module = pl_module or self.lightning_module
+        output = None
+
         if pl_module:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # always profile hooks
-        with self.profiler.profile(hook_name):
+            fn = getattr(pl_module, hook_name)
+            with self.profiler.profile(f"{pl_module.__class__.__name__}.{hook_name}"):
+                output = fn(*args, **kwargs)
 
-            # first call trainer hook
-            callback_fx = getattr(self, hook_name, None)
-            if callable(callback_fx):
-                callback_fx(*args, **kwargs)
-
-            # next call hook in lightningModule
-            output = None
-            model_fx = getattr(pl_module, hook_name, None)
-            if callable(model_fx):
-                output = model_fx(*args, **kwargs)
-
-            # *Bad code alert*
-            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
-            # The following logic selectively chooses which hooks are called on each object.
-            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
-            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
-            # All of this should be fixed by #8506
-
-            # call the accelerator hook
-            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
-                # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel plugin
-                output = accelerator_output if output is None else output
-
-            # call the ttp hook
-            if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(
-                self.training_type_plugin, hook_name
-            ):
-                ttp_hook = getattr(self.training_type_plugin, hook_name)
-                ttp_output = ttp_hook(*args, **kwargs)
-                output = ttp_output if output is None else output
-
-        if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
         return output
 
-    def _profile_and_call(self, obj: object, hook_name: str, *args: Any, **kwargs: Any) -> Optional[Any]:
-        fn = getattr(obj, hook_name)
-        with self.profiler.profile(f"{obj.__class__.__name__}.{hook_name}"):
-            return fn(*args, **kwargs)
-
-    def _call_hook(
+    def _call_callback_hooks(
         self,
-        obj: object,
         hook_name: str,
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
@@ -1502,22 +1467,48 @@ class Trainer(
     ) -> Optional[Any]:
         pl_module = pl_module or self.lightning_module
 
-        if pl_module is not None:
+        if pl_module:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
         output = None
-        if isinstance(obj, Trainer):
-            for obj in self.callbacks:
-                if hook_name in ("on_init_start", "on_init_end"):
-                    # these `Callback` hooks are the only ones that do not take a lightning module
-                    output = self._profile_and_call(obj, hook_name, self, *args, **kwargs)
-                else:
-                    output = self._profile_and_call(obj, hook_name, self, pl_module, *args, **kwargs)
-        else:
-            output = self._profile_and_call(obj, hook_name, *args, **kwargs)
 
-        if pl_module is not None:
+        for callback in self.callbacks:
+            if hook_name in ("on_init_start", "on_init_end"):
+                # these `Callback` hooks are the only ones that do not take a lightning module
+                fn = getattr(callback, hook_name)
+                with self.profiler.profile(f"{callback.__class__.__name__}.{hook_name}"):
+                    output = fn(*args, **kwargs)
+            else:
+                fn = getattr(callback, hook_name)
+                with self.profiler.profile(f"{callback.__class__.__name__}.{hook_name}"):
+                    output = fn(self, pl_module, *args, **kwargs)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
+        return output
+
+    def _call_ttp_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        pl_module: Optional["pl.LightningModule"] = None,
+        **kwargs: Any,
+    ) -> Optional[Any]:
+        pl_module = pl_module or self.lightning_module
+
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
+
+        output = None
+        fn = getattr(self.training_type_plugin, hook_name)
+        with self.profiler.profile(f"{self.training_type_plugin.__class__.__name__}.{hook_name}"):
+            output = fn(*args, **kwargs)
+
+        if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
