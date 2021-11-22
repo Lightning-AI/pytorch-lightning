@@ -35,6 +35,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
@@ -44,7 +45,7 @@ from pytorch_lightning.utilities.auto_restart import (
     FastForwardSampler,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.enums import _FaultTolerantTrainingMode, AutoRestartBatchKeys
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -1194,25 +1195,21 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
-def test_fault_tolerant_manual_mode_enum():
-
+def test_fault_tolerant_mode_enum():
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
-        assert _FaultTolerantTrainingMode.DISABLED == _FaultTolerantTrainingMode.detect_fault_tolerant_training_mode()
-        trainer = Trainer()
-        assert not trainer.state._fault_tolerant_mode.is_enabled
+        assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
+        assert not TrainerState()._fault_tolerant_mode.is_enabled
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-        assert _FaultTolerantTrainingMode.AUTOMATIC == _FaultTolerantTrainingMode.detect_fault_tolerant_training_mode()
-        trainer = Trainer()
-        assert trainer.state._fault_tolerant_mode.is_automatic
+        assert _FaultTolerantMode.AUTOMATIC == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_automatic
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "MANUAL"}):
-        assert _FaultTolerantTrainingMode.MANUAL == _FaultTolerantTrainingMode.detect_fault_tolerant_training_mode()
-        trainer = Trainer()
-        assert trainer.state._fault_tolerant_mode.is_manual
+        assert _FaultTolerantMode.MANUAL == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_manual
 
     with pytest.raises(
-        MisconfigurationException, match="The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either"
+        MisconfigurationException, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
     ):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
-            _FaultTolerantTrainingMode.detect_fault_tolerant_training_mode()
+            _FaultTolerantMode.detect_current_mode()

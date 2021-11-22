@@ -260,7 +260,7 @@ class _StrategyType(LightningEnum):
         return self in _StrategyType.interactive_compatible_types()
 
 
-class _FaultTolerantTrainingMode(LightningEnum):
+class _FaultTolerantMode(LightningEnum):
 
     DISABLED = "disabled"
     AUTOMATIC = "automatic"
@@ -268,28 +268,26 @@ class _FaultTolerantTrainingMode(LightningEnum):
 
     @property
     def is_enabled(self) -> bool:
-        return self is not _FaultTolerantTrainingMode.DISABLED
+        return self is not _FaultTolerantMode.DISABLED
 
     @property
     def is_automatic(self) -> bool:
-        return self is _FaultTolerantTrainingMode.AUTOMATIC
+        return self is _FaultTolerantMode.AUTOMATIC
 
     @property
     def is_manual(self) -> bool:
-        return self is _FaultTolerantTrainingMode.MANUAL
+        return self is _FaultTolerantMode.MANUAL
 
     @classmethod
-    def detect_fault_tolerant_training_mode(cls) -> "_FaultTolerantTrainingMode":
-        """This classmethod detects if `Fault Tolerant` is activated and maps its value to
-        `_FaultTolerantTrainingMode`."""
+    def detect_current_mode(cls) -> "_FaultTolerantMode":
+        """This classmethod detects if `Fault Tolerant` is activated and maps its value to `_FaultTolerantMode`."""
         env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()
         if env_value in ("0", "disabled"):
-            return _FaultTolerantTrainingMode.DISABLED
+            return _FaultTolerantMode.DISABLED
         elif env_value in ("1", "automatic"):
-            return _FaultTolerantTrainingMode.AUTOMATIC
+            return _FaultTolerantMode.AUTOMATIC
         elif env_value in ("2", "manual"):
-            return _FaultTolerantTrainingMode.MANUAL
+            return _FaultTolerantMode.MANUAL
         raise MisconfigurationException(
-            "The environnement flag `PL_FAULT_TOLERANT_TRAINING` should be either "
-            "'0' (disabled), '1' (automatic) or '2' (manual)."
+            "The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either 'disabled', 'automatic', or 'manual'."
         )
