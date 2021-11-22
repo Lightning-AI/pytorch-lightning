@@ -252,8 +252,7 @@ class CaptureMapDataset(Dataset):
 
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        state_dict = deepcopy(state_dict)
-        self._cached_state_dict = _rotate_worker_indices(state_dict, latest_worker_id, num_workers)
+        self._cached_state_dict = _rotate_worker_indices(deepcopy(state_dict), latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
@@ -347,16 +346,6 @@ class CaptureIterableDataset(IterableDataset):
 
     def __next__(self) -> Dict[str, Any]:
         return next(self.iter_data)
-
-
-def _rotate_worker_indices(state, latest_worker_id: int, num_workers: int):
-    """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
-    on."""
-    if num_workers == 0:
-        return state
-    next_worker_id = latest_worker_id + 1
-    old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-    return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
 
 
 def _find_fast_forward_samplers(dataloader: DataLoader) -> Optional[FastForwardSampler]:
@@ -465,8 +454,6 @@ def _capture_metadata_collate(
         }
     """
     data = collate_fn(samples)
-    if not fault_tolerant_mode.is_enabled:
-        return data
     metadata = None
     if fault_tolerant_mode.is_automatic:
         metadata = dataset.state_dict()
@@ -567,11 +554,14 @@ def patch_dataloader_iterator(
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
+    faut_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+    if not faut_tolerant_mode.is_enabled:
+        return
     dataloader.collate_fn = partial(
         _capture_metadata_collate,
         dataset=dataloader.dataset,
         collate_fn=dataloader.collate_fn,
-        fault_tolerant_mode=_FaultTolerantMode.detect_current_mode(),
+        fault_tolerant_mode=faut_tolerant_mode,
     )
 
 
@@ -631,6 +621,20 @@ def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, A
         }
 
         dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
+
+
+def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_workers: int) -> Dict[int, Any]:
+    """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
+    on."""
+    if num_workers == 0:
+        return state
+    if latest_worker_id > num_workers - 1:
+        raise MisconfigurationException("The `latest_worker_id` should be within [0, num_workers - 1].")
+    if len(state) != num_workers:
+        raise MisconfigurationException("The `state` should contain `num_workers - 1` values.")
+    next_worker_id = latest_worker_id + 1
+    old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+    return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
 
 
 @runtime_checkable
