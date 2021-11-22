@@ -1264,6 +1264,26 @@ class StatefulRandomDataset(FailingStatefulRandomDataset):
         return {worker_id: {"counter": self.counter}}
 
 
+def test_fault_tolerant_mode_enum():
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
+        assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
+        assert not TrainerState()._fault_tolerant_mode.is_enabled
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
+        assert _FaultTolerantMode.AUTOMATIC == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_automatic
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "MANUAL"}):
+        assert _FaultTolerantMode.MANUAL == _FaultTolerantMode.detect_current_mode()
+        assert TrainerState()._fault_tolerant_mode.is_manual
+
+    with pytest.raises(
+        MisconfigurationException, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
+    ):
+        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
+            _FaultTolerantMode.detect_current_mode()
+
+
 @pytest.mark.parametrize("num_workers", [0, 2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
@@ -1331,23 +1351,3 @@ def test_stateful_workers(num_workers):
     _teardown_dataloader_get_iterators()
     assert not hasattr(DataLoader, "_ori_get_iterator")
     assert DataLoader._get_iterator == _get_iterator_fn
-
-
-def test_fault_tolerant_mode_enum():
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
-        assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
-        assert not TrainerState()._fault_tolerant_mode.is_enabled
-
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-        assert _FaultTolerantMode.AUTOMATIC == _FaultTolerantMode.detect_current_mode()
-        assert TrainerState()._fault_tolerant_mode.is_automatic
-
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "MANUAL"}):
-        assert _FaultTolerantMode.MANUAL == _FaultTolerantMode.detect_current_mode()
-        assert TrainerState()._fault_tolerant_mode.is_manual
-
-    with pytest.raises(
-        MisconfigurationException, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
-    ):
-        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
-            _FaultTolerantMode.detect_current_mode()
