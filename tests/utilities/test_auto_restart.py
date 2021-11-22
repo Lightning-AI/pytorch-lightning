@@ -1202,7 +1202,7 @@ def test_rotate_worker_indices():
     assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
     assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
 
-    
+
 def test_fault_tolerant_mode_enum():
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
         assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
