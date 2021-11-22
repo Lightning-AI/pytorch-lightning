@@ -197,10 +197,6 @@ def test_setup_dataloaders_with_custom_type():
     LiteWithCustomDataLoader().run()
 
 
-def test_setup_custom_dataloaders():
-    """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
-
-
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
     method."""
@@ -216,23 +212,6 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
         # The dataloader was not created within the run function, and therefore init args were not intercepted
         dataloader = CustomDataLoader(2, batch_size=2)
         lite.setup_dataloaders(dataloader)
-
-
-# def test_setup_custom_dataloaders():
-#     """Test that the setup_dataloaders method returns the dataloaders wrapped as LiteDataLoader."""
-#
-#     class CustomDataLoader(DataLoader):
-#         def __init__(self, anything: int, *args, **kwargs):
-#             super().__init__([0, 1, 2, 3], *args, **kwargs)
-#
-#     class LiteWithCustomDataLoader(LightningLite):
-#         def run(self):
-#             # This doesn't fail as the context manager would save all the arguments provided to the dataloaders.
-#             dataloader = CustomDataLoader(2, batch_size=2)
-#             lite_dataloader = self.setup_dataloaders(dataloader)
-#             assert len(lite_dataloader) == 4
-#
-#     LiteWithCustomDataLoader().run()
 
 
 def test_setup_dataloaders_twice_fails():
