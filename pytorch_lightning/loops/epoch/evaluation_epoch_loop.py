@@ -241,12 +241,10 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.on_evaluation_batch_start(dataloader_idx, self._num_dataloaders)
 
         if self.trainer.testing:
-            self.trainer._call_callback_hooks(self.trainer, "on_test_batch_start", batch, batch_idx, dataloader_idx)
+            self.trainer._call_callback_hooks("on_test_batch_start", batch, batch_idx, dataloader_idx)
             self.trainer._call_lightning_module_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)
         else:
-            self.trainer._call_callback_hooks(
-                self.trainer, "on_validation_batch_start", batch, batch_idx, dataloader_idx
-            )
+            self.trainer._call_callback_hooks("on_validation_batch_start", batch, batch_idx, dataloader_idx)
             self.trainer._call_lightning_module_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
 
     def _on_evaluation_batch_end(
@@ -261,7 +259,7 @@ class EvaluationEpochLoop(Loop):
             dataloader_idx: Index of the dataloader producing the current batch
         """
         hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
-        self.trainer._call_callback_hooks(self.trainer, hook_name, output, batch, batch_idx, dataloader_idx)
+        self.trainer._call_callback_hooks(hook_name, output, batch, batch_idx, dataloader_idx)
         self.trainer._call_lightning_module_hook(hook_name, output, batch, batch_idx, dataloader_idx)
 
         self.trainer.logger_connector.on_batch_end()

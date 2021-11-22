@@ -110,9 +110,9 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer.lightning_module.zero_grad()
 
         # hook
-        self.trainer._call_callback_hooks(self.trainer, "on_predict_start")
+        self.trainer._call_callback_hooks("on_predict_start")
         self.trainer._call_lightning_module_hook("on_predict_start")
-        self.trainer._call_callback_hooks(self.trainer, "on_predict_epoch_start")
+        self.trainer._call_callback_hooks("on_predict_epoch_start")
         self.trainer._call_lightning_module_hook("on_predict_epoch_start")
 
     def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
@@ -123,7 +123,7 @@ class PredictionLoop(DataLoaderLoop):
         """
         results = self.predictions
 
-        self.trainer._call_callback_hooks(self.trainer, "on_predict_epoch_end", results)
+        self.trainer._call_callback_hooks("on_predict_epoch_end", results)
         self.trainer._call_lightning_module_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
@@ -136,7 +136,7 @@ class PredictionLoop(DataLoaderLoop):
         self.epoch_batch_indices = []
 
         # hook
-        self.trainer._call_callback_hooks(self.trainer, "on_predict_end")
+        self.trainer._call_callback_hooks("on_predict_end")
         self.trainer._call_lightning_module_hook("on_predict_end")
 
     def _on_predict_model_eval(self):

@@ -133,9 +133,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_run_start(self, data_fetcher: AbstractDataFetcher, **kwargs: Any) -> None:
         # hook
         self.trainer.logger_connector.on_epoch_start()
-        self.trainer._call_callback_hooks(self.trainer, "on_epoch_start")
+        self.trainer._call_callback_hooks("on_epoch_start")
         self.trainer._call_lightning_module_hook("on_epoch_start")
-        self.trainer._call_callback_hooks(self.trainer, "on_train_epoch_start")
+        self.trainer._call_callback_hooks("on_train_epoch_start")
         self.trainer._call_lightning_module_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 

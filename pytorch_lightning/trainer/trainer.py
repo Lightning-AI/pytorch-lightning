@@ -497,7 +497,7 @@ class Trainer(
         )
 
         # hook
-        self.on_init_start()
+        self._call_callback_hooks("on_init_start")
 
         # init optimizer + lr scheduler related flags
         self.lr_schedulers = []
@@ -572,7 +572,7 @@ class Trainer(
         )
 
         # Callback system
-        self.on_init_end()
+        self._call_callback_hooks("on_init_end")
 
     def _init_debugging_flags(
         self,
@@ -671,7 +671,7 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
-                self.on_exception(exception)
+                self._call_callback_hooks("on_exception", exception)
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
@@ -680,7 +680,7 @@ class Trainer(
             self._on_exception()
             # reset bookkeeping
             self.state.stage = None
-            self.on_exception(exception)
+            self._call_callback_hooks("on_exception", exception)
             # shutdown workers
             self._data_connector.teardown()
             raise
@@ -1135,7 +1135,7 @@ class Trainer(
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self._call_callback_hooks("on_fit_start")
-            self.self._call_lightning_module_hook("on_fit_start")
+            self._call_lightning_module_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self._pre_dispatch()
@@ -1160,7 +1160,7 @@ class Trainer(
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self._call_callback_hooks("on_fit_end")
-            self.self._call_lightning_module_hook("on_fit_end")
+            self._call_lightning_module_hook("on_fit_end")
 
         # teardown if necessary (similar calls for spawn plugins are excluded as they have
         # been included at the end of `new_process` functions)
@@ -1450,8 +1450,9 @@ class Trainer(
             pl_module._current_fx_name = hook_name
 
             fn = getattr(pl_module, hook_name)
-            with self.profiler.profile(f"{pl_module.__class__.__name__}.{hook_name}"):
-                output = fn(*args, **kwargs)
+            if callable(fn):
+                with self.profiler.profile(f"{pl_module.__class__.__name__}.{hook_name}"):
+                    output = fn(*args, **kwargs)
 
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
@@ -1462,21 +1463,22 @@ class Trainer(
         self,
         hook_name: str,
         *args: Any,
-        pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
     ) -> Optional[Any]:
         output = None
 
         for callback in self.callbacks:
             if hook_name in ("on_init_start", "on_init_end"):
-                # these `Callback` hooks are the only ones that do not take a lightning module
+                # these `Callback` hooks are the only ones that do not take a lightning module.
+                # we also don't profile bc profiler hasn't been set y et
                 fn = getattr(callback, hook_name)
-                with self.profiler.profile(f"{callback.__class__.__name__}.{hook_name}"):
-                    output = fn(*args, **kwargs)
+                if callable(fn):
+                    output = fn(self, *args, **kwargs)
             else:
                 fn = getattr(callback, hook_name)
-                with self.profiler.profile(f"{callback.__class__.__name__}.{hook_name}"):
-                    output = fn(self, pl_module, *args, **kwargs)
+                if callable(fn):
+                    with self.profiler.profile(f"{callback.__class__.__name__}.{callback.state_key}.{hook_name}"):
+                        output = fn(self, self.lightning_module, *args, **kwargs)
 
         return output
 
@@ -1488,8 +1490,9 @@ class Trainer(
     ) -> Optional[Any]:
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
-        with self.profiler.profile(f"{self.training_type_plugin.__class__.__name__}.{hook_name}"):
-            output = fn(*args, **kwargs)
+        if callable(fn):
+            with self.profiler.profile(f"{self.training_type_plugin.__class__.__name__}.{hook_name}"):
+                output = fn(*args, **kwargs)
 
         return output
 

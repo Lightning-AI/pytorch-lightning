@@ -231,14 +231,9 @@ class EvaluationLoop(DataLoaderLoop):
         model._current_dataloader_idx = None
 
         if self.trainer.testing:
-            if is_overridden("test_epoch_end", model):
-                model._current_fx_name = "test_epoch_end"
-                model.test_epoch_end(outputs)
-
+            self.trainer._call_lightning_module_hook("test_epoch_end", outputs)
         else:
-            if is_overridden("validation_epoch_end", model):
-                model._current_fx_name = "validation_epoch_end"
-                model.validation_epoch_end(outputs)
+            self.trainer._call_lightning_module_hook("validation_epoch_end", outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
