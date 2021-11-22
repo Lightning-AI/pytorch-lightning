@@ -13,17 +13,17 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.utilities.enums import AcceleratorType, GradClipAlgorithmType, ModelSummaryMode, PrecisionType
+from pytorch_lightning.utilities.enums import _AcceleratorType, GradClipAlgorithmType, ModelSummaryMode, PrecisionType
 
 
 def test_consistency():
-    assert AcceleratorType.TPU not in ("GPU", "CPU")
-    assert AcceleratorType.TPU in ("TPU", "CPU")
-    assert AcceleratorType.TPU in ("tpu", "CPU")
-    assert AcceleratorType.TPU not in {"GPU", "CPU"}
+    assert _AcceleratorType.TPU not in ("GPU", "CPU")
+    assert _AcceleratorType.TPU in ("TPU", "CPU")
+    assert _AcceleratorType.TPU in ("tpu", "CPU")
+    assert _AcceleratorType.TPU not in {"GPU", "CPU"}
     # hash cannot be case invariant
-    assert AcceleratorType.TPU not in {"TPU", "CPU"}
-    assert AcceleratorType.TPU in {"tpu", "CPU"}
+    assert _AcceleratorType.TPU not in {"TPU", "CPU"}
+    assert _AcceleratorType.TPU in {"tpu", "CPU"}
 
 
 def test_precision_supported_types():

@@ -40,7 +40,7 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
 )
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, _update_dataloader, has_iterable_dataset
 from pytorch_lightning.utilities.device_parser import _parse_devices
@@ -470,11 +470,11 @@ class LightningLite(ABC):
             )
 
     @staticmethod
-    def _supported_device_types() -> Sequence[AcceleratorType]:
+    def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
-            AcceleratorType.CPU,
-            AcceleratorType.GPU,
-            AcceleratorType.TPU,
+            _AcceleratorType.CPU,
+            _AcceleratorType.GPU,
+            _AcceleratorType.TPU,
         )
 
     @staticmethod
