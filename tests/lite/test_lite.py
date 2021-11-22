@@ -207,7 +207,11 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             super().__init__(range(5), *args, **kwargs)
 
     with pytest.raises(
-        MisconfigurationException, match="Trying to inject `DistributedSampler` into the `CustomDataLoader` instance"
+        MisconfigurationException,
+        match=(
+            r"Trying to inject `DistributedSampler` into the `CustomDataLoader` instance.*"
+            r"The missing attributes are \['new_arg'\]"
+        ),
     ):
         # The dataloader was not created within the run function, and therefore init args were not intercepted
         dataloader = CustomDataLoader(2, batch_size=2)
