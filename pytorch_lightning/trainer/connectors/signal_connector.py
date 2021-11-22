@@ -102,12 +102,3 @@ class SignalConnector:
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
         if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)
-
-    @staticmethod
-    def _reset_signal(signum: Signals) -> None:
-        if isinstance(signal.getsignal(signum), HandlersCompose):
-            signal.signal(signum, signal.SIG_DFL)
-
-    def teardown(self) -> None:
-        self._reset_signal(signal.SIGTERM)
-        self._reset_signal(signal.SIGUSR1)

@@ -21,7 +21,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.trainer.connectors.signal_connector import HandlersCompose, SignalConnector
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -58,11 +58,8 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
 
-    if register_handler:
-        # reset the signal to system defaults
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-
-    assert not isinstance(signal.getsignal(signal.SIGTERM), HandlersCompose)
+    # reset the signal to system defaults
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
 @RunIf(skip_windows=True)
