@@ -565,8 +565,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@pytest.mark.parametrize("automatic_optimization", [False, True])
-@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+@pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_gpus=2, deepspeed=True, special=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
     seed_everything(1)
