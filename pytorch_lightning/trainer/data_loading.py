@@ -107,6 +107,7 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
+            # if changed, update the `filterwarnings` snippet in 'speed.html#num-workers'
             rank_zero_warn(
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
