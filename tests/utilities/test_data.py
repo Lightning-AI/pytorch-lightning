@@ -65,11 +65,11 @@ def test_extract_batch_size():
     data = {"test": ["some text"] * 7}
     _check_error_raised(data)
 
-    class CustomBatchCollector:
+    class CustomBatch:
         def __init__(self):
             self.x = torch.randn(7, 2)
 
-    data = CustomBatchCollector()
+    data = CustomBatch()
     _check_error_raised(data)
 
 
