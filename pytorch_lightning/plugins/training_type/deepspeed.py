@@ -28,7 +28,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -131,7 +130,7 @@ class DeepSpeedPlugin(DDPPlugin):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
         partition_module: bool = True,
-        precision_plugin: Optional[DeepSpeedPrecisionPlugin] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
