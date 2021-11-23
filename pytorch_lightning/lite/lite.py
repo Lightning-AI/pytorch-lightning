@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -31,14 +31,7 @@ from pytorch_lightning.lite.wrappers import (
     _LiteOptimizer,
     _replace_dataloader_init_method,
 )
-from pytorch_lightning.plugins import (
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DeepSpeedPlugin,
-    PLUGIN_INPUT,
-    TPUSpawnPlugin,
-    TrainingTypePlugin,
-)
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -187,7 +180,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, List[Iterable]]:
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -212,7 +205,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Iterable:
+    ) -> DataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -245,7 +238,9 @@ class LightningLite(ABC):
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
-        return _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = cast(DataLoader, lite_dataloader)
+        return lite_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -390,7 +385,6 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
 
         # apply sharded context to prevent OOM
@@ -404,11 +398,6 @@ class LightningLite(ABC):
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
-
-    def _set_plugin_specific_precision_variables(self) -> None:
-        # todo: these are hacks as plugins rely on access to the precision plugin
-        if isinstance(self._strategy, DDPShardedPlugin):
-            self._strategy._precision = self._accelerator_connector.precision
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         if isinstance(self._strategy, TPUSpawnPlugin):
