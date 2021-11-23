@@ -897,9 +897,9 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     "dataset_classes",
     [
         # single training dataset
-        # [RandomGetItemDataset],
-        # [SequentialIterableDataset],
-        # [SequentialDictIterableDataset],
+        [RandomGetItemDataset],
+        [SequentialIterableDataset],
+        [SequentialDictIterableDataset],
         # multiple training datasets (combinded dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
