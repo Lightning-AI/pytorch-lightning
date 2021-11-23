@@ -17,7 +17,7 @@ import os
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union, Callable, Type, Set
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
