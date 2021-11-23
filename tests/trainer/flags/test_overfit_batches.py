@@ -16,8 +16,8 @@ import torch
 from torch.utils.data.sampler import Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.base.model_template import EvalModelTemplate
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
