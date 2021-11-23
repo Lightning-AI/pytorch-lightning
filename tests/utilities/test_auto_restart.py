@@ -1292,7 +1292,7 @@ class StatefulRandomDataset(RandomDataset):
         self.counter = state_dict["counter"]
 
 
-@pytest.mark.parametrize("num_workers", [0, 2])
+@pytest.mark.parametrize("num_workers", [0])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
 
