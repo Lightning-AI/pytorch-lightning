@@ -96,46 +96,52 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
-tmpdir = "/tmp/pl_fault_tolerant"
+def main():
 
-os.makedirs(tmpdir, exist_ok=True)
+    tmpdir = "/tmp/pl_fault_tolerant"
 
-env_backup = os.environ.copy()
+    os.makedirs(tmpdir, exist_ok=True)
 
-auto_restart_checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-auto_restart_checkpoint_path_exists = os.path.exists(auto_restart_checkpoint_path)
+    env_backup = os.environ.copy()
 
-seed_everything(42)
+    auto_restart_checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    auto_restart_checkpoint_path_exists = os.path.exists(auto_restart_checkpoint_path)
 
-os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"
+    seed_everything(42)
 
-dataset_classes = [RandomGetItemDataset]
+    os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"
 
-trainer_kwargs = dict(
-    default_root_dir=tmpdir,
-    max_epochs=3,
-    enable_progress_bar=False,
-    enable_model_summary=False,
-)
+    dataset_classes = [RandomGetItemDataset]
 
-if auto_restart_checkpoint_path_exists:
-    fail_on_step = -1
-    completed_batches = 5
-else:
-    fail_on_step = 4
-    completed_batches = 4
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
 
-# Perform a failure
-complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
-assert len(complete_batches) == completed_batches
+    if auto_restart_checkpoint_path_exists:
+        fail_on_step = -1
+        completed_batches = 5
+    else:
+        fail_on_step = 4
+        completed_batches = 4
 
-if not auto_restart_checkpoint_path_exists:
-    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    assert os.path.exists(checkpoint_path)
-    log.info(".pl_auto_save.ckpt exists.")
+    # Perform a failure
+    complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
+    assert len(complete_batches) == completed_batches
 
-if auto_restart_checkpoint_path_exists:
-    log.info([w for w in weights])
+    if not auto_restart_checkpoint_path_exists:
+        checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+        assert os.path.exists(checkpoint_path)
+        log.info(".pl_auto_save.ckpt exists.")
 
-os.environ.clear()
-os.environ.update(env_backup)
+    if auto_restart_checkpoint_path_exists:
+        log.info([w for w in weights])
+
+    os.environ.clear()
+    os.environ.update(env_backup)
+
+
+if __name__ == "__main__":
+    main()
