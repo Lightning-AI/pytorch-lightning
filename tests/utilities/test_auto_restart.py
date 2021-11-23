@@ -39,8 +39,6 @@ from pytorch_lightning import Callback, LightningModule, seed_everything, Traine
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
-    _dataloader_load_state_dict,
-    _dataloader_to_state_dict,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
     _reload_dataloader_state_dict,
@@ -663,44 +661,6 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     if wrap:
         dataset = CaptureIterableDataset(dataset)
     return dataset
-
-
-def test_dataloader_to_state_dict_and_reload():
-    """
-    Note: Those utilities are used only with DataLoader wrapping a ``mapping`` based dataset.
-    """
-
-    def create_dataloader():
-        dataset = range(50)
-        batch_size = 8
-        sampler = FastForwardSampler(SequentialSampler(dataset))
-        sampler.setup(batch_size)
-
-        return DataLoader(dataset, sampler=sampler, batch_size=batch_size)
-
-    dataloader = create_dataloader()
-    iter_dataloader = iter(dataloader)
-    _ = next(iter_dataloader)
-    _ = next(iter_dataloader)
-
-    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
-    assert state_dict == {
-        "num_workers": 0,
-        "previous_worker": None,
-        0: {"current_iteration": 16},
-    }
-
-    dataloader = create_dataloader()
-    dataloader = _dataloader_load_state_dict(dataloader, state_dict)
-    iter_dataloader = iter(dataloader)
-    _ = next(iter_dataloader)
-
-    state_dict = _dataloader_to_state_dict(dataloader, iter_dataloader)
-    assert state_dict == {
-        "num_workers": 0,
-        "previous_worker": None,
-        0: {"current_iteration": 24},
-    }
 
 
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
