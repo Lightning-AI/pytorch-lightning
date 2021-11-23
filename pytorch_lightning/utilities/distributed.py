@@ -382,7 +382,7 @@ def _collect_states_on_rank_zero(state: Dict[str, Any], device: torch.device) ->
     """This distributed utility collects dictionary state across all processes.
 
     Args:
-        state: Dictionary contain the state of the current process
+        state: Dictionary containing the state of the current process
         device: Current process device.
 
     Returns:
