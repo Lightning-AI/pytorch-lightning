@@ -98,7 +98,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
 
 def main():
 
-    tmpdir = "/tmp/pl_fault_tolerant"
+    tmpdir = "."
 
     os.makedirs(tmpdir, exist_ok=True)
 
