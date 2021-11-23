@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -31,6 +31,7 @@ from torch.utils.data.dataloader import (
 from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -781,7 +782,12 @@ def _teardown_dataloader_get_iterators() -> None:
 
 
 def _collection_collect_states_on_rank_zero(state_dict: Any, device: torch.device) -> Any:
-    if isinstance(state_dict, Sequence):
-        return [_collect_states_on_rank_zero(s, device) for s in state_dict]
-    # FIXME: Add support for nested collection.
-    return _collect_states_on_rank_zero(state_dict, device)
+    """This utility collects the state across processes for a collection of state."""
+
+    def fn(state: Dict):
+        nonlocal device
+        if state.get("state", None) is not None:
+            return _collect_states_on_rank_zero(state, device=device)
+        return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
+
+    return apply_to_collection(state_dict, Dict, fn)
