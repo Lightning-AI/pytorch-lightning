@@ -1323,7 +1323,6 @@ def test_stateful_workers(num_workers):
     next(data_fetcher_iter)
 
     reloaded_state = deepcopy(data_fetcher.dataloader_iter.state)
-
     state = reloaded_state.state
     assert state[0].dataset_state == {0: {"counter": 1}}
     assert state[0].sampler_state["sampler"] == {"counter": 1}
