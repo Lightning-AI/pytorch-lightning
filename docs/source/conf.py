@@ -27,11 +27,12 @@ PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
-_SHOULD_COPY_NOTEBOOKS = True
+_SHOULD_COPY_NOTEBOOKS = bool(int(os.getenv("_SHOULD_COPY_NOTEBOOKS", 1)))
 
 try:
-    from helpers import HelperCLI
-except Exception:
+    if _SHOULD_COPY_NOTEBOOKS:
+        from helpers import HelperCLI
+except ImportError:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
@@ -110,7 +111,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+    # "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
