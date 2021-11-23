@@ -875,18 +875,6 @@ def test_disabled_validation(tmpdir):
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
-    # check that limit_val_batches=0 turns off validation even when overfit_batches > 0
-    model = CurrentModel(**hparams)
-    trainer_options.update(overfit_batches=1)
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
-    assert trainer.limit_val_batches == 0.0
-    assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
-    assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
-
     # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
