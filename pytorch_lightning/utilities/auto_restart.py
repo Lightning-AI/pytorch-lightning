@@ -601,6 +601,9 @@ def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, 
 
     elif fault_tolerant_mode.is_manual:
 
+        # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
+        # therefore, we need to reload the states manually.
+
         latest_worker_id = state_dict["latest_worker_id"]
         num_workers = state_dict["state"][latest_worker_id]["num_workers"]
         sampler_state = state_dict["state"][latest_worker_id]["sampler_state"]
@@ -609,12 +612,12 @@ def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, 
                 obj = getattr(dataloader, k)
                 if not isinstance(obj, _SupportsStateDict):
                     raise MisconfigurationException(
-                        f"The DataLoader attribute should have a `load_state_dict` method. Found {obj}"
+                        f"The DataLoader attribute {k}:{obj} should have a `load_state_dict` method."
                     )
 
                 obj.load_state_dict(sampler_state[k])
 
-        if not hasattr(dataset, "load_state_dict"):
+        if not isinstance(dataset, _SupportsStateDict):
             return
 
         dataset_state = {
@@ -668,7 +671,6 @@ class _StatefulDataLoaderIter:
             for k, v in self._loader.__dict__.items()
             if isinstance(v, _SupportsStateDict) and k != "dataset"
         }
-
         self.__accumulate_state(sampler_state)
 
     def _next_index(self) -> Any:
