@@ -181,7 +181,7 @@ To define a DataModule the following methods are used to create train/val/test/p
 prepare_data
 ^^^^^^^^^^^^
 Use :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` method to do things that might write to disk or that need to be done only from a single process in distributed
-setting.
+setting. In case of multi-node training, the execution of this hook depends upon :ref:`prepare_data_per_node<common/trainer:prepare_data_per_node>`.
 
 - download
 - tokenize
@@ -196,7 +196,7 @@ setting.
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
 
-.. warning:: ``prepare_data`` is called from a single process across all nodes. It is not recommended to assign state here (e.g. ``self.x = y``).
+.. warning:: ``prepare_data`` is called from the main process. It is not recommended to assign state here (e.g. ``self.x = y``).
 
 
 setup
