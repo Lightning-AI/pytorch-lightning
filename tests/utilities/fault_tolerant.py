@@ -28,7 +28,6 @@ the training has been properly resumed and is fully reproduced.
 # Note, this file is used to ensure Fault Tolerant is working as expected
 import os
 import random as python_random
-from contextlib import suppress
 from time import sleep
 
 import numpy as np
@@ -51,7 +50,6 @@ class Model(LightningModule):
             log.info("READY TO BE KILLED WITH SIGTERM SIGNAL.")
             while not self.trainer._terminate_gracefully:
                 sleep(0.1)
-            raise CustomException()
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
         loss = sum(self.layer(b).sum() for b in batch)
@@ -59,10 +57,6 @@ class Model(LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
-
-class CustomException(Exception):
-    pass
 
 
 class RandomGetItemDataset(Dataset):
@@ -91,8 +85,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     train_dataloader = train_dataloader[0] if len(train_dataloader) == 1 else train_dataloader
     model = Model(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
-    with suppress(CustomException):
-        trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
+    trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 

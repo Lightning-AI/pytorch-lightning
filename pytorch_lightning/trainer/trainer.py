@@ -684,6 +684,8 @@ class Trainer(
             self.on_exception(exception)
             # shutdown workers
             self._data_connector.teardown()
+            if isinstance(exception, ExitGracefullyException):
+                os._exit(0)
             raise
 
     def fit(
