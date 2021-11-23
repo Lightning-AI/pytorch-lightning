@@ -16,6 +16,6 @@ jobs:
           python-version: 3.9
       - name: Install dependencies
         run: |
-          pip install '.[dev, examples]'
+          pip install '.[dev]'
           pip list
       - run: mypy --install-types --non-interactive
