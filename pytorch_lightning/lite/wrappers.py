@@ -15,7 +15,7 @@ import functools
 import inspect
 from contextlib import contextmanager
 from itertools import chain
-from typing import Any, Callable, Dict, Generator, Iterator, Optional, Set, Type, Union
+from typing import Any, Callable, Generator, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
@@ -110,21 +110,25 @@ class _LiteModule(DeviceDtypeModuleMixin):
         return output
 
 
-def _wrap_init(f: Callable) -> Callable:
-    @functools.wraps(f)
-    def wrapper(module: Any, *args: Any, **kwargs: Dict[str, Any]) -> None:
-        params = dict(inspect.signature(module._old_init).parameters)
+def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
+    :class:`~torch.utils.data.DataLoader`."""
+
+    @functools.wraps(init)
+    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+        params = dict(inspect.signature(obj.__init__).parameters)
         params.pop("args", None)
         params.pop("kwargs", None)
-        for init_name, init_arg in chain(zip(params, args), kwargs.items()):
-            setattr(module, init_name, init_arg)
-        f(module, *args, **kwargs)
+        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+            setattr(obj, arg_name, arg_value)
+        init(obj, *args, **kwargs)
 
     return wrapper
 
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
     subclasses = set()
 
     def recurse(cl: Type[Any]) -> None:
@@ -136,24 +140,17 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
     return subclasses
 
 
-def _enable_class(cls: Type[Any]) -> None:
-    cls._old_init = cls.__init__
-    cls.__init__ = _wrap_init(cls.__init__)
-
-
-def _disable_class(cls: Type[Any]) -> None:
-    cls.__init__ = cls._old_init
-    del cls._old_init
-
-
 @contextmanager
-def _replace_dataloader_init_method() -> Generator:
-    """This context manager is used to support custom :class:`~torch.utils.data.DataLoader."""
+def _replace_dataloader_init_method() -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of
+    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
     for subclass in _get_all_subclasses(DataLoader):
-        _enable_class(subclass)
+        subclass._old_init = subclass.__init__
+        subclass.__init__ = _wrap_init(subclass.__init__)
     yield
     for subclass in _get_all_subclasses(DataLoader):
-        _disable_class(subclass)
+        subclass.__init__ = subclass._old_init
+        del subclass._old_init
 
 
 class _LiteDataLoader:
