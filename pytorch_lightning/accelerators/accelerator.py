@@ -124,6 +124,7 @@ class Accelerator:
 
         The returned batch is of the same type as the input batch, just
         having all tensors on the correct device.
+
         Args:
             batch: The batch of samples to move to the correct device
             device: The target device
