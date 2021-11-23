@@ -37,7 +37,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -629,8 +629,9 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self) -> None:
+        amp_type = self.lightning_module.trainer._accelerator_connector.amp_type
         if self.precision_plugin.precision in (16, "mixed"):
-            if "fp16" not in self.config and isinstance(self.precision_plugin, pl.plugins.NativeMixedPrecisionPlugin):
+            if "fp16" not in self.config and amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -641,7 +642,7 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and isinstance(self.precision_plugin, pl.plugins.ApexMixedPrecisionPlugin):
+            elif "amp" not in self.config and amp_type == AMPType.APEX:
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
 
