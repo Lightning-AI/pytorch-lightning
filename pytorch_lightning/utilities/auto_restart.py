@@ -597,6 +597,9 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
     elif isinstance(dataset, CaptureIterableDataset):
         _reload_dataloader_state_dict_automatic_iterable_dataset(dataset, state_dict)
 
+    else:
+        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
+
 
 def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
@@ -643,7 +646,7 @@ def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, 
         _reload_dataloader_state_dict_manual(dataloader, state_dict)
 
     else:
-        raise MisconfigurationException("This shouldn't be happening.")
+        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
 
 
 def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_workers: int) -> Dict[int, Any]:
