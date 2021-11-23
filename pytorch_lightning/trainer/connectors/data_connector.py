@@ -29,7 +29,9 @@ from pytorch_lightning.utilities.fetching import (
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
+
+warning_cache = WarningCache()
 
 
 class DataConnector:
@@ -331,7 +333,7 @@ class _DataHookSource:
 
         if is_overridden(hook_name, self.datamodule):
             if is_overridden(hook_name, self.model):
-                rank_zero_warn(
+                warning_cache.warn(
                     f"You have overridden `{hook_name}` in both LightningModule and LightningDataModule."
                     " We will use the implementation from LightningDataModule instance."
                 )
