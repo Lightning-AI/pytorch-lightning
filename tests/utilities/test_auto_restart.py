@@ -19,6 +19,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
+from dataclasses import asdict
 from typing import Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
@@ -42,6 +43,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _dataloader_to_state_dict,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
+    _reload_dataloader_state_dict,
     _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
     _SupportsStateDict,
@@ -934,9 +936,9 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     "dataset_classes",
     [
         # single training dataset
-        [RandomGetItemDataset],
-        [SequentialIterableDataset],
-        [SequentialDictIterableDataset],
+        # [RandomGetItemDataset],
+        # [SequentialIterableDataset],
+        # [SequentialDictIterableDataset],
         # multiple training datasets (combinded dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
@@ -1289,7 +1291,7 @@ class StatefulRandomDataset(RandomDataset):
         return {"counter": self.counter}
 
     def load_state_dict(self, state_dict):
-        self.counter = state_dict["counter"]
+        self.counter = state_dict[0]["counter"]
 
 
 @pytest.mark.parametrize("num_workers", [0])
@@ -1319,7 +1321,9 @@ def test_stateful_workers(num_workers):
     assert isinstance(dataloader_iter, worker_type)
 
     next(data_fetcher_iter)
-    state = data_fetcher.dataloader_iter.state.state
+
+    reloaded_state = deepcopy(data_fetcher.dataloader_iter.state)
+    state = reloaded_state.state
     assert state[0].dataset_state == {0: {"counter": 1}}
     assert state[0].sampler_state["sampler"] == {"counter": 1}
 
@@ -1350,6 +1354,8 @@ def test_stateful_workers(num_workers):
     assert not hasattr(DataLoader, "_ori_get_iterator")
     assert DataLoader._get_iterator == _get_iterator_fn
 
+    _reload_dataloader_state_dict(dataloader, asdict(reloaded_state))
+    assert dataloader.sampler.counter == dataloader.dataset.counter == 1
     data_fetcher.teardown()
 
 
