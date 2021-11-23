@@ -54,7 +54,7 @@ class DataConnector:
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
 
-        self._datahook_source = _DataHookSource(None)
+        self._datahook_source = _DataHookSource(None, None)
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -221,7 +221,7 @@ class DataConnector:
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
-        self._datahook_source = _DataHookSource(model if datamodule is None else datamodule)
+        self._datahook_source = _DataHookSource(model, datamodule)
 
         if datamodule is None:
             return
@@ -310,7 +310,7 @@ class _DataLoaderSource:
 
 @dataclass
 class _DataHookSource:
-    """Stores the info about the common DataHooks within LightningModule and LightningDataModule.
+    """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
 
     The hook source can be
 
@@ -318,10 +318,23 @@ class _DataHookSource:
     2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
 
     Arguments:
-        instance: A LightningModule or a LightningDataModule
+        model: A LightningModule
+        datamodule: A LightningDataModule
     """
 
-    instance: Optional[Union["pl.LightningModule", "pl.LightningDataModule"]]
+    model: Optional["pl.LightningModule"]
+    datamodule: Optional["pl.LightningDataModule"]
 
     def get_hook(self, hook_name):
-        return getattr(self.instance, hook_name)
+        if self.datamodule is None:
+            return getattr(self.model, hook_name)
+
+        if is_overridden(hook_name, self.datamodule):
+            if is_overridden(hook_name, self.model):
+                rank_zero_warn(
+                    f"You have overridden `{hook_name}` in both LightningModule and LightningDataModule."
+                    " We will use the implementation from LightningDataModule instance."
+                )
+            return getattr(self.datamodule, hook_name)
+
+        return getattr(self.model, hook_name)

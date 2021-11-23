@@ -16,7 +16,7 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import call, PropertyMock
+from unittest.mock import call, Mock, PropertyMock
 
 import pytest
 import torch
@@ -27,6 +27,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.deprecated_api import no_warning_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -479,3 +480,92 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
         trainer.model = model
         trainer.datamodule = dm
         trainer._data_connector.prepare_data()
+
+
+@pytest.mark.parametrize(
+    "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+)
+@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+def test_shared_datahook_call(module_mock, hook_name):
+    class CustomBatch:
+        def __init__(self):
+            self.x = torch.randn(3, 4)
+            self.instance_type = []
+
+        def to(self, device):
+            self.x = self.x.to(device)
+
+    def overridden_model_func(batch, *args, **kwargs):
+        batch.instance_type.append("model")
+        return batch
+
+    def overridden_dm_func(batch, *args, **kwargs):
+        batch.instance_type.append("datamodule")
+        return batch
+
+    def _reset_instances():
+        dm = BoringDataModule()
+        model = BoringModel()
+        trainer = Trainer()
+        model.trainer = trainer
+        module_mock.return_value = model
+        batch = CustomBatch()
+        return model, dm, trainer, batch
+
+    def _no_datamodule_no_overridden():
+        model, _, trainer, batch = _reset_instances()
+        setattr(model, hook_name, Mock(getattr(model, hook_name)))
+        trainer._data_connector.attach_datamodule(model, datamodule=None)
+        with no_warning_call(match="have overridden `{hook_name}` in both"):
+            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+
+        assert getattr(model, hook_name).call_count == 1
+
+    def _with_datamodule_no_overridden():
+        model, dm, trainer, batch = _reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, Mock(getattr(model, hook_name)))
+        setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
+        with no_warning_call(match="have overridden `{hook_name}` in both"):
+            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+
+        assert getattr(model, hook_name).call_count == 1
+        assert getattr(dm, hook_name).call_count == 0
+
+    def _override_model_hook():
+        model, dm, trainer, batch = _reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, overridden_model_func)
+        setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
+        with no_warning_call(match="have overridden `{hook_name}` in both"):
+            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+
+        assert batch.instance_type == ["model"]
+        assert getattr(dm, hook_name).call_count == 0
+
+    def _override_datamodule_hook():
+        model, dm, trainer, batch = _reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, Mock(getattr(model, hook_name)))
+        setattr(dm, hook_name, overridden_dm_func)
+        with no_warning_call(match="have overridden `{hook_name}` in both"):
+            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+
+        assert batch.instance_type == ["datamodule"]
+        assert getattr(model, hook_name).call_count == 0
+
+    def _override_both_model_and_datamodule():
+        model, dm, trainer, batch = _reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, overridden_model_func)
+        setattr(dm, hook_name, overridden_dm_func)
+        with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
+            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+
+        assert batch.instance_type == ["datamodule"]
+
+    _no_datamodule_no_overridden()
+    _with_datamodule_no_overridden()
+    _override_model_hook()
+    _override_datamodule_hook()
+    _override_both_model_and_datamodule()

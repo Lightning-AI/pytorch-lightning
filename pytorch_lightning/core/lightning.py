@@ -265,7 +265,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         datahook_source = (
-            _DataHookSource(self) if self.trainer is None else self.trainer._data_connector._datahook_source
+            _DataHookSource(self, None) if self.trainer is None else self.trainer._data_connector._datahook_source
         )
 
         batch = datahook_source.get_hook("on_before_batch_transfer")(batch, dataloader_idx)
