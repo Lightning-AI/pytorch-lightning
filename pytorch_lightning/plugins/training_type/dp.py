@@ -71,13 +71,13 @@ class DataParallelPlugin(ParallelPlugin):
 
         The returned batch is of the same type as the input batch, just
         having all tensors on the correct device.
+
         Args:
             batch: The batch of samples to move to the correct device
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
-        device = device or self.root_device
-        return move_data_to_device(batch, device)
+        return move_data_to_device(batch, device=device or self.root_device)
 
     def _setup_model(self, model: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
