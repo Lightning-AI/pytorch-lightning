@@ -24,9 +24,9 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _reload_dataloader_state_dict,
     MergedIteratorState,
     patch_dataloader_iterator,
-    _reload_dataloader_state_dict,
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
