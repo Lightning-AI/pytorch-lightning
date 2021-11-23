@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
+    _replace_dataloader_init_method,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
