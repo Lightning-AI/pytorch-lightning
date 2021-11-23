@@ -1127,7 +1127,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         val_check_interval=0.3,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
     )
 
@@ -1245,7 +1245,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         num_sanity_val_steps=0,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
@@ -1272,7 +1272,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # the val dataloader on the first epoch because this only tracks the training epoch
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_n_epochs=True
+        # This breaks the assumption behind reload_dataloaders_every_n_epochs=1
         call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),

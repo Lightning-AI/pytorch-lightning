@@ -40,6 +40,12 @@ from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _dataloader_load_state_dict,
     _dataloader_to_state_dict,
+    _MultiProcessingDataLoaderIterStateful,
+    _patch_dataloader_get_iterators,
+    _rotate_worker_indices,
+    _SingleProcessDataLoaderIterStateful,
+    _SupportsStateDict,
+    _teardown_dataloader_get_iterators,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -243,8 +249,10 @@ class RangeIterableDataset(IterableDataset):
         return self.data[next(iter_sampler)]
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
@@ -624,11 +632,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
         assert torch.equal(t, tr)
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
 @RunIf(skip_windows=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
@@ -1195,6 +1205,42 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
+def test_rotate_worker_indices():
+    """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
+    state_dict = {0: 0, 1: 1}
+    assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
+    assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
+
+    with pytest.raises(MisconfigurationException, match="The `latest_worker_id` should be within"):
+        _rotate_worker_indices(state_dict, 2, 2)
+
+    with pytest.raises(MisconfigurationException, match="The `state` should contain"):
+        _rotate_worker_indices(state_dict, 2, 3)
+
+
+def test_supports_state_dict_protocol():
+    class StatefulClass:
+        def state_dict(self):
+            pass
+
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert isinstance(StatefulClass(), _SupportsStateDict)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
+
+    class NotStateful2Class:
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
+
+
 def test_fault_tolerant_mode_enum():
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
         assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
@@ -1213,3 +1259,95 @@ def test_fault_tolerant_mode_enum():
     ):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
             _FaultTolerantMode.detect_current_mode()
+
+
+class StatefulRandomSampler(RandomSampler):
+
+    counter = 0
+
+    def state_dict(self):
+        self.counter += 1
+        return {"counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.counter = state_dict["counter"]
+
+
+class StatefulRandomDataset(RandomDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def __getitem__(self, index):
+        self.counter += 1
+        return super().__getitem__(index)
+
+    def state_dict(self):
+        info = get_worker_info()
+        if info:
+            return {info.id: {"counter": self.counter}}
+        return {"counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.counter = state_dict["counter"]
+
+
+@pytest.mark.parametrize("num_workers", [0])
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
+def test_stateful_workers(num_workers):
+
+    seed_everything(42)
+
+    _get_iterator_fn = DataLoader._get_iterator
+    _patch_dataloader_get_iterators()
+    assert DataLoader._ori_get_iterator is not None
+
+    data_fetcher = DataFetcher()
+    dataset = StatefulRandomDataset(1, 64)
+    dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset), num_workers=num_workers)
+
+    with pytest.raises(MisconfigurationException, match="A stateful iterator should be used"):
+        iter(dataloader)
+
+    # This would attach the `data_fetcher` to the DataLoader.
+    data_fetcher.setup(dataloader)
+
+    data_fetcher_iter = iter(data_fetcher)
+
+    dataloader_iter = data_fetcher.dataloader_iter
+    worker_type = _SingleProcessDataLoaderIterStateful if num_workers == 0 else _MultiProcessingDataLoaderIterStateful
+    assert isinstance(dataloader_iter, worker_type)
+
+    next(data_fetcher_iter)
+    state = data_fetcher.dataloader_iter.state.state
+    assert state[0].dataset_state == {0: {"counter": 1}}
+    assert state[0].sampler_state["sampler"] == {"counter": 1}
+
+    next(data_fetcher_iter)
+    previous_state = data_fetcher.dataloader_iter.previous_state.state
+    state = data_fetcher.dataloader_iter.state.state
+    assert previous_state[0].dataset_state == {0: {"counter": 1}}
+    assert previous_state[0].sampler_state["sampler"] == {"counter": 1}
+    # TODO: Resolve the previous `sampler_state` associated to `worker_id: 0`.
+    worker_id = 1 if num_workers else 0
+    assert state[worker_id].sampler_state["sampler"] == {"counter": 2}
+
+    # each worker has its own copy of the dataset
+    assert state[0].dataset_state == ({0: {"counter": 2}} if num_workers == 0 else {0: {"counter": 1}})
+    target_previous_state = deepcopy(state)
+
+    next(data_fetcher_iter)
+    latest_worker_id = data_fetcher.dataloader_iter.state.latest_worker_id
+    assert latest_worker_id == 0
+    previous_state = data_fetcher.dataloader_iter.previous_state.state
+    state = data_fetcher.dataloader_iter.state.state
+
+    assert target_previous_state == previous_state
+    assert state[0].sampler_state["sampler"] == {"counter": 3}
+    assert state[0].dataset_state == ({0: {"counter": 3}} if num_workers == 0 else {0: {"counter": 2}})
+
+    _teardown_dataloader_get_iterators()
+    assert not hasattr(DataLoader, "_ori_get_iterator")
+    assert DataLoader._get_iterator == _get_iterator_fn
+
+    data_fetcher.teardown()
