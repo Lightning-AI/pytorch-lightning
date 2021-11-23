@@ -36,7 +36,8 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
     class CustomDataLoader(DataLoader):
         def __init__(self, num_features, dataset, *args, **kwargs):
-            self.num_features = num_features
+            # argument `num_features` unused on purpose
+            # it gets automatically captured by _replace_dataloader_init_method()
             super().__init__(dataset, *args, **kwargs)
 
     class CustomBatchSampler(BatchSampler):
