@@ -33,7 +33,6 @@ from typing_extensions import Protocol, runtime_checkable
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -565,35 +564,66 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     )
 
 
-def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     """Utility to reload state_dict within dataloader for fault tolerance."""
 
-    if not _fault_tolerant_training():
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+
+    if not fault_tolerant_mode.is_enabled:
         return
 
     dataset = dataloader.dataset
 
-    if isinstance(dataset, CaptureMapDataset):
-        iterator_state = state_dict["state"][0]
+    if fault_tolerant_mode.is_automatic:
+        if isinstance(dataset, CaptureMapDataset):
+            iterator_state = state_dict["state"][0]
 
-        if not isinstance(iterator_state, IteratorState):
-            iterator_state = IteratorState.from_state_dict(iterator_state)
+            if not isinstance(iterator_state, IteratorState):
+                iterator_state = IteratorState.from_state_dict(iterator_state)
 
-        # reload sampler state
-        ff_sampler = _find_fast_forward_samplers(dataloader)
-        ff_sampler.load_state_dict(iterator_state.sampler_state)
+            # reload sampler state
+            ff_sampler = _find_fast_forward_samplers(dataloader)
+            ff_sampler.load_state_dict(iterator_state.sampler_state)
 
-        # reload dataset state
-        dataset.load_state_dict(
-            iterator_state.dataset_state,
-            latest_worker_id=state_dict["latest_worker_id"],
-            num_workers=iterator_state.num_workers,
-        )
+            # reload dataset state
+            dataset.load_state_dict(
+                iterator_state.dataset_state,
+                latest_worker_id=state_dict["latest_worker_id"],
+                num_workers=iterator_state.num_workers,
+            )
 
-    elif isinstance(dataset, CaptureIterableDataset):
-        dataset.load_state_dict(
-            {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
-        )
+        elif isinstance(dataset, CaptureIterableDataset):
+            dataset.load_state_dict(
+                {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+            )
+
+        else:
+            raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+
+    elif fault_tolerant_mode.is_manual:
+
+        latest_worker_id = state_dict["latest_worker_id"]
+        num_workers = state_dict["state"][latest_worker_id]["num_workers"]
+        sampler_state = state_dict["state"][latest_worker_id]["sampler_state"]
+        if sampler_state:
+            for k in sampler_state:
+                obj = getattr(dataloader, k)
+                if not isinstance(obj, _SupportsStateDict):
+                    raise MisconfigurationException(
+                        f"The DataLoader attribute should have a `load_state_dict` method. Found {obj}"
+                    )
+
+                obj.load_state_dict(sampler_state[k])
+
+        if not hasattr(dataset, "load_state_dict"):
+            return
+
+        dataset_state = {
+            worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
+            for worker_id in state_dict["state"].keys()
+        }
+
+        dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
     else:
         if _FaultTolerantMode.detect_current_mode().is_automatic:
