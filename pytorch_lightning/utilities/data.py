@@ -36,17 +36,18 @@ warning_cache = WarningCache()
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, torch.Tensor):
-        yield batch.size(0)
-    elif isinstance(batch, str):
-        yield len(batch)
-    elif isinstance(batch, (Iterable, Mapping)):
+        if batch.ndim == 0:
+            yield 1
+        else:
+            yield batch.size(0)
+    elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
 
         for sample in batch:
             yield from _extract_batch_size(sample)
     else:
-        yield 1
+        yield None
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -55,16 +56,26 @@ def extract_batch_size(batch: BType) -> int:
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
+    error_msg = (
+        "We could not infer the batch_size from the batch. Either simplify its structure"
+        " or provide the batch_size as `self.log(..., batch_size=batch_size)`."
+    )
     batch_size = None
-    for bs in _extract_batch_size(batch):
-        if batch_size is None:
-            batch_size = bs
-        elif batch_size != bs:
-            warning_cache.warn(
-                "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
-                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
-            )
-            break
+    try:
+        for bs in _extract_batch_size(batch):
+            if batch_size is None:
+                batch_size = bs
+            elif batch_size != bs:
+                warning_cache.warn(
+                    "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                    f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+                )
+                break
+    except RecursionError:
+        raise RecursionError(error_msg)
+
+    if batch_size is None:
+        raise MisconfigurationException(error_msg)
 
     return batch_size
 

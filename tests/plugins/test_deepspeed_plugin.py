@@ -213,7 +213,7 @@ def test_warn_deepspeed_ignored(tmpdir):
     trainer = Trainer(
         fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
     )
-    from pytorch_lightning.plugins.precision.deepspeed_precision import warning_cache
+    from pytorch_lightning.plugins.precision.deepspeed import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
