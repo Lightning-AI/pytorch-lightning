@@ -55,7 +55,6 @@ def test_disable_validation_when_overfit_batches_larger_than_zero(tmpdir, overfi
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
-    assert trainer.limit_train_batches == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `overfit_batches>0`"
     assert not model.validation_epoch_end_invoked, "`validation_step` should not run when `overfit_batches>0`"
 
