@@ -14,8 +14,8 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.9
-      - name: Install mypy
+      - name: Install dependencies
         run: |
-          pip install '.[dev]'
+          pip install '.[dev, examples]'
           pip list
       - run: mypy --install-types --non-interactive
