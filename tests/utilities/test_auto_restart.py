@@ -1355,5 +1355,5 @@ def test_stateful_workers(num_workers):
     assert DataLoader._get_iterator == _get_iterator_fn
 
     _reload_dataloader_state_dict(dataloader, asdict(reloaded_state))
-    assert dataloader.sampler.counter == 1
+    assert dataloader.sampler.counter == dataloader.dataset.counter == 1
     data_fetcher.teardown()
