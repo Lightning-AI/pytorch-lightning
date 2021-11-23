@@ -33,7 +33,6 @@ from typing_extensions import Protocol, runtime_checkable
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
