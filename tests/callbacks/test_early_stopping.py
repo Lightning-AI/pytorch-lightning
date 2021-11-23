@@ -228,7 +228,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
     early_stopping = EarlyStopping(
         monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
     )
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=20)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], max_epochs=20)
     trainer.fit(model)
     assert trainer.current_epoch == expected_epoch, "early_stopping failed"
 
@@ -246,7 +246,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
     model = CurrentModel()
     early_stopping = EarlyStopping(monitor="val_loss", check_finite=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=10)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], max_epochs=10)
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
     assert early_stopping.stopped_epoch == expected_stop_epoch
@@ -426,7 +426,6 @@ def test_multiple_early_stopping_callbacks(
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=callbacks,
-        overfit_batches=0.20,
         max_epochs=20,
         strategy=strategy,
         accelerator="cpu",
