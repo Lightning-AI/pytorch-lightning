@@ -606,16 +606,18 @@ def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, 
 
         latest_worker_id = state_dict["latest_worker_id"]
         num_workers = state_dict["state"][latest_worker_id]["num_workers"]
-        sampler_state = state_dict["state"][latest_worker_id]["sampler_state"]
+        sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
         if sampler_state:
-            for k in sampler_state:
-                obj = getattr(dataloader, k)
+            # `sampler_state` keys contain all the DataLoader attribute names
+            # which matched `_SupportsStateDict` API interface while collecting the `state_dict`.
+            for dataloader_attr_name in sampler_state:
+                obj = getattr(dataloader, dataloader_attr_name)
                 if not isinstance(obj, _SupportsStateDict):
                     raise MisconfigurationException(
-                        f"The DataLoader attribute {k}:{obj} should have a `load_state_dict` method."
+                        f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
                     )
 
-                obj.load_state_dict(sampler_state[k])
+                obj.load_state_dict(sampler_state[dataloader_attr_name])
 
         if not isinstance(dataset, _SupportsStateDict):
             return
