@@ -65,7 +65,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
-        return backend
+        return self.backend
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
         if self.scaler is not None:
