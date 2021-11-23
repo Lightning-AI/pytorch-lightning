@@ -29,12 +29,12 @@ sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
 _SHOULD_COPY_NOTEBOOKS = bool(int(os.getenv("SHOULD_COPY_PL_NOTEBOOKS", 1)))
 
-try:
-    if _SHOULD_COPY_NOTEBOOKS:
+if _SHOULD_COPY_NOTEBOOKS:
+    try:
         from helpers import HelperCLI
-except ImportError:
-    _SHOULD_COPY_NOTEBOOKS = False
-    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
+    except ImportError:
+        _SHOULD_COPY_NOTEBOOKS = False
+        warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
 FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
