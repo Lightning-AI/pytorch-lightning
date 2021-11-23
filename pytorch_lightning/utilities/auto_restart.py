@@ -461,7 +461,7 @@ def _capture_metadata_collate(
         state_dict_fn = getattr(dataset, "state_dict", None)
         info = get_worker_info()
         worker_id = info.id if info else 0
-        if state_dict_fn:
+        if state_dict_fn is not None:
             metadata = state_dict_fn()
             if worker_id not in metadata:
                 if info and info.num_workers > 1:
@@ -651,17 +651,7 @@ class _SupportsStateDict(Protocol):
 class _StatefulDataLoaderIter:
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
-    def _reset(self, loader: DataLoader, first_iter: bool = False):
-        super()._reset(loader, first_iter=first_iter)
-        self._loader = loader
-        self.num_batches_fetched = 0
-
     def __accumulate_state(self, sampler_state: Dict[str, Any]) -> None:
-        # initialize the queue if it doesn't exist.
-        if not hasattr(self, "_sampler_state"):
-            self._sampler_state = []
-            self._sampler_state_idx = 0
-
         # store sampler state within a queue alongside its idx.
         self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
         self._sampler_state.append((sampler_state, self._sampler_state_idx))
