@@ -637,7 +637,7 @@ class AcceleratorConnector:
                 return TPUBf16PrecisionPlugin()
 
         if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
-            return DeepSpeedPrecisionPlugin(self.precision)
+            return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)
 
         if self.precision == 32:
             return PrecisionPlugin()
