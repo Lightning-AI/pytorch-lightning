@@ -887,45 +887,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-def test_disable_validation_when_overfit_batches_larger_than_zero(tmpdir):
-    """Verify that when `overfit_batches` > 0,  there will be no validation."""
-
-    class CurrentModel(EvalModelTemplate):
-
-        validation_step_invoked = False
-        validation_epoch_end_invoked = False
-
-        def validation_step(self, *args, **kwargs):
-            self.validation_step_invoked = True
-            return super().validation_step(*args, **kwargs)
-
-        def validation_epoch_end(self, *args, **kwargs):
-            self.validation_epoch_end_invoked = True
-            return super().validation_epoch_end(*args, **kwargs)
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(**hparams)
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=2,
-        limit_train_batches=0.4,
-        limit_val_batches=0.0,
-        overfit_batches=1,
-        fast_dev_run=False,
-    )
-
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
-    assert trainer.limit_train_batches == 1
-    assert not model.validation_step_invoked, "`validation_step` should not run when `overfit_batches>0`"
-    assert not model.validation_epoch_end_invoked, "`validation_step` should not run when `overfit_batches>0`"
-
-
 @mock.patch("torch.Tensor.backward")
 def test_nan_loss_detection(backward_mock, tmpdir):
     class CurrentModel(BoringModel):

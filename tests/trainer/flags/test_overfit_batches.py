@@ -17,40 +17,47 @@ from torch.utils.data.sampler import Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.base.model_template import EvalModelTemplate
 
 
-def test_overfit_multiple_val_loaders(tmpdir):
-    """Tests that overfit batches works with multiple val dataloaders."""
-    val_dl_count = 2
-    overfit_batches = 3
+@pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
+def test_disable_validation_when_overfit_batches_larger_than_zero(tmpdir, overfit_batches):
+    """Verify that when `overfit_batches` > 0,  there will be no validation."""
 
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            output = self.layer(batch[0])
-            loss = self.loss(batch, output)
-            return {"x": loss}
+    class CurrentModel(EvalModelTemplate):
 
-        def validation_epoch_end(self, outputs) -> None:
-            pass
+        validation_step_invoked = False
+        validation_epoch_end_invoked = False
 
-        def val_dataloader(self):
-            dls = [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(val_dl_count)]
-            return dls
+        def validation_step(self, *args, **kwargs):
+            self.validation_step_invoked = True
+            return super().validation_step(*args, **kwargs)
 
-    model = TestModel()
+        def validation_epoch_end(self, *args, **kwargs):
+            self.validation_epoch_end_invoked = True
+            return super().validation_epoch_end(*args, **kwargs)
 
-    trainer = Trainer(
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = CurrentModel(**hparams)
+
+    trainer_options = dict(
         default_root_dir=tmpdir,
+        enable_progress_bar=False,
         max_epochs=2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.0,
         overfit_batches=overfit_batches,
-        log_every_n_steps=1,
-        enable_model_summary=False,
+        fast_dev_run=False,
     )
 
+    trainer = Trainer(**trainer_options)
     trainer.fit(model)
-    assert trainer.num_training_batches == overfit_batches
-    assert len(trainer.num_val_batches) == val_dl_count
-    assert all(nbatches == overfit_batches for nbatches in trainer.num_val_batches)
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    assert trainer.current_epoch == 1
+    assert trainer.limit_train_batches == 1
+    assert not model.validation_step_invoked, "`validation_step` should not run when `overfit_batches>0`"
+    assert not model.validation_epoch_end_invoked, "`validation_step` should not run when `overfit_batches>0`"
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
