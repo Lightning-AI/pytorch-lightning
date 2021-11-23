@@ -33,7 +33,6 @@ from typing_extensions import Protocol, runtime_checkable
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -477,6 +476,48 @@ def _capture_metadata_collate(
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
 
 
+# TODO: Merge this code within stateful DataLoaderIter.
+def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callable:
+    @wraps(fn)
+    def wrapper():
+        nonlocal num_batches_fetched
+        nonlocal it
+        nonlocal dl
+
+        dataset = dl.dataset
+        combined_batch = fn()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+        num_batches_fetched += 1
+
+        if isinstance(dataset, CaptureIterableDataset):
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=iterator_state,
+                    num_batches_fetched=num_batches_fetched,
+                    worker_id=list(iterator_state.keys())[0],
+                    name=sampler_iter_name,
+                )
+                for sampler_iter_name, iterator_state in state.items()
+            ]
+        elif isinstance(dataset, CaptureMapDataset):
+            ff_sampler = _find_fast_forward_samplers(dl)
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=ff_sampler.state_dict(num_batches_fetched),
+                    dataset_state=state,
+                    worker_id=list(state.keys())[0],
+                    num_batches_fetched=num_batches_fetched,
+                )
+            ]
+        data_fetcher._store_dataloader_iter_state(it, state)
+        return batch
+
+    return wrapper
+
+
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
@@ -507,48 +548,9 @@ def patch_dataloader_iterator(
         return
 
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-
-    def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
-        @wraps(fn)
-        def wrapper():
-            nonlocal num_batches_fetched
-            nonlocal it
-            nonlocal dl
-
-            dataset = dl.dataset
-            combined_batch = fn()
-
-            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
-            num_batches_fetched += 1
-
-            if isinstance(dataset, CaptureIterableDataset):
-                state = [
-                    IteratorState(
-                        num_workers=dataloader.num_workers,
-                        sampler_state=iterator_state,
-                        num_batches_fetched=num_batches_fetched,
-                        worker_id=list(iterator_state.keys())[0],
-                        name=sampler_iter_name,
-                    )
-                    for sampler_iter_name, iterator_state in state.items()
-                ]
-            elif isinstance(dataset, CaptureMapDataset):
-                ff_sampler = _find_fast_forward_samplers(dl)
-                state = [
-                    IteratorState(
-                        num_workers=dataloader.num_workers,
-                        sampler_state=ff_sampler.state_dict(num_batches_fetched),
-                        dataset_state=state,
-                        worker_id=list(state.keys())[0],
-                        num_batches_fetched=num_batches_fetched,
-                    )
-                ]
-            data_fetcher._store_dataloader_iter_state(it, state)
-            return batch
-
-        return wrapper
-
-    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader, num_batches_fetched)
+    iterator._next_data = _next_data_wrapper(
+        iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
+    )
 
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
