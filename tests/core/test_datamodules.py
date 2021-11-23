@@ -297,9 +297,10 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(gpus=1)
+    model.trainer = trainer
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
-    trainer.attach_datamodule(model, datamodule=dm)
+    trainer._data_connector.attach_datamodule(model, datamodule=dm)
     batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
