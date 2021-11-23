@@ -171,7 +171,7 @@ Run these commands
 git submodule update --init --recursive
 pip install -r requirements/docs.txt
 cd docs
-make html # You could disable copying notebooks by running `SHOULD_COPY_NOTEBOOKS=0 make html`
+make html  # You could disable copying notebooks by running `SHOULD_COPY_NOTEBOOKS=0 make html`
 ```
 
 and open `docs/build/html/index.html` in your browser.
