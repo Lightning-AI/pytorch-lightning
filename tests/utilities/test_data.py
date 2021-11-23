@@ -4,13 +4,13 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import (
+    _replace_dataloader_init_method,
     extract_batch_size,
     get_len,
     has_iterable_dataset,
     has_len,
     has_len_all_ranks,
     warning_cache,
-    _replace_dataloader_init_method,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import no_warning_call
@@ -116,8 +116,8 @@ def test_has_len_all_rank():
 
 
 def test_replace_dataloader_init_method():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets
-    them as attributes."""
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as attributes."""
 
     class DataLoaderSubclass1(DataLoader):
         def __init__(self, attribute1, *args, **kwargs):
