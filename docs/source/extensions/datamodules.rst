@@ -179,7 +179,7 @@ To define a DataModule the following methods are used to create train/val/test/p
 
 
 prepare_data
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 Use :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` method to do things that might write to disk or that need to be done only from a single process in distributed
 setting. In case of multi-node training, the execution of this hook depends upon :ref:`prepare_data_per_node<common/trainer:prepare_data_per_node>`.
 
@@ -200,7 +200,7 @@ setting. In case of multi-node training, the execution of this hook depends upon
 
 
 setup
-^^^^^
+~~~~~
 There are also data operations you might want to perform on every GPU. Use :meth:`~pytorch_lightning.core.hooks.DataHooks.setup` to do things like:
 
 - count number of classes
@@ -237,8 +237,8 @@ we assume all stages have been set-up.
 
 
 train_dataloader
-^^^^^^^^^^^^^^^^
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.train_dataloader` method to generate the train dataloader(s).
+~~~~~~~~~~~~~~~~
+Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.train_dataloader` method to generate the training dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` method uses.
 
@@ -253,8 +253,8 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 
 
 val_dataloader
-^^^^^^^^^^^^^^
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader` method to generate the val dataloader(s).
+~~~~~~~~~~~~~~
+Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader` method to generate the validation dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` methods uses.
 
@@ -271,7 +271,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 .. _datamodule-test-dataloader-label:
 
 test_dataloader
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method uses.
@@ -287,8 +287,8 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 
 
 predict_dataloader
-^^^^^^^^^^^^^^^^^^
-Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.predict_dataloader` method to generate the predict dataloader(s).
+~~~~~~~~~~~~~~~~~~
+Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.predict_dataloader` method to generate the prediction dataloader(s).
 Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
 
@@ -303,19 +303,19 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 
 
 transfer_batch_to_device
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.transfer_batch_to_device
     :noindex:
 
 on_before_batch_transfer
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_before_batch_transfer
     :noindex:
 
 on_after_batch_transfer
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_after_batch_transfer
     :noindex:
@@ -357,7 +357,7 @@ on_predict_dataloader
     :noindex:
 
 teardown
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.teardown
     :noindex:
