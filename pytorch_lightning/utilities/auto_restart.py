@@ -394,52 +394,6 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     return iter_dataloader
 
 
-def _dataloader_to_state_dict(
-    dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
-) -> List[Dict[str, Any]]:
-    """Convert a dataloader to its associated state dict."""
-    out = {}
-    if iterator is not None:
-        out.update(_find_current_worker(iterator))
-
-    if not isinstance(dataloader.dataset, CaptureIterableDataset):
-        fast_forward_sampler = _find_fast_forward_samplers(dataloader)
-        if fast_forward_sampler is not None:
-            out.update(fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed))
-    return out
-
-
-def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
-    """Reload ``DataLoader`` fast-forward sampler state dict."""
-    fast_forward_sampler = _find_fast_forward_samplers(dataloader)
-
-    if isinstance(fast_forward_sampler, Sampler):
-        state_dict = {k: v for k, v in state_dict.items() if k not in ("num_workers", "previous_worker")}
-        fast_forward_sampler.load_state_dict(state_dict)
-
-    return dataloader
-
-
-def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
-    """Find the current DataLoader Iterator worker if multiple workers were used."""
-    # get the current number of workers
-    num_workers = getattr(iterator, "_num_workers", 0)
-    if isinstance(iterator, _MultiProcessingDataLoaderIter):
-        # fetch next worker
-        next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers
-        # get the current worker from next one
-        previous_worker = (next_worker - 1) % num_workers
-        # reset back the `worker_queue_idx` to current one, so we can keep
-        # going without perturbation.
-        while next(iterator._worker_queue_idx_cycle) != previous_worker:
-            pass
-    else:
-        previous_worker = None
-
-    # return the captured metadata.
-    return {"num_workers": num_workers, "previous_worker": previous_worker}
-
-
 def _capture_metadata_collate(
     samples: List, dataset: Dataset, collate_fn: Callable, fault_tolerant_mode: _FaultTolerantMode
 ) -> Any:
@@ -556,7 +510,7 @@ def patch_dataloader_iterator(
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
     faut_tolerant_mode = _FaultTolerantMode.detect_current_mode()
-    if not faut_tolerant_mode.is_enabled:
+    if not faut_tolerant_mode.is_enabled or isinstance(dataloader.collate_fn, partial):
         return
     dataloader.collate_fn = partial(
         _capture_metadata_collate,
@@ -700,8 +654,7 @@ class _StatefulDataLoaderIter:
         return indexes
 
     def _prepare_loader(self, loader):
-        if not isinstance(loader.collate_fn, partial):
-            loader.collate_fn = partial(_capture_metadata_collate, dataset=loader.dataset, collate_fn=loader.collate_fn)
+        _add_capture_metadata_collate(loader)
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0

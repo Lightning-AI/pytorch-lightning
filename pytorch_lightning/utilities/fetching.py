@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import torch
@@ -111,11 +110,7 @@ class AbstractDataFetcher(ABC):
         if isinstance(dataloader, CombinedLoader):
             dataloader = dataloader.loaders
 
-        def add_capture_metadata_collate(dataloader: DataLoader):
-            if not isinstance(dataloader.collate_fn, partial):
-                _add_capture_metadata_collate(dataloader)
-
-        apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
+        apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
 
     def append_batch(self, batch) -> None:
         self.batches.append(batch)

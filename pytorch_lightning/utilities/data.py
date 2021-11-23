@@ -26,7 +26,6 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -263,6 +262,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
     """
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
     # checking the batch sampler type is different than PyTorch default.
@@ -275,7 +275,7 @@ def _dataloader_init_kwargs_resolve_sampler(
         if is_predicting:
             batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if _fault_tolerant_training():
+        if fault_tolerant_mode.is_automatic:
             fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
             fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -287,7 +287,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             "drop_last": False,
         }
 
-    if _fault_tolerant_training():
+    if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
         fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
