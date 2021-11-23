@@ -27,7 +27,6 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
-import pytorch_lightning.plugins as plugins
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -631,7 +630,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _format_precision_config(self) -> None:
         if self.precision_plugin.precision in (16, "mixed"):
-            if "fp16" not in self.config and isinstance(self.precision_plugin, plugins.NativeMixedPrecisionPlugin):
+            if "fp16" not in self.config and isinstance(self.precision_plugin, pl.plugins.NativeMixedPrecisionPlugin):
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -642,7 +641,7 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and isinstance(self.precision_plugin, plugins.ApexMixedPrecisionPlugin):
+            elif "amp" not in self.config and isinstance(self.precision_plugin, pl.plugins.ApexMixedPrecisionPlugin):
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
 
