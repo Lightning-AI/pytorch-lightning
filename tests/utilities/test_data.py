@@ -4,8 +4,8 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import (
-    _update_dataloader,
     _replace_dataloader_init_method,
+    _update_dataloader,
     extract_batch_size,
     get_len,
     has_iterable_dataset,
