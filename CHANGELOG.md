@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Moved ownership of the `PrecisionPlugin` into `TrainingTypePlugin` and updated all references ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
--
+- Disable validation completely when `overfit_batches > 0` ([#9709](https://github.com/PyTorchLightning/pytorch-lightning/pull/9709))
 
 
 -
@@ -467,8 +467,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed ImageNet evaluation in example ([#10179](https://github.com/PyTorchLightning/pytorch-lightning/pull/10179))
-- Fixed `overfit_batches` overriding `Trainer`'s attributes `limit_{stage}_batches` ([#9709](https://github.com/PyTorchLightning/pytorch-lightning/pull/9709))
-
 - Fixed an issue with logger outputs not being finalized correctly after prediction runs ([#8685](https://github.com/PyTorchLightning/pytorch-lightning/pull/8685))
 - Fixed `move_metrics_to_cpu` moving the loss to CPU while training on device ([#9308](https://github.com/PyTorchLightning/pytorch-lightning/pull/9308))
 - Fixed incorrect main progress bar indicator when resuming training mid-epoch ([#9310](https://github.com/PyTorchLightning/pytorch-lightning/pull/9310))
