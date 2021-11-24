@@ -246,7 +246,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
     model = CurrentModel()
     early_stopping = EarlyStopping(monitor="val_loss", check_finite=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], max_epochs=10)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], limit_train_batches=0.2, limit_val_batches=0.2, max_epochs=10)
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
     assert early_stopping.stopped_epoch == expected_stop_epoch
