@@ -975,7 +975,21 @@ use_amp
 ~~~~~~~
 True if using Automatic Mixed Precision (AMP)
 
---------------
+------------
+
+prepare_data_per_node
+~~~~~~~~~~~~~~~~~~~~~
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.prepare_data_per_node = True
+
+------------
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~

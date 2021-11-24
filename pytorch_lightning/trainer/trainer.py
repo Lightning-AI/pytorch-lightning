@@ -283,7 +283,8 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
+                    ``LightningModule`` directly instead.
 
             process_position: Orders the progress bar when running multiple models on same machine.
 

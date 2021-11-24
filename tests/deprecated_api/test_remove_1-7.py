@@ -120,9 +120,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
 
 def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
-    ):
+    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
         _ = Trainer(prepare_data_per_node=False)
 
 

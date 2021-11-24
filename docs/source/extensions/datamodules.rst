@@ -180,8 +180,10 @@ To define a DataModule the following methods are used to create train/val/test/p
 
 prepare_data
 ~~~~~~~~~~~~
-Use :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` method to do things that might write to disk or that need to be done only from a single process in distributed
-setting. In case of multi-node training, the execution of this hook depends upon :ref:`prepare_data_per_node<common/trainer:prepare_data_per_node>`.
+Downloading and saving data with multiple processes (distributed settings) will result in corrupted data. Lightning
+ensures the :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` is called only within a single process,
+so you can safely add your downloading logic within. In case of multi-node training, the execution of this hook
+depends upon :ref:`prepare_data_per_node<extensions/datamodules:prepare_data_per_node>`.
 
 - download
 - tokenize
@@ -361,6 +363,18 @@ teardown
 
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.teardown
     :noindex:
+
+prepare_data_per_node
+~~~~~~~~~~~~~~~~~~~~~
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
+
+.. testcode::
+
+    class LitDataModule(LightningDataModule):
+        def __init__(self):
+            super().__init__()
+            self.prepare_data_per_node = True
 
 
 ------------------
