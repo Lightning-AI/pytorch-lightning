@@ -24,7 +24,7 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.utilities.auto_restart import (
-    _collection_collect_states_on_rank_zero,
+    _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
     MergedIteratorState,
 )
@@ -181,7 +181,7 @@ class EvaluationEpochLoop(Loop):
         state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
         if state:
             state_dict["dataloader_state_dict"] = asdict(state)
-        state_dict["dataloader_state_dict"] = _collection_collect_states_on_rank_zero(
+        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
             state_dict["dataloader_state_dict"], device=self.trainer.training_type_plugin.root_device
         )
         return state_dict

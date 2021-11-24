@@ -39,7 +39,7 @@ from pytorch_lightning import Callback, LightningModule, seed_everything, Traine
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
-    _collection_collect_states_on_rank_zero,
+    _collect_states_on_rank_zero_over_collection,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
     _reload_dataloader_state_dict,
@@ -1259,7 +1259,7 @@ def test_collect_states_with_collection():
 
     state = {"state": 0}
     collection = [{"a": state, "b": [{"a": state}]}]
-    generated = _collection_collect_states_on_rank_zero(collection, torch.device("cpu"))
+    generated = _collect_states_on_rank_zero_over_collection(collection, torch.device("cpu"))
     assert generated == [{"a": {0: {"state": 0}}, "b": [{"a": {0: {"state": 0}}}]}]
 
 
