@@ -138,8 +138,7 @@ class PredictionEpochLoop(Loop):
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self.trainer._call_callback_hooks("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx
-        )
+        self.trainer._call_callback_hooks("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
         self.trainer._call_lightning_module_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
