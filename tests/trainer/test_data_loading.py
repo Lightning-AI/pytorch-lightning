@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("mode", (1, 2, 3))
+@pytest.mark.parametrize("mode", (1, 2))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
@@ -36,11 +36,8 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
     class CustomDataLoader(DataLoader):
         def __init__(self, num_features, dataset, *args, **kwargs):
-            self.num_features = num_features
-            super().__init__(dataset, *args, **kwargs)
-
-    class FailureCustomDataLoader(DataLoader):
-        def __init__(self, num_features, dataset, *args, **kwargs):
+            # argument `num_features` unused on purpose
+            # it gets automatically captured by _replace_dataloader_init_method()
             super().__init__(dataset, *args, **kwargs)
 
     class CustomBatchSampler(BatchSampler):
@@ -59,11 +56,11 @@ def test_replace_distributed_sampler(tmpdir, mode):
             dataloader = self.trainer.test_dataloaders[0]
             assert isinstance(dataloader, CustomDataLoader)
             batch_sampler = dataloader.batch_sampler
-            if self._mode == 2:
+            if self._mode == 1:
                 assert isinstance(batch_sampler, CustomBatchSampler)
                 # the batch_size is set on the batch sampler
                 assert dataloader.batch_size is None
-            elif self._mode == 3:
+            elif self._mode == 2:
                 assert type(batch_sampler) is BatchSampler
                 assert dataloader.batch_size == self._mode
             assert batch_sampler.batch_size == self._mode
@@ -74,15 +71,12 @@ def test_replace_distributed_sampler(tmpdir, mode):
         def create_dataset(self):
             dataset = IndexedRandomDataset(32, 64)
             if self._mode == 1:
-                # this case will raise an error
-                return FailureCustomDataLoader(32, dataset)
-            if self._mode == 2:
                 # with a custom batch sampler
-                batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=2, drop_last=True)
+                batch_sampler = CustomBatchSampler(SequentialSampler(dataset), batch_size=1, drop_last=True)
                 return CustomDataLoader(32, dataset, batch_sampler=batch_sampler)
-            elif self._mode == 3:
+            elif self._mode == 2:
                 # with no batch sampler provided
-                return CustomDataLoader(32, dataset, batch_size=3, drop_last=True)
+                return CustomDataLoader(32, dataset, batch_size=2, drop_last=True)
 
         def test_dataloader(self):
             return [self.create_dataset()] * self._numbers_test_dataloaders
@@ -93,12 +87,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     trainer = Trainer(
         default_root_dir=tmpdir, limit_test_batches=2, strategy="ddp_find_unused_parameters_false", num_processes=1
     )
-    if mode == 1:
-        match = escape("missing attributes are ['num_features']")
-        with pytest.raises(MisconfigurationException, match=match):
-            trainer.test(model)
-    else:
-        trainer.test(model)
+    trainer.test(model)
 
 
 class TestSpawnBoringModel(BoringModel):
