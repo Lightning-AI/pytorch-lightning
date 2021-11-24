@@ -344,10 +344,11 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
 def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    for subclass in _get_all_subclasses(DataLoader):
+    subclasses = _get_all_subclasses(DataLoader)
+    for subclass in subclasses:
         subclass._old_init = subclass.__init__
         subclass.__init__ = _wrap_init(subclass.__init__)
     yield
-    for subclass in _get_all_subclasses(DataLoader):
+    for subclass in subclasses:
         subclass.__init__ = subclass._old_init
         del subclass._old_init
