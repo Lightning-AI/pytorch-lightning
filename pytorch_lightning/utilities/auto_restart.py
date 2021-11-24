@@ -446,7 +446,7 @@ def _next_data_wrapper(
         combined_batch = fn()
 
         batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
-        num_batches_fetched = 1
+        num_batches_fetched += 1
 
         if isinstance(dataset, CaptureIterableDataset):
             state = [
