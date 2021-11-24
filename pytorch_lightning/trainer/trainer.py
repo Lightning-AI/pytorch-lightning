@@ -1453,7 +1453,7 @@ class Trainer(
 
             fn = getattr(pl_module, hook_name)
             if callable(fn):
-                with self.profiler.profile(f"{pl_module.__class__.__name__}.{hook_name}"):
+                with self.profiler.profile(hook_name):
                     output = fn(*args, **kwargs)
 
             # restore current_fx when nested context
@@ -1478,20 +1478,20 @@ class Trainer(
         if hook_name in ("on_train_batch_start", "on_train_batch_end"):
             fn = getattr(self, hook_name)
             if callable(fn):
-                with self.profiler.profile(f"{hook_name}"):
+                with self.profiler.profile(hook_name):
                     output = fn(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 if hook_name in ("on_init_start", "on_init_end"):
                     # these `Callback` hooks are the only ones that do not take a lightning module.
-                    # we also don't profile bc profiler hasn't been set y et
+                    # we also don't profile bc profiler hasn't been set yet
                     fn = getattr(callback, hook_name)
                     if callable(fn):
                         output = fn(self, *args, **kwargs)
                 else:
                     fn = getattr(callback, hook_name)
                     if callable(fn):
-                        with self.profiler.profile(f"{callback.__class__.__name__}.{callback.state_key}.{hook_name}"):
+                        with self.profiler.profile(hook_name):
                             output = fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
@@ -1509,7 +1509,7 @@ class Trainer(
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
         if callable(fn):
-            with self.profiler.profile(f"{self.training_type_plugin.__class__.__name__}.{hook_name}"):
+            with self.profiler.profile(hook_name):
                 output = fn(*args, **kwargs)
 
         return output
