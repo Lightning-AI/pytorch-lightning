@@ -27,8 +27,8 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -249,17 +249,8 @@ def _get_dataloader_init_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
 
-    if _fault_tolerant_training():
-        dataset = dl_kwargs["dataset"]
-        if isinstance(dataset, IterableDataset):
-            # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-        elif get_len(dataset) != float("inf"):
-            dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-        else:
-            raise MisconfigurationException(
-                "This shouldn't happen, please open an issue on Lightning Github repository."
-            )
+    if _FaultTolerantMode.detect_current_mode().is_automatic:
+        dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
 
     return dl_kwargs
 
@@ -274,6 +265,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
     """
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
     # checking the batch sampler type is different than PyTorch default.
@@ -286,7 +278,7 @@ def _dataloader_init_kwargs_resolve_sampler(
         if is_predicting:
             batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if _fault_tolerant_training():
+        if fault_tolerant_mode.is_automatic:
             fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
             fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -298,7 +290,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             "drop_last": False,
         }
 
-    if _fault_tolerant_training():
+    if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
         fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
@@ -352,3 +344,16 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
     for subclass in subclasses:
         subclass.__init__ = subclass._old_init
         del subclass._old_init
+
+
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> Dict:
+    dataset = dl_kwargs["dataset"]
+    if isinstance(dataset, IterableDataset):
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dataset)
+    elif get_len(dataset) != float("inf"):
+        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dataset)
+    else:
+        raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
+    return dl_kwargs
+
