@@ -23,7 +23,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -36,12 +36,8 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedPlugin(DDPPlugin):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    distributed_backend = DistributedType.DDP_SHARDED
+    distributed_backend = _StrategyType.DDP_SHARDED
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._precision = None
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
@@ -75,8 +71,7 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    precision = self._precision or self.lightning_module.trainer.precision
-                    is_fp16 = precision in ("mixed", 16)
+                    is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.

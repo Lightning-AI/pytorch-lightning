@@ -11,8 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+"""Test deprecated functionality which will be removed in v1.8.0."""
+import pytest
 
-_BENCHMARK_ROOT = os.path.dirname(__file__)
-_PROJECT_ROOT = os.path.dirname(_BENCHMARK_ROOT)
-_PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")
+from pytorch_lightning.utilities.enums import DistributedType
+
+
+def test_v1_8_0_deprecated_distributed_type_enum():
+
+    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
+        _ = DistributedType.DDP

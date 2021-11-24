@@ -39,6 +39,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingE
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -53,7 +54,6 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
@@ -64,10 +64,10 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
+    _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
     DeviceType,
-    DistributedType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -75,6 +75,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.argparse import (
+    _defaults_from_env_vars,
     add_argparse_args,
     from_argparse_args,
     parse_argparser,
@@ -84,7 +85,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.meta import materialize_module
+from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import (
@@ -162,7 +163,6 @@ class Trainer(
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        reload_dataloaders_every_epoch: bool = False,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
@@ -284,7 +284,8 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
+                    ``LightningModule`` directly instead.
 
             process_position: Orders the progress bar when running multiple models on same machine.
 
@@ -340,12 +341,6 @@ class Trainer(
                 Set it to `-1` to run all batches in all validation dataloaders.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
-
-                .. deprecated:: v1.4
-                    ``reload_dataloaders_every_epoch`` has been deprecated in v1.4 and will be removed in v1.6.
-                    Please use ``reload_dataloaders_every_n_epochs``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -515,7 +510,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            reload_dataloaders_every_epoch,
             prepare_data_per_node,
         )
 
@@ -592,29 +586,24 @@ class Trainer(
         overfit_batches,
         fast_dev_run,
     ):
-        if not isinstance(fast_dev_run, (bool, int)):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
-            )
-
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
         self.fast_dev_run = fast_dev_run
-        fast_dev_run = int(fast_dev_run)
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
 
         if fast_dev_run:
-            limit_train_batches = fast_dev_run
-            limit_val_batches = fast_dev_run
-            limit_test_batches = fast_dev_run
-            limit_predict_batches = fast_dev_run
-            self.fit_loop.max_steps = fast_dev_run
+            num_batches = int(fast_dev_run)
+            limit_train_batches = num_batches
+            limit_val_batches = num_batches
+            limit_test_batches = num_batches
+            limit_predict_batches = num_batches
+            self.fit_loop.max_steps = num_batches
             self.num_sanity_val_steps = 0
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
@@ -623,7 +612,7 @@ class Trainer(
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+                f" val, test and prediction loop using {num_batches} batch(es)."
             )
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
@@ -632,9 +621,9 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self.determine_data_use_amount(self.overfit_batches)
+        self._determine_data_use_amount(self.overfit_batches)
 
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
+    def _determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
@@ -694,6 +683,8 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
+            # shutdown workers
+            self._data_connector.teardown()
             raise
 
     def fit(
@@ -1404,9 +1395,20 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.accelerator.model_sharded_context():
-            materialize_module(self.lightning_module)
+            self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
+
+    def _handle_meta_model(self) -> None:
+        if not is_on_meta_device(self.lightning_module):
+            return
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
+
+        materialize_module(self.lightning_module)
+        # the trainer reference is lost during materialization
+        self.lightning_module.trainer = proxy(self)
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
@@ -1563,7 +1565,7 @@ class Trainer(
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self.accelerator.precision_plugin
+        return self.training_type_plugin.precision_plugin
 
     @property
     def global_rank(self) -> int:
@@ -1589,7 +1591,7 @@ class Trainer(
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
-    def _distrib_type(self) -> DistributedType:
+    def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 
     @property
@@ -1667,7 +1669,7 @@ class Trainer(
 
     @property
     def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+        return self.training_type_plugin.precision_plugin.precision
 
     @property
     def scaler(self):
@@ -1725,18 +1727,8 @@ class Trainer(
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id:
-            try:
-                job_id = int(job_id)
-            except ValueError:
-                job_id = None
-
-        # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
-        if in_slurm_interactive_mode:
-            job_id = None
-        return job_id
+        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
+        return SLURMEnvironment.job_id()
 
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
@@ -1752,15 +1744,11 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP2,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP2,
         )
-
-    @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        return self._progress_bar_callback
 
     @property
     def progress_bar_dict(self) -> dict:
@@ -1780,15 +1768,6 @@ class Trainer(
         """Check if dataloader should be reloaded in the current epoch."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
-
-    @property
-    def disable_validation(self) -> bool:
-        """Check if validation is disabled during training."""
-        rank_zero_deprecation(
-            "`trainer.disable_validation` is deprecated in v1.4 and will be removed in v1.6."
-            " Use `not trainer.enable_validation` instead."
-        )
-        return not self.enable_validation
 
     @property
     def enable_validation(self) -> bool:
@@ -1848,6 +1827,15 @@ class Trainer(
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
+        """An instance of :class:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase` found in the
+        Trainer.callbacks list, or ``None`` if one doesn't exist."""
+        for c in self.callbacks:
+            if isinstance(c, ProgressBarBase):
+                return c
+        return None
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
@@ -2133,13 +2121,6 @@ class Trainer(
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def train_loop(self) -> FitLoop:
-        rank_zero_deprecation(
-            "`Trainer.train_loop` has been renamed to `Trainer.fit_loop` and will be removed in v1.6."
-        )
-        return self.fit_loop
 
     @property
     def terminate_on_nan(self) -> bool:
