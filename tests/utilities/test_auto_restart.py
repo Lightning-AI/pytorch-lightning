@@ -1350,7 +1350,7 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
         self._cache_state_dict = state_dict
 
 
-class RandomSamplerStateful(RandomSampler):
+class RandomFaultTolerantSampler(RandomSampler):
     def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
         generator = torch.Generator().manual_seed(seed)
         super().__init__(*args, generator=generator, **kwargs)
@@ -1387,7 +1387,6 @@ class RandomSamplerStateful(RandomSampler):
         self.counter = 0
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 22 sec and should be skipped in Azure CI")
 @pytest.mark.parametrize(
     ["train_dataset_cls", "val_dataset_cls"],
     [
@@ -1421,7 +1420,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
         def _create_dataloader_kwargs(self, dataset_class, dataset_len, seed, num_workers):
             dl_kwargs = {}
             dl_kwargs["dataset"] = dataset_class(dataset_len, 1, seed=seed)
-            dl_kwargs["sampler"] = RandomSamplerStateful(dl_kwargs["dataset"], seed=seed)
+            dl_kwargs["sampler"] = RandomFaultTolerantSampler(dl_kwargs["dataset"], seed=seed)
             dl_kwargs["num_workers"] = num_workers
             dl_kwargs["batch_size"] = 1
             return dl_kwargs
