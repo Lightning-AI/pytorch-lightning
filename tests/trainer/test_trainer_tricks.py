@@ -112,33 +112,34 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     for split in (RunningStage.VALIDATING, RunningStage.TESTING):
 
-        # ------------------------------------------------------
-        # test overfit_batches as percent
-        # ------------------------------------------------------
-        trainer = Trainer(overfit_batches=0.11)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == num_train_samples
+        if split == RunningStage.TESTING:
+            # ------------------------------------------------------
+            # test overfit_batches as percent
+            # ------------------------------------------------------
+            trainer = Trainer(overfit_batches=0.11)
+            trainer._data_connector.attach_dataloaders(model)
+            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
+            assert loader_num_batches[0] == num_train_samples
 
-        # make sure we turned off shuffle for the user
-        assert isinstance(dataloaders[0].sampler, SequentialSampler)
+            # make sure we turned off shuffle for the user
+            assert isinstance(dataloaders[0].sampler, SequentialSampler)
 
-        # make sure the loaders are the same
-        (xb, yb) = next(iter(dataloaders[0]))
-        assert torch.eq(xa, xb).all()
-        assert torch.eq(ya, yb).all()
+            # make sure the loaders are the same
+            (xb, yb) = next(iter(dataloaders[0]))
+            assert torch.eq(xa, xb).all()
+            assert torch.eq(ya, yb).all()
 
-        # ------------------------------------------------------
-        # test overfit_batches as int
-        # ------------------------------------------------------
-        trainer = Trainer(overfit_batches=1)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == 1
-        trainer = Trainer(overfit_batches=5)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == 5
+            # ------------------------------------------------------
+            # test overfit_batches as int
+            # ------------------------------------------------------
+            trainer = Trainer(overfit_batches=1)
+            trainer._data_connector.attach_dataloaders(model)
+            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
+            assert loader_num_batches[0] == 1
+            trainer = Trainer(overfit_batches=5)
+            trainer._data_connector.attach_dataloaders(model)
+            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
+            assert loader_num_batches[0] == 5
 
         # ------------------------------------------------------
         # test limit_xxx_batches as percent AND int
