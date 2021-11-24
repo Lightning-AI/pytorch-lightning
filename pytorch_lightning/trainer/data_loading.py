@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -430,7 +431,10 @@ class TrainerDataLoadingMixin(ABC):
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = source.dataloader()
+        with _replace_dataloader_init_method():
+            # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
