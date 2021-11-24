@@ -1453,7 +1453,7 @@ class Trainer(
 
             fn = getattr(pl_module, hook_name)
             if callable(fn):
-                #TODO: when profiling separate hook name by LM hooks/Callback hooks
+                # TODO: when profiling separate hook name by LM hooks/Callback hooks
                 with self.profiler.profile(hook_name):
                     output = fn(*args, **kwargs)
 
