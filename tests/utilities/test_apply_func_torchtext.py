@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.imports import Dataset, Example, Field, Iterator
 from tests.helpers.runif import RunIf
 
@@ -52,6 +53,7 @@ def _get_torchtext_data_iterator(include_lengths=False):
 
 @pytest.mark.parametrize("include_lengths", [False, True])
 @pytest.mark.parametrize("device", [torch.device("cuda", 0)])
+@pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 @RunIf(min_gpus=1)
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
     data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
@@ -69,5 +71,6 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
 
 
 @pytest.mark.parametrize("include_lengths", [False, True])
+@pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths):
     test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device("cpu"))
