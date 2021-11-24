@@ -69,8 +69,7 @@ class DataParallelPlugin(ParallelPlugin):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
 
-        The returned batch is of the same type as the input batch, just
-        having all tensors on the correct device.
+        The input and the output is the same type.
 
         Args:
             batch: The batch of samples to move to the correct device
