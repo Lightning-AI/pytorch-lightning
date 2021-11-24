@@ -114,7 +114,7 @@ PopVision Graph Analyser
    :alt: PopVision Graph Analyser
    :width: 500
 
-Lightning supports integration with the `PopVision Graph Analyser Tool <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/popvision.html>`__. This helps to look at utilization of IPU devices and provides helpful metrics during the lifecycle of your trainer. Once you have gained access, The PopVision Graph Analyser Tool can be downloaded via the `GraphCore download website <https://downloads.graphcore.ai/>`__.
+Lightning supports integration with the `PopVision Graph Analyser Tool <https://docs.graphcore.ai/projects/graph-analyser-userguide/en/latest/>`__. This helps to look at utilization of IPU devices and provides helpful metrics during the lifecycle of your trainer. Once you have gained access, The PopVision Graph Analyser Tool can be downloaded via the `GraphCore download website <https://downloads.graphcore.ai/>`__.
 
 Lightning supports dumping all reports to a directory to open using the tool.
 
@@ -127,7 +127,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
     trainer = pl.Trainer(ipus=8, strategy=IPUPlugin(autoreport_dir="report_dir/"))
     trainer.fit(model)
 
-This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html#opening-reports>`__.
+This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graph-analyser-userguide/en/latest/graph-analyser.html#opening-reports>`__.
 
 .. _ipu-model-parallelism:
 
