@@ -13,9 +13,8 @@
 # limitations under the License.
 from abc import ABC
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Type, Union
 
-import torch
 from packaging.version import Version
 
 import pytorch_lightning as pl
