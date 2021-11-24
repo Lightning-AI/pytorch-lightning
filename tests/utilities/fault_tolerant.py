@@ -115,10 +115,10 @@ def main():
 
     if auto_restart_checkpoint_path_exists:
         fail_on_step = -1
-        completed_batches = 5
+        completed_batches = 4
     else:
         fail_on_step = 4
-        completed_batches = 4
+        completed_batches = 5
 
     # Perform a failure
     complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
@@ -130,7 +130,9 @@ def main():
         log.info(".pl_auto_save.ckpt exists.")
 
     if auto_restart_checkpoint_path_exists:
-        log.info([w for w in weights])
+        params = [w for w in weights]
+        log.info(params)
+        assert "[-1.0939, -0.4306]" in str(params[-1])
 
     os.environ.clear()
     os.environ.update(env_backup)

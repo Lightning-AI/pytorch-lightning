@@ -686,7 +686,8 @@ class Trainer(
             # shutdown workers
             self._data_connector.teardown()
             if isinstance(exception, ExitGracefullyException):
-                os._exit(0)
+                # this is required to ensure schedulers can properly restart the training.
+                return
             raise
 
     def fit(

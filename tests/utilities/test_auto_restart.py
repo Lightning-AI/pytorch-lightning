@@ -52,7 +52,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -1093,11 +1093,7 @@ def _fit_model(
     )
 
     trainer = Trainer(**trainer_kwargs)
-    if should_signal:
-        with pytest.raises(ExitGracefullyException, match=status):
-            trainer.fit(model)
-    else:
-        trainer.fit(model)
+    trainer.fit(model)
     assert trainer._terminate_gracefully == should_signal
 
     return model
