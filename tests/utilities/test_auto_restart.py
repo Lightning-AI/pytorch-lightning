@@ -1210,14 +1210,15 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
+    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+        _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=True)),
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    with pytest.raises(MisconfigurationException, match="The current combinaison of DataLoaders isn't supported."):
+    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single."):
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     with pytest.raises(MisconfigurationException, match="RandomSampler"):
