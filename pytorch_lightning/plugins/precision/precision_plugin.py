@@ -147,7 +147,7 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        optimizer.step(closure=closure, **kwargs)
+        optimizer.step(closure=closure)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
