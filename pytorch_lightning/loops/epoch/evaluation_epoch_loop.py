@@ -44,15 +44,12 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders: Optional[int] = None
         self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[DataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = None
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
-
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
@@ -183,7 +180,7 @@ class EvaluationEpochLoop(Loop):
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
             _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
