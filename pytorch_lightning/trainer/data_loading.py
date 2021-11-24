@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, _validate_fault_tolerant_training
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dataloader_init_method,
@@ -438,7 +438,7 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
-        _validate_fault_tolerant_training(dataloader, stage)
+        _validate_fault_tolerant_automatic(dataloader, stage)
         return dataloader
 
     @staticmethod

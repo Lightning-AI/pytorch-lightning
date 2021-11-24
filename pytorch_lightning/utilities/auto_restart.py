@@ -799,7 +799,7 @@ def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
     return type(sampler) is SequentialSampler, ""
 
 
-def _validate_fault_tolerant_training(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
+def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
     """This function is used to validate that fault tolerant training is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
