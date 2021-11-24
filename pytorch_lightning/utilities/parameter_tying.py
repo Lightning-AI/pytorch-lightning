@@ -19,7 +19,6 @@ Reference:
 from typing import Dict, List, Optional
 
 from torch import nn
-from torch.nn import Parameter
 
 
 def find_shared_parameters(module: nn.Module) -> List[str]:
