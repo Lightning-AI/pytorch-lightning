@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("register_handler", [False, True])
-@pytest.mark.parametrize("terminate_gracefully", [False, True])
+@pytest.mark.parametrize("terminate_gracefully", [True])
 @RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
 
@@ -37,12 +37,12 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         def handler(*_):
             pass
 
-        signal.signal(signal.SIGTERM, handler)
+        signal.signal(signal.SIGUSR1, handler)
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             if terminate_gracefully or register_handler:
-                os.kill(os.getpid(), signal.SIGTERM)
+                os.kill(os.getpid(), signal.SIGUSR1)
                 sleep(0.1)
             return super().training_step(batch, batch_idx)
 
@@ -59,7 +59,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
 
     # reset the signal to system defaults
-    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    signal.signal(signal.SIGUSR1, signal.SIG_DFL)
 
 
 @RunIf(skip_windows=True)
