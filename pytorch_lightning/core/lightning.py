@@ -312,18 +312,7 @@ class LightningModule(
 
             self.log('train_loss', loss)
 
-        The default behavior per hook is as follows:
-
-        .. csv-table:: ``*`` also applies to the test loop
-           :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
-           :widths: 20, 10, 10, 10, 10
-
-           "training_step", "T", "F", "F", "T"
-           "training_step_end", "T", "F", "F", "T"
-           "training_epoch_end", "F", "T", "F", "T"
-           "validation_step*", "F", "T", "F", "T"
-           "validation_step_end*", "F", "T", "F", "T"
-           "validation_epoch_end*", "F", "T", "F", "T"
+        The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
 
         Args:
             name: key to log
