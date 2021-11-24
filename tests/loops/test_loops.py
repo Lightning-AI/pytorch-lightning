@@ -24,7 +24,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from pytorch_lightning.loops import Loop, PredictionEpochLoop, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -113,16 +113,15 @@ def test_replace_loops():
     with pytest.raises(
         MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
     ):
-        trainer.fit_loop.replace(TestLoop)
-
-    with pytest.raises(MisconfigurationException, match="Did not find.*same parent class as `PredictionEpochLoop`"):
-        trainer.fit_loop.replace(PredictionEpochLoop)
+        trainer.fit_loop.replace(epoch_loop=TestLoop)
 
     class TestLoop(TrainingEpochLoop):
         ...
 
+    # test passing a loop where previous state should be connected
     old_loop = trainer.fit_loop.epoch_loop
-    new_loop = trainer.fit_loop.replace(TestLoop)
+    trainer.fit_loop.replace(epoch_loop=TestLoop)
+    new_loop = trainer.fit_loop.epoch_loop
 
     assert isinstance(new_loop, TestLoop)
     assert trainer.fit_loop.epoch_loop is new_loop
@@ -131,6 +130,20 @@ def test_replace_loops():
     assert new_loop.batch_loop is old_loop.batch_loop
     assert new_loop.val_loop is old_loop.val_loop
     assert new_loop.trainer is trainer
+
+    class MyBatchLoop(TrainingBatchLoop):
+        ...
+
+    class MyEvalLoop(EvaluationLoop):
+        ...
+
+    # test passing more than one where one is an instance and the other a class
+    trainer.fit_loop.epoch_loop.replace(batch_loop=MyBatchLoop, val_loop=MyEvalLoop())
+    new_batch_loop = trainer.fit_loop.epoch_loop.batch_loop
+    new_val_loop = trainer.fit_loop.epoch_loop.val_loop
+
+    assert isinstance(new_batch_loop, MyBatchLoop)
+    assert isinstance(new_val_loop, MyEvalLoop)
 
 
 class CustomException(Exception):

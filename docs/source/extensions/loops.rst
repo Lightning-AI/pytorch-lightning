@@ -272,7 +272,7 @@ When you want to customize nested loops within loops, use the :meth:`~pytorch_li
 .. code-block:: python
 
     # This takes care of properly instantiating the new Loop and setting all references
-    trainer.fit_loop.replace(MyEpochLoop)
+    trainer.fit_loop.replace(epoch_loop=MyEpochLoop)
     # Trainer runs the fit loop with your new epoch loop!
     trainer.fit(model)
 
