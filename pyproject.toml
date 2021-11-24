@@ -7,7 +7,6 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "benchmarks",
     "docs",
     "pl_examples",
     "pytorch_lightning",
@@ -24,7 +23,7 @@ line-length = 120
 
 
 [tool.mypy]
-files = ["pytorch_lightning", "pl_examples", "benchmarks"]
+files = ["pytorch_lightning"]
 disallow_untyped_defs = "True"
 ignore_missing_imports = "True"
 show_error_codes = "True"
@@ -44,7 +43,6 @@ module = [
     "pytorch_lightning.core.*",
     "pytorch_lightning.loggers.*",
     "pytorch_lightning.loops.*",
-    "pytorch_lightning.metrics.*",
     "pytorch_lightning.overrides.*",
     "pytorch_lightning.plugins.environments.*",
     "pytorch_lightning.plugins.training_type.*",
@@ -53,9 +51,6 @@ module = [
     "pytorch_lightning.distributed.*",
     "pytorch_lightning.tuner.*",
     "pytorch_lightning.utilities.*",
-    "pl_examples.*",
-    "benchmarks.*",
-    "tests.helpers.*"
 ]
 ignore_errors = "True"
 
@@ -67,15 +62,17 @@ module = [
     "pytorch_lightning.callbacks.gradient_accumulation_scheduler",
     "pytorch_lightning.callbacks.lr_monitor",
     "pytorch_lightning.callbacks.model_summary",
+    "pytorch_lightning.callbacks.progress",
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.callbacks.rich_model_summary",
     "pytorch_lightning.core.optimizer",
+    "pytorch_lightning.lite.*",
     "pytorch_lightning.loops.optimization.*",
     "pytorch_lightning.loops.evaluation_loop",
     "pytorch_lightning.trainer.connectors.checkpoint_connector",
     "pytorch_lightning.trainer.connectors.logger_connector.*",
     "pytorch_lightning.trainer.connectors.signal_connector",
-    "pytorch_lightning.trainer.progress",
+    "pytorch_lightning.trainer.progress.*",
     "pytorch_lightning.tuner.auto_gpu_select",
     "pytorch_lightning.utilities.apply_func",
     "pytorch_lightning.utilities.argparse",

@@ -24,6 +24,7 @@ from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -45,7 +46,6 @@ def test_can_prepare_data(local_rank, node_rank):
     # prepare_data_per_node = True
     # local rank = 0   (True)
     dm.random_full = None
-    dm._has_prepared_data = False
     local_rank.return_value = 0
     assert trainer.local_rank == 0
 
@@ -54,7 +54,6 @@ def test_can_prepare_data(local_rank, node_rank):
 
     # local rank = 1   (False)
     dm.random_full = None
-    dm._has_prepared_data = False
     local_rank.return_value = 1
     assert trainer.local_rank == 1
 
@@ -64,7 +63,6 @@ def test_can_prepare_data(local_rank, node_rank):
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     dm.random_full = None
-    dm._has_prepared_data = False
     dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
@@ -74,7 +72,6 @@ def test_can_prepare_data(local_rank, node_rank):
 
     # global rank = 1   (False)
     dm.random_full = None
-    dm._has_prepared_data = False
     node_rank.return_value = 1
     local_rank.return_value = 0
 
@@ -95,15 +92,6 @@ def test_can_prepare_data(local_rank, node_rank):
 
     with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
         # is_overridden prepare data = True
-        # has been called
-        # False
-        dm._has_prepared_data = True
-        trainer._data_connector.prepare_data()
-        dm_mock.assert_not_called()
-
-        # has not been called
-        # True
-        dm._has_prepared_data = False
         trainer._data_connector.prepare_data()
         dm_mock.assert_called_once()
 
@@ -135,114 +123,6 @@ def test_helper_boringdatamodule_with_verbose_setup():
     dm.prepare_data()
     dm.setup("fit")
     dm.setup("test")
-
-
-def test_data_hooks_called():
-    dm = BoringDataModule()
-    assert not dm.has_prepared_data
-    assert not dm.has_setup_fit
-    assert not dm.has_setup_test
-    assert not dm.has_setup_validate
-    assert not dm.has_setup_predict
-    assert not dm.has_teardown_fit
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_validate
-    assert not dm.has_teardown_predict
-
-    dm.prepare_data()
-    assert dm.has_prepared_data
-    assert not dm.has_setup_fit
-    assert not dm.has_setup_test
-    assert not dm.has_setup_validate
-    assert not dm.has_setup_predict
-    assert not dm.has_teardown_fit
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_validate
-    assert not dm.has_teardown_predict
-
-    dm.setup()
-    assert dm.has_prepared_data
-    assert dm.has_setup_fit
-    assert dm.has_setup_test
-    assert dm.has_setup_validate
-    assert not dm.has_setup_predict
-    assert not dm.has_teardown_fit
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_validate
-    assert not dm.has_teardown_predict
-
-    dm.teardown()
-    assert dm.has_prepared_data
-    assert dm.has_setup_fit
-    assert dm.has_setup_test
-    assert dm.has_setup_validate
-    assert not dm.has_setup_predict
-    assert dm.has_teardown_fit
-    assert dm.has_teardown_test
-    assert dm.has_teardown_validate
-    assert not dm.has_teardown_predict
-
-
-@pytest.mark.parametrize("use_kwarg", (False, True))
-def test_data_hooks_called_verbose(use_kwarg):
-    dm = BoringDataModule()
-    dm.prepare_data()
-    assert not dm.has_setup_fit
-    assert not dm.has_setup_test
-    assert not dm.has_setup_validate
-    assert not dm.has_setup_predict
-    assert not dm.has_teardown_fit
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_validate
-    assert not dm.has_teardown_predict
-
-    dm.setup(stage="fit") if use_kwarg else dm.setup("fit")
-    assert dm.has_setup_fit
-    assert not dm.has_setup_validate
-    assert not dm.has_setup_test
-    assert not dm.has_setup_predict
-
-    dm.setup(stage="validate") if use_kwarg else dm.setup("validate")
-    assert dm.has_setup_fit
-    assert dm.has_setup_validate
-    assert not dm.has_setup_test
-    assert not dm.has_setup_predict
-
-    dm.setup(stage="test") if use_kwarg else dm.setup("test")
-    assert dm.has_setup_fit
-    assert dm.has_setup_validate
-    assert dm.has_setup_test
-    assert not dm.has_setup_predict
-
-    dm.setup(stage="predict") if use_kwarg else dm.setup("predict")
-    assert dm.has_setup_fit
-    assert dm.has_setup_validate
-    assert dm.has_setup_test
-    assert dm.has_setup_predict
-
-    dm.teardown(stage="fit") if use_kwarg else dm.teardown("fit")
-    assert dm.has_teardown_fit
-    assert not dm.has_teardown_validate
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_predict
-
-    dm.teardown(stage="validate") if use_kwarg else dm.teardown("validate")
-    assert dm.has_teardown_fit
-    assert dm.has_teardown_validate
-    assert not dm.has_teardown_test
-    assert not dm.has_teardown_predict
-
-    dm.teardown(stage="test") if use_kwarg else dm.teardown("test")
-    assert dm.has_teardown_fit
-    assert dm.has_teardown_validate
-    assert dm.has_teardown_test
-    assert not dm.has_teardown_predict
-
-    dm.teardown(stage="predict") if use_kwarg else dm.teardown("predict")
-    assert dm.has_teardown_fit
-    assert dm.has_teardown_validate
-    assert dm.has_teardown_test
-    assert dm.has_teardown_predict
 
 
 def test_dm_add_argparse_args(tmpdir):
@@ -306,7 +186,7 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.0
 
 
-def test_dm_checkpoint_save(tmpdir):
+def test_dm_checkpoint_save_and_load(tmpdir):
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
@@ -334,12 +214,18 @@ def test_dm_checkpoint_save(tmpdir):
     )
 
     # fit model
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
     assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
+
+    for trainer_fn in TrainerFn:
+        trainer.state.fn = trainer_fn
+        with mock.patch.object(dm, "on_load_checkpoint") as dm_mock:
+            trainer._restore_modules_and_callbacks(checkpoint_path)
+            dm_mock.assert_called_once()
 
 
 def test_full_loop(tmpdir):
@@ -556,20 +442,24 @@ def test_hyperparameters_saving():
 
 
 def test_define_as_dataclass():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, foo=None):
+            super().__init__()
+
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
     # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule1(LightningDataModule):
+    class BoringDataModule1(BoringDataModule):
         batch_size: int
-        dims: int = 2
+        foo: int = 2
 
         def __post_init__(self):
-            super().__init__(dims=self.dims)
+            super().__init__(foo=self.foo)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=64).foo == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -586,42 +476,13 @@ def test_define_as_dataclass():
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
-    # checking for all the different multilevel inhertiance scenarios, for init call on LightningDataModule
-    @dataclass
-    class BoringModuleBase1(LightningDataModule):
-        num_features: int
-
-    class BoringModuleBase2(LightningDataModule):
-        def __init__(self, num_features: int):
-            self.num_features = num_features
-
-    @dataclass
-    class BoringModuleDerived1(BoringModuleBase1):
-        ...
-
-    class BoringModuleDerived2(BoringModuleBase1):
-        def __init__(self):
-            ...
-
-    @dataclass
-    class BoringModuleDerived3(BoringModuleBase2):
-        ...
-
-    class BoringModuleDerived4(BoringModuleBase2):
-        def __init__(self):
-            ...
-
-    assert hasattr(BoringModuleDerived1(num_features=2), "_has_prepared_data")
-    assert hasattr(BoringModuleDerived2(), "_has_prepared_data")
-    assert hasattr(BoringModuleDerived3(), "_has_prepared_data")
-    assert hasattr(BoringModuleDerived4(), "_has_prepared_data")
-
 
 def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()
-        trainer = Trainer(prepare_data_per_node=False)
+        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
+            trainer = Trainer(prepare_data_per_node=False)
         trainer.model = model
         trainer.datamodule = dm
         trainer._data_connector.prepare_data()

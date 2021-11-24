@@ -20,13 +20,14 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.data import _update_dataloader
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@RunIf(skip_windows=True, min_torch="1.7.0")
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", (1, 2, 3))
 def test_replace_distributed_sampler(tmpdir, mode):
     class IndexedRandomDataset(RandomDataset):
@@ -51,7 +52,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
             self._numbers_test_dataloaders = numbers_test_dataloaders
             self._mode = mode
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             return super().test_step(batch, batch_idx)
 
         def on_test_start(self) -> None:
@@ -133,22 +134,20 @@ class TestSpawnBoringModel(BoringModel):
             assert warn_str in msg
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
-    assert trainer._accelerator_connector._distrib_type == DistributedType.DDP_SPAWN
+    assert trainer._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
 def test_update_dataloader_raises():
-    trainer = Trainer()
     with pytest.raises(ValueError, match="needs to subclass `torch.utils.data.DataLoader"):
-        trainer._update_dataloader(object(), object(), mode="fit")
+        _update_dataloader(object(), object(), mode="fit")
 
 
 def test_dataloaders_with_missing_keyword_arguments():
-    trainer = Trainer()
     ds = RandomDataset(10, 20)
 
     class TestDataLoader(DataLoader):
@@ -159,10 +158,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler', 'shuffle']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="fit")
+        _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler', 'shuffle']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="predict")
+        _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, dataset, *args, **kwargs):
@@ -170,8 +169,8 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
-    trainer._update_dataloader(loader, sampler, mode="fit")
-    trainer._update_dataloader(loader, sampler, mode="predict")
+    _update_dataloader(loader, sampler, mode="fit")
+    _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, *foo, **bar):
@@ -179,8 +178,8 @@ def test_dataloaders_with_missing_keyword_arguments():
 
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
-    trainer._update_dataloader(loader, sampler, mode="fit")
-    trainer._update_dataloader(loader, sampler, mode="predict")
+    _update_dataloader(loader, sampler, mode="fit")
+    _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, num_feat, dataset, *args, shuffle=False):
@@ -191,10 +190,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="fit")
+        _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="predict")
+        _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
         def __init__(self, num_feat, dataset, **kwargs):
@@ -205,10 +204,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     sampler = SequentialSampler(ds)
     match = escape("missing attributes are ['num_feat']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="fit")
+        _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing attributes are ['num_feat']")
     with pytest.raises(MisconfigurationException, match=match):
-        trainer._update_dataloader(loader, sampler, mode="predict")
+        _update_dataloader(loader, sampler, mode="predict")
 
 
 def test_update_dataloader_with_multiprocessing_context():
@@ -216,8 +215,7 @@ def test_update_dataloader_with_multiprocessing_context():
     train = RandomDataset(32, 64)
     context = "spawn"
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
-    trainer = Trainer()
-    new_data_loader = trainer._update_dataloader(train, SequentialSampler(train.dataset))
+    new_data_loader = _update_dataloader(train, SequentialSampler(train.dataset))
     assert new_data_loader.multiprocessing_context == train.multiprocessing_context
 
 
@@ -283,25 +281,26 @@ def test_dataloader_reinit_for_subclass():
         trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
+class LoaderTestModel(BoringModel):
+    def training_step(self, batch, batch_idx):
+        assert len(self.trainer.train_dataloader.loaders) == 10
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        assert len(self.trainer.val_dataloaders[0]) == 10
+        return super().validation_step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        assert len(self.trainer.test_dataloaders[0]) == 10
+        return super().test_step(batch, batch_idx)
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        assert len(self.trainer.predict_dataloaders[0]) == 10
+        return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+
+
 def test_loader_detaching():
     """Checks that the loader has been resetted after the entrypoint."""
-
-    class LoaderTestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            assert len(self.trainer.train_dataloader.loaders) == 10
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, batch, batch_idx):
-            assert len(self.trainer.val_dataloaders[0]) == 10
-            return super().validation_step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            assert len(self.trainer.test_dataloaders[0]) == 10
-            return super().test_step(batch, batch_idx)
-
-        def predict_step(self, batch, batch_idx, dataloader_idx=None):
-            assert len(self.trainer.predict_dataloaders[0]) == 10
-            return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 
@@ -340,3 +339,10 @@ def test_loader_detaching():
     assert len(model.val_dataloader()) == 64
     assert len(model.predict_dataloader()) == 64
     assert len(model.test_dataloader()) == 64
+
+
+def test_pre_made_batches():
+    """Check that loader works with pre-made batches."""
+    loader = DataLoader(RandomDataset(32, 10), batch_size=None)
+    trainer = Trainer(fast_dev_run=1)
+    trainer.predict(LoaderTestModel(), loader)

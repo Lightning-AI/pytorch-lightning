@@ -11,7 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, Iterator, Optional, Union
+import functools
+import inspect
+from contextlib import contextmanager
+from itertools import chain
+from typing import Any, Callable, Generator, Iterator, Optional, Set, Type, Union
 
 import torch
 from torch import nn as nn
@@ -20,6 +24,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
@@ -60,7 +65,7 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(nn.Module):
+class _LiteModule(DeviceDtypeModuleMixin):
     def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -91,36 +96,88 @@ class _LiteModule(nn.Module):
         }
         # TODO (@awaelchli): let the precision plugin handle the conversion
         to_type = precision_to_type[precision]
-        args, kwargs = apply_to_collection([args, kwargs], function=lambda t: t.to(to_type), dtype=Tensor)
+
+        def _convert_float_tensor(t: Tensor) -> Tensor:
+            return t.to(to_type) if torch.is_floating_point(t) else t
+
+        args, kwargs = apply_to_collection([args, kwargs], function=_convert_float_tensor, dtype=Tensor)
 
         with self._precision_plugin.forward_context():
             output = self.module(*args, **kwargs)
 
-        output = apply_to_collection(output, function=lambda t: t.to(torch.get_default_dtype()), dtype=Tensor)
+        to_type = torch.get_default_dtype()
+        output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
 
 
-class _LiteDataLoader(DataLoader):
-    def __init__(self, device: Optional[torch.device] = None, **dl_kwargs: Any) -> None:
-        """The LiteDataLoader is an extension of the PyTorch :class:`~torch.utils.data.DataLoader` that adds
-        additional features such as moving the data to the device automatically.
+def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
+    :class:`~torch.utils.data.DataLoader`."""
+
+    @functools.wraps(init)
+    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+        params = dict(inspect.signature(obj.__init__).parameters)
+        params.pop("args", None)
+        params.pop("kwargs", None)
+        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+            setattr(obj, arg_name, arg_value)
+        init(obj, *args, **kwargs)
+
+    return wrapper
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
+    subclasses = set()
+
+    def recurse(cl: Type[Any]) -> None:
+        for subclass in cl.__subclasses__():
+            subclasses.add(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+    return subclasses
+
+
+@contextmanager
+def _replace_dataloader_init_method() -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of
+    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
+    for subclass in _get_all_subclasses(DataLoader):
+        subclass._old_init = subclass.__init__
+        subclass.__init__ = _wrap_init(subclass.__init__)
+    yield
+    for subclass in _get_all_subclasses(DataLoader):
+        subclass.__init__ = subclass._old_init
+        del subclass._old_init
+
+
+class _LiteDataLoader:
+    def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
+        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
+        device automatically if the device is specified.
 
         Args:
+            dataloader: The dataloader to wrap
             device: The device to which the data should be moved. By default the device is `None` and no data
                 transfers will be made (identical behavior as :class:`~torch.utils.data.DataLoader`).
-            **dl_kwargs: Accepts all arguments that the PyTorch :class:`~torch.utils.data.DataLoader` accepts.
         """
-        super().__init__(**dl_kwargs)
+        self.__dict__.update(dataloader.__dict__)
+        self._dataloader = dataloader
         self._device = device
 
     @property
     def device(self) -> Optional[torch.device]:
         return self._device
 
+    def __len__(self) -> int:
+        return len(self._dataloader)
+
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
-        iterator = super().__iter__()
+        iterator = iter(self._dataloader)
         if self._device is None:
-            return iterator
+            yield from iterator
 
         for item in iterator:
             yield move_data_to_device(item, self._device)

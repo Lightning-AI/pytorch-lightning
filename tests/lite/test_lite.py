@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
-from pytorch_lightning.utilities import DistributedType
+from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.helpers.runif import RunIf
@@ -164,6 +164,55 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
+def test_setup_dataloaders_with_custom_type():
+    """Test that Lite intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets them as
+    attributes."""
+
+    class DataLoaderSubclass1(DataLoader):
+        def __init__(self, attribute1, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute1 = attribute1
+            super().__init__(*args, **kwargs)
+
+    class DataLoaderSubclass2(DataLoaderSubclass1):
+        def __init__(self, attribute1, attribute2, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute2 = attribute2
+            super().__init__(attribute1, *args, **kwargs)
+
+    class LiteWithCustomDataLoader(LightningLite):
+        def run(self):
+            dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
+            assert dataloader.attribute1 == "attribute1"
+            assert dataloader.attribute2 == "attribute2"
+            lite_dataloader = self.setup_dataloaders(dataloader)
+            assert lite_dataloader.attribute1 == "attribute1"
+            assert lite_dataloader.attribute2 == "attribute2"
+
+    LiteWithCustomDataLoader().run()
+
+
+def test_setup_dataloaders_raises_for_unknown_custom_args():
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
+    method."""
+    lite = EmptyLite()
+
+    class CustomDataLoader(DataLoader):
+        def __init__(self, new_arg, *args, **kwargs):
+            super().__init__(range(5), *args, **kwargs)
+
+    with pytest.raises(
+        MisconfigurationException,
+        match=(
+            r"Trying to inject `DistributedSampler` into the `CustomDataLoader` instance.*"
+            r"The missing attributes are \['new_arg'\]"
+        ),
+    ):
+        # The dataloader was not created within the run function, and therefore init args were not intercepted
+        dataloader = CustomDataLoader(2, batch_size=2)
+        lite.setup_dataloaders(dataloader)
+
+
 def test_setup_dataloaders_twice_fails():
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
     lite = EmptyLite()
@@ -218,12 +267,12 @@ def test_seed_everything():
 @pytest.mark.parametrize(
     "strategy",
     [
-        DistributedType.DP,
-        DistributedType.DDP,
-        DistributedType.DDP_SPAWN,
-        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        _StrategyType.DP,
+        _StrategyType.DDP,
+        _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
@@ -246,12 +295,12 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 @pytest.mark.parametrize(
     "strategy",
     [
-        DistributedType.DP,
-        DistributedType.DDP,
-        DistributedType.DDP_SPAWN,
-        pytest.param(DistributedType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(DistributedType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(DistributedType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        _StrategyType.DP,
+        _StrategyType.DDP,
+        _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
+        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
+        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])

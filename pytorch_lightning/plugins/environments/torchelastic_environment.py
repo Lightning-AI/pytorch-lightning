@@ -17,7 +17,7 @@ import os
 from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -25,25 +25,31 @@ log = logging.getLogger(__name__)
 class TorchElasticEnvironment(ClusterEnvironment):
     """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
 
-    @staticmethod
-    def is_using_torchelastic() -> bool:
-        """Returns ``True`` if the current process was launched using the torchelastic command."""
-        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return all(v in os.environ for v in required_env_vars)
+    def __init__(self) -> None:
+        super().__init__()
+        # TODO: remove in 1.7
+        if hasattr(self, "is_using_torchelastic") and callable(self.is_using_torchelastic):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.is_using_torchelastic` has been deprecated in v1.6 and will be removed in"
+                " v1.7. Implement the static method `detect()` instead (do not forget to add the `@staticmethod`"
+                " decorator)."
+            )
 
     @property
     def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    @property
+    def main_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        master_address = os.environ.get("MASTER_ADDR")
-        return master_address
+        main_address = os.environ.get("MASTER_ADDR")
+        return main_address
 
-    def master_port(self) -> int:
+    @property
+    def main_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ["MASTER_PORT"] = "12910"
@@ -51,6 +57,12 @@ class TorchElasticEnvironment(ClusterEnvironment):
 
         port = int(os.environ.get("MASTER_PORT"))
         return port
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched using the torchelastic command."""
+        required_env_vars = {"RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
+        return required_env_vars.issubset(os.environ.keys())
 
     def world_size(self) -> Optional[int]:
         world_size = os.environ.get("WORLD_SIZE")

@@ -2,26 +2,75 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.utilities.data import extract_batch_size, get_len, has_iterable_dataset, has_len
-from tests.helpers.boring_model import RandomDataset, RandomIterableDataset
+from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.data import (
+    extract_batch_size,
+    get_len,
+    has_iterable_dataset,
+    has_len,
+    has_len_all_ranks,
+    warning_cache,
+)
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.deprecated_api import no_warning_call
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 
 
 def test_extract_batch_size():
     """Tests the behavior of extracting the batch size."""
-    batch = "test string"
-    assert extract_batch_size(batch) == 11
 
+    def _check_warning_not_raised(data, expected):
+        with no_warning_call(match="Trying to infer the `batch_size`"):
+            assert extract_batch_size(data) == expected
+
+    def _check_warning_raised(data, expected):
+        with pytest.warns(UserWarning, match=f"Trying to infer the `batch_size` .* we found is {expected}."):
+            assert extract_batch_size(batch) == expected
+        warning_cache.clear()
+
+    def _check_error_raised(data):
+        with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
+            extract_batch_size(batch)
+
+    # Warning not raised
     batch = torch.zeros(11, 10, 9, 8)
-    assert extract_batch_size(batch) == 11
+    _check_warning_not_raised(batch, 11)
 
     batch = {"test": torch.zeros(11, 10)}
-    assert extract_batch_size(batch) == 11
+    _check_warning_not_raised(batch, 11)
 
     batch = [torch.zeros(11, 10)]
-    assert extract_batch_size(batch) == 11
+    _check_warning_not_raised(batch, 11)
 
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
-    assert extract_batch_size(batch) == 11
+    _check_warning_not_raised(batch, 11)
+
+    # Warning raised
+    batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
+    _check_warning_raised(batch, 1)
+
+    batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
+    _check_warning_raised(batch, 11)
+
+    batch = {"test": [{"test": [torch.zeros(10, 10), torch.zeros(11, 10)]}]}
+    _check_warning_raised(batch, 10)
+
+    batch = [{"test": torch.zeros(10, 10), "test_1": torch.zeros(11, 10)}]
+    _check_warning_raised(batch, 10)
+
+    # Error raised
+    batch = "test string"
+    _check_error_raised(batch)
+
+    data = {"test": ["some text"] * 7}
+    _check_error_raised(data)
+
+    class CustomBatch:
+        def __init__(self):
+            self.x = torch.randn(7, 2)
+
+    data = CustomBatch()
+    _check_error_raised(data)
 
 
 def test_has_iterable_dataset():
@@ -53,3 +102,13 @@ def test_get_len():
 
     assert isinstance(value, float)
     assert value == float("inf")
+
+
+def test_has_len_all_rank():
+    trainer = Trainer(fast_dev_run=True)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Total length of `Dataloader` across ranks is zero."):
+        assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
+
+    assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.training_type_plugin, model)

@@ -246,7 +246,7 @@ set is not available at the time your model was declared. Simply pass the test s
     test = DataLoader(...)
 
     # test (pass in the loader)
-    trainer.test(test_dataloaders=test)
+    trainer.test(dataloaders=test)
 
 --------------
 

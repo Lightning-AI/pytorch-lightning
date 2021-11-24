@@ -24,9 +24,9 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _reload_dataloader_state_dict,
     MergedIteratorState,
     patch_dataloader_iterator,
-    reload_dataloader_state_dict,
 )
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -403,7 +403,7 @@ class CombinedLoader:
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
 
-            reload_dataloader_state_dict(dataloader, state_dict)
+            _reload_dataloader_state_dict(dataloader, state_dict)
 
             # We finally spawned the workers if any.
             it = iter(dataloader_to_iter_on)
@@ -457,6 +457,19 @@ class CombinedLoader:
             )
             state.reset()
 
+    def _apply_cycle_iterator_length(self) -> None:
+        """When the model is `max_size_cycle`, compute the length across all ``CycleIterator`` and re-assign it to
+        all dataloaders."""
+        if self.mode != "max_size_cycle":
+            return
+
+        def set_len(cycle_iterator: CycleIterator, length: int) -> None:
+            cycle_iterator.length = length
+
+        all_lengths = apply_to_collection(self.loaders, CycleIterator, lambda c: get_len(c.loader))
+        max_length = _nested_calc_num_data(all_lengths, max)
+        apply_to_collection(self.loaders, CycleIterator, set_len, length=max_length)
+
     def __iter__(self) -> Any:
         """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""
 
@@ -473,11 +486,12 @@ class CombinedLoader:
         return iterator
 
     @staticmethod
-    def _calc_num_batches(loaders: Any) -> Union[int, float]:
+    def _calc_num_batches(loaders: Any, mode="min_size") -> Union[int, float]:
         """Compute the length (aka the number of batches) of `CombinedLoader`.
 
         Args:
             loaders: a collections of loaders.
+            mode: Mode used by the CombinedDataloader
 
         Returns:
             length: the minimum length of loaders
@@ -486,10 +500,10 @@ class CombinedLoader:
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
-        return _nested_calc_num_data(all_lengths, min)
+        return _nested_calc_num_data(all_lengths, max if mode == "max_size_cycle" else min)
 
     def __len__(self) -> int:
-        return self._calc_num_batches(self.loaders)
+        return self._calc_num_batches(self.loaders, mode=self.mode)
 
     @staticmethod
     def _shutdown_workers_and_reset_iterator(dataloader) -> None:

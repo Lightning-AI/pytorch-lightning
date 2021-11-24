@@ -21,7 +21,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 class HPCHookdedModel(BoringModel):
@@ -133,7 +132,6 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()

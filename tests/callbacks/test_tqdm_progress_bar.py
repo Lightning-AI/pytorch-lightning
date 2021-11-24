@@ -14,7 +14,7 @@
 import os
 import pickle
 import sys
-from typing import Optional, Union
+from typing import Union
 from unittest import mock
 from unittest.mock import ANY, call, Mock
 
@@ -23,7 +23,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -32,65 +32,54 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    "callbacks,refresh_rate",
+    "kwargs",
     [
-        ([], None),
-        ([], 1),
-        ([], 2),
-        ([ProgressBar(refresh_rate=1)], 0),
-        ([ProgressBar(refresh_rate=2)], 0),
-        ([ProgressBar(refresh_rate=2)], 1),
+        # won't print but is still set
+        {"callbacks": TQDMProgressBar(refresh_rate=0)},
+        {"callbacks": TQDMProgressBar()},
+        {"progress_bar_refresh_rate": 1},
     ],
 )
-def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
+def test_tqdm_progress_bar_on(tmpdir, kwargs):
     """Test different ways the progress bar can be turned on."""
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=callbacks,
-        progress_bar_refresh_rate=refresh_rate,
-        max_epochs=1,
-        overfit_batches=5,
-    )
+    if "progress_bar_refresh_rate" in kwargs:
+        with pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated"):
+            trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, **kwargs)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
-    # Trainer supports only a single progress bar callback at the moment
     assert len(progress_bars) == 1
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize(
-    "callbacks,refresh_rate,enable_progress_bar",
-    [([], 0, True), ([], False, True), ([ModelCheckpoint(dirpath="../trainer")], 0, True), ([], 1, False)],
-)
-def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int], enable_progress_bar: bool):
+@pytest.mark.parametrize("kwargs", [{"enable_progress_bar": False}, {"progress_bar_refresh_rate": 0}])
+def test_tqdm_progress_bar_off(tmpdir, kwargs):
     """Test different ways the progress bar can be turned off."""
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=callbacks,
-        progress_bar_refresh_rate=refresh_rate,
-        enable_progress_bar=enable_progress_bar,
-    )
-
-    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
-    assert 0 == len(progress_bars)
-    assert not trainer.progress_bar_callback
+    if "progress_bar_refresh_rate" in kwargs:
+        pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
+    trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
+    assert not len(progress_bars)
 
 
-def test_progress_bar_misconfiguration():
+def test_tqdm_progress_bar_misconfiguration():
     """Test that Trainer doesn't accept multiple progress bars."""
-    callbacks = [ProgressBar(), ProgressBar(), ModelCheckpoint(dirpath="../trainer")]
+    # Trainer supports only a single progress bar callback at the moment
+    callbacks = [TQDMProgressBar(), TQDMProgressBar(), ModelCheckpoint(dirpath="../trainer")]
     with pytest.raises(MisconfigurationException, match=r"^You added multiple progress bar callbacks"):
         Trainer(callbacks=callbacks)
 
+    with pytest.raises(MisconfigurationException, match=r"enable_progress_bar=False` but found `TQDMProgressBar"):
+        Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
-def test_progress_bar_totals(tmpdir):
+
+def test_tqdm_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=1, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     bar = trainer.progress_bar_callback
     assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -138,7 +127,7 @@ def test_progress_bar_totals(tmpdir):
     assert bar.test_batch_idx == k
 
 
-def test_progress_bar_fast_dev_run(tmpdir):
+def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -174,12 +163,12 @@ def test_progress_bar_fast_dev_run(tmpdir):
 
 
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
-def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
+def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
     model = BoringModel()
 
-    class CurrentProgressBar(ProgressBar):
+    class CurrentProgressBar(TQDMProgressBar):
 
         train_batches_seen = 0
         val_batches_seen = 0
@@ -209,14 +198,15 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
             self.test_batches_seen += 1
 
     progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[progress_bar],
-        progress_bar_refresh_rate=101,  # should not matter if custom callback provided
-        limit_train_batches=1.0,
-        num_sanity_val_steps=2,
-        max_epochs=3,
-    )
+    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=101\)` is deprecated"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            callbacks=[progress_bar],
+            progress_bar_refresh_rate=101,  # should not matter if custom callback provided
+            limit_train_batches=1.0,
+            num_sanity_val_steps=2,
+            max_epochs=3,
+        )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
@@ -239,7 +229,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     """Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument."""
 
-    class CurrentProgressBar(ProgressBar):
+    class CurrentProgressBar(TQDMProgressBar):
         val_pbar_total = 0
         sanity_pbar_total = 0
 
@@ -271,29 +261,30 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     assert progress_bar.val_pbar_total == limit_val_batches
 
 
-def test_progress_bar_default_value(tmpdir):
+def test_tqdm_progress_bar_default_value(tmpdir):
     """Test that a value of None defaults to refresh rate 1."""
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 1
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
-    assert trainer.progress_bar_callback.refresh_rate == 1
-
 
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
-def test_progress_bar_value_on_colab(tmpdir):
+def test_tqdm_progress_bar_value_on_colab(tmpdir):
     """Test that Trainer will override the default in Google COLAB."""
     trainer = Trainer(default_root_dir=tmpdir)
     assert trainer.progress_bar_callback.refresh_rate == 20
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 20
 
-    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
+    assert trainer.progress_bar_callback.refresh_rate == 19
+
+    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=19\)` is deprecated"):
+        trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
     assert trainer.progress_bar_callback.refresh_rate == 19
 
 
-class MockedUpdateProgressBars(ProgressBar):
+class MockedUpdateProgressBars(TQDMProgressBar):
     """Mocks the update method once bars get initializied."""
 
     def _mock_bar_update(self, bar):
@@ -428,10 +419,10 @@ class PrintModel(BoringModel):
 
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print(tqdm_write, tmpdir):
+def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
-    bar = ProgressBar()
+    bar = TQDMProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -455,10 +446,10 @@ def test_progress_bar_print(tqdm_write, tmpdir):
 
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print_no_train(tqdm_write, tmpdir):
+def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
-    bar = ProgressBar()
+    bar = TQDMProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -482,10 +473,10 @@ def test_progress_bar_print_no_train(tqdm_write, tmpdir):
 
 @mock.patch("builtins.print")
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
-def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
+def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     """Test that printing in LightningModule goes through built-in print function when progress bar is disabled."""
     model = PrintModel()
-    bar = ProgressBar()
+    bar = TQDMProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -507,8 +498,8 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     tqdm_write.assert_not_called()
 
 
-def test_progress_bar_can_be_pickled():
-    bar = ProgressBar()
+def test_tqdm_progress_bar_can_be_pickled():
+    bar = TQDMProgressBar()
     trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
     model = BoringModel()
 
@@ -522,20 +513,11 @@ def test_progress_bar_can_be_pickled():
 
 
 @RunIf(min_gpus=2, special=True)
-def test_progress_bar_max_val_check_interval_0(tmpdir):
-    _test_progress_bar_max_val_check_interval(
-        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.2
-    )
-
-
-@RunIf(min_gpus=2, special=True)
-def test_progress_bar_max_val_check_interval_1(tmpdir):
-    _test_progress_bar_max_val_check_interval(
-        tmpdir, total_train_samples=8, train_batch_size=4, total_val_samples=2, val_batch_size=1, val_check_interval=0.5
-    )
-
-
-def _test_progress_bar_max_val_check_interval(
+@pytest.mark.parametrize(
+    ["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"],
+    [(8, 4, 2, 1, 0.2), (8, 4, 2, 1, 0.5)],
+)
+def test_progress_bar_max_val_check_interval(
     tmpdir, total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
 ):
     world_size = 2
@@ -552,7 +534,7 @@ def _test_progress_bar_max_val_check_interval(
         gpus=world_size,
         strategy="ddp",
     )
-    trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
     total_train_batches = total_train_samples // (train_batch_size * world_size)
     val_check_batch = max(1, int(total_train_batches * val_check_interval))
@@ -567,7 +549,7 @@ def _test_progress_bar_max_val_check_interval(
 
 
 def test_get_progress_bar_metrics(tmpdir: str):
-    class TestProgressBar(ProgressBar):
+    class TestProgressBar(TQDMProgressBar):
         def get_metrics(self, trainer: Trainer, model: LightningModule):
             items = super().get_metrics(trainer, model)
             items.pop("v_num", None)
@@ -588,9 +570,9 @@ def test_get_progress_bar_metrics(tmpdir: str):
     assert "v_num" not in standard_metrics.keys()
 
 
-def test_progress_bar_main_bar_resume():
+def test_tqdm_progress_bar_main_bar_resume():
     """Test that the progress bar can resume its counters based on the Trainer state."""
-    bar = ProgressBar()
+    bar = TQDMProgressBar()
     trainer = Mock()
     model = Mock()
 

@@ -11,8 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar
+from pytorch_lightning.utilities import rank_zero_deprecation
 
-_BENCHMARK_ROOT = os.path.dirname(__file__)
-_PROJECT_ROOT = os.path.dirname(_BENCHMARK_ROOT)
-_PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")
+
+class ProgressBar(TQDMProgressBar):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rank_zero_deprecation(
+            "`ProgressBar` has been deprecated in v1.5 and will be removed in v1.7."
+            " It has been renamed to `TQDMProgressBar` instead."
+        )

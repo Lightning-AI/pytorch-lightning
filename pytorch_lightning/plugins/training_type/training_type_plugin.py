@@ -25,6 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
@@ -33,15 +34,22 @@ class TrainingTypePlugin(ABC):
     """Base class for all training type plugins that change the behaviour of the training, validation and test-
     loop."""
 
-    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
+    def __init__(
+        self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+    ) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
+        self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
         return self._checkpoint_io
+
+    @property
+    def precision_plugin(self) -> PrecisionPlugin:
+        return self._precision_plugin
 
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
@@ -86,19 +94,16 @@ class TrainingTypePlugin(ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def on_tpu(self) -> bool:
         """Returns whether the current process is done on TPU."""
-        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device."""
-        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -183,7 +188,7 @@ class TrainingTypePlugin(ABC):
         The result is
         cached instead of returned directly, because some plugins require transmitting the results from one
         multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the master process through a
+        start-method send the result to the main process through a
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
@@ -321,7 +326,6 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        raise NotImplementedError
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:

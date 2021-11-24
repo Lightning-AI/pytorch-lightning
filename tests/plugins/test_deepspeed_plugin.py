@@ -1,5 +1,6 @@
 import contextlib
 import json
+import logging
 import os
 from typing import Any, Dict, Optional
 from unittest import mock
@@ -169,8 +170,8 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == precision
+    assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.training_type_plugin.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -212,7 +213,7 @@ def test_warn_deepspeed_ignored(tmpdir):
     trainer = Trainer(
         fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
     )
-    from pytorch_lightning.plugins.precision.deepspeed_precision import warning_cache
+    from pytorch_lightning.plugins.precision.deepspeed import warning_cache
 
     with pytest.warns(UserWarning, match="will be ignored since DeepSpeed handles the backward"):
         trainer.fit(model)
@@ -503,7 +504,7 @@ class ModelParallelClassificationModel(LightningModule):
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x, y = batch
         logits = self.forward(x)
         self.test_acc(logits, y)
@@ -820,8 +821,8 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
         # assert no env variables have been set within the DeepSpeedPlugin
         assert all(k not in os.environ for k in ("MASTER_PORT", "MASTER_ADDR", "RANK", "WORLD_SIZE", "LOCAL_RANK"))
     else:
-        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.master_address())
-        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.master_port())
+        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.main_address)
+        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.main_port)
         assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
         assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
         assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
@@ -873,23 +874,8 @@ def test_deepspeed_skip_backward_raises(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_deepspeed_warn_train_dataloader_called(tmpdir):
-    """Test DeepSpeed warns when it calls ``lightning_module.train_dataloader`` internally for logging batch
-    size."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(),
-        gpus=1,
-        fast_dev_run=True,
-    )
-    with pytest.warns(UserWarning, match="Inferring the batch size for internal deepspeed logging"):
-        trainer.fit(model)
-
-
-@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_setup_train_dataloader(tmpdir):
-    """Test DeepSpeed works when setup is required to call, and the user passes the batch size manually."""
+    """Test DeepSpeed works when setup is required to call in the DataModule."""
 
     class TestSetupIsCalledDataModule(LightningDataModule):
         def __init__(self):
@@ -914,13 +900,14 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=32),
+        strategy=DeepSpeedPlugin(logging_level=logging.INFO),
         gpus=1,
         fast_dev_run=True,
     )
     dm = TestSetupIsCalledDataModule()
-    trainer.fit(model, datamodule=dm)
-    trainer.test(model, datamodule=dm)
+    with mock.patch("deepspeed.utils.logging.logger.warning", autospec=True) as mock_object:
+        trainer.fit(model, datamodule=dm)
+    assert any("Tried to infer the batch size" in str(arg) for arg in mock_object.call_args_list)
 
 
 @mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)
@@ -1024,7 +1011,6 @@ def test_specific_gpu_device_id(tmpdir):
             pl_module: LightningModule,
             batch: Any,
             batch_idx: int,
-            dataloader_idx: int,
         ) -> None:
             assert batch.device.index == 1
 

@@ -27,6 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
@@ -56,11 +57,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -147,7 +151,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         pass
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
@@ -167,7 +171,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         trainer.accelerator.setup_optimizers(trainer)
-        trainer.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
 
@@ -326,7 +330,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the master worker doesn't work well with tqdm
+        # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:

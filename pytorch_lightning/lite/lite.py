@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -25,21 +25,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import (
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DeepSpeedPlugin,
-    PLUGIN_INPUT,
-    TPUSpawnPlugin,
-    TrainingTypePlugin,
+from pytorch_lightning.lite.wrappers import (
+    _LiteDataLoader,
+    _LiteModule,
+    _LiteOptimizer,
+    _replace_dataloader_init_method,
 )
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities import DeviceType, DistributedType, move_data_to_device
+from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, _update_dataloader, has_iterable_dataset
+from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -81,7 +78,7 @@ class LightningLite(ABC):
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
-        gpu_ids, tpu_cores = Trainer._parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
+        gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=1,
             devices=devices,
@@ -103,7 +100,7 @@ class LightningLite(ABC):
         )
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
-        self._precision_plugin = self._accelerator.precision_plugin
+        self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -183,7 +180,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader], Iterable]:
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -208,7 +205,7 @@ class LightningLite(ABC):
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, DataLoader]:
+    ) -> DataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -233,17 +230,17 @@ class LightningLite(ABC):
                 )
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
-        kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
-        device = self.device if move_to_device else None
-        if isinstance(self._strategy, TPUSpawnPlugin):
-            dataloader = DataLoader(**kwargs)
-        else:
-            dataloader = _LiteDataLoader(device=device, **kwargs)
+        # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
+        dataloader = _update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
-        TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
+        _auto_add_worker_init_fn(dataloader, self.global_rank)
 
-        return self._strategy.process_dataloader(dataloader)
+        dataloader = self._strategy.process_dataloader(dataloader)
+        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
+        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = cast(DataLoader, lite_dataloader)
+        return lite_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -388,7 +385,6 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
 
         # apply sharded context to prevent OOM
@@ -400,15 +396,8 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        with self._strategy.model_sharded_context():
+        with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
-
-    def _set_plugin_specific_precision_variables(self) -> None:
-        # todo: these are hacks as plugins rely on access to the precision plugin
-        if isinstance(self._strategy, DeepSpeedPlugin):
-            self._set_deepspeed_precision_variables()
-        if isinstance(self._strategy, DDPShardedPlugin):
-            self._strategy._precision = self._accelerator_connector.precision
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         if isinstance(self._strategy, TPUSpawnPlugin):
@@ -427,13 +416,6 @@ class LightningLite(ABC):
         else:
             model = self.to_device(model)
         return model
-
-    def _set_deepspeed_precision_variables(self) -> None:
-        # TODO: Refactor this once precision pluging is part of the strategy.
-        amp_type = self._accelerator_connector.amp_type
-        amp_level = self._accelerator_connector.amp_level
-        precision = self._accelerator_connector.precision
-        self._strategy._amp_level, self._strategy._amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
@@ -474,14 +456,14 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategy_types() -> Sequence[DistributedType]:
+    def _supported_strategy_types() -> Sequence[_StrategyType]:
         return (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DEEPSPEED,
-            DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN,
+            _StrategyType.DP,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DEEPSPEED,
+            _StrategyType.DDP_SHARDED,
+            _StrategyType.DDP_SHARDED_SPAWN,
         )
 
     @staticmethod

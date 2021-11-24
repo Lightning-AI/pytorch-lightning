@@ -1,4 +1,4 @@
-name: CI build Docker
+name: Docker
 # https://www.docker.com/blog/first-docker-github-action-is-here
 # https://github.com/docker/build-push-action
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
@@ -23,9 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # should be the config used in '.github/workflows/release-docker.yml', but we just keep one to check.
-        python_version: ["3.9"]
-        pytorch_version: ["1.9"]
+        # the config used in '.azure-pipelines/gpu-tests.yml' since the Dockerfile uses the cuda image
+        python_version: ["3.7"]
+        pytorch_version: ["1.8"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -92,8 +92,8 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.github/workflows/ci_test-conda.yml'
-        python_version: ["3.7"]
-        pytorch_version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        python_version: ["3.8"]
+        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -119,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
-        python_version: ["3.8"]  # latest
+        python_version: ["3.9"]  # latest
         # TODO: upgrade - PopTorch 2.2 uses torch 1.9, see:
         # https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/installation.html#version-compatibility
         pytorch_version: ["1.7"]

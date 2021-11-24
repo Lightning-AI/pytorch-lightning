@@ -79,7 +79,7 @@ class ModelHooks:
         - training_start
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> None:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -90,7 +90,7 @@ class ModelHooks:
             unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: Optional[int] = 0) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
         """Called in the training loop after the batch.
 
         Args:
@@ -314,9 +314,13 @@ class DataHooks:
             prepare_data_per_node:
                 If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            allow_zero_length_dataloader_with_multiple_devices:
+                If True, dataloader with zero length within local rank is allowed.
+                Default value is False.
         """
         super().__init__()
         self.prepare_data_per_node: bool = True
+        self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
     def prepare_data(self) -> None:
         """Use this to download and prepare data.
@@ -419,11 +423,9 @@ class DataHooks:
 
         .. warning:: do not assign state in prepare_data
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`
         - :meth:`prepare_data`
         - :meth:`setup`
-        - :meth:`train_dataloader`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
@@ -476,10 +478,6 @@ class DataHooks:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
 
-        The dataloader you return will not be reloaded unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
-        a postive integer.
-
         For data processing use the following pattern:
 
             - download in :meth:`prepare_data`
@@ -490,13 +488,9 @@ class DataHooks:
         .. warning:: do not assign state in prepare_data
 
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`
         - :meth:`prepare_data`
         - :meth:`setup`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
@@ -544,12 +538,10 @@ class DataHooks:
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`
         - :meth:`prepare_data`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
+        - :meth:`setup`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware
@@ -593,12 +585,9 @@ class DataHooks:
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
         - :meth:`prepare_data`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
+        - :meth:`setup`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware
@@ -608,7 +597,7 @@ class DataHooks:
             A :class:`torch.utils.data.DataLoader` or a sequence of them specifying prediction samples.
 
         Note:
-            In the case where you return multiple prediction dataloaders, the :meth:`predict`
+            In the case where you return multiple prediction dataloaders, the :meth:`predict_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
         raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
@@ -689,7 +678,7 @@ class DataHooks:
                     # skip device transfer for the first dataloader or anything you wish
                     pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device)
+                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
                 return batch
 
         Raises:

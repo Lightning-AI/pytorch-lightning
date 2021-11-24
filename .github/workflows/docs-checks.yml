@@ -1,4 +1,4 @@
-name: "Docs check"
+name: Test
 # https://github.com/marketplace/actions/sphinx-build
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -8,7 +8,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  test-docs:
+  doctest:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
