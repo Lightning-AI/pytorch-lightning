@@ -303,9 +303,9 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     dataset = dl_kwargs["dataset"]
     if isinstance(dataset, IterableDataset):
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
+        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dataset)
     elif get_len(dataset) != float("inf"):
-        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
+        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dataset)
     else:
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
     return dl_kwargs
