@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import torch
@@ -27,6 +26,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
+    _patch_dataloader_get_iterators,
+    _teardown_dataloader_get_iterators,
     IteratorState,
     MergedIteratorState,
     patch_dataloader_iterator,
@@ -109,11 +110,7 @@ class AbstractDataFetcher(ABC):
         if isinstance(dataloader, CombinedLoader):
             dataloader = dataloader.loaders
 
-        def add_capture_metadata_collate(dataloader: DataLoader):
-            if not isinstance(dataloader.collate_fn, partial):
-                _add_capture_metadata_collate(dataloader)
-
-        apply_to_collection(dataloader, DataLoader, add_capture_metadata_collate)
+        apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
 
     def append_batch(self, batch) -> None:
         self.batches.append(batch)
@@ -206,6 +203,8 @@ class AbstractDataFetcher(ABC):
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
+        self._attach_data_fetcher()
+        _patch_dataloader_get_iterators()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching(self.prefetch_batches)
@@ -226,6 +225,7 @@ class AbstractDataFetcher(ABC):
         if isinstance(self.dataloader, DataLoader):
             CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
         self.dataloader_iter = None
+        _teardown_dataloader_get_iterators()
 
 
 class DataFetcher(AbstractDataFetcher):

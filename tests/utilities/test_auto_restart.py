@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import List, Optional
+from typing import Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -1317,3 +1317,162 @@ def test_stateful_workers(num_workers):
     _reload_dataloader_state_dict(dataloader, asdict(reloaded_state))
     assert dataloader.sampler.counter == dataloader.dataset.counter == 1
     data_fetcher.teardown()
+
+
+class RandomFaultTolerantDataset(RandomGetItemDataset):
+    def __init__(self, *args, seed: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.seed = seed
+        self._cache_state_dict = None
+        self.generator = None
+        self.counter_debug = 0
+
+    @property
+    def worker_id(self):
+        info = get_worker_info()
+        return info.id if info else 0
+
+    def __getitem__(self, index):
+        if self._cache_state_dict:
+            state_dict = self._cache_state_dict[self.worker_id]
+            self.generator = random.Random()
+            self.generator.setstate(state_dict["random_state"])
+            self._cache_state_dict = None
+
+        if not self.generator:
+            self.generator = random.Random(self.seed + self.worker_id)
+        return torch.tensor(index + self.generator.random())
+
+    def state_dict(self):
+        return {self.worker_id: {"random_state": self.generator.getstate()}}
+
+    def load_state_dict(self, state_dict):
+        self._cache_state_dict = state_dict
+
+
+class RandomFaultTolerantSampler(RandomSampler):
+    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+        generator = torch.Generator().manual_seed(seed)
+        super().__init__(*args, generator=generator, **kwargs)
+        self.counter = 0
+        self.restarting = False
+
+    def state_dict(self):
+        return {"random_state": self.state, "counter": self.counter}
+
+    def load_state_dict(self, state_dict):
+        self.generator.set_state(state_dict.get("random_state"))
+        self.counter = state_dict["counter"]
+        self.restarting = True
+
+    def __len__(self):
+        return len(self.data_source) - self.counter
+
+    def __iter__(self) -> Iterator[int]:
+        n = len(self.data_source)
+
+        self.state = self.generator.get_state()
+        indices = torch.randperm(n, generator=self.generator).tolist()
+
+        if not self.restarting:
+            self.counter = 0
+        else:
+            indices = indices[self.counter :]
+            self.restarting = False
+
+        for index in indices:
+            self.counter += 1
+            yield index
+
+        self.counter = 0
+
+
+@pytest.mark.parametrize(
+    ["train_dataset_cls", "val_dataset_cls"],
+    [
+        ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
+    ],
+)
+@pytest.mark.parametrize("val_check_interval", [0.5])
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
+def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_dataset_cls, tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self, should_fail: bool = False):
+            super().__init__()
+            self.layer = torch.nn.Linear(1, 2)
+            self.should_fail = should_fail
+            self.batches = []
+
+        def training_step(self, batch, batch_idx):
+            if self.should_fail and batch_idx == 7:
+                raise CustomException
+            self.batches.append(batch)
+            losses = []
+            for b in batch:
+                losses.append(super().training_step(b, batch_idx)["loss"])
+            return torch.stack(losses).mean()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            pass
+
+        validation_epoch_end = None
+
+        def _create_dataloader_kwargs(self, dataset_class, dataset_len, seed, num_workers):
+            dl_kwargs = {}
+            dl_kwargs["dataset"] = dataset_class(dataset_len, 1, seed=seed)
+            dl_kwargs["sampler"] = RandomFaultTolerantSampler(dl_kwargs["dataset"], seed=seed)
+            dl_kwargs["num_workers"] = num_workers
+            dl_kwargs["batch_size"] = 1
+            return dl_kwargs
+
+        def train_dataloader(self):
+            return [
+                DataLoader(
+                    **self._create_dataloader_kwargs(
+                        dataset_class, 10, seed, seed + 1 if val_check_interval == 1.0 else 0
+                    )
+                )
+                for seed, dataset_class in enumerate(train_dataset_cls)
+            ]
+
+        def val_dataloader(self):
+            return [
+                DataLoader(**self._create_dataloader_kwargs(dataset_class, 1, seed, 0))
+                for seed, dataset_class in enumerate(val_dataset_cls)
+            ]
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
+
+    seed_everything(42)
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer.fit(model)
+    total_batches = model.batches
+    total_weight = deepcopy(model.layer.weight)
+    trainer.train_dataloader = None
+
+    seed_everything(42)
+    model = TestModel(should_fail=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    with suppress(CustomException):
+        trainer.fit(model)
+    trainer.train_dataloader = None
+    failed_batches = model.batches
+    failed_weight = deepcopy(model.layer.weight)
+
+    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
+
+    seed_everything(42)
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer.fit(model, ckpt_path=checkpoint_path)
+    trainer.train_dataloader = None
+    restart_batches = model.batches
+
+    torch.testing.assert_allclose(total_batches, failed_batches + restart_batches)
+    assert not torch.equal(total_weight, failed_weight)
+    assert torch.equal(total_weight, model.layer.weight)
