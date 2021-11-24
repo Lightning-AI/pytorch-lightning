@@ -23,8 +23,7 @@ import torch
 from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.loops import Loop, PredictionEpochLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
