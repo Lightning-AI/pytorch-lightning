@@ -803,7 +803,7 @@ def _validate_fault_tolerant_training(dataloader: Iterable, stage: "pl.trainer.s
     """This function is used to validate that fault tolerant training is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
-    if not _FaultTolerantMode.detect_current_mode().is_enabled:
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
         return
 
     if isinstance(dataloader, CombinedLoader):
