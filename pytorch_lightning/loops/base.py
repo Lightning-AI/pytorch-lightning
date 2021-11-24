@@ -100,6 +100,20 @@ class Loop(ABC, Generic[T]):
         """
 
     def replace(self, **loops: Union["Loop", Type["Loop"]]) -> None:
+        """Optionally replace one or multiple of this loop's sub-loops.
+
+        This methods takes care of instantiating the class (if necessary) with all existing arguments, connecting all
+        sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and conneting the new loop to
+        the parent.
+
+        Args:
+            **loops: A ``Loop`` subclass or instance. The name used should match the loop attribute name you want to
+                replace.
+
+        Raises:
+            MisconfigurationException: When passing a ``Loop`` class, if the ``__init__`` arguments do not match those
+                of the Loop class it replaces.
+        """
         new_loops = {}
 
         for name, type_or_object in loops.items():
