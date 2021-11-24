@@ -50,7 +50,7 @@ Think of this as swapping out the engine in a car!
 
 ----------
 
-Understanding the default Trainer loop
+Understanding the default Trainer Loop
 --------------------------------------
 
 The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` automates the standard optimization loop which every PyTorch user is familiar with:
@@ -75,7 +75,7 @@ The core research logic is simply shifted to the :class:`~pytorch_lightning.core
         # loss = loss_function(y_hat, y)    moved to training_step
         loss = lightning_module.training_step(batch, i)
 
-        # Lighting handles automatically:
+        # Lightning handles automatically:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -109,12 +109,12 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 
 .. _override default loops:
 
-Overriding the default loops
+Overriding the default Loops
 ----------------------------
 
 The fastest way to get started with loops, is to override functionality of an existing loop.
-Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for training and validating,
-:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for testing,
+Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for fitting (training and validating),
+:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for validating or testing,
 :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` for predicting.
 
 For simple changes that don't require a custom loop, you can modify each of these loops.
@@ -166,11 +166,11 @@ Now simply attach the correct loop in the trainer directly:
     # fit() now uses the new FitLoop!
     trainer.fit(...)
 
-    # the equivalent for validate(), test(), predict()
+    # the equivalent for validate()
     val_loop = CustomValLoop()
     trainer = Trainer()
     trainer.validate_loop = val_loop
-    trainer.validate(model)
+    trainer.validate(...)
 
 Now your code is FULLY flexible and you can still leverage ALL the best parts of Lightning!
 
@@ -179,7 +179,7 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 
 ----------
 
-Creating a new loop from scratch
+Creating a New Loop From Scratch
 --------------------------------
 
 You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
@@ -212,8 +212,7 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
     # fit() now uses your fancy loop!
     trainer.fit(...)
 
-Now you have full control over the Trainer.
-But beware: The power of loop customization comes with great responsibility.
+But beware: Loop customization gives you more power and full control over the Trainer and with great power comes great responsibility.
 We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
 
 ----------
@@ -222,7 +221,7 @@ Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lightning just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties
@@ -348,6 +347,7 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
+     TODO add prediction/evaluation_loop
 
 
 ----------
@@ -410,7 +410,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
 
-Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
+Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py>`_.
 
 
 ----------

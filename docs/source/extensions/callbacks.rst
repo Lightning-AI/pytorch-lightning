@@ -21,7 +21,7 @@ Callback
 
 A callback is a self-contained program that can be reused across projects.
 
-Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
+Lightning has a callback system to execute them when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :doc:`lightning module <../common/lightning_module>` to run.
 
 Here's the flow of how the callback hooks are executed:
