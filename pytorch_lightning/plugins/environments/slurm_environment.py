@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -36,6 +37,21 @@ class SLURMEnvironment(ClusterEnvironment):
     @property
     def creates_processes_externally(self) -> bool:
         return True
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
+                job_id = None
+
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
+        if in_slurm_interactive_mode:
+            job_id = None
+        return job_id
 
     @property
     def main_address(self) -> str:

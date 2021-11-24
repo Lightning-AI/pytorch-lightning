@@ -120,9 +120,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
 
 def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
-    ):
+    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
         _ = Trainer(prepare_data_per_node=False)
 
 
@@ -376,6 +374,12 @@ def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
         match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
     ):
         _ = Trainer(log_gpu_memory="min_max")
+
+
+def test_v1_7_0_deprecated_slurm_job_id():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
+        trainer.slurm_job_id
 
 
 @RunIf(min_gpus=1)
