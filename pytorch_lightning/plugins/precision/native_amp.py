@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast
 else:
-    from torch.cuda.amp import autocast
+    from torch.cuda.amp import autocast  # type: ignore[misc]
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -62,7 +62,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
@@ -98,7 +98,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
             return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return autocast()
+        return autocast()  # type: ignore[call-arg]
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
