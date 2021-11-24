@@ -356,4 +356,3 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     else:
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
     return dl_kwargs
-
