@@ -84,7 +84,7 @@ class Model(LightningModule):
 
     def training_step(self, batch, batch_idx):
         # This emulates a cluster taking care of gracefull killing the processes.
-        if self.trainer.is_global_zero and not has_auto_checkpoint and (time() - t0 > 20):
+        if self.trainer.is_global_zero and not has_auto_checkpoint and (time() - t0 > 10):
             os.kill(os.getpid(), signal.SIGUSR1)
         return self.model(**batch)
 
