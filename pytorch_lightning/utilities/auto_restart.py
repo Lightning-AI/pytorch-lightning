@@ -513,16 +513,17 @@ def patch_dataloader_iterator(
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
-    faut_tolerant_mode = _FaultTolerantMode.detect_current_mode()
-    if not faut_tolerant_mode.is_enabled or (
-        isinstance(dataloader.collate_fn, partial) and dataloader.collate_fn.func is _capture_metadata_collate
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+    collate_fn = dataloader.collate_fn
+    if not fault_tolerant_mode.is_enabled or (
+        isinstance(collate_fn, partial) and collate_fn.func is _capture_metadata_collate
     ):
         return
     dataloader.collate_fn = partial(
         _capture_metadata_collate,
         dataset=dataloader.dataset,
-        collate_fn=dataloader.collate_fn,
-        fault_tolerant_mode=faut_tolerant_mode,
+        collate_fn=collate_fn,
+        fault_tolerant_mode=fault_tolerant_mode,
     )
 
 
