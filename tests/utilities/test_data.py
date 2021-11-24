@@ -118,8 +118,8 @@ def test_has_len_all_rank():
 def test_update_dataloader_typerror_custom_exception():
     class BadImpl(DataLoader):
         def __init__(self, foo, *args, **kwargs):
-            # positional conflict with `dataset`
             self.foo = foo
+            # positional conflict with `dataset`
             super().__init__(foo, *args, **kwargs)
 
     dataloader = BadImpl([1, 2, 3])
@@ -128,8 +128,8 @@ def test_update_dataloader_typerror_custom_exception():
 
     class BadImpl2(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
-            # keyword conflict with `shuffle`
             self.randomize = randomize
+            # keyword conflict with `shuffle`
             super().__init__(*args, shuffle=randomize, **kwargs)
 
     dataloader = BadImpl2(False, [])
@@ -138,7 +138,7 @@ def test_update_dataloader_typerror_custom_exception():
 
     class GoodImpl(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
-            # fixed implementation
+            # fixed implementation, kwargs are filtered
             self.randomize = randomize or kwargs.pop("shuffle", False)
             super().__init__(*args, shuffle=randomize, **kwargs)
 
