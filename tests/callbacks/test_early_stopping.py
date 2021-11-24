@@ -228,7 +228,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
     early_stopping = EarlyStopping(
         monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
     )
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], max_epochs=20)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], limit_train_batches=0.2, limit_val_batches=0.2, max_epochs=20)
     trainer.fit(model)
     assert trainer.current_epoch == expected_epoch, "early_stopping failed"
 
