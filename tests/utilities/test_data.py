@@ -4,6 +4,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import (
+    _replace_dataloader_init_method,
     extract_batch_size,
     get_len,
     has_iterable_dataset,
@@ -112,3 +113,29 @@ def test_has_len_all_rank():
         assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
 
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.training_type_plugin, model)
+
+
+def test_replace_dataloader_init_method():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as attributes."""
+
+    class DataLoaderSubclass1(DataLoader):
+        def __init__(self, attribute1, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute1 = attribute1
+            super().__init__(*args, **kwargs)
+
+    class DataLoaderSubclass2(DataLoaderSubclass1):
+        def __init__(self, attribute1, attribute2, *args, **kwargs):
+            # intentionally not setting this attribute, calling super with different args
+            # self.attribute2 = attribute2
+            super().__init__(attribute1, *args, **kwargs)
+
+    with _replace_dataloader_init_method():
+        dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
+        assert dataloader.attribute1 == "attribute1"
+
+    with _replace_dataloader_init_method():
+        dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
+        assert dataloader.attribute1 == "attribute1"
+        assert dataloader.attribute2 == "attribute2"

@@ -24,12 +24,7 @@ from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import (
-    _LiteDataLoader,
-    _LiteModule,
-    _LiteOptimizer,
-    _replace_dataloader_init_method,
-)
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -169,32 +164,37 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-def test_setup_dataloaders_with_custom_type():
-    """Test that Lite intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets them as
-    attributes."""
+@mock.patch("pytorch_lightning.lite.lite._replace_dataloader_init_method")
+def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
+    """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
-    class DataLoaderSubclass1(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute1 = attribute1
-            super().__init__(*args, **kwargs)
-
-    class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute1, attribute2, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute2 = attribute2
-            super().__init__(attribute1, *args, **kwargs)
-
-    class LiteWithCustomDataLoader(LightningLite):
+    class Lite(LightningLite):
         def run(self):
-            dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
-            assert dataloader.attribute1 == "attribute1"
-            assert dataloader.attribute2 == "attribute2"
-            lite_dataloader = self.setup_dataloaders(dataloader)
-            assert lite_dataloader.attribute1 == "attribute1"
-            assert lite_dataloader.attribute2 == "attribute2"
+            ctx_manager().__enter__.assert_called_once()
 
-    LiteWithCustomDataLoader().run()
+    Lite().run()
+    ctx_manager().__exit__.assert_called_once()
+
+
+def test_setup_dataloaders_raises_for_unknown_custom_args():
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
+    method."""
+    lite = EmptyLite()
+
+    class CustomDataLoader(DataLoader):
+        def __init__(self, new_arg, *args, **kwargs):
+            super().__init__(range(5), *args, **kwargs)
+
+    with pytest.raises(
+        MisconfigurationException,
+        match=(
+            r"Trying to inject `DistributedSampler` into the `CustomDataLoader` instance.*"
+            r"The missing attributes are \['new_arg'\]"
+        ),
+    ):
+        # The dataloader was not created within the run function, and therefore init args were not intercepted
+        dataloader = CustomDataLoader(2, batch_size=2)
+        lite.setup_dataloaders(dataloader)
 
 
 def test_setup_dataloaders_twice_fails():
@@ -444,25 +444,3 @@ def test_deepspeed_multiple_models():
             assert self.is_global_zero == (self.local_rank == 0)
 
     Lite(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
-
-
-def test_replace_dataloader_init_method():
-    """Test that the context manager enables to save the parameters passed to the DataLoader __init__ method."""
-
-    class CustomDataLoader(DataLoader):
-        def __init__(self, extra_argument: int, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
-    lite = EmptyLite()
-    with pytest.raises(MisconfigurationException, match="extra_argument"):
-        dataloader = lite.setup_dataloaders(dataloader)
-
-    with _replace_dataloader_init_method():
-        dataloader = CustomDataLoader(extra_argument=1, dataset=range(1))
-        assert dataloader.extra_argument == 1
-        dataloader = lite.setup_dataloaders(dataloader)
-
-        dataloader = CustomDataLoader(1, range(1))
-        assert dataloader.extra_argument == 1
-        dataloader = lite.setup_dataloaders(dataloader)
