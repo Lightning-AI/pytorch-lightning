@@ -184,8 +184,7 @@ def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[
         # `__init__` arguments map to one `DataLoader.__init__` argument
         import re
 
-        pattern = re.compile(r".*__init__\(\) got multiple values .* '(\w+)'")
-        match = re.match(pattern, str(e))
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
         if not match:
             # an unexpected `TypeError`, continue failure
             raise
