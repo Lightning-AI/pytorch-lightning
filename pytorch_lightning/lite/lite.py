@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
