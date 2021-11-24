@@ -27,8 +27,8 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("register_handler", [False, True])
-@pytest.mark.parametrize("terminate_gracefully", [True])
+@pytest.mark.parametrize("register_handler", [True])
+@pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
 
