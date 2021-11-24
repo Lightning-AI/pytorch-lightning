@@ -4,6 +4,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import (
+    _update_dataloader,
     extract_batch_size,
     get_len,
     has_iterable_dataset,
@@ -112,3 +113,35 @@ def test_has_len_all_rank():
         assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.training_type_plugin, model)
 
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.training_type_plugin, model)
+
+
+def test_update_dataloader_typerror_custom_exception():
+    class BadImpl(DataLoader):
+        def __init__(self, foo, *args, **kwargs):
+            # positional conflict with `dataset`
+            self.foo = foo
+            super().__init__(foo, *args, **kwargs)
+
+    dataloader = BadImpl([1, 2, 3])
+    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
+        _update_dataloader(dataloader, dataloader.sampler)
+
+    class BadImpl2(DataLoader):
+        def __init__(self, randomize, *args, **kwargs):
+            # keyword conflict with `shuffle`
+            self.randomize = randomize
+            super().__init__(*args, shuffle=randomize, **kwargs)
+
+    dataloader = BadImpl2(False, [])
+    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`shuffle`"):
+        _update_dataloader(dataloader, dataloader.sampler)
+
+    class GoodImpl(DataLoader):
+        def __init__(self, randomize, *args, **kwargs):
+            # fixed implementation
+            self.randomize = randomize or kwargs.pop("shuffle", False)
+            super().__init__(*args, shuffle=randomize, **kwargs)
+
+    dataloader = GoodImpl(False, [])
+    new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert isinstance(new_dataloader, GoodImpl)
