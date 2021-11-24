@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union, overload
 
 import torch
 import torch.nn as nn
@@ -201,7 +201,7 @@ class LightningLite(ABC):
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders
+        return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -283,6 +283,18 @@ class LightningLite(ABC):
         """
         with self._precision_plugin.forward_context():
             yield
+
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        ...
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        ...
+
+    @overload
+    def to_device(self, obj: Any) -> Any:
+        ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
