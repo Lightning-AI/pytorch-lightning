@@ -20,50 +20,98 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class _FxValidator:
     class _LogOptions(TypedDict):
-        on_step: Union[Tuple[bool], Tuple[bool, bool]]
-        on_epoch: Union[Tuple[bool], Tuple[bool, bool]]
+        allowed_on_step: Union[Tuple[bool], Tuple[bool, bool]]
+        allowed_on_epoch: Union[Tuple[bool], Tuple[bool, bool]]
+        default_on_step: bool
+        default_on_epoch: bool
 
     functions = {
         "on_before_accelerator_backend_setup": None,
         "on_configure_sharded_model": None,
-        "on_before_backward": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_after_backward": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_before_optimizer_step": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_before_zero_grad": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
+        "on_before_backward": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_after_backward": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_before_optimizer_step": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_before_zero_grad": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
         "on_init_start": None,
         "on_init_end": None,
         "on_fit_start": None,
         "on_fit_end": None,
         "on_sanity_check_start": None,
         "on_sanity_check_end": None,
-        "on_train_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
+        "on_train_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_train_end": None,
-        "on_validation_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
+        "on_validation_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_validation_end": None,
-        "on_test_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
+        "on_test_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_test_end": None,
         "on_predict_start": None,
         "on_predict_end": None,
         "on_pretrain_routine_start": None,
         "on_pretrain_routine_end": None,
-        "on_train_epoch_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_train_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_validation_epoch_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_validation_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_test_epoch_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_test_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
+        "on_train_epoch_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_train_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_validation_epoch_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_validation_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_test_epoch_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_test_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_predict_epoch_start": None,
         "on_predict_epoch_end": None,
-        "on_epoch_start": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "on_batch_start": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_batch_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_train_batch_start": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_train_batch_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_validation_batch_start": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_validation_batch_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_test_batch_start": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "on_test_batch_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
+        "on_epoch_start": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "on_batch_start": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_batch_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_train_batch_start": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_train_batch_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "on_validation_batch_start": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "on_validation_batch_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "on_test_batch_start": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "on_test_batch_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
         "on_predict_batch_start": None,
         "on_predict_batch_end": None,
         "on_keyboard_interrupt": None,
@@ -73,16 +121,34 @@ class _FxValidator:
         "setup": None,
         "teardown": None,
         "configure_sharded_model": None,
-        "training_step": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "validation_step": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "test_step": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
+        "training_step": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "validation_step": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "test_step": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
         "predict_step": None,
-        "training_step_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "validation_step_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "test_step_end": _LogOptions(on_step=(False, True), on_epoch=(False, True)),
-        "training_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "validation_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
-        "test_epoch_end": _LogOptions(on_step=(False,), on_epoch=(True,)),
+        "training_step_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "validation_step_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "test_step_end": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=False, default_on_epoch=True
+        ),
+        "training_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "validation_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
+        "test_epoch_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "configure_optimizers": None,
         "on_train_dataloader": None,
         "train_dataloader": None,
@@ -97,22 +163,27 @@ class _FxValidator:
     }
 
     @classmethod
-    def check_logging(cls, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+    def check_logging_and_get_default_level(cls, fx_name: str, on_step: bool, on_epoch: bool) -> None:
         """Check if the given function name is allowed to log."""
         if fx_name not in cls.functions:
             raise RuntimeError(
                 f"Logging inside `{fx_name}` is not implemented."
-                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             )
+
         allowed = cls.functions[fx_name]
         if allowed is None:
-            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`")
+            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`.")
 
-        m = "You can't `self.log({}={})` inside `{}`, must be one of {}"
-        if on_step not in allowed["on_step"]:
-            msg = m.format("on_step", on_step, fx_name, allowed["on_step"])
+        m = "You can't `self.log({}={})` inside `{}`, must be one of {}."
+        if on_step not in allowed["allowed_on_step"]:
+            msg = m.format("on_step", on_step, fx_name, allowed["allowed_on_step"])
             raise MisconfigurationException(msg)
 
-        if on_epoch not in allowed["on_epoch"]:
-            msg = m.format("on_epoch", on_epoch, fx_name, allowed["on_epoch"])
+        if on_epoch not in allowed["allowed_on_epoch"]:
+            msg = m.format("on_epoch", on_epoch, fx_name, allowed["allowed_on_epoch"])
             raise MisconfigurationException(msg)
+
+        on_step = cls.functions[fx_name].default_on_step if on_step is None else on_step
+        on_epoch = cls.functions[fx_name].default_on_epoch if on_epoch is None else on_epoch
+        return on_step, on_epoch
