@@ -27,7 +27,7 @@ PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
-_SHOULD_COPY_NOTEBOOKS = bool(int(os.getenv("SHOULD_COPY_PL_NOTEBOOKS", 1)))
+_SHOULD_COPY_NOTEBOOKS = bool(int(os.getenv("SHOULD_COPY_NOTEBOOKS", 1)))
 
 if _SHOULD_COPY_NOTEBOOKS:
     try:
