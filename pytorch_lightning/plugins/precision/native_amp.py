@@ -25,9 +25,9 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch import autocast
+    from torch import autocast as new_autocast
 else:
-    from torch.cuda.amp import autocast  # type: ignore[misc]
+    from torch.cuda.amp import autocast as old_autocast
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -93,12 +93,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
 
-    def autocast_context_manager(self) -> autocast:
+    def autocast_context_manager(self) -> Union[old_autocast, new_autocast]:
         if _TORCH_GREATER_EQUAL_1_10:
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
-            return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return autocast()  # type: ignore[call-arg]
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
