@@ -446,9 +446,9 @@ class Trainer(
 
         # UserWarning for max_epochs if not set
 
-        warnings.warn("max_epochs not set, defaulted to 1000 epochs until stop.") if self.max_epochs is None else print(
-            f"max epochs set to {self.max_epochs}"
-        )
+        if self.max_epochs is None and max_steps == -1 and max_time is None:
+            warnings.warn("`max_epochs` is not set. By default it will run for 1000 epochs.")
+	        
 
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
