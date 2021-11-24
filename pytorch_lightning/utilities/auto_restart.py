@@ -431,12 +431,16 @@ def _capture_metadata_collate(
 
 
 # TODO: Merge this code within stateful DataLoaderIter.
-def _next_data_wrapper(fn, it, dl, num_batches_fetched, data_fetcher) -> Callable:
+def _next_data_wrapper(
+    fn: Callable,
+    it: Iterator,
+    dl: DataLoader,
+    num_batches_fetched: int,
+    data_fetcher: "pl.utilities.fetching.AbstractDataFetcher",
+) -> Callable:
     @wraps(fn)
-    def wrapper():
+    def wrapper() -> Any:
         nonlocal num_batches_fetched
-        nonlocal it
-        nonlocal dl
 
         dataset = dl.dataset
         combined_batch = fn()

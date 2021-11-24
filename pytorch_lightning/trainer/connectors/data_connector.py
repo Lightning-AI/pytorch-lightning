@@ -71,8 +71,9 @@ class DataConnector:
 
         if prepare_data_per_node is not None:
             rank_zero_deprecation(
-                "Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0! "
-                "Please set `prepare_data_per_node` in LightningDataModule or LightningModule directly instead. "
+                "Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0 and will be removed in"
+                " v1.7.0. Please set `prepare_data_per_node` in `LightningDataModule` and/or `LightningModule`"
+                " directly instead."
             )
         self.trainer.prepare_data_per_node = prepare_data_per_node
 

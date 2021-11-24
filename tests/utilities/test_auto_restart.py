@@ -1403,7 +1403,7 @@ class RandomSamplerStateful(RandomSampler):
         ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
     ],
 )
-@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+@pytest.mark.parametrize("val_check_interval", [0.5])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_dataset_cls, tmpdir):
     class TestModel(BoringModel):
