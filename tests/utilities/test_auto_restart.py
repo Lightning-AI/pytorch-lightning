@@ -1185,16 +1185,16 @@ def test_validate_fault_tolerant(tmpdir):
 
     _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
         dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))])
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
         dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))], mode="max_size_cycle")
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [DataLoader(data), DataLoader(range(10))]
-    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     _validate_fault_tolerant_training(dataloaders, RunningStage.VALIDATING)
@@ -1211,7 +1211,7 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [
@@ -1219,10 +1219,10 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    with pytest.raises(MisconfigurationException, match="Fault Tolerant Training supports only a single."):
+    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single."):
         _validate_fault_tolerant_training(dataloaders, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+    with pytest.raises(ValueError, match="RandomSampler"):
 
         class CustomRandomSampler(RandomSampler):
             pass
@@ -1230,7 +1230,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(data, sampler=CustomRandomSampler(data))
         _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="BatchSampler"):
+    with pytest.raises(ValueError, match="BatchSampler"):
 
         class CustomBatchSampler(BatchSampler):
             pass
@@ -1240,7 +1240,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(data, batch_sampler=batch_sampler)
         _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="without a `__next__` method"):
+    with pytest.raises(AttributeError, match="without a `__next__` method"):
 
         class CustomIterable(IterableDataset):
             def __iter__(self):
@@ -1250,7 +1250,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(CustomIterable())
         _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="IterableDataset without a sampler as attribute"):
+    with pytest.raises(AttributeError, match="IterableDataset without a sampler as attribute"):
 
         class CustomIterable(IterableDataset):
             def __iter__(self):
@@ -1262,7 +1262,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(CustomIterable())
         _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+    with pytest.raises(TypeError, match="RandomSampler"):
 
         class CustomIterable(IterableDataset):
             def __init__(self):
@@ -1280,7 +1280,7 @@ def test_validate_fault_tolerant(tmpdir):
         _validate_fault_tolerant_training(dataloader, RunningStage.TRAINING)
 
     dataloaders = [DataLoader(data), DataLoader(CustomIterable())]
-    with pytest.raises(MisconfigurationException, match="RandomSampler"):
+    with pytest.raises(TypeError, match="RandomSampler"):
         _validate_fault_tolerant_training(dataloaders, RunningStage.VALIDATING)
 
 
