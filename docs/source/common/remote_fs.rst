@@ -1,10 +1,11 @@
 Remote filesystems
 ==================
 
-PyTorch Lightning enables working with data from a variety of filesystems, including local filesystems and several cloud storage providers.
+PyTorch Lightning enables working with data from a variety of filesystems, including local filesystems and several cloud storage providers
+such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
 
-The datastores could be used to load and save checkpoints, as well as for logging.
-Working with different filesystems could be accomplished by appending a protocol like "s:/" to filepaths for writing and reading data.
+This applies to saving and writing checkpoints, as well as for logging.
+Working with different filesystems could be accomplished by appending a protocol like "s3:/" to file paths for writing and reading data.
 
 
 .. code-block:: python
@@ -48,3 +49,6 @@ You could learn more about the available filesystems with:
     from fsspec.registry import known_implementations
 
     print(known_implementations)
+
+
+You could also look into :doc:`CheckpointIO plugin <../advanced/checkpoint_io>` for more details on how to customize saving and loading checkpoints.
