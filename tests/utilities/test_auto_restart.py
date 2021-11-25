@@ -22,7 +22,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Iterator, List, Optional
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import numpy as np
 import pytest
@@ -1096,7 +1096,7 @@ def _fit_model(
     if should_signal:
         with pytest.raises(ExitGracefullyException, match=status), mock.patch("os._exit"):
             trainer.fit(model)
-            assert os._exit._mock_call_args == call(0)
+            os._exit.assert_called_with(0)
     else:
         trainer.fit(model)
     assert trainer._terminate_gracefully == should_signal

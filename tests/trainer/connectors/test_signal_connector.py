@@ -16,7 +16,6 @@ import os
 import signal
 from time import sleep
 from unittest import mock
-from unittest.mock import call
 
 import pytest
 
@@ -57,7 +56,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         if terminate_gracefully and not register_handler:
             with pytest.raises(ExitGracefullyException):
                 trainer.fit(model)
-            assert os._exit._mock_call_args == call(0)
+            os._exit.assert_called_with(0)
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
