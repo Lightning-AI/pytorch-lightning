@@ -36,41 +36,31 @@ disable_error_code = "attr-defined"
 # style choices
 warn_no_return = "False"
 
-# TODO: Fix typing for these modules
+# Changes mypy default to ignore all errors
 [[tool.mypy.overrides]]
 module = [
-    "pytorch_lightning.callbacks.*",
-    "pytorch_lightning.core.*",
-    "pytorch_lightning.loggers.*",
-    "pytorch_lightning.loops.*",
-    "pytorch_lightning.overrides.*",
-    "pytorch_lightning.plugins.environments.*",
-    "pytorch_lightning.plugins.training_type.*",
-    "pytorch_lightning.profiler.*",
-    "pytorch_lightning.trainer.*",
-    "pytorch_lightning.distributed.*",
-    "pytorch_lightning.tuner.*",
-    "pytorch_lightning.utilities.*",
+    "pytorch_lightning.*",
 ]
 ignore_errors = "True"
 
+# Override the default for files where we would like to enable type checking
+# TODO: Bring more files into this section
 [[tool.mypy.overrides]]
 module = [
     "pytorch_lightning.callbacks.device_stats_monitor",
     "pytorch_lightning.callbacks.early_stopping",
     "pytorch_lightning.callbacks.gpu_stats_monitor",
     "pytorch_lightning.callbacks.gradient_accumulation_scheduler",
-    "pytorch_lightning.callbacks.lr_monitor",
     "pytorch_lightning.callbacks.model_summary",
     "pytorch_lightning.callbacks.progress",
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.callbacks.rich_model_summary",
     "pytorch_lightning.core.optimizer",
-    "pytorch_lightning.lite.*",
-    "pytorch_lightning.loops.optimization.*",
+    "pytorch_lightning.loops.optimization.closure.py",
+    "pytorch_lightning.loops.optimization.manual_loop.py",
     "pytorch_lightning.loops.evaluation_loop",
-    "pytorch_lightning.trainer.connectors.checkpoint_connector",
-    "pytorch_lightning.trainer.connectors.logger_connector.*",
+    "pytorch_lightning.trainer.connectors.logger_connector.py",
+    "pytorch_lightning.trainer.connectors.logger_connector.fx_validator.py",
     "pytorch_lightning.trainer.connectors.signal_connector",
     "pytorch_lightning.trainer.progress.*",
     "pytorch_lightning.tuner.auto_gpu_select",
@@ -80,8 +70,6 @@ module = [
     "pytorch_lightning.utilities.cloud_io",
     "pytorch_lightning.utilities.device_dtype_mixin",
     "pytorch_lightning.utilities.device_parser",
-    "pytorch_lightning.utilities.distributed",
-    "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.model_summary",
     "pytorch_lightning.utilities.parameter_tying",
     "pytorch_lightning.utilities.parsing",

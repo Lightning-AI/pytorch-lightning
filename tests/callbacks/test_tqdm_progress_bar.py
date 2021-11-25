@@ -274,7 +274,7 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
     assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
-    assert trainer.progress_bar_callback.refresh_rate == 1  # FIXME: should be 20
+    assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
     assert trainer.progress_bar_callback.refresh_rate == 19
