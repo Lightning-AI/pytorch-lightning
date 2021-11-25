@@ -29,6 +29,7 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
+        # set a per-test timeout of 3 minutes to fail sooner. this aids with hanging tests
         pip install pytest-timeout
         pip list
 
@@ -42,7 +43,6 @@ jobs:
 
     - name: Tests
       run: |
-        # NOTE: run coverage on tests does not propagate failure status for Win, https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest --timeout 180 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
