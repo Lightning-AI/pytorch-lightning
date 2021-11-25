@@ -33,9 +33,7 @@ class SignalConnector:
         self._original_handlers: Dict[int, Any] = {}
 
     def register_signal_handlers(self) -> None:
-        self._original_handlers = {signal.SIGTERM: signal.getsignal(signal.SIGTERM)}
-        if not self._is_on_windows():
-            self._original_handlers[signal.SIGUSR1] = signal.getsignal(signal.SIGUSR1)
+        self._original_handlers = self._get_current_signal_handlers()
 
         sigusr1_handlers: List[Callable] = []
         sigterm_handlers: List[Callable] = []
@@ -100,10 +98,19 @@ class SignalConnector:
             signal.signal(signum, handler)
         self._original_handlers = {}
 
-    def _is_on_windows(self) -> bool:
+    def _get_current_signal_handlers(self) -> Dict[int, Any]:
+        """Collects the currently assigned signal handlers that are relevant for Lightning."""
+        handlers = {signal.SIGTERM: signal.getsignal(signal.SIGTERM)}
+        if not self._is_on_windows():
+            handlers[signal.SIGUSR1] = signal.getsignal(signal.SIGUSR1)
+        return handlers
+
+    @staticmethod
+    def _is_on_windows() -> bool:
         return sys.platform == "win32"
 
-    def _has_already_handler(self, signum: Signals) -> bool:
+    @staticmethod
+    def _has_already_handler(signum: Signals) -> bool:
         try:
             return isinstance(signal.getsignal(signum), FunctionType)
         except AttributeError:
