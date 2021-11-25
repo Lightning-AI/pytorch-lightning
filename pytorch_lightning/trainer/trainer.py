@@ -679,13 +679,12 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
                 self.training_type_plugin.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
+            self._on_exception(exception)
             # reset bookkeeping
             self.state.stage = None
             self.on_exception(exception)
             # shutdown workers
             self._data_connector.teardown()
-            self._on_exit_gracefully_exception(exception)
             raise
 
     def fit(
@@ -1545,12 +1544,14 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self):
+    def _on_exception(self, exception):
         if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
+
+        self._on_exit_gracefully_exception(exception)
 
     """
     Accelerator properties
