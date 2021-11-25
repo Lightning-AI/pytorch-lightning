@@ -10,7 +10,7 @@ Working with different filesystems could be accomplished by appending a protocol
 .. code-block:: python
 
     # `default_root_dir` is the default path used for logs and weights
-    trainer = Trainer(default_root_dir="s3://lightning/data/")
+    trainer = Trainer(default_root_dir="s3://my_bucket/data/")
     trainer.fit(model)
 
 You could pass custom paths to loggers for logging data.
