@@ -16,16 +16,16 @@
 
 RUN WITHOUT FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure 0`.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py`.
         - You should see `[-1.0939, -0.4306]` in the logs.
 
 RUN WITH SIMULATED FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py`.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure`.
         - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
         - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
-    3. Launch `python pl_examples/fault_tolerant/automatic.py` again.
+    3. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure` again.
         - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
         - And you should see `[-1.0939, -0.4306]` in the logs.
 
@@ -125,5 +125,5 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Fault Tolerant Example")
-    parser.add_argument("--emulate_failure", type=int, default=1, help="Whether the training should be failing.")
+    parser.add_argument("--emulate_failure", action="store_true", help="Whether the training should be failing.")
     main(parser.parse_args())

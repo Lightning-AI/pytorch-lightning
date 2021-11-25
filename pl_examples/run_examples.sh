@@ -36,5 +36,4 @@ args="
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_4_lightning_module.py" ${args} "$@"
 python "${dir_path}/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py" ${args} "$@"
 
-args="--emulate_failure 0"
-python "${dir_path}/fault_tolerant/automatic.py" ${args}
+python "${dir_path}/fault_tolerant/automatic.py"
