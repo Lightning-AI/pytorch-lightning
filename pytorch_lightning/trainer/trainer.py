@@ -444,13 +444,13 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        #rank_zero_warning of type UserWarning for max_epochs if not set
+        # rank_zero_warning of type UserWarning for max_epochs if not set
         if self.max_epochs is None and max_steps == -1 and max_time is None:
             rank_zero_warn(
                 "`max_epochs` is not set. By default it will run for 1000 epochs.",
                 UserWarning,
             )
-            
+
         fit_loop = FitLoop(
             min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
             max_epochs=(
