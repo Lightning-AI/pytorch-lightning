@@ -685,9 +685,7 @@ class Trainer(
             self.on_exception(exception)
             # shutdown workers
             self._data_connector.teardown()
-            if isinstance(exception, ExitGracefullyException):
-                # this is required to ensure schedulers can properly restart the training.
-                return
+            self._on_exit_gracefully_exception(exception)
             raise
 
     def fit(
@@ -2101,6 +2099,12 @@ class Trainer(
             caller = inspect.stack()[1]
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+
+    @staticmethod
+    def _on_exit_gracefully_exception(exception: Exception) -> None:
+        if isinstance(exception, ExitGracefullyException):
+            # this is required to ensure schedulers can properly restart the training.
+            os._exit(0)
 
     @property
     def weights_summary(self) -> Optional[str]:

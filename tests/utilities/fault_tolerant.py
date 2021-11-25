@@ -17,7 +17,7 @@
 1. Launch this script with `python tests/utilities/fault_tolerant.py`
 2. Once ``READY TO BE KILLED WITH SIGTERM SIGNAL`` is detected within
    the logs, send a SIGTERM to this process. The process is waiting for it.
-3. You should detect `.pl_auto_save.ckpt exists` within the logs.
+3. You should detect `.pl_auto_save.ckpt` exists within the logs.
 4. Resume your training with the same file system and relaunch the same command.
 5. The script should contain `[-1.0939, -0.4306]` within its logs.
 
