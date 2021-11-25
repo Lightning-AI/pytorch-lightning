@@ -225,6 +225,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self._outputs = self._outputs, {}  # free memory
+        self._indices = []
+        self._optimizers = []
         return outputs
 
     def _run_optimization(

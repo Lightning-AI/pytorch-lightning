@@ -118,7 +118,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
-        self.outputs, outputs = [], self.outputs  # free memory
+        outputs, self.outputs = self.outputs, []  # free memory
 
         # lightning module method
         self._evaluation_epoch_end(outputs)
