@@ -242,8 +242,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
                 self.value += value.mean()
-            else:
-                raise ValueError(f"Invalid `reduce_fx`: {self.meta.reduce_fx!r}")
         else:
             self.value = value
             self._forward_cache = value._forward_cache
