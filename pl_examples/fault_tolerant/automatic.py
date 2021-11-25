@@ -21,7 +21,7 @@ RUN WITHOUT FAILURE:
 
 RUN WITH SIMULATED FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py`.
         - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
         - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
