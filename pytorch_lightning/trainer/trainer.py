@@ -1544,14 +1544,16 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self, exception):
+    def _on_exception(self, exception: Exception) -> None:
         if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
 
-        self._on_exit_gracefully_exception(exception)
+        # this is required to ensure schedulers can properly restart the training.
+        if isinstance(exception, ExitGracefullyException):
+            os._exit(0)
 
     """
     Accelerator properties
@@ -2100,12 +2102,6 @@ class Trainer(
             caller = inspect.stack()[1]
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
-
-    @staticmethod
-    def _on_exit_gracefully_exception(exception: Exception) -> None:
-        if isinstance(exception, ExitGracefullyException):
-            # this is required to ensure schedulers can properly restart the training.
-            os._exit(0)
 
     @property
     def weights_summary(self) -> Optional[str]:

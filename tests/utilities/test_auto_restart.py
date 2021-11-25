@@ -22,7 +22,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from typing import Iterator, List, Optional
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, call
 
 import numpy as np
 import pytest
@@ -1092,18 +1092,11 @@ def _fit_model(
         num_sanity_val_steps=0,
     )
 
-    class TestTrainer(Trainer):
-        @staticmethod
-        def _on_exit_gracefully_exception(exception) -> None:
-            """Normally, the script should exit right there.
-
-            Overriding to enable tests to verify the exit behavior.
-            """
-
-    trainer = TestTrainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs)
     if should_signal:
-        with pytest.raises(ExitGracefullyException, match=status):
+        with pytest.raises(ExitGracefullyException, match=status), mock.patch("os._exit"):
             trainer.fit(model)
+            assert os._exit._mock_call_args == call(0)
     else:
         trainer.fit(model)
     assert trainer._terminate_gracefully == should_signal

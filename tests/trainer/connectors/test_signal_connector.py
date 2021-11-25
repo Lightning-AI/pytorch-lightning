@@ -16,6 +16,7 @@ import os
 import signal
 from time import sleep
 from unittest import mock
+from unittest.mock import call
 
 import pytest
 
@@ -31,13 +32,6 @@ from tests.helpers.runif import RunIf
 @pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
-    class TestTrainer(Trainer):
-        @staticmethod
-        def _on_exit_gracefully_exception(exception) -> None:
-            """Normally, the script should exit right there.
-
-            Overriding to enable tests to verify the exit behavior.
-            """
 
     if register_handler:
 
@@ -55,12 +49,15 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
     model = TestModel()
 
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}), mock.patch(
+        "os._exit"
+    ):
 
-        trainer = TestTrainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
         if terminate_gracefully and not register_handler:
             with pytest.raises(ExitGracefullyException):
                 trainer.fit(model)
+            assert os._exit._mock_call_args == call(0)
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
