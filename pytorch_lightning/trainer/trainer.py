@@ -2103,10 +2103,10 @@ class Trainer(
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
 
     def _has_terminated_gracefully(self) -> bool:
-        value = torch.tensor(
+        terminate_gracefully = torch.tensor(
             self._terminate_gracefully, device=self.training_type_plugin.root_device, dtype=torch.uint8
         )
-        return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
+        return self.training_type_plugin.reduce(terminate_gracefully, reduce_op="sum") > 0
 
     @property
     def weights_summary(self) -> Optional[str]:
