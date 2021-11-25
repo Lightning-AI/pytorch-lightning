@@ -1551,7 +1551,7 @@ class Trainer(
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
 
-        # this is required to ensure schedulers can properly restart the training.
+        # this is required to ensure schedulers can properly restart the run.
         if isinstance(exception, ExitGracefullyException):
             os._exit(0)
 
