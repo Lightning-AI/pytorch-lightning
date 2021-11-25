@@ -14,7 +14,6 @@
 """General utilities."""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -111,4 +110,6 @@ else:
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return bool(int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0)))
+    from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+    return _FaultTolerantMode.detect_current_mode().is_enabled

@@ -39,6 +39,7 @@ from pytorch_lightning import Callback, LightningModule, seed_everything, Traine
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
+    _collect_states_on_rank_zero_over_collection,
     _MultiProcessingDataLoaderIterStateful,
     _patch_dataloader_get_iterators,
     _reload_dataloader_state_dict,
@@ -1253,6 +1254,13 @@ class StatefulRandomDataset(RandomDataset):
 
     def load_state_dict(self, state_dict):
         self.counter = state_dict[0]["counter"]
+
+
+def test_collect_states_with_collection():
+    state = {"state": 0}
+    collection = [{"a": state, "b": [{"a": state}]}]
+    generated = _collect_states_on_rank_zero_over_collection(collection)
+    assert generated == [{"a": {0: state}, "b": [{"a": {0: state}}]}]
 
 
 @pytest.mark.parametrize("num_workers", [0])
