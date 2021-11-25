@@ -1258,7 +1258,7 @@ class StatefulRandomDataset(RandomDataset):
 def test_collect_states_with_collection():
     state = {"state": 0}
     collection = [{"a": state, "b": [{"a": state}]}]
-    generated = _collect_states_on_rank_zero_over_collection(collection, torch.device("cpu"))
+    generated = _collect_states_on_rank_zero_over_collection(collection)
     assert generated == [{"a": {0: state}, "b": [{"a": {0: state}}]}]
 
 

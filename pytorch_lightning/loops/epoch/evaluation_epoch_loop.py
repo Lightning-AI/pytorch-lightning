@@ -17,7 +17,6 @@ from dataclasses import asdict
 from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional, Union
 
-import torch
 from deprecate import void
 
 from pytorch_lightning.loops.base import Loop
@@ -28,7 +27,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -182,19 +180,17 @@ class EvaluationEpochLoop(Loop):
         if state:
             state_dict["dataloader_state_dict"] = asdict(state)
         state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
-            state_dict["dataloader_state_dict"], device=self.trainer.training_type_plugin.root_device
+            state_dict["dataloader_state_dict"]
         )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         # dataset states are collected across all ranks
-        if _fault_tolerant_training():
-            dataloader_state_dict = state_dict.get("dataloader_state_dict", None)
-            if not dataloader_state_dict:
-                return
-            rank = torch.distributed.get_rank() if distributed_available() else 0
-            self._dataloader_state_dict = dataloader_state_dict[rank]
+        dataloader_state_dict = state_dict.get("dataloader_state_dict", None)
+        if not _fault_tolerant_training() or not dataloader_state_dict:
+            return
+        self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:

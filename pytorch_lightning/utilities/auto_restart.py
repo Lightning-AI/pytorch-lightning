@@ -741,13 +741,12 @@ def _teardown_dataloader_get_iterators() -> None:
         del DataLoader._ori_get_iterator
 
 
-def _collect_states_on_rank_zero_over_collection(state_dict: Any, device: torch.device) -> Any:
+def _collect_states_on_rank_zero_over_collection(state_dict: Any) -> Any:
     """This utility collects the state across processes for a collection of state."""
 
     def fn(state: Dict):
-        nonlocal device
         if state.get("state", None) is not None:
-            return _collect_states_on_rank_zero(state, device=device)
+            return _collect_states_on_rank_zero(state)
         return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
 
     return apply_to_collection(state_dict, Dict, fn)

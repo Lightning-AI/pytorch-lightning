@@ -327,7 +327,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         )
 
         state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
-            state_dict["dataloader_state_dict"], device=self.trainer.training_type_plugin.root_device
+            state_dict["dataloader_state_dict"]
         )
         return state_dict
 
