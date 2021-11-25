@@ -12,22 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are the steps to use this file to ensure Lightning is properly setup for Fault Tolerant Training.
+"""Here is an example Fault Tolerant (using PyTorch 1.7.1)
 
-1. Launch this script with `python tests/utilities/fault_tolerant.py`
-2. Once ``READY TO BE KILLED WITH SIGTERM SIGNAL`` is detected within
-   the logs, send a SIGTERM to this process. The process is waiting for it.
-3. You should detect `.pl_auto_save.ckpt` exists within the logs.
-4. Resume your training with the same file system and relaunch the same command.
-5. The script should contain `[-1.0939, -0.4306]` within its logs.
+1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+    - You should see `[-1.0939, -0.4306]` in the logs.
+
+
+2. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+    - You should see `kill -SIGTERM {PID}` in the logs.
+3. Run this command within another terminal.
+    - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
+4. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0` again.
+    - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
+    - And you should see `[-1.0939, -0.4306]` in the logs.
 
 This means the weights with the failure matches the weight without and
 the training has been properly resumed and is fully reproduced.
 """
 
-# Note, this file is used to ensure Fault Tolerant is working as expected
 import os
 import random as python_random
+from argparse import ArgumentParser
 from time import sleep
 
 import numpy as np
@@ -47,7 +52,7 @@ class Model(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
-            log.info("READY TO BE KILLED WITH SIGTERM SIGNAL.")
+            log.info(f"READY TO BE KILLED WITH SIGTERM SIGNAL. Run `kill -SIGTERM {os.getpid()}`")
             while not self.trainer._terminate_gracefully:
                 sleep(0.1)
         batch = batch["data"] if isinstance(batch, dict) else batch
@@ -77,65 +82,47 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(trainer_kwargs, fail_on_step: int = -1, ckpt_path=None):
     seed_everything(1)
-    train_dataloader = [
-        DataLoader(dataset_class(3, 1), batch_size=1, num_workers=0) for dataset_class in dataset_classes
-    ]
-    train_dataloader = train_dataloader[0] if len(train_dataloader) == 1 else train_dataloader
+    train_dataloader = DataLoader(RandomGetItemDataset(3, 1))
     model = Model(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 
-def main():
-
-    tmpdir = "."
-
-    os.makedirs(tmpdir, exist_ok=True)
-
-    env_backup = os.environ.copy()
-
-    auto_restart_checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    auto_restart_checkpoint_path_exists = os.path.exists(auto_restart_checkpoint_path)
-
+def main(args):
     seed_everything(42)
+    os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"  # active fault tolerant automatic
 
-    os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"
-
-    dataset_classes = [RandomGetItemDataset]
+    ckpt_path = os.path.join(".", ".pl_auto_save.ckpt")
+    auto_restart_ckpt_path_exists = os.path.exists(ckpt_path)
+    if args.should_fail:
+        fail_on_step = -1 if auto_restart_ckpt_path_exists else 4
+        completed_batches = 4 if auto_restart_ckpt_path_exists else 5
+    else:
+        fail_on_step = -1
+        completed_batches = 9
 
     trainer_kwargs = dict(
-        default_root_dir=tmpdir,
+        default_root_dir=".",
         max_epochs=3,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
 
-    if auto_restart_checkpoint_path_exists:
-        fail_on_step = -1
-        completed_batches = 4
-    else:
-        fail_on_step = 4
-        completed_batches = 5
-
     # Perform a failure
-    complete_batches, weights = _run_training(trainer_kwargs, dataset_classes, fail_on_step=fail_on_step)
+    complete_batches, weights = _run_training(trainer_kwargs, fail_on_step=fail_on_step)
     assert len(complete_batches) == completed_batches
 
-    if not auto_restart_checkpoint_path_exists:
-        checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-        assert os.path.exists(checkpoint_path)
-        log.info(".pl_auto_save.ckpt exists.")
+    if not auto_restart_ckpt_path_exists and args.should_fail:
+        assert os.path.exists(ckpt_path)
 
-    if auto_restart_checkpoint_path_exists:
-        params = [w for w in weights]
-        log.info(params)
-
-    os.environ.clear()
-    os.environ.update(env_backup)
+    if auto_restart_ckpt_path_exists or not args.should_fail:
+        log.info([w for w in weights])
 
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser(description="Fault Tolerant Example")
+    parser.add_argument("--should_fail", type=int, default=1, help="Whether the training should fail.")
+    main(parser.parse_args())
