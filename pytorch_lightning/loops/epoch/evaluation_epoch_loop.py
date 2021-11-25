@@ -221,7 +221,9 @@ class EvaluationEpochLoop(Loop):
     def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook."""
         hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
-        output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        model_output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        ttp_output = self.trainer._call_ttp_hook(hook_name, *args, **kwargs)
+        output = ttp_output if model_output is None else model_output
         return output
 
     def _on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
