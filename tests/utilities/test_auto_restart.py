@@ -1095,7 +1095,10 @@ def _fit_model(
     class TestTrainer(Trainer):
         @staticmethod
         def _on_exit_gracefully_exception(exception) -> None:
-            pass
+            """Normally, the script should exit right there.
+
+            Overriding to enable tests to verify the exit behavior.
+            """
 
     trainer = TestTrainer(**trainer_kwargs)
     if should_signal:

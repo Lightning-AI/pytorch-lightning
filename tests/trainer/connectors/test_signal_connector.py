@@ -34,7 +34,10 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
     class TestTrainer(Trainer):
         @staticmethod
         def _on_exit_gracefully_exception(exception) -> None:
-            pass
+            """Normally, the script should exit right there.
+
+            Overriding to enable tests to verify the exit behavior.
+            """
 
     if register_handler:
 
