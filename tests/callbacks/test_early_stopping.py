@@ -438,8 +438,8 @@ def test_multiple_early_stopping_callbacks(
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=callbacks,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         max_epochs=20,
         strategy=strategy,
         accelerator="cpu",
