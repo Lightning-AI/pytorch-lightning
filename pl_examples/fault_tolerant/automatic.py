@@ -33,8 +33,8 @@ RUN WITH SIMULATED FAILURE:
 
     To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
 
-This means the weights generated from failed run matches ones without and
-the training has been properly resumed and is fully reproduced.
+This example shows that the weights trained with failure matches the weight trained without failure,
+thus the training has been properly resumed whilst being fully reproducible.
 
 Used PyTorch 1.7.1.
 """
