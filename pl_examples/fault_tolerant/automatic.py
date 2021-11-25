@@ -25,7 +25,7 @@ RUN WITH SIMULATED FAILURE:
         - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
         - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
-    3. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0` again.
+    3. Launch `python pl_examples/fault_tolerant/automatic.py` again.
         - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
         - And you should see `[-1.0939, -0.4306]` in the logs.
 
