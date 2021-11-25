@@ -11,3 +11,4 @@ torchmetrics>=0.4.1
 pyDeprecate==0.3.1
 packaging>=17.0
 typing-extensions
+rich>=10.2.2
