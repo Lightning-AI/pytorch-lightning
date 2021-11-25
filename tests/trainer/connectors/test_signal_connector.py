@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
 #
 #
 # @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
