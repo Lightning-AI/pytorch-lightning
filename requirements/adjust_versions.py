@@ -83,9 +83,8 @@ if __name__ == "__main__":
     else:
         requirements_path, torch_version = sys.argv[1], None
 
-    with open(requirements_path) as fp:
+    with open(requirements_path, "r+") as fp:
         requirements = fp.read()
-    requirements = main(requirements, torch_version)
-    print(requirements)  # on purpose - to debug
-    with open(requirements_path, "w") as fp:
+        requirements = main(requirements, torch_version)
+        print(requirements)  # on purpose - to debug
         fp.write(requirements)
