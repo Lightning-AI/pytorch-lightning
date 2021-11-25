@@ -204,7 +204,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self, batch: Any, optimizers: List[Tuple[int, Optimizer]], batch_idx: int
     ) -> None:
         self._batch_idx = batch_idx
-        self._indices, self._optimizers = zip(*optimizers)
+        for index, optimizer in optimizers:
+            self._indices.append(index)
+            self._optimizers.append(optimizer)
         if self.done:
             self.optim_progress.optimizer_position = 0
 
