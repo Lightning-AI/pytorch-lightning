@@ -110,3 +110,8 @@ class SignalConnector:
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
         if threading.current_thread() is threading.main_thread():
             signal.signal(signum, handlers)
+
+    def __getstate__(self) -> Dict:
+        state = self.__dict__.copy()
+        state["_original_handlers"] = {}
+        return state
