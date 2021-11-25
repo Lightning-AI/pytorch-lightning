@@ -525,8 +525,8 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
     num_workers = 2
     batch_size = 4
-    dataset_length = 32
-    num_classes = 8
+    dataset_length = 60
+    num_classes = 10
 
     labels = np.random.randint(0, num_classes, dataset_length)
 
