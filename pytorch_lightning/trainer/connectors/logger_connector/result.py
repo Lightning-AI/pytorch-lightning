@@ -280,8 +280,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
 
             # return cached value
-            if self._computed is not None:  # type: ignore
-                return self._computed  # type: ignore
+            if self._computed is not None:
+                return self._computed
             self._computed = compute(*args, **kwargs)
             return self._computed
 
@@ -410,11 +410,8 @@ class ResultCollection(dict):
 
         batch_size = 1
         if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
-            try:
-                batch_size = extract_batch_size(self.batch)
-                self.batch_size = batch_size
-            except RecursionError:
-                pass
+            batch_size = extract_batch_size(self.batch)
+            self.batch_size = batch_size
 
         return batch_size
 

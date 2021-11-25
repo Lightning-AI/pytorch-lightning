@@ -18,6 +18,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, memory
@@ -81,7 +82,7 @@ class LoggerConnector:
             # default logger
             self.trainer.logger = (
                 TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=self.trainer.slurm_job_id, name="lightning_logs"
+                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
                 )
                 if logger
                 else None

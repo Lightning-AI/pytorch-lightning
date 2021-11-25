@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -34,9 +34,11 @@ warning_cache = WarningCache()
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration."""
 
-    def __init__(self, precision: int) -> None:
+    def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
         super().__init__()
         self.precision = precision
+        self.amp_type = amp_type
+        self.amp_level = amp_level
 
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):

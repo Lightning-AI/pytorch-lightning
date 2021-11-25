@@ -139,7 +139,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
     from torch.utils.data import DataLoader, random_split
     from torchvision.datasets import MNIST
     import os
-    from torchvision import datasets, transforms
+    from torchvision import transforms
 
     # transforms
     # prepare transforms standard to MNIST
