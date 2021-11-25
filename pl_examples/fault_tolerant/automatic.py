@@ -43,7 +43,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 
 
-class Model(LightningModule):
+class SimpleMLP(LightningModule):
     def __init__(self, fail_on_step: int = -1):
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
@@ -53,6 +53,7 @@ class Model(LightningModule):
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
             log.info(f"READY TO BE KILLED WITH SIGTERM SIGNAL. Run `kill -SIGTERM {os.getpid()}`")
+            # this line is used to wait for you to send the signal to exit gracefully.
             while not self.trainer._terminate_gracefully:
                 sleep(0.1)
         batch = batch["data"] if isinstance(batch, dict) else batch
@@ -85,7 +86,7 @@ class RandomGetItemDataset(Dataset):
 def _run_training(trainer_kwargs, fail_on_step: int = -1, ckpt_path=None):
     seed_everything(1)
     train_dataloader = DataLoader(RandomGetItemDataset(3, 1))
-    model = Model(fail_on_step=fail_on_step)
+    model = SimpleMLP(fail_on_step=fail_on_step)
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
