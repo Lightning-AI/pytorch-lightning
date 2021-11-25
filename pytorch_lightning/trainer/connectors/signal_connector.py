@@ -33,7 +33,7 @@ class SignalConnector:
         self._original_handlers: Dict[int, Any] = {}
 
     def register_signal_handlers(self) -> None:
-        self._original_handlers = dict((signum, signal.getsignal(signum)) for signum in signal.Signals)
+        self._original_handlers = {signum: signal.getsignal(signum) for signum in signal.Signals}
 
         sigusr1_handlers: List[Callable] = []
         sigterm_handlers: List[Callable] = []
