@@ -846,9 +846,6 @@ class CustomException(Exception):
 
 
 class SequentialIterableDataset(IterableDataset):
-
-    _deterministic = True
-
     def __init__(self, length, *_):
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
@@ -925,6 +922,9 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
+    # this test will fail `fault_tolerant` don't support multiple datasets.
+    # this tests works as the dataset is fully deterministic and therefore
+    # there is not overall between the seeds.
     with mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None):
 
         all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)

@@ -378,7 +378,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     # get current num workers
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
     # as `state_dict` are workers dependent, Lightning doesn't support changing
-    # the `num_workers` for fault tolerant training
+    # the `num_workers` for Fault-tolerance
     if state_dict["num_workers"] != num_workers:
         raise MisconfigurationException(
             f"The provided `num_workers` {num_workers} doesn't match the one used "
@@ -742,7 +742,7 @@ def _patch_dataloader_get_iterators() -> None:
 
 def _teardown_dataloader_get_iterators() -> None:
     """This function is used to restore the DataLoader `get_iterator` with its original one."""
-    # cleanup the get_iterator replacement in case of Fault Tolerant Training.
+    # cleanup the get_iterator replacement in case of Fault-tolerance.
     get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
     if get_iterator:
         DataLoader._get_iterator = get_iterator
@@ -757,22 +757,20 @@ def _validate_iterable_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
 
     if getattr(dataset, "__next__", None) is None:
         raise AttributeError(
-            "Fault Tolerant Training doesn't support an IterableDataset without a `__next__` "
-            "method implemented. Hint: We recommend you to move your logic inside and rely "
-            "on a sampler, generator to perform the iteration."
+            "Fault-tolerance doesn't support an `IterableDataset` without `__next__` "
+            "method implemented. Hint: We recommend you to move your logic from `__iter__`"
+            " inside and rely on a sampler to perform the sample sampling."
         )
 
     samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
 
     if not samplers:
-        raise AttributeError(
-            "Fault Tolerant Training doesn't support an IterableDataset without a sampler as attribute."
-        )
+        raise AttributeError("Fault-tolerance doesn't support an IterableDataset without a sampler as attribute.")
 
     sampler = [v for v in samplers.values() if type(v) in SUPPORTED_SAMPLERS]
 
     if not sampler:
-        raise TypeError(f"Fault Tolerant Training supports only {SUPPORTED_SAMPLERS}.")
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
 
     if len(sampler) > 1:
         raise ValueError(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
@@ -788,11 +786,11 @@ def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
 
     sampler = getattr(dataloader, "sampler", None)
     if sampler is not None and type(sampler) not in SUPPORTED_SAMPLERS:
-        raise ValueError(f"Fault Tolerant Training supports only {SUPPORTED_SAMPLERS}.")
+        raise ValueError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
 
     batch_sampler = getattr(dataloader, "batch_sampler", None)
     if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
-        raise ValueError("Fault Tolerant Training supports only a BatchSampler.")
+        raise ValueError("Fault-tolerance supports only a BatchSampler.")
 
     if type(sampler) is DistributedSampler:
         return not sampler.shuffle, "A `DistributedSampler` sampler shuffle attribute is set to True."
@@ -801,7 +799,7 @@ def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
 
 
 def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
-    """This function is used to validate that fault tolerant training is possible with the user data."""
+    """This function is used to validate that Fault-tolerance is possible with the user data."""
     from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
     if not _FaultTolerantMode.detect_current_mode().is_automatic:
@@ -823,7 +821,7 @@ def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.
     apply_to_collection(dataloaders, (DataLoader, CycleIterator), flatten_dataloader)
 
     if len(dl_loaders) > 1 and stage == pl.trainer.states.RunningStage.TRAINING:
-        raise ValueError("Fault Tolerant Training supports only a single dataloader.")
+        raise ValueError("Fault-tolerance supports only a single dataloader.")
 
     supported = []
     messages = []
