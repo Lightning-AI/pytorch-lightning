@@ -209,7 +209,7 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Calling of .eval(), enabling/disabling grads
 * :doc:`checkpoint saving and loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
-* :doc:`Multi-GPU <../advanced/multi_gpu>` support
+* :ref:`Multi-GPU <accelerators/gpu:Multi GPU Training>` support
 * :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <amp>` support
 
