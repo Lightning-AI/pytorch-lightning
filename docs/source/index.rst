@@ -56,7 +56,7 @@ PyTorch Lightning
 
 .. toctree::
    :maxdepth: 1
-   :name: docs
+   :name: Accelerators
    :caption: Accelerators
 
    accelerators/gpu

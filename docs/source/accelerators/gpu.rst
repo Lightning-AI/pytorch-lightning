@@ -11,7 +11,8 @@ Graphics Processing Unit (GPU)
 
 
 Single GPU Training
-===================
+-------------------
+
 Make sure you're running on a machine with at least one GPU. There's no need to specify any NVIDIA flags
 as Lightning will do it for you.
 
@@ -24,7 +25,7 @@ as Lightning will do it for you.
 ----------------
 
 Multi GPU Training
-==================
+------------------
 
 Lightning supports multiple ways of doing distributed training.
 
