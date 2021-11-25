@@ -2096,17 +2096,15 @@ class Trainer(
     def _exit_gracefully_on_signal(self) -> None:
         if _fault_tolerant_training():
             # the signal should be sent to rank 0
-            if not self._has_terminated_gracefully():
+            if not self._should_terminated_gracefully():
                 return
             caller = inspect.stack()[1]
             class_name = caller[0].f_locals["self"].__class__.__name__
             raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
 
-    def _has_terminated_gracefully(self) -> bool:
-        terminate_gracefully = torch.tensor(
-            self._terminate_gracefully, device=self.training_type_plugin.root_device, dtype=torch.uint8
-        )
-        return self.training_type_plugin.reduce(terminate_gracefully, reduce_op="sum") > 0
+    def _should_terminated_gracefully(self) -> bool:
+        value = torch.tensor(self._terminate_gracefully, device=self.training_type_plugin.root_device)
+        return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
 
     @property
     def weights_summary(self) -> Optional[str]:
