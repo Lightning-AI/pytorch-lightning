@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-
 from pytorch_lightning.utilities import AllGatherGrad
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -22,9 +21,7 @@ def setup_ddp(rank, world_size):
 
 def _test_all_gather_ddp(rank, world_size):
 
-    '''
-        _test_all_gather_ddp will be removed as deprecating AllGatherGrad.
-    '''
+    """_test_all_gather_ddp will be removed as deprecating AllGatherGrad."""
 
     setup_ddp(rank, world_size)
 
