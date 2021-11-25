@@ -322,12 +322,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         ):
             return state_dict
 
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            has_completed=self._has_completed()
-        )
-
         state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
-            state_dict["dataloader_state_dict"]
+            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
         )
         return state_dict
 
