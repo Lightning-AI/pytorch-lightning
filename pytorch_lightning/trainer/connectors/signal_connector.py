@@ -14,6 +14,8 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 log = logging.getLogger(__name__)
 
+_SIGNAL_HANDLER_DICT = Dict[Signals, Union[Callable[[Signals, FrameType], Any], int, None]]
+
 
 class HandlersCompose:
     def __init__(self, signal_handlers: Union[List[Callable], Callable]) -> None:
@@ -30,7 +32,7 @@ class SignalConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
         self.trainer._terminate_gracefully = False
-        self._original_handlers: Dict[int, Any] = {}
+        self._original_handlers: _SIGNAL_HANDLER_DICT = {}
 
     def register_signal_handlers(self) -> None:
         self._original_handlers = self._get_current_signal_handlers()
@@ -98,7 +100,7 @@ class SignalConnector:
             signal.signal(signum, handler)
         self._original_handlers = {}
 
-    def _get_current_signal_handlers(self) -> Dict[int, Any]:
+    def _get_current_signal_handlers(self) -> _SIGNAL_HANDLER_DICT:
         """Collects the currently assigned signal handlers that are relevant for Lightning."""
         handlers = {signal.SIGTERM: signal.getsignal(signal.SIGTERM)}
         if not self._is_on_windows():
