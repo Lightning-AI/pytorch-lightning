@@ -200,6 +200,7 @@ class FitLoop(Loop):
         self.trainer._call_callback_hooks("on_train_start")
         self.trainer._call_lightning_module_hook("on_train_start")
         self.trainer._call_ttp_hook("on_train_start")
+        self.trainer._call_accelerator_hook("on_train_start")
 
     def on_advance_start(self) -> None:
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and

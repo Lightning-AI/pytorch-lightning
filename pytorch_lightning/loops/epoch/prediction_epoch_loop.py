@@ -131,7 +131,7 @@ class PredictionEpochLoop(Loop):
         self.batch_progress.increment_started()
 
         model_ref._current_fx_name = "predict_step"
-        predictions = self.trainer.accelerator.predict_step(step_kwargs)
+        predictions = self.trainer._call_accelerator_hook("predict_step", step_kwargs)
 
         self.batch_progress.increment_processed()
 

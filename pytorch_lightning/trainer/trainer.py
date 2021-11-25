@@ -1475,7 +1475,7 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if in v1.7
+        # TODO: remove code in if statement in v1.7
         if hook_name in ("on_train_batch_start", "on_train_batch_end"):
             fn = getattr(self, hook_name)
             if callable(fn):
@@ -1501,6 +1501,7 @@ class Trainer(
 
         return output
 
+    # TODO: eventually no longer need this
     def _call_ttp_hook(
         self,
         hook_name: str,
@@ -1509,6 +1510,21 @@ class Trainer(
     ) -> Optional[Any]:
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
+        if callable(fn):
+            with self.profiler.profile(hook_name):
+                output = fn(*args, **kwargs)
+
+        return output
+
+    # TODO: eventually no longer need this
+    def _call_accelerator_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Optional[Any]:
+        output = None
+        fn = getattr(self.accelerator, hook_name)
         if callable(fn):
             with self.profiler.profile(hook_name):
                 output = fn(*args, **kwargs)

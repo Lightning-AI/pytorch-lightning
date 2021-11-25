@@ -175,9 +175,11 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_test_start", *args, **kwargs)
         else:
             self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_validation_start", *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
@@ -199,9 +201,11 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_validation_end", *args, **kwargs)
 
         # reset the logger connector state
         self.trainer.logger_connector.reset_results()
@@ -240,6 +244,7 @@ class EvaluationLoop(DataLoaderLoop):
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer._call_callback_hooks(hook_name)
         self.trainer._call_lightning_module_hook(hook_name)
+
         self.trainer._call_callback_hooks("on_epoch_end")
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
