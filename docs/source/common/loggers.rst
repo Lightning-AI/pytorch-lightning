@@ -183,6 +183,10 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
 Test Tube
 =========
 
+.. warning:: ``TestTubeLogger`` has been deprecated in v1.5 and will be removed in v1.7.
+    We recommend switching to the default ``pytorch_lightning.loggers.TensorBoardLogger``
+    as an alternative.
+
 `Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
 `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
 To use :class:`~pytorch_lightning.loggers.TestTubeLogger` as your logger do the following.
