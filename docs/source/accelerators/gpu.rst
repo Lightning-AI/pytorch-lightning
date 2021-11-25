@@ -19,7 +19,6 @@ as Lightning will do it for you.
 .. testcode::
     :skipif: torch.cuda.device_count() < 1
 
-    # train on 1 GPU (using dp mode)
     trainer = Trainer(gpus=1)
 
 ----------------
