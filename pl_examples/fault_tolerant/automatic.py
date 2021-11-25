@@ -16,7 +16,7 @@
 
 RUN WITHOUT FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure 0`.
         - You should see `[-1.0939, -0.4306]` in the logs.
 
 RUN WITH SIMULATED FAILURE:
@@ -48,6 +48,24 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 
 
+class RandomGetItemDataset(Dataset):
+    """A dataset with random elements generated using global rng from torch, numpy and python."""
+
+    def __init__(self, length, size):
+        self.size = size
+        self.len = length
+
+    def __getitem__(self, index):
+        t = torch.rand(self.size)
+        n = torch.from_numpy(np.random.rand(self.size))
+        p = torch.tensor([python_random.random() for _ in range(self.size)])
+        sample = (index + (t + n + p) / 10).float()
+        return sample
+
+    def __len__(self):
+        return self.len
+
+
 class SimpleMLP(LightningModule):
     def __init__(self, fail_on_step: int = -1):
         super().__init__()
@@ -71,41 +89,24 @@ class SimpleMLP(LightningModule):
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
-
-class RandomGetItemDataset(Dataset):
-    """A dataset with random elements generated using global rng from torch, numpy and python."""
-
-    def __init__(self, length, size):
-        self.size = size
-        self.len = length
-
-    def __getitem__(self, index):
-        t = torch.rand(self.size)
-        n = torch.from_numpy(np.random.rand(self.size))
-        p = torch.tensor([python_random.random() for _ in range(self.size)])
-        sample = (index + (t + n + p) / 10).float()
-        return sample
-
-    def __len__(self):
-        return self.len
+    def train_dataloader(self):
+        return DataLoader(RandomGetItemDataset(3, 1))
 
 
 def _run_training(default_root_dir=".", max_epochs=3, fail_on_step: int = -1, ckpt_path=None):
-    seed_everything(1)
-    train_dataloader = DataLoader(RandomGetItemDataset(3, 1))
     model = SimpleMLP(fail_on_step=fail_on_step)
     trainer = Trainer(default_root_dir=default_root_dir, max_epochs=max_epochs)
-    trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
+    trainer.fit(model, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 
 def main(args):
     seed_everything(42)
-    os.environ["PL_FAULT_TOLERANT_TRAINING"] = "1"  # active fault tolerant automatic
+    os.environ["PL_FAULT_TOLERANT_TRAINING"] = "automatic"  # active fault tolerant automatic
 
-    ckpt_path = os.path.join(".", ".pl_auto_save.ckpt")
+    ckpt_path = ".pl_auto_save.ckpt"
     auto_restart_ckpt_path_exists = os.path.exists(ckpt_path)
-    if args.should_fail:
+    if args.emulate_failure:
         fail_on_step = -1 if auto_restart_ckpt_path_exists else 4
         completed_batches = 4 if auto_restart_ckpt_path_exists else 5
     else:
@@ -115,14 +116,14 @@ def main(args):
     complete_batches, weights = _run_training(fail_on_step=fail_on_step)
     assert len(complete_batches) == completed_batches
 
-    if not auto_restart_ckpt_path_exists and args.should_fail:
+    if not auto_restart_ckpt_path_exists and args.emulate_failure:
         assert os.path.exists(ckpt_path)
 
-    if auto_restart_ckpt_path_exists or not args.should_fail:
+    if auto_restart_ckpt_path_exists or not args.emulate_failure:
         log.info([w for w in weights])
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Fault Tolerant Example")
-    parser.add_argument("--should_fail", type=int, default=1, help="Whether the training should fail.")
+    parser.add_argument("--emulate_failure", type=int, default=1, help="Whether the training should be failing.")
     main(parser.parse_args())
