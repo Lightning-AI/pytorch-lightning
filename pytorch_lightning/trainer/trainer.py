@@ -1557,10 +1557,6 @@ class Trainer(
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
 
-        # this is required to ensure schedulers can properly restart the run.
-        if isinstance(exception, ExitGracefullyException):
-            os._exit(0)
-
     """
     Accelerator properties
     """
@@ -2104,16 +2100,12 @@ class Trainer(
             return active_loop._results
 
     def _exit_gracefully_on_signal(self) -> None:
-        if not _fault_tolerant_training():
+        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
             return
-        if not self._should_terminate_gracefully():
-            return
-        caller = inspect.stack()[1]
-        class_name = caller[0].f_locals["self"].__class__.__name__
-        raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+        raise ExitGracefullyException(0)
 
     def _should_terminate_gracefully(self) -> bool:
-        value = torch.tensor(self._terminate_gracefully, device=self.training_type_plugin.root_device)
+        value = torch.tensor(int(self._terminate_gracefully), device=self.training_type_plugin.root_device)
         return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
 
     @property

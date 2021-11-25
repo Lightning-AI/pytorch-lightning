@@ -56,7 +56,6 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
         if terminate_gracefully and not register_handler:
             with pytest.raises(ExitGracefullyException):
                 trainer.fit(model)
-            os._exit.assert_called_with(0)
         else:
             trainer.fit(model)
         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)

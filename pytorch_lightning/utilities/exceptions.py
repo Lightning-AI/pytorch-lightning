@@ -21,7 +21,7 @@ class DeadlockDetectedException(Exception):
     """Exception used when a deadlock has been detected and processes are being killed."""
 
 
-class ExitGracefullyException(Exception):
+class ExitGracefullyException(SystemExit):
     """Exception used when a ``signal.SIGTERM`` is sent to the process.
 
     This signals Lightning to try to create a fault-tolerance checkpoint once the current batch or epoch is reached
