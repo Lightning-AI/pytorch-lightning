@@ -59,7 +59,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
             pkg_version = Version(pkg.__version__)
         else:
             # try pkg_resources to infer version
-            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
+            pkg_version = Version(pkg_resources.get_distribution(package).version)
     except TypeError:
         # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
