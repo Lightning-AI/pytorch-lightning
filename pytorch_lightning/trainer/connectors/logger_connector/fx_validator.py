@@ -163,7 +163,7 @@ class _FxValidator:
     }
 
     @classmethod
-    def check_logging_and_get_default_levels(cls, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+    def check_logging_and_get_default_levels(cls, fx_name: str, on_step: bool, on_epoch: bool) -> Tuple[bool, bool]:
         """Check if the given function name is allowed to log."""
         if fx_name not in cls.functions:
             raise RuntimeError(
@@ -171,20 +171,20 @@ class _FxValidator:
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             )
 
-        allowed = cls.functions[fx_name]
-        if allowed is None:
+        fx_config = cls.functions[fx_name]
+        if fx_config is None:
             raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`.")
 
-        on_step = cls.functions[fx_name]["default_on_step"] if on_step is None else on_step
-        on_epoch = cls.functions[fx_name]["default_on_epoch"] if on_epoch is None else on_epoch
+        on_step = fx_config["default_on_step"] if on_step is None else on_step
+        on_epoch = fx_config["default_on_epoch"] if on_epoch is None else on_epoch
 
         m = "You can't `self.log({}={})` inside `{}`, must be one of {}."
-        if on_step not in allowed["allowed_on_step"]:
-            msg = m.format("on_step", on_step, fx_name, allowed["allowed_on_step"])
+        if on_step not in fx_config["allowed_on_step"]:
+            msg = m.format("on_step", on_step, fx_name, fx_config["allowed_on_step"])
             raise MisconfigurationException(msg)
 
-        if on_epoch not in allowed["allowed_on_epoch"]:
-            msg = m.format("on_epoch", on_epoch, fx_name, allowed["allowed_on_epoch"])
+        if on_epoch not in fx_config["allowed_on_epoch"]:
+            msg = m.format("on_epoch", on_epoch, fx_name, fx_config["allowed_on_epoch"])
             raise MisconfigurationException(msg)
 
         return on_step, on_epoch
