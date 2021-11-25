@@ -19,7 +19,7 @@ You could pass custom paths to loggers for logging data.
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
-    logger = TensorBoardLogger(save_dir="s3://lightning/logs/")
+    logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
 
     trainer = Trainer(logger=logger)
     trainer.fit(model)
