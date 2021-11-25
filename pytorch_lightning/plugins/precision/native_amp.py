@@ -93,7 +93,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
 
-    def autocast_context_manager(self) -> Union[old_autocast, new_autocast]:
+    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
