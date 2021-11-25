@@ -141,17 +141,17 @@ def test_fx_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging_and_get_default_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
                 with pytest.raises(MisconfigurationException, match="must be one of"):
-                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
+                    validator.check_logging_and_get_default_levels(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="You can't"):
-                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging_and_get_default_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
     with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
-        validator.check_logging("foo", False, False)
+        validator.check_logging_and_get_default_levels("foo", False, False)
 
 
 class HookedCallback(Callback):
