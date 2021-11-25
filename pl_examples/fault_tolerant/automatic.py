@@ -14,19 +14,22 @@
 
 """Here is an example Fault Tolerant (using PyTorch 1.7.1)
 
-1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
-    - You should see `[-1.0939, -0.4306]` in the logs.
+RUN WITHOUT FAILURE:
 
+    1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+        - You should see `[-1.0939, -0.4306]` in the logs.
 
-2. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
-    - You should see `kill -SIGTERM {PID}` in the logs.
-3. Run this command within another terminal.
-    - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
-4. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0` again.
-    - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
-    - And you should see `[-1.0939, -0.4306]` in the logs.
+RUN WITH SIMULATED FAILURE:
 
-5. To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0`.
+        - You should see `kill -SIGTERM {PID}` in the logs.
+    2. Run this command within another terminal.
+        - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
+    3. Launch `python pl_examples/fault_tolerant/automatic.py --should_fail 0` again.
+        - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
+        - And you should see `[-1.0939, -0.4306]` in the logs.
+
+    To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
 
 This means the weights with the failure matches the weight without and
 the training has been properly resumed and is fully reproduced.
