@@ -37,7 +37,7 @@ disable_error_code = "attr-defined"
 warn_no_return = "False"
 
 # Changes mypy default to ignore all errors
-# TODO: Remove files from this section
+# TODO: the goal is for this to be empty
 [[tool.mypy.overrides]]
 # the list can be generated with:
 # mypy | tr ':' ' ' |  awk '{print $1}' | sort | uniq | sed 's/\.py//g' | sed 's|\/|\.|g' | xargs -I {} echo '"{}",'
