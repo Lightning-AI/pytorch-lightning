@@ -5,7 +5,7 @@ import sys
 import threading
 from signal import Signals
 from subprocess import call
-from types import FrameType
+from types import FrameType, FunctionType
 from typing import Any, Callable, Dict, List, Union
 
 import pytorch_lightning as pl
@@ -104,7 +104,10 @@ class SignalConnector:
         return sys.platform == "win32"
 
     def _has_already_handler(self, signum: Signals) -> bool:
-        return signal.getsignal(signum) is not signal.SIG_DFL
+        try:
+            return isinstance(signal.getsignal(signum), FunctionType)
+        except AttributeError:
+            return False
 
     @staticmethod
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
