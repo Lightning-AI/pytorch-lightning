@@ -26,6 +26,14 @@ from tests.helpers.boring_model import BoringModel
 
 
 def test_default_level_for_hooks_that_support_logging():
+    def _make_assertion(model, hooks, result_mock, on_step, on_epoch, extra_kwargs):
+        for hook in hooks:
+            model._current_fx_name = hook
+            model.log(hook, 1)
+            result_mock.assert_called_with(
+                hook, hook, torch.tensor(1), on_step=on_step, on_epoch=on_epoch, **extra_kwargs
+            )
+
     trainer = Trainer()
     model = BoringModel()
     model.trainer = trainer
@@ -40,7 +48,7 @@ def test_default_level_for_hooks_that_support_logging():
         "pytorch_lightning.trainer.connectors.logger_connector.result.ResultCollection.log", return_value=None
     ) as result_mock:
         trainer.state.stage = RunningStage.TRAINING
-        fn_names = [
+        hooks = [
             "on_before_backward",
             "on_after_backward",
             "on_before_optimizer_step",
@@ -52,15 +60,10 @@ def test_default_level_for_hooks_that_support_logging():
             "on_train_batch_start",
             "on_train_batch_end",
         ]
-        all_logging_hooks = all_logging_hooks - set(fn_names)
-        for fn_name in fn_names:
-            model._current_fx_name = fn_name
-            model.log(fn_name, 1)
-            result_mock.assert_called_with(
-                fn_name, fn_name, torch.tensor(1), on_step=True, on_epoch=False, **extra_kwargs
-            )
+        all_logging_hooks = all_logging_hooks - set(hooks)
+        _make_assertion(model, hooks, result_mock, on_step=True, on_epoch=False, extra_kwargs=extra_kwargs)
 
-        fn_names = [
+        hooks = [
             "on_train_start",
             "on_train_epoch_start",
             "on_train_epoch_end",
@@ -68,17 +71,12 @@ def test_default_level_for_hooks_that_support_logging():
             "on_epoch_end",
             "training_epoch_end",
         ]
-        all_logging_hooks = all_logging_hooks - set(fn_names)
-        for fn_name in fn_names:
-            model._current_fx_name = fn_name
-            model.log(fn_name, 1)
-            result_mock.assert_called_with(
-                fn_name, fn_name, torch.tensor(1), on_step=False, on_epoch=True, **extra_kwargs
-            )
+        all_logging_hooks = all_logging_hooks - set(hooks)
+        _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
 
         trainer.state.stage = RunningStage.VALIDATING
         trainer.state.fn = TrainerFn.VALIDATING
-        fn_names = [
+        hooks = [
             "on_validation_start",
             "on_validation_epoch_start",
             "on_validation_epoch_end",
@@ -88,17 +86,12 @@ def test_default_level_for_hooks_that_support_logging():
             "validation_step_end",
             "validation_epoch_end",
         ]
-        all_logging_hooks = all_logging_hooks - set(fn_names)
-        for fn_name in fn_names:
-            model._current_fx_name = fn_name
-            model.log(fn_name, 1)
-            result_mock.assert_called_with(
-                fn_name, fn_name, torch.tensor(1), on_step=False, on_epoch=True, **extra_kwargs
-            )
+        all_logging_hooks = all_logging_hooks - set(hooks)
+        _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
 
         trainer.state.stage = RunningStage.TESTING
         trainer.state.fn = TrainerFn.TESTING
-        fn_names = [
+        hooks = [
             "on_test_start",
             "on_test_epoch_start",
             "on_test_epoch_end",
@@ -108,13 +101,8 @@ def test_default_level_for_hooks_that_support_logging():
             "test_step_end",
             "test_epoch_end",
         ]
-        all_logging_hooks = all_logging_hooks - set(fn_names)
-        for fn_name in fn_names:
-            model._current_fx_name = fn_name
-            model.log(fn_name, 1)
-            result_mock.assert_called_with(
-                fn_name, fn_name, torch.tensor(1), on_step=False, on_epoch=True, **extra_kwargs
-            )
+        all_logging_hooks = all_logging_hooks - set(hooks)
+        _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
 
     # just to ensure we checked all possible logging hooks here
     assert len(all_logging_hooks) == 0
