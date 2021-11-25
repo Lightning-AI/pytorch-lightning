@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here is an example Fault Tolerant (using PyTorch 1.7.1)
+"""Here is an example of `Lightning Fault Tolerant Automatic`.
+
+Find the documentation: https://pytorch-lightning.readthedocs.io/en/stable/advanced/fault_tolerant_training.html
 
 RUN WITHOUT FAILURE:
 
@@ -21,11 +23,11 @@ RUN WITHOUT FAILURE:
 
 RUN WITH SIMULATED FAILURE:
 
-    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure`.
+    1. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_spot_instance_signal`.
         - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
         - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
-    3. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_failure` again.
+    3. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_spot_instance_signal` again.
         - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
         - And you should see `[-1.0939, -0.4306]` in the logs.
 
@@ -33,6 +35,8 @@ RUN WITH SIMULATED FAILURE:
 
 This means the weights with the failure matches the weight without and
 the training has been properly resumed and is fully reproduced.
+
+Used PyTorch 1.7.1.
 """
 
 import os
@@ -106,7 +110,7 @@ def main(args):
 
     ckpt_path = ".pl_auto_save.ckpt"
     auto_restart_ckpt_path_exists = os.path.exists(ckpt_path)
-    if args.emulate_failure:
+    if args.emulate_spot_instance_signal:
         fail_on_step = -1 if auto_restart_ckpt_path_exists else 4
         completed_batches = 4 if auto_restart_ckpt_path_exists else 5
     else:
@@ -116,14 +120,18 @@ def main(args):
     complete_batches, weights = _run_training(fail_on_step=fail_on_step)
     assert len(complete_batches) == completed_batches
 
-    if not auto_restart_ckpt_path_exists and args.emulate_failure:
+    if not auto_restart_ckpt_path_exists and args.emulate_spot_instance_signal:
         assert os.path.exists(ckpt_path)
 
-    if auto_restart_ckpt_path_exists or not args.emulate_failure:
+    if auto_restart_ckpt_path_exists or not args.emulate_spot_instance_signal:
         log.info([w for w in weights])
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Fault Tolerant Example")
-    parser.add_argument("--emulate_failure", action="store_true", help="Whether the training should be failing.")
+    parser = ArgumentParser(description="Fault Tolerant Under Signal Example")
+    parser.add_argument(
+        "--emulate_spot_instance_signal",
+        action="store_true",
+        help="Whether the training should be gracefully exiting under a SIGTERM signal.",
+    )
     main(parser.parse_args())
