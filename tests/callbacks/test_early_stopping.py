@@ -431,6 +431,7 @@ def test_multiple_early_stopping_callbacks(
         strategy=strategy,
         accelerator="cpu",
         num_processes=num_processes,
+        logger=False,
     )
     trainer.fit(model)
 
