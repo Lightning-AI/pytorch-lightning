@@ -33,7 +33,9 @@ class SignalConnector:
         self._original_handlers: Dict[int, Any] = {}
 
     def register_signal_handlers(self) -> None:
-        self._original_handlers = {signum: signal.getsignal(signum) for signum in signal.Signals}
+        self._original_handlers = {signal.SIGTERM: signal.getsignal(signal.SIGTERM)}
+        if not self._is_on_windows():
+            self._original_handlers[signal.SIGUSR1] = signal.getsignal(signal.SIGUSR1)
 
         sigusr1_handlers: List[Callable] = []
         sigterm_handlers: List[Callable] = []
@@ -95,8 +97,7 @@ class SignalConnector:
     def teardown(self) -> None:
         """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
-            if handler is not None:
-                signal.signal(signum, handler)
+            signal.signal(signum, handler)
         self._original_handlers = {}
 
     def _is_on_windows(self) -> bool:
