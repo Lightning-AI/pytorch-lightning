@@ -132,7 +132,6 @@ def main():
     if auto_restart_checkpoint_path_exists:
         params = [w for w in weights]
         log.info(params)
-        assert "[-1.0939, -0.4306]" in str(params[-1])
 
     os.environ.clear()
     os.environ.update(env_backup)
