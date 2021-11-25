@@ -131,7 +131,7 @@ class _LiteDataLoader:
         iterator = iter(self._dataloader)
         if self._device is None:
             yield from iterator
-            return None
+            return
 
         for item in iterator:
             yield move_data_to_device(item, self._device)
