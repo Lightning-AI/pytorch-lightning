@@ -56,6 +56,7 @@ module = [
     "pytorch_lightning.callbacks.pruning",
     "pytorch_lightning.callbacks.rich_model_summary",
     "pytorch_lightning.core.optimizer",
+    "pytorch_lightning.lite.*",
     "pytorch_lightning.loops.optimization.closure.py",
     "pytorch_lightning.loops.optimization.manual_loop.py",
     "pytorch_lightning.loops.evaluation_loop",
