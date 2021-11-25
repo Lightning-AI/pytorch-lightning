@@ -378,8 +378,14 @@ def init_dist_connection(
         )
 
 
+def _broadcast_object_list(obj: Any, rank: int) -> Any:
+    objects = [obj if torch.distributed.get_rank() == rank else None]
+    torch.distributed.broadcast_object_list(objects, src=rank)
+    return objects[0]
+
+
 # TODO: Refactor with the Strategy Collectives once finalized.
-def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Optional[Dict[int, Any]]:
+def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     """This distributed utility collects dictionary state across all processes.
 
     Args:
@@ -392,9 +398,4 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Optional[Dict[int, An
     """
     if not distributed_available():
         return {0: state}
-    states = {}
-    for rank in range(torch.distributed.get_world_size()):
-        objects = [state if torch.distributed.get_rank() == rank else None]
-        torch.distributed.broadcast_object_list(objects, src=rank)
-        states[rank] = objects[0]
-    return states
+    return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}

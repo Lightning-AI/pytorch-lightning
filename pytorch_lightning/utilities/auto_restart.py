@@ -741,11 +741,11 @@ def _teardown_dataloader_get_iterators() -> None:
         del DataLoader._ori_get_iterator
 
 
-def _collect_states_on_rank_zero_over_collection(state_dict: Any) -> Any:
+def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
     """This utility collects the state across processes for a collection of state."""
 
     def fn(state: Dict):
-        if state.get("state", None) is not None:
+        if key in state:
             return _collect_states_on_rank_zero(state)
         return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
 
