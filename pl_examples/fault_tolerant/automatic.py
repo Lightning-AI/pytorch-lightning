@@ -26,6 +26,8 @@
     - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
     - And you should see `[-1.0939, -0.4306]` in the logs.
 
+5. To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
+
 This means the weights with the failure matches the weight without and
 the training has been properly resumed and is fully reproduced.
 """
@@ -52,7 +54,9 @@ class SimpleMLP(LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step == self.fail_on_step:
-            log.info(f"READY TO BE KILLED WITH SIGTERM SIGNAL. Run `kill -SIGTERM {os.getpid()}`")
+            log.info(
+                f"READY TO BE KILLED WITH SIGTERM SIGNAL. " f"Run `kill -SIGTERM {os.getpid()}` in another terminal."
+            )
             # this line is used to wait for you to send the signal to exit gracefully.
             while not self.trainer._terminate_gracefully:
                 sleep(0.1)
@@ -83,11 +87,11 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-def _run_training(trainer_kwargs, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(default_root_dir=".", max_epochs=3, fail_on_step: int = -1, ckpt_path=None):
     seed_everything(1)
     train_dataloader = DataLoader(RandomGetItemDataset(3, 1))
     model = SimpleMLP(fail_on_step=fail_on_step)
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(default_root_dir=default_root_dir, max_epochs=max_epochs)
     trainer.fit(model, train_dataloaders=train_dataloader, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
@@ -105,15 +109,7 @@ def main(args):
         fail_on_step = -1
         completed_batches = 9
 
-    trainer_kwargs = dict(
-        default_root_dir=".",
-        max_epochs=3,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-
-    # Perform a failure
-    complete_batches, weights = _run_training(trainer_kwargs, fail_on_step=fail_on_step)
+    complete_batches, weights = _run_training(fail_on_step=fail_on_step)
     assert len(complete_batches) == completed_batches
 
     if not auto_restart_ckpt_path_exists and args.should_fail:
