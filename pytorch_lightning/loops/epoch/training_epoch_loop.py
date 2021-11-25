@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -320,8 +321,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            has_completed=self._has_completed()
+
+        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
+            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
         )
         return state_dict
 
