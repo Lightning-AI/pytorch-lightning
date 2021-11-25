@@ -27,6 +27,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+@RunIf(skip_windows=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_signal_handlers_restored_in_teardown():
     """Test that the SignalConnector restores the previously configured handler on teardown."""
