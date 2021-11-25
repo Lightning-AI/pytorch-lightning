@@ -26,108 +26,107 @@ from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
-#
-#
-# @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-# def test_signal_connector_not_replacing_custom_handlers():
-#     """Test that the SignalConnector does not overwrite custom signal handlers."""
-#
-#     def custom_handler(*_):
-#         pass
-#
-#     signal.signal(signal.SIGTERM, custom_handler)
-#
-#     trainer = Trainer(plugins=SLURMEnvironment())
-#     connector = SignalConnector(trainer)
-#     connector.register_signal_handlers()
-#
-#     assert signal.getsignal(signal.SIGTERM) is custom_handler
-#     connector.teardown()
-#     assert signal.getsignal(signal.SIGTERM) is custom_handler
-#
-#     # restore system default
-#     signal.signal(signal.SIGTERM, signal.SIG_DFL)
-#
-#
-# @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-# def test_signal_handlers_restored_in_teardown():
-#     """Test that the SignalConnector restores the previously configured handler on teardown."""
-#     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
-#
-#     trainer = Trainer(plugins=SLURMEnvironment())
-#     connector = SignalConnector(trainer)
-#     connector.register_signal_handlers()
-#
-#     assert signal.getsignal(signal.SIGTERM) is not signal.SIG_DFL
-#     connector.teardown()
-#     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
-#
-#
-# @pytest.mark.parametrize("register_handler", [False, True])
-# @pytest.mark.parametrize("terminate_gracefully", [False, True])
-# @RunIf(skip_windows=True)
-# def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
-#
-#     if register_handler:
-#
-#         def handler(*_):
-#             pass
-#
-#         signal.signal(signal.SIGUSR1, handler)
-#
-#     class TestModel(BoringModel):
-#         def training_step(self, batch, batch_idx):
-#             if terminate_gracefully or register_handler:
-#                 os.kill(os.getpid(), signal.SIGUSR1)
-#                 sleep(0.1)
-#             return super().training_step(batch, batch_idx)
-#
-#     model = TestModel()
-#
-#     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
-#
-#         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
-#         if terminate_gracefully and not register_handler:
-#             with pytest.raises(ExitGracefullyException):
-#                 trainer.fit(model)
-#         else:
-#             trainer.fit(model)
-#         assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
-#
-#     # reset the signal to system defaults
-#     signal.signal(signal.SIGUSR1, signal.SIG_DFL)
-#
-#
-# @RunIf(skip_windows=True)
-# @pytest.mark.parametrize("auto_requeue", (True, False))
-# def test_auto_requeue_flag(auto_requeue):
-#     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
-#     connector = SignalConnector(trainer)
-#     connector.register_signal_handlers()
-#
-#     if auto_requeue:
-#         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
-#         assert len(sigterm_handlers) == 1
-#         assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
-#
-#         sigusr1_handlers = signal.getsignal(signal.SIGUSR1).signal_handlers
-#         assert len(sigusr1_handlers) == 1
-#         assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
-#     else:
-#         assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
-#         assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
-#
-#     connector.teardown()
-#
-#
-# def _registering_signals():
-#     trainer = Trainer()
-#     trainer.signal_connector.register_signal_handlers()
-#
-#
-# @RunIf(skip_windows=True)
-# @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-# def test_signal_connector_in_thread():
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-#         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
-#             assert future.exception() is None
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_connector_not_replacing_custom_handlers():
+    """Test that the SignalConnector does not overwrite custom signal handlers."""
+
+    def custom_handler(*_):
+        pass
+
+    signal.signal(signal.SIGTERM, custom_handler)
+
+    trainer = Trainer(plugins=SLURMEnvironment())
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    assert signal.getsignal(signal.SIGTERM) is custom_handler
+    connector.teardown()
+    assert signal.getsignal(signal.SIGTERM) is custom_handler
+
+    # restore system default
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_handlers_restored_in_teardown():
+    """Test that the SignalConnector restores the previously configured handler on teardown."""
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+
+    trainer = Trainer(plugins=SLURMEnvironment())
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    assert signal.getsignal(signal.SIGTERM) is not signal.SIG_DFL
+    connector.teardown()
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+
+
+@pytest.mark.parametrize("register_handler", [False, True])
+@pytest.mark.parametrize("terminate_gracefully", [False, True])
+@RunIf(skip_windows=True)
+def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
+
+    if register_handler:
+
+        def handler(*_):
+            pass
+
+        signal.signal(signal.SIGUSR1, handler)
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            if terminate_gracefully or register_handler:
+                os.kill(os.getpid(), signal.SIGUSR1)
+                sleep(0.1)
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
+
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
+        if terminate_gracefully and not register_handler:
+            with pytest.raises(ExitGracefullyException):
+                trainer.fit(model)
+        else:
+            trainer.fit(model)
+        assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+
+    # reset the signal to system defaults
+    signal.signal(signal.SIGUSR1, signal.SIG_DFL)
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("auto_requeue", (True, False))
+def test_auto_requeue_flag(auto_requeue):
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    if auto_requeue:
+        sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
+        assert len(sigterm_handlers) == 1
+        assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
+
+        sigusr1_handlers = signal.getsignal(signal.SIGUSR1).signal_handlers
+        assert len(sigusr1_handlers) == 1
+        assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
+    else:
+        assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+        assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
+
+    connector.teardown()
+
+
+def _registering_signals():
+    trainer = Trainer()
+    trainer.signal_connector.register_signal_handlers()
+
+
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_connector_in_thread():
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
+            assert future.exception() is None
