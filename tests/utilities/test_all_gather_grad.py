@@ -44,6 +44,12 @@ def _test_all_gather_ddp(rank, world_size):
     assert torch.allclose(grad2, tensor2.grad)
 
 
+@RunIf(skip_windows=True, skip_49370=True)
+def test_all_gather_ddp_spawn():
+    world_size = 3
+    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
+
+
 @RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
