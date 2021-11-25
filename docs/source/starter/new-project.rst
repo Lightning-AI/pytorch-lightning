@@ -210,7 +210,7 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * :doc:`checkpoint saving and loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
 * :doc:`Multi-GPU <../advanced/multi_gpu>` support
-* :doc:`TPU <../advanced/tpu>`
+* :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <amp>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode  (ie: RL, GANs, etc...).

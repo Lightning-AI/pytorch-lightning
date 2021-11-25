@@ -1432,7 +1432,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 See Also:
     - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^

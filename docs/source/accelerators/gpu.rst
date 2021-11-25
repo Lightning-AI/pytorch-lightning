@@ -6,8 +6,26 @@
 
 .. _multi_gpu:
 
-Multi-GPU training
+Graphics Processing Unit (GPU)
+==============================
+
+
+Single GPU Training
+===================
+Make sure you're running on a machine with at least one GPU. There's no need to specify any NVIDIA flags
+as Lightning will do it for you.
+
+.. testcode::
+    :skipif: torch.cuda.device_count() < 1
+
+    # train on 1 GPU (using dp mode)
+    trainer = Trainer(gpus=1)
+
+----------------
+
+Multi GPU Training
 ==================
+
 Lightning supports multiple ways of doing distributed training.
 
 .. raw:: html
