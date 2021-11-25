@@ -20,7 +20,7 @@ from torch.nn import Module
 try:
     from typing_extensions import Self
 except ImportError:
-    # workaround for older python versions. 
+    # workaround for older python versions.
     # see https://www.python.org/dev/peps/pep-0673/
     from typing import TypeVar
 
