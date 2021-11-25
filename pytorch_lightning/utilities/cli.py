@@ -263,6 +263,24 @@ class LightningArgumentParser(ArgumentParser):
             else:
                 clean_argv.append(arg)
             i += 1
+
+        # the user requested a help message
+        help_key = argv_key + ".help"
+        if help_key in passed_args:
+            argv_class = passed_args[help_key]
+            if "." in argv_class:
+                # user passed the class path directly
+                class_path = argv_class
+            else:
+                # convert shorthand format to the classpath
+                for cls in classes:
+                    if cls.__name__ == argv_class:
+                        class_path = _class_path_from_class(cls)
+                        break
+                else:
+                    raise ValueError(f"Could not generate get the class_path for {repr(argv_class)}")
+            return clean_argv + [help_key, class_path]
+
         # generate the associated config file
         argv_class = passed_args.pop(argv_key, None)
         if argv_class is None:
@@ -769,12 +787,16 @@ class LightningCLI:
         return fn_kwargs
 
 
+def _class_path_from_class(class_type: Type) -> str:
+    return class_type.__module__ + "." + class_type.__name__
+
+
 def _global_add_class_path(
     class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     if isinstance(init_args, Namespace):
         init_args = init_args.as_dict()
-    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
+    return {"class_path": _class_path_from_class(class_type), "init_args": init_args or {}}
 
 
 def _add_class_path_generator(class_type: Type) -> Callable[[Namespace], Dict[str, Any]]:
