@@ -93,10 +93,7 @@ class SignalConnector:
         return sys.platform == "win32"
 
     def _has_already_handler(self, signum: Signals) -> bool:
-        try:
-            return callable(signal.getsignal(signum))
-        except AttributeError:
-            return False
+        return signal.getsignal(signum) is not signal.SIG_DFL
 
     @staticmethod
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
