@@ -215,9 +215,7 @@ class FitLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss = TensorRunningAccum(
-            window_length=self.trainer.accumulate_grad_batches
-        )
+        self.epoch_loop.batch_loop.accumulated_loss.window_length = self.trainer.accumulate_grad_batches
 
         self.epoch_progress.increment_ready()
 
