@@ -667,9 +667,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     val_dl = model.val_dataloader()
     val_dl.num_workers = 0
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, logger=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
     with pytest.warns(
         UserWarning,
@@ -708,9 +706,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, logger=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
 
     with pytest.warns(
         UserWarning,

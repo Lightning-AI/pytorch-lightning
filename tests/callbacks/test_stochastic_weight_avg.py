@@ -129,7 +129,6 @@ def train_with_swa(
         strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
-        logger=False,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):

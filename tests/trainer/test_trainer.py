@@ -1226,10 +1226,10 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
     if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
-        trainer = Trainer(**trainer_kwargs, logger=False)
+        trainer = Trainer(**trainer_kwargs)
     else:
         with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
-            trainer = Trainer(**trainer_kwargs, logger=False)
+            trainer = Trainer(**trainer_kwargs)
     assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"

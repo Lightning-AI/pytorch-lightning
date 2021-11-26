@@ -1167,9 +1167,6 @@ class Trainer(
         if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
             self._call_teardown_hook()
 
-        if self.logger is not None:
-            self.logger.finalize("success")
-
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
