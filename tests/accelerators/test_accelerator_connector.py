@@ -21,9 +21,7 @@ import torch
 import torch.distributed
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
@@ -33,9 +31,11 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
+    IPUPlugin,
     ParallelPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
+    TPUSpawnPlugin,
 )
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -1105,3 +1105,38 @@ def test_training_plugin_attrs_set_when_passed_with_gpu_accelerator(is_gpu_avail
         torch.device(type="cuda", index=1),
     ]
     assert trainer.training_type_plugin.sync_batchnorm
+
+
+@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._IPU_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.plugins.training_type.ipu._IPU_AVAILABLE", return_value=True)
+def test_training_plugin_attrs_set_when_passed_with_ipu_accelerator(
+    acc_connector_ipu_mock, is_training_type_ipu_available_mock
+):
+
+    trainer = Trainer(accelerator=IPUAccelerator(PrecisionPlugin(), IPUPlugin()), ipus=2)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == list(range(2))
+
+    trainer = Trainer(accelerator=IPUAccelerator(PrecisionPlugin(), IPUPlugin()), devices=4)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == list(range(4))
+
+
+@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._TPU_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser._TPU_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn._TPU_AVAILABLE", return_value=True)
+def test_training_plugin_attrs_set_when_passed_with_tpu_accelerator(
+    acc_connector_tpu_mock, device_parser_tpu_mock, training_type_tpu_available_mock
+):
+
+    trainer = Trainer(accelerator=TPUAccelerator(PrecisionPlugin(), TPUSpawnPlugin()), tpu_cores=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == list(range(8))
+
+    trainer = Trainer(accelerator=TPUAccelerator(PrecisionPlugin(), TPUSpawnPlugin()), devices=8)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == list(range(8))
