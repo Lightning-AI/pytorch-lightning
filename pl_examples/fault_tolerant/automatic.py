@@ -19,7 +19,7 @@ Find the documentation: https://pytorch-lightning.readthedocs.io/en/stable/advan
 RUN WITHOUT FAILURE:
 
     1. Launch `python pl_examples/fault_tolerant/automatic.py`.
-        - You should see `[-1.0939, -0.4306]` in the logs.
+        - You should see `[-1.1343,  0.0186]` in the logs.
 
 RUN WITH SIMULATED FAILURE:
 
@@ -29,7 +29,7 @@ RUN WITH SIMULATED FAILURE:
         - You should see `Received signal 15. Saving a fault-tolerant checkpoint and terminating.` in the logs.
     3. Launch `python pl_examples/fault_tolerant/automatic.py --emulate_kill_signal` again.
         - You should see `Restored all states from the checkpoint file at ./.pl_auto_save.ckpt`
-        - And you should see `[-1.0939, -0.4306]` in the logs.
+        - And you should see `[-1.1343,  0.0186]` in the logs.
 
     To restart the process, just run `rm .pl_auto_save.ckpt` to delete the auto restart checkpoint.
 
