@@ -16,11 +16,19 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, get_worker_info, Sampler
+from torch.utils.data import (
+    BatchSampler,
+    Dataset,
+    DistributedSampler,
+    get_worker_info,
+    RandomSampler,
+    Sampler,
+    SequentialSampler,
+)
 from torch.utils.data.dataloader import (
     _BaseDataLoaderIter,
     _MultiProcessingDataLoaderIter,
@@ -31,6 +39,8 @@ from torch.utils.data.dataloader import (
 from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -368,7 +378,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     # get current num workers
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
     # as `state_dict` are workers dependent, Lightning doesn't support changing
-    # the `num_workers` for fault tolerant training
+    # the `num_workers` for Fault-tolerance
     if state_dict["num_workers"] != num_workers:
         raise MisconfigurationException(
             f"The provided `num_workers` {num_workers} doesn't match the one used "
@@ -732,8 +742,99 @@ def _patch_dataloader_get_iterators() -> None:
 
 def _teardown_dataloader_get_iterators() -> None:
     """This function is used to restore the DataLoader `get_iterator` with its original one."""
-    # cleanup the get_iterator replacement in case of Fault Tolerant Training.
+    # cleanup the get_iterator replacement in case of Fault-tolerance.
     get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
     if get_iterator:
         DataLoader._get_iterator = get_iterator
         del DataLoader._ori_get_iterator
+
+
+def _validate_iterable_dataset(dataloader: DataLoader) -> None:
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
+
+    dataset = dataloader.dataset
+
+    if getattr(dataset, "__next__", None) is None:
+        raise AttributeError(
+            "Fault-tolerance doesn't support an `IterableDataset` without `__next__` "
+            "method implemented. Hint: We recommend you to move your logic from `__iter__`"
+            " inside and rely on a sampler to perform the sample sampling."
+        )
+
+    samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
+
+    if not samplers:
+        raise TypeError("Fault-tolerance doesn't support an IterableDataset without a sampler as attribute.")
+
+    sampler = [v for v in samplers.values() if type(v) in SUPPORTED_SAMPLERS]
+
+    if not sampler:
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
+
+    if len(sampler) > 1:
+        raise ValueError(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
+
+    if type(sampler[0]) is DistributedSampler and sampler.shuffle:
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
+    elif type(sampler[0]) is not SequentialSampler:
+        raise TypeError("Only `SequentialSampler` is supported.")
+
+
+def _validate_map_dataset(dataloader: DataLoader) -> None:
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
+
+    sampler = getattr(dataloader, "sampler", None)
+    if sampler is not None and type(sampler) not in SUPPORTED_SAMPLERS:
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
+
+    batch_sampler = getattr(dataloader, "batch_sampler", None)
+    if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
+        raise TypeError("Fault-tolerance supports only a `BatchSampler`.")
+
+    if type(sampler) is DistributedSampler and sampler.shuffle:
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
+    elif type(sampler) is RandomSampler:
+        raise TypeError("Only `SequentialSampler` is supported.")
+
+
+def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
+    """This function is used to validate that Fault-tolerance is possible with the user data."""
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
+        return
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
+
+    if isinstance(dataloader, CombinedLoader):
+        dataloaders = dataloader.loaders
+    else:
+        dataloaders = dataloader
+
+    dl_loaders = []
+
+    def flatten_dataloader(dataloader: Union[DataLoader, CycleIterator, Iterable]) -> None:
+        nonlocal dl_loaders
+        if isinstance(dataloader, CycleIterator):
+            dataloader = dataloader.loader
+        dl_loaders.append(dataloader)
+
+    apply_to_collection(dataloaders, (DataLoader, CycleIterator), flatten_dataloader)
+
+    if len(dl_loaders) > 1 and stage == pl.trainer.states.RunningStage.TRAINING:
+        raise ValueError("Fault-tolerance supports only a single dataloader.")
+
+    for dataloader in dl_loaders:
+        validator_fn = (
+            _validate_iterable_dataset if isinstance(dataloader.dataset, IterableDataset) else _validate_map_dataset
+        )
+        validator_fn(dataloader)
+
+
+def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
+    """This utility collects the state across processes for a collection of state."""
+
+    def fn(state: Dict):
+        if key in state:
+            return _collect_states_on_rank_zero(state)
+        return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
+
+    return apply_to_collection(state_dict, Dict, fn)

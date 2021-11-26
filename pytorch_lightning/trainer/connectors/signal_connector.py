@@ -41,7 +41,7 @@ class SignalConnector:
         sigterm_handlers: List[Callable] = []
 
         if _fault_tolerant_training():
-            sigusr1_handlers.append(self.fault_tolerant_sigusr1_handler_fn)
+            sigterm_handlers.append(self.fault_tolerant_sigterm_handler_fn)
 
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
@@ -88,7 +88,8 @@ class SignalConnector:
             if self.trainer.logger:
                 self.trainer.logger.finalize("finished")
 
-    def fault_tolerant_sigusr1_handler_fn(self, signum: Signals, frame: FrameType) -> None:
+    def fault_tolerant_sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
+        log.info(f"Received signal {signum}. Saving a fault-tolerant checkpoint and terminating.")
         self.trainer._terminate_gracefully = True
 
     def sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
