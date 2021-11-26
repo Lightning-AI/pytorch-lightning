@@ -120,7 +120,6 @@ module = [
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.checkpoint_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
-    "pytorch_lightning.trainer.connectors.logger_connector.result",
     "pytorch_lightning.trainer.data_loading",
     "pytorch_lightning.trainer.optimizers",
     "pytorch_lightning.trainer.supporters",
