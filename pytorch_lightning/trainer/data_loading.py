@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -109,7 +110,8 @@ class TrainerDataLoadingMixin(ABC):
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
                 f" (try {num_cpus} which is the number of cpus on this machine)"
-                " in the `DataLoader` init to improve performance."
+                " in the `DataLoader` init to improve performance.",
+                category=PossibleUserWarning,
             )
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
@@ -267,7 +269,8 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                " you want to see logs for the training epoch."
+                " you want to see logs for the training epoch.",
+                category=PossibleUserWarning,
             )
 
     def _reset_eval_dataloader(
