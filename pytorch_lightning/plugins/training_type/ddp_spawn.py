@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
 import logging
 import os
 import re
@@ -425,5 +426,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
         for logger in loggers:
             if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
-                rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment should be `None`.")
+                rank_zero_warn(
+                    "When using `ddp_spawn`, the `TensorBoardLogger` experiment should be `None`. Setting it to `None`."
+                )
+                del logger._experiment
                 logger._experiment = None
+                gc.collect()
