@@ -897,6 +897,10 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
+# this test will fail `fault_tolerant` don't support multiple datasets.
+# this tests works as the dataset is fully deterministic and therefore
+# there is not overall between the seeds.
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     "dataset_classes",
@@ -922,27 +926,22 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
-    # this test will fail `fault_tolerant` don't support multiple datasets.
-    # this tests works as the dataset is fully deterministic and therefore
-    # there is not overall between the seeds.
-    with mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None):
+    all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
+    all_batches = torch.stack(all_batches)
+    assert len(all_batches) == 9
 
-        all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
-        all_batches = torch.stack(all_batches)
-        assert len(all_batches) == 9
+    # Simulate 1st failure
+    complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
+    assert len(complete_batches) == 4
 
-        # Simulate 1st failure
-        complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
-        assert len(complete_batches) == 4
+    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    assert os.path.exists(checkpoint_path)
 
-        checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-        assert os.path.exists(checkpoint_path)
-
-        # Resume after failure
-        resumed_batches, weights1 = _run_training(
-            trainer_kwargs, dataset_classes, fail_on_step=-1, ckpt_path=checkpoint_path
-        )
-        assert len(resumed_batches) == 5
+    # Resume after failure
+    resumed_batches, weights1 = _run_training(
+        trainer_kwargs, dataset_classes, fail_on_step=-1, ckpt_path=checkpoint_path
+    )
+    assert len(resumed_batches) == 5
 
     # the resumed batches should match the batches of the successful training
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
@@ -1229,10 +1228,10 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=SequentialSampler(dataset)),
     ]
 
-    with pytest.raises(ValueError, match="Only SequentialSampler is supported."):
+    with pytest.raises(ValueError, match="Only `SequentialSampler` is supported."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
-    with pytest.raises(ValueError, match="RandomSampler"):
+    with pytest.raises(TypeError, match="RandomSampler"):
 
         class CustomRandomSampler(RandomSampler):
             pass
@@ -1240,7 +1239,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(data, sampler=CustomRandomSampler(data))
         _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(ValueError, match="BatchSampler"):
+    with pytest.raises(TypeError, match="BatchSampler"):
 
         class CustomBatchSampler(BatchSampler):
             pass
@@ -1260,7 +1259,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(CustomIterable())
         _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(AttributeError, match="IterableDataset without a sampler as attribute"):
+    with pytest.raises(TypeError, match="IterableDataset without a sampler as attribute"):
 
         class CustomIterable(IterableDataset):
             def __iter__(self):

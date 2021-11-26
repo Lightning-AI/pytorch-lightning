@@ -749,7 +749,7 @@ def _teardown_dataloader_get_iterators() -> None:
         del DataLoader._ori_get_iterator
 
 
-def _validate_iterable_dataset(dataloader: DataLoader):
+def _validate_iterable_dataset(dataloader: DataLoader) -> None:
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     dataset = dataloader.dataset
@@ -764,7 +764,7 @@ def _validate_iterable_dataset(dataloader: DataLoader):
     samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
 
     if not samplers:
-        raise AttributeError("Fault-tolerance doesn't support an IterableDataset without a sampler as attribute.")
+        raise TypeError("Fault-tolerance doesn't support an IterableDataset without a sampler as attribute.")
 
     sampler = [v for v in samplers.values() if type(v) in SUPPORTED_SAMPLERS]
 
@@ -777,26 +777,26 @@ def _validate_iterable_dataset(dataloader: DataLoader):
     if type(sampler[0]) is DistributedSampler and sampler.shuffle:
         raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
 
-    if type(sampler[0]) is RandomSampler:
-        raise ValueError("Only SequentialSampler is supported.")
+    elif type(sampler[0]) is not SequentialSampler:
+        raise TypeError("Only `SequentialSampler` is supported.")
 
 
-def _validate_map_dataset(dataloader: DataLoader):
+def _validate_map_dataset(dataloader: DataLoader) -> None:
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     sampler = getattr(dataloader, "sampler", None)
     if sampler is not None and type(sampler) not in SUPPORTED_SAMPLERS:
-        raise ValueError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
 
     batch_sampler = getattr(dataloader, "batch_sampler", None)
     if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
-        raise ValueError("Fault-tolerance supports only a BatchSampler.")
+        raise TypeError("Fault-tolerance supports only a `BatchSampler`.")
 
     if type(sampler) is DistributedSampler and sampler.shuffle:
         raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
 
-    if type(sampler) is RandomSampler:
-        raise ValueError("Only SequentialSampler is supported.")
+    elif type(sampler) is RandomSampler:
+        raise ValueError("Only `SequentialSampler` is supported.")
 
 
 def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
