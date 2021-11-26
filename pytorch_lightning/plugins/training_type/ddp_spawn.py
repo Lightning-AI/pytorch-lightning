@@ -425,5 +425,5 @@ class DDPSpawnPlugin(ParallelPlugin):
             loggers = trainer._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
             for logger in loggers:
                 if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
-                    rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment shouldn't be created.")
+                    rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment should be `None`.")
                     logger._experiment = None
