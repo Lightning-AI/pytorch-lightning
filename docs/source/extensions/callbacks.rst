@@ -47,7 +47,7 @@ Example:
 
     class MyPrintingCallback(Callback):
         def on_init_start(self, trainer):
-            print("Starting to initialize trainer!")
+            print("Starting to initialize the trainer!")
 
         def on_init_end(self, trainer):
             print("trainer is initialized now")
@@ -60,7 +60,7 @@ Example:
 
 .. testoutput::
 
-    Starting to initialize trainer!
+    Starting to initialize the trainer!
     trainer is initialized now
 
 We successfully extended functionality without polluting our super clean
@@ -216,7 +216,7 @@ state_key
 
 
 Hooks
-^^^^^^^^^^
+^^^^^
 
 on_configure_sharded_model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
