@@ -47,7 +47,7 @@ def test_all_gather_ddp_spawn():
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
-@RunIf(min_gpus=2, skip_windows=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
 
@@ -98,7 +98,7 @@ def test_all_gather_collection(tmpdir):
     assert model.training_epoch_end_called
 
 
-@RunIf(min_gpus=2, skip_windows=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_sync_grads(tmpdir):
     class TestModel(BoringModel):
 
