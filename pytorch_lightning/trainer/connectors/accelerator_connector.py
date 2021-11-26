@@ -207,22 +207,22 @@ class AcceleratorConnector:
             else:
                 self._set_devices_to_cpu_num_processes()
                 self._accelerator_type = _AcceleratorType.CPU
-        elif self.distributed_backend == _AcceleratorType.TPU:
+        elif self.distributed_backend == _AcceleratorType.TPU or isinstance(self.distributed_backend, TPUAccelerator):
             if not self.has_tpu:
                 msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}.")
             self._accelerator_type = _AcceleratorType.TPU
-        elif self.distributed_backend == _AcceleratorType.IPU:
+        elif self.distributed_backend == _AcceleratorType.IPU or isinstance(self.distributed_backend, IPUAccelerator):
             if not self.has_ipu:
                 msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}.")
             self._accelerator_type = _AcceleratorType.IPU
-        elif self.distributed_backend == _AcceleratorType.GPU:
+        elif self.distributed_backend == _AcceleratorType.GPU or isinstance(self.distributed_backend, GPUAccelerator):
             if not self.has_gpu:
                 msg = "you didn't pass `gpus` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
             self._accelerator_type = _AcceleratorType.GPU
-        elif self.distributed_backend == _AcceleratorType.CPU:
+        elif self.distributed_backend == _AcceleratorType.CPU or isinstance(self.distributed_backend, CPUAccelerator):
             self._set_devices_to_cpu_num_processes()
             self._accelerator_type = _AcceleratorType.CPU
 
@@ -230,7 +230,11 @@ class AcceleratorConnector:
             self.distributed_backend = None
 
     def _validate_accelerator_and_devices(self) -> None:
-        if self.distributed_backend not in self.accelerator_types and self.devices is not None:
+        if (
+            isinstance(self.distributed_backend, str)
+            and self.distributed_backend not in self.accelerator_types
+            and self.devices is not None
+        ):
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
@@ -250,16 +254,24 @@ class AcceleratorConnector:
         if self.devices is None:
             return
         devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
-        if self.distributed_backend in ("auto", _AcceleratorType.TPU):
+        if self.distributed_backend in ("auto", _AcceleratorType.TPU) or isinstance(
+            self.distributed_backend, TPUAccelerator
+        ):
             if self.tpu_cores is not None:
                 rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
-        elif self.distributed_backend in ("auto", _AcceleratorType.IPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.IPU) or isinstance(
+            self.distributed_backend, IPUAccelerator
+        ):
             if self.ipus is not None:
                 rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
-        elif self.distributed_backend in ("auto", _AcceleratorType.GPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.GPU) or isinstance(
+            self.distributed_backend, GPUAccelerator
+        ):
             if self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
-        elif self.distributed_backend in ("auto", _AcceleratorType.CPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.CPU) or isinstance(
+            self.distributed_backend, CPUAccelerator
+        ):
             if self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
