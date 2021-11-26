@@ -178,10 +178,9 @@ class FitLoop(Loop):
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
 
-    def connect(self, epoch_loop: Optional[TrainingEpochLoop] = None) -> None:  # type: ignore[override]
+    def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
         """Connects a training epoch loop to this fit loop."""
-        if epoch_loop is not None:
-            self.epoch_loop = epoch_loop
+        self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
@@ -216,7 +215,7 @@ class FitLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss.window_length = self.trainer.accumulate_grad_batches
+        self.epoch_loop.batch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 
