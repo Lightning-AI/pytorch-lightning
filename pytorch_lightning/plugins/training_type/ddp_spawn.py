@@ -25,6 +25,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -173,7 +174,15 @@ class DDPSpawnPlugin(ParallelPlugin):
             The output of the function of process 0.
         """
         # tensorboard applies a lock on the `dir_path`.
-        if isinstance(args[0].logger, pl.loggers.TensorBoardLogger):
+        if (
+            isinstance(args[0], Trainer)
+            and isinstance(args[0].logger, pl.loggers.TensorBoardLogger)
+            and args[0].logger._experiment is not None
+        ):
+            log.critical("DEBUGGING: experiment already exists")
+            import traceback
+
+            traceback.print_stack()
             args[0].logger.finalize("")
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
