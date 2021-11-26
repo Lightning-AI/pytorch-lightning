@@ -36,7 +36,7 @@ disable_error_code = "attr-defined"
 # style choices
 warn_no_return = "False"
 
-# Changes mypy default to ignore all errors
+# Ignore mypy errors for these files
 # TODO: the goal is for this to be empty
 [[tool.mypy.overrides]]
 # the list can be generated with:
