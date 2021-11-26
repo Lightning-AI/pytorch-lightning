@@ -44,7 +44,6 @@ jobs:
     - name: Tests
       run: |
         coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
-        coverage run --source pytorch_lightning -m pytest --random-order-seed=2 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
     - name: Upload pytest results
