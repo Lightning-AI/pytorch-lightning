@@ -1064,3 +1064,44 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
     assert trainer.gpus == 2
+
+
+def test_training_plugin_attrs_set_when_passed_with_cpu_accelerator():
+    trainer = Trainer(accelerator=CPUAccelerator(PrecisionPlugin(), DDPPlugin()), num_processes=3)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == [
+        torch.device(type="cpu"),
+        torch.device(type="cpu"),
+        torch.device(type="cpu"),
+    ]
+    assert not trainer.training_type_plugin.sync_batchnorm
+
+    trainer = Trainer(accelerator=CPUAccelerator(PrecisionPlugin(), DDPPlugin()), devices=2, sync_batchnorm=True)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == [torch.device(type="cpu"), torch.device(type="cpu")]
+    assert trainer.training_type_plugin.sync_batchnorm
+
+
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_training_plugin_attrs_set_when_passed_with_gpu_accelerator(is_gpu_available_mock, device_count_mock):
+
+    trainer = Trainer(accelerator=GPUAccelerator(PrecisionPlugin(), DDPPlugin()), gpus=2)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == [
+        torch.device(type="cuda", index=0),
+        torch.device(type="cuda", index=1),
+    ]
+    assert not trainer.training_type_plugin.sync_batchnorm
+
+    trainer = Trainer(accelerator=GPUAccelerator(PrecisionPlugin(), DDPPlugin()), devices=2, sync_batchnorm=True)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
+    assert trainer.training_type_plugin.parallel_devices == [
+        torch.device(type="cuda", index=0),
+        torch.device(type="cuda", index=1),
+    ]
+    assert trainer.training_type_plugin.sync_batchnorm

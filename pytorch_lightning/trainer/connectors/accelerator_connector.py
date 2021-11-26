@@ -169,7 +169,7 @@ class AcceleratorConnector:
         self._cluster_environment = self.select_cluster_environment()
 
         self.update_device_type_if_ipu_plugin()
-        self.update_device_type_if_training_type_plugin_passed()
+        self.update_device_type_if_accelerator_or_training_type_plugin_passed()
 
         self._validate_accelerator_type()
         self._set_devices_if_none()
@@ -798,6 +798,9 @@ class AcceleratorConnector:
                     "Specified `Precision` and `TrainingType` plugins will be ignored,"
                     " since an `Accelerator` instance was provided."
                 )
+            self.distributed_backend.training_type_plugin = self.resolve_training_type_plugin(
+                self.distributed_backend.training_type_plugin
+            )
             return self.distributed_backend
 
         if self.use_gpu:
@@ -980,9 +983,11 @@ class AcceleratorConnector:
         if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != _AcceleratorType.IPU:
             self._device_type = _AcceleratorType.IPU
 
-    def update_device_type_if_training_type_plugin_passed(self) -> None:
-        if isinstance(self.strategy, TrainingTypePlugin) or any(
-            isinstance(plug, TrainingTypePlugin) for plug in self.plugins
+    def update_device_type_if_accelerator_or_training_type_plugin_passed(self) -> None:
+        if (
+            isinstance(self.distributed_backend, Accelerator)
+            or isinstance(self.strategy, TrainingTypePlugin)
+            or any(isinstance(plug, TrainingTypePlugin) for plug in self.plugins)
         ):
             if self._accelerator_type is not None:
                 if self.use_ipu:
