@@ -1443,7 +1443,7 @@ class Trainer(
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ) -> Optional[Any]:
+    ):
         pl_module = pl_module or self.lightning_module
         output = None
 
@@ -1507,7 +1507,7 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
+    ):
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
         if callable(fn):
