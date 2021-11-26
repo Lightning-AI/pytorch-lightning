@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import math
 import os
 import random
@@ -53,7 +54,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -1043,7 +1044,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
     def _signal(self):
         if self.should_signal:
-            # simulate `os.kill(os.getpid(), signal.SIGUSR1)`
+            # simulate `os.kill(os.getpid(), signal.SIGTERM)`
             self.trainer._terminate_gracefully = True
 
     def training_step(self, batch, batch_idx):
@@ -1093,7 +1094,18 @@ def _fit_model(
         num_sanity_val_steps=0,
     )
 
-    trainer = Trainer(**trainer_kwargs)
+    class ExitGracefullyException(Exception):
+        pass
+
+    class TestTrainer(Trainer):
+        def _exit_gracefully_on_signal(self) -> None:
+            if not _fault_tolerant_training() or not self._should_terminate_gracefully():
+                return
+            caller = inspect.stack()[1]
+            class_name = caller[0].f_locals["self"].__class__.__name__
+            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+
+    trainer = TestTrainer(**trainer_kwargs)
     if should_signal:
         with pytest.raises(ExitGracefullyException, match=status):
             trainer.fit(model)
