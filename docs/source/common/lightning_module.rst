@@ -269,7 +269,7 @@ The matching pseudocode is:
 
     training_epoch_end(outs)
 
-Training With DataParallel
+Training with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).
@@ -392,7 +392,7 @@ override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation
          all_preds = torch.stack(validation_step_outputs)
          ...
 
-Validating With DataParallel
+Validating with DataParallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).

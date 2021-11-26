@@ -379,18 +379,3 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
             self.log("hp/metric_2", some_scalar_2)
 
     In the example, using ``"hp/"`` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
-
-----------
-
-*************
-Snapshot Code
-*************
-
-Loggers also allow you to snapshot a copy of the code used in this experiment.
-For example, ``TestTubeLogger`` does this with a flag:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TestTubeLogger
-
-    logger = TestTubeLogger(".", create_git_tag=True)
