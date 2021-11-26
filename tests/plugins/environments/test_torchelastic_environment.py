@@ -22,11 +22,11 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 
 @mock.patch.dict(os.environ, {})
 def test_default_attributes():
-    """ Test the default attributes when no environment variables are set. """
+    """Test the default attributes when no environment variables are set."""
     env = TorchElasticEnvironment()
-    assert env.creates_children()
-    assert env.master_address() == "127.0.0.1"
-    assert env.master_port() == 12910
+    assert env.creates_processes_externally
+    assert env.main_address == "127.0.0.1"
+    assert env.main_port == 12910
     assert env.world_size() is None
     with pytest.raises(KeyError):
         # local rank is required to be passed as env variable
@@ -35,20 +35,21 @@ def test_default_attributes():
 
 
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
         "RANK": "1",
         "LOCAL_RANK": "2",
         "GROUP_RANK": "3",
-    }
+    },
 )
 def test_attributes_from_environment_variables(caplog):
-    """ Test that the torchelastic cluster environment takes the attributes from the environment variables. """
+    """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = TorchElasticEnvironment()
-    assert env.master_address() == "1.2.3.4"
-    assert env.master_port() == 500
+    assert env.main_address == "1.2.3.4"
+    assert env.main_port == 500
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 2
@@ -65,3 +66,20 @@ def test_attributes_from_environment_variables(caplog):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
+
+
+def test_detect():
+    """Test the detection of a torchelastic environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not TorchElasticEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "RANK": "",
+            "GROUP_RANK": "",
+            "LOCAL_RANK": "",
+            "LOCAL_WORLD_SIZE": "",
+        },
+    ):
+        assert TorchElasticEnvironment.detect()

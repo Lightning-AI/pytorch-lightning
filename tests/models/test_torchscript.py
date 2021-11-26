@@ -22,17 +22,12 @@ from fsspec.implementations.local import LocalFileSystem
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
-from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("modelclass", [
-    BoringModel,
-    ParityModuleRNN,
-    BasicGAN,
-])
+@pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_input_output(modelclass):
-    """ Test that scripted LightningModule forward works. """
+    """Test that scripted LightningModule forward works."""
     model = modelclass()
 
     if isinstance(model, BoringModel):
@@ -49,19 +44,15 @@ def test_torchscript_input_output(modelclass):
     assert torch.allclose(script_output, model_output)
 
 
-@pytest.mark.parametrize("modelclass", [
-    BoringModel,
-    ParityModuleRNN,
-    BasicGAN,
-])
+@pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
-    """ Test that traced LightningModule forward works with example_input_array """
+    """Test that traced LightningModule forward works with example_input_array."""
     model = modelclass()
 
     if isinstance(model, BoringModel):
         model.example_input_array = torch.randn(5, 32)
 
-    script = model.to_torchscript(method='trace')
+    script = model.to_torchscript(method="trace")
     assert isinstance(script, torch.jit.ScriptModule)
 
     model.eval()
@@ -73,10 +64,10 @@ def test_torchscript_example_input_output_trace(modelclass):
 
 
 def test_torchscript_input_output_trace():
-    """ Test that traced LightningModule forward works with example_inputs """
+    """Test that traced LightningModule forward works with example_inputs."""
     model = BoringModel()
     example_inputs = torch.randn(1, 32)
-    script = model.to_torchscript(example_inputs=example_inputs, method='trace')
+    script = model.to_torchscript(example_inputs=example_inputs, method="trace")
     assert isinstance(script, torch.jit.ScriptModule)
 
     model.eval()
@@ -90,7 +81,7 @@ def test_torchscript_input_output_trace():
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_torchscript_device(device):
-    """ Test that scripted module is on the correct device. """
+    """Test that scripted module is on the correct device."""
     model = BoringModel().to(device)
     model.example_input_array = torch.randn(5, 32)
 
@@ -101,7 +92,7 @@ def test_torchscript_device(device):
 
 
 def test_torchscript_retain_training_state():
-    """ Test that torchscript export does not alter the training mode of original model. """
+    """Test that torchscript export does not alter the training mode of original model."""
     model = BoringModel()
     model.train(True)
     script = model.to_torchscript()
@@ -113,30 +104,19 @@ def test_torchscript_retain_training_state():
     assert not script.training
 
 
-@pytest.mark.parametrize("modelclass", [
-    BoringModel,
-    ParityModuleRNN,
-    BasicGAN,
-])
-def test_torchscript_properties(tmpdir, modelclass):
-    """ Test that scripted LightningModule has unnecessary methods removed. """
+@pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
+def test_torchscript_properties(modelclass):
+    """Test that scripted LightningModule has unnecessary methods removed."""
     model = modelclass()
-    model.datamodule = MNISTDataModule(tmpdir)
     script = model.to_torchscript()
-    assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
     assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
     assert not callable(getattr(script, "training_step", None))
 
 
-@pytest.mark.parametrize("modelclass", [
-    BoringModel,
-    ParityModuleRNN,
-    BasicGAN,
-])
-@RunIf(min_torch="1.5.0")
+@pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_save_load(tmpdir, modelclass):
-    """ Test that scripted LightningModule is correctly saved and can be loaded. """
+    """Test that scripted LightningModule is correctly saved and can be loaded."""
     model = modelclass()
     output_file = str(tmpdir / "model.pt")
     script = model.to_torchscript(file_path=output_file)
@@ -144,14 +124,9 @@ def test_torchscript_save_load(tmpdir, modelclass):
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
-@pytest.mark.parametrize("modelclass", [
-    BoringModel,
-    ParityModuleRNN,
-    BasicGAN,
-])
-@RunIf(min_torch="1.5.0")
+@pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
-    """ Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems. """
+    """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
 
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
@@ -173,18 +148,18 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
 
 
 def test_torchcript_invalid_method(tmpdir):
-    """Test that an error is thrown with invalid torchscript method"""
+    """Test that an error is thrown with invalid torchscript method."""
     model = BoringModel()
     model.train(True)
 
     with pytest.raises(ValueError, match="only supports 'script' or 'trace'"):
-        model.to_torchscript(method='temp')
+        model.to_torchscript(method="temp")
 
 
 def test_torchscript_with_no_input(tmpdir):
-    """Test that an error is thrown when there is no input tensor"""
+    """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
 
-    with pytest.raises(ValueError, match='requires either `example_inputs` or `model.example_input_array`'):
-        model.to_torchscript(method='trace')
+    with pytest.raises(ValueError, match="requires either `example_inputs` or `model.example_input_array`"):
+        model.to_torchscript(method="trace")

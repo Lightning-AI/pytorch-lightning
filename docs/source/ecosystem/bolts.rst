@@ -53,8 +53,8 @@ you can trust the implementations and use them to bootstrap your research much f
     from pl_bolts.models import ImageGPT
     from pl_bolts.self_supervised import SimCLR
 
-    class VideoGPT(ImageGPT):
 
+    class VideoGPT(ImageGPT):
         def training_step(self, batch, batch_idx):
             x, y = batch
             x = _shape_input(x)

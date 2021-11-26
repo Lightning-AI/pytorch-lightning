@@ -11,7 +11,7 @@ from tests.helpers.runif import RunIf
 
 
 def setup_ddp(rank, world_size):
-    """ Setup ddp enviroment """
+    """Setup ddp enviroment."""
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
 
@@ -41,31 +41,32 @@ def _test_all_gather_ddp(rank, world_size):
     assert torch.allclose(grad2, tensor2.grad)
 
 
-@RunIf(skip_windows=True)
-def test_all_gather_ddp():
+@RunIf(skip_windows=True, skip_49370=True)
+def test_all_gather_ddp_spawn():
     world_size = 3
-    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size, ), nprocs=world_size)
+    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
 @RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_all_gather_collection(tmpdir):
-
     class TestModel(BoringModel):
 
         training_epoch_end_called = False
 
         def training_epoch_end(self, outputs) -> None:
             losses = torch.stack([x["loss"] for x in outputs])
-            gathered_loss = self.all_gather({
-                "losses_tensor_int": torch.rand(2, 2).int().t(),
-                "losses_tensor_float": torch.rand(2, 2).t(),
-                "losses_np_ndarray": np.array([1, 2, 3]),
-                "losses_bool": [True, False],
-                "losses_float": [0., 1., 2.],
-                "losses_int": [0, 1, 2],
-                "losses": losses,
-                "losses_list": [losses, losses]
-            })
+            gathered_loss = self.all_gather(
+                {
+                    "losses_tensor_int": torch.rand(2, 2).int().t(),
+                    "losses_tensor_float": torch.rand(2, 2).t(),
+                    "losses_np_ndarray": np.array([1, 2, 3]),
+                    "losses_bool": [True, False],
+                    "losses_float": [0.0, 1.0, 2.0],
+                    "losses_int": [0, 1, 2],
+                    "losses": losses,
+                    "losses_list": [losses, losses],
+                }
+            )
             assert gathered_loss["losses_tensor_int"][0].dtype == torch.int32
             assert gathered_loss["losses_tensor_float"][0].dtype == torch.float
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
@@ -90,7 +91,7 @@ def test_all_gather_collection(tmpdir):
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
     )
 
     trainer.fit(model)
@@ -99,7 +100,6 @@ def test_all_gather_collection(tmpdir):
 
 @RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_all_gather_sync_grads(tmpdir):
-
     class TestModel(BoringModel):
 
         training_step_called = False
@@ -115,6 +115,6 @@ def test_all_gather_sync_grads(tmpdir):
             return loss
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp")
     trainer.fit(model)
     assert model.training_step_called

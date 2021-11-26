@@ -19,56 +19,45 @@ import pytest
 from pytorch_lightning.plugins.environments import LSFEnvironment
 
 
-@mock.patch.dict(os.environ, {
-    "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1",
-    "LSB_JOBID": "1234",
-})
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
 def test_missing_lsb_hosts():
-    """ Test an error when the lsb hosts list cannot be found. """
+    """Test an error when the lsb hosts list cannot be found."""
     del os.environ["LSB_HOSTS"]
     with pytest.raises(ValueError, match="Could not find hosts in environment variable LSB_HOSTS"):
         LSFEnvironment()
 
 
-@mock.patch.dict(os.environ, {
-    "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1",
-    "LSB_JOBID": "1234",
-})
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
 def test_missing_lsb_job_id():
-    """ Test an error when the job id cannot be found. """
+    """Test an error when the job id cannot be found."""
     del os.environ["LSB_JOBID"]
     with pytest.raises(ValueError, match="Could not find job id in environment variable LSB_JOBID"):
         LSFEnvironment()
 
 
-@mock.patch.dict(
-    os.environ, {
-        "MASTER_PORT": "4321",
-        "LSB_JOBID": "1234",
-        "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1",
-    }
-)
-def test_manual_master_port_and_address():
-    """ Test a user can set the port manually through the MASTER_PORT env variable. """
+@mock.patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1"})
+def test_manual_main_port_and_address():
+    """Test a user can set the port manually through the MASTER_PORT env variable."""
     env = LSFEnvironment()
-    assert env.master_port() == 4321
+    assert env.main_port == 4321
 
 
 @mock.patch.dict(
-    os.environ, {
+    os.environ,
+    {
         "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1 10.10.10.2 10.10.10.3",
         "LSB_JOBID": "1234",
         "JSM_NAMESPACE_SIZE": "4",
         "JSM_NAMESPACE_RANK": "3",
-        "JSM_NAMESPACE_LOCAL_RANK": "1"
-    }
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+    },
 )
 def test_attributes_from_environment_variables():
-    """ Test that the LSF environment takes the attributes from the environment variables. """
+    """Test that the LSF environment takes the attributes from the environment variables."""
     env = LSFEnvironment()
-    assert env.creates_children()
-    assert env.master_address() == "10.10.10.0"
-    assert env.master_port() == 10234
+    assert env.creates_processes_externally
+    assert env.main_address == "10.10.10.0"
+    assert env.main_port == 10234
     assert env.world_size() == 4
     assert env.global_rank() == 3
     assert env.local_rank() == 1
@@ -76,14 +65,28 @@ def test_attributes_from_environment_variables():
     assert env.global_rank() == 3
     env.set_world_size(100)
     assert env.world_size() == 4
-    assert LSFEnvironment.is_using_lsf()
+    assert LSFEnvironment.detect()
 
 
 @mock.patch("socket.gethostname", return_value="host2")
-@mock.patch.dict(os.environ, {
-    "LSB_HOSTS": "batch host0 host1 host2 host3",
-    "LSB_JOBID": "1234",
-})
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch host0 host1 host2 host3", "LSB_JOBID": "1234"})
 def test_node_rank(_):
     env = LSFEnvironment()
     assert env.node_rank() == 2
+
+
+def test_detect():
+    """Test the detection of a LSF environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not LSFEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "LSB_HOSTS": "",
+            "LSB_JOBID": "",
+            "JSM_NAMESPACE_SIZE": "",
+            "JSM_NAMESPACE_LOCAL_RANK": "",
+        },
+    ):
+        assert LSFEnvironment.detect()

@@ -37,6 +37,7 @@ Delete any calls to .cuda() or .to(device).
         layer_1.cuda(0)
         x_hat = layer_1(x)
 
+
     # after lightning
     def forward(self, x):
         x_hat = layer_1(x)
@@ -53,6 +54,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.cuda(0)
 
+
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
@@ -66,7 +68,6 @@ register the tensor as a buffer in your modules's ``__init__`` method with :meth
 .. testcode::
 
     class LitModel(LightningModule):
-
         def __init__(self):
             ...
             self.register_buffer("sigma", torch.eye(3))
@@ -87,8 +88,9 @@ Synchronize validation and test logging
 When running in distributed mode, we have to ensure that the validation and test step logging calls are synchronized across processes.
 This is done by adding ``sync_dist=True`` to all ``self.log`` calls in the validation and test step.
 This ensures that each GPU worker has the same behaviour when tracking model checkpoints, which is important for later downstream tasks such as testing the best checkpoint across all workers.
+The ``sync_dist`` option can also be used in logging calls during the step methods, but be aware that this can lead to significant communication overhead and slow down your training.
 
-Note if you use any built in metrics or custom metrics that use the :doc:`Metrics API <../extensions/metrics>`, these do not need to be updated and are automatically handled for you.
+Note if you use any built in metrics or custom metrics that use `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, these do not need to be updated and are automatically handled for you.
 
 .. testcode::
 
@@ -96,15 +98,16 @@ Note if you use any built in metrics or custom metrics that use the :doc:`Metric
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
-        self.log('validation_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
+        self.log("validation_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         loss = self.loss(logits, y)
-        # Add sync_dist=True to sync logging across all GPU workers
-        self.log('test_loss', loss, on_step=True, on_epoch=True, sync_dist=True)
+        # Add sync_dist=True to sync logging across all GPU workers (may have performance impact)
+        self.log("test_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
 It is possible to perform some computation manually and log the reduced result on rank 0 as follows:
 
@@ -114,6 +117,7 @@ It is possible to perform some computation manually and log the reduced result o
         x, y = batch
         tensors = self(x)
         return tensors
+
 
     def test_epoch_end(self, outputs):
         mean = torch.mean(self.all_gather(outputs))
@@ -145,6 +149,7 @@ This means something in your model definition, transforms, optimizer, dataloader
 .. code-block:: python
 
     import pickle
+
     pickle.dump(some_object)
 
 This is a limitation of using multiple processes for distributed training within PyTorch.
@@ -188,7 +193,7 @@ a comma separated list of GPU ids:
     Trainer(gpus=[0, 1])
 
     # Equivalent using a string
-    Trainer(gpus='0, 1')
+    Trainer(gpus="0, 1")
 
     # To use all available GPUs put -1 or '-1'
     # equivalent to list(range(torch.cuda.device_count()))
@@ -212,18 +217,14 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 | [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
-| "0"           | str       | [0]                 | GPU 0                           |
+| "0"           | str       | None                | CPU                             |
 +---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [3]                 | GPU 3 (will change in v1.5)     |
+| "3"           | str       | [0, 1, 2]           | first 3 GPUs                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
-
-.. warning::
-    The behavior for :code:`gpus="3"` (str) will change. Currently it selects the GPU with index 3, but will
-    select the first 3 GPUs from v1.5.
 
 .. note::
 
@@ -253,11 +254,11 @@ Distributed modes
 -----------------
 Lightning allows multiple ways of training
 
-- Data Parallel (``accelerator='dp'``) (multiple-gpus, 1 machine)
-- DistributedDataParallel (``accelerator='ddp'``) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (``accelerator='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (``accelerator='ddp2'``) (DP in a machine, DDP across machines).
-- Horovod (``accelerator='horovod'``) (multi-machine, multi-gpu, configured at runtime)
+- Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
+- DistributedDataParallel (``strategy='ddp'``) (multiple-gpus across many machines (python script based)).
+- DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
+- Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
@@ -287,7 +288,7 @@ after which the root node will aggregate the results.
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using DP mode)
-    trainer = Trainer(gpus=2, accelerator='dp')
+    trainer = Trainer(gpus=2, strategy="dp")
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -308,10 +309,10 @@ Distributed Data Parallel
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, accelerator='ddp')
+    trainer = Trainer(gpus=8, strategy="ddp")
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, accelerator='ddp', num_nodes=4)
+    trainer = Trainer(gpus=8, strategy="ddp", num_nodes=4)
 
 This Lightning implementation of DDP calls your script under the hood multiple times with the correct environment
 variables:
@@ -356,7 +357,7 @@ In  this case, we can use DDP2 which behaves like DP in a machine and DDP across
 .. code-block:: python
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, accelerator='ddp2', num_nodes=4)
+    trainer = Trainer(gpus=8, strategy="ddp2", num_nodes=4)
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -366,7 +367,7 @@ Distributed Data Parallel Spawn
 
 .. code-block:: python
 
-    mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+    mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
 If your script does not support being called from the command line (ie: it is nested without a root
 project module) you can use the following method:
@@ -374,7 +375,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, accelerator='ddp_spawn')
+    trainer = Trainer(gpus=8, strategy="ddp_spawn")
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -392,17 +393,16 @@ We STRONGLY discourage this use because it has limitations (due to Python and Py
 
     from setuptools import setup, find_packages
 
-    setup(name='src',
-          version='0.0.1',
-          description='Describe Your Cool Project',
-          author='',
-          author_email='',
-          url='https://github.com/YourSeed',  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-          install_requires=[
-                'pytorch-lightning'
-          ],
-          packages=find_packages()
-          )
+    setup(
+        name="src",
+        version="0.0.1",
+        description="Describe Your Cool Project",
+        author="",
+        author_email="",
+        url="https://github.com/YourSeed",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
+        install_requires=["pytorch-lightning"],
+        packages=find_packages(),
+    )
 
 2. Setup your project like so:
 
@@ -447,10 +447,10 @@ Horovod can be configured in the training script to run with any number of GPUs 
 .. code-block:: python
 
     # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(accelerator='horovod', gpus=1)
+    trainer = Trainer(strategy="horovod", gpus=1)
 
     # train Horovod on CPU (number of processes / machines provided on command-line)
-    trainer = Trainer(accelerator='horovod')
+    trainer = Trainer(strategy="horovod")
 
 When starting the training job, the driver application will then be used to specify the total
 number of worker processes:
@@ -529,7 +529,7 @@ In pseudocode, the full sequence is:
         all_results.append(out)
 
     # use the full batch for something like softmax
-    full out = model.training_step_end(all_results)
+    full_out = model.training_step_end(all_results)
 
 To illustrate why this is needed, let's look at DataParallel
 
@@ -543,8 +543,9 @@ To illustrate why this is needed, let's look at DataParallel
         # because batch is actually a piece of the full batch
         return y_hat
 
-    def training_step_end(self, batch_parts_outputs):
-        # batch_parts_outputs has outputs of each part of the batch
+
+    def training_step_end(self, step_output):
+        # step_output has outputs of each part of the batch
 
         # do softmax here
         outputs = torch.cat(outputs, dim=1)
@@ -560,10 +561,11 @@ Validation and test step have the same option when using DP.
 
 .. testcode::
 
-    def validation_step_end(self, batch_parts_outputs):
+    def validation_step_end(self, step_output):
         ...
 
-    def test_step_end(self, batch_parts_outputs):
+
+    def test_step_end(self, step_output):
         ...
 
 
@@ -582,17 +584,17 @@ Below are the possible configurations we support.
 +-------+---------+----+-----+--------+------------------------------------------------------------+
 | Y     |         |    |     | Y      | `Trainer(gpus=1, precision=16)`                            |
 +-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       | Y  |     |        | `Trainer(gpus=k, accelerator='dp')`                        |
+|       | Y       | Y  |     |        | `Trainer(gpus=k, strategy='dp')`                           |
 +-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       |    | Y   |        | `Trainer(gpus=k, accelerator='ddp')`                       |
+|       | Y       |    | Y   |        | `Trainer(gpus=k, strategy='ddp')`                          |
 +-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y      | `Trainer(gpus=k, accelerator='ddp', precision=16)`         |
+|       | Y       |    | Y   | Y      | `Trainer(gpus=k, strategy='ddp', precision=16)`            |
 +-------+---------+----+-----+--------+------------------------------------------------------------+
 
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_dist_connection`.
 
 If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.configure_ddp`.
 
@@ -607,31 +609,37 @@ Let's say you have a batch size of 7 in your dataloader.
 .. testcode::
 
     class LitModel(LightningModule):
-
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In (DDP, Horovod) your effective batch size will be 7 * gpus * num_nodes.
+In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * gpus * num_nodes.
 
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, accelerator='ddp|horovod')
+    Trainer(gpus=8, strategy="ddp")
+    Trainer(gpus=8, strategy="ddp_spawn")
+    Trainer(gpus=8, strategy="ddp_sharded")
+    Trainer(gpus=8, strategy="horovod")
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator='ddp|horovod')
+    Trainer(gpus=8, num_nodes=10, strategy="ddp")
+    Trainer(gpus=8, num_nodes=10, strategy="ddp_spawn")
+    Trainer(gpus=8, num_nodes=10, strategy="ddp_sharded")
+    Trainer(gpus=8, num_nodes=10, strategy="horovod")
 
-
-In DDP2, your effective batch size will be 7 * num_nodes.
+In DDP2 or DP, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.
 
 .. code-block:: python
 
     # effective batch size = 7
-    Trainer(gpus=8, accelerator='ddp2')
+    Trainer(gpus=8, strategy="ddp2")
+    Trainer(gpus=8, strategy="dp")
 
     # effective batch size = 7 * 10
-    Trainer(gpus=8, num_nodes=10, accelerator='ddp2')
+    Trainer(gpus=8, num_nodes=10, strategy="ddp2")
+    Trainer(gpus=8, strategy="dp")
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
@@ -645,7 +653,7 @@ Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant
 
 .. code-block:: python
 
-    Trainer(gpus=8, accelerator='ddp')
+    Trainer(gpus=8, strategy="ddp")
 
 To launch a fault-tolerant job, run the following on all nodes.
 

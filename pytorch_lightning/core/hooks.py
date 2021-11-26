@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
@@ -26,105 +26,82 @@ class ModelHooks:
     """Hooks to be used in LightningModule."""
 
     def on_fit_start(self) -> None:
-        """
-        Called at the very beginning of fit.
+        """Called at the very beginning of fit.
+
         If on DDP it is called on every process
         """
 
     def on_fit_end(self) -> None:
-        """
-        Called at the very end of fit.
+        """Called at the very end of fit.
+
         If on DDP it is called on every process
         """
 
     def on_train_start(self) -> None:
-        """
-        Called at the beginning of training after sanity check.
-        """
+        """Called at the beginning of training after sanity check."""
 
     def on_train_end(self) -> None:
-        """
-        Called at the end of training before logger experiment is closed.
-        """
+        """Called at the end of training before logger experiment is closed."""
 
     def on_validation_start(self) -> None:
-        """
-        Called at the beginning of validation.
-        """
+        """Called at the beginning of validation."""
 
     def on_validation_end(self) -> None:
-        """
-        Called at the end of validation.
-        """
+        """Called at the end of validation."""
 
     def on_test_start(self) -> None:
-        """
-        Called at the beginning of testing.
-        """
+        """Called at the beginning of testing."""
 
     def on_test_end(self) -> None:
-        """
-        Called at the end of testing.
-        """
+        """Called at the end of testing."""
 
     def on_predict_start(self) -> None:
-        """
-        Called at the beginning of predicting.
-        """
+        """Called at the beginning of predicting."""
 
     def on_predict_end(self) -> None:
-        """
-        Called at the end of predicting.
-        """
+        """Called at the end of predicting."""
 
     def on_pretrain_routine_start(self) -> None:
-        """
-        Called at the beginning of the pretrain routine (between fit and train start).
+        """Called at the beginning of the pretrain routine (between fit and train start).
 
         - fit
         - pretrain_routine start
         - pretrain_routine end
         - training_start
-
         """
 
     def on_pretrain_routine_end(self) -> None:
-        """
-        Called at the end of the pretrain routine (between fit and train start).
+        """Called at the end of the pretrain routine (between fit and train start).
 
         - fit
         - pretrain_routine start
         - pretrain_routine end
         - training_start
-
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the training loop before anything happens for that batch.
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> None:
+        """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the training loop after the batch.
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
+        """Called in the training loop after the batch.
 
         Args:
             outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
+            unused: Deprecated argument. Will be removed in v1.7.
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the validation loop before anything happens for that batch.
+        """Called in the validation loop before anything happens for that batch.
 
         Args:
             batch: The batched data as it is returned by the validation DataLoader.
@@ -135,8 +112,7 @@ class ModelHooks:
     def on_validation_batch_end(
         self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        """
-        Called in the validation loop after the batch.
+        """Called in the validation loop after the batch.
 
         Args:
             outputs: The outputs of validation_step_end(validation_step(x))
@@ -146,8 +122,7 @@ class ModelHooks:
         """
 
     def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the test loop before anything happens for that batch.
+        """Called in the test loop before anything happens for that batch.
 
         Args:
             batch: The batched data as it is returned by the test DataLoader.
@@ -158,8 +133,7 @@ class ModelHooks:
     def on_test_batch_end(
         self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        """
-        Called in the test loop after the batch.
+        """Called in the test loop after the batch.
 
         Args:
             outputs: The outputs of test_step_end(test_step(x))
@@ -169,8 +143,7 @@ class ModelHooks:
         """
 
     def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the predict loop before anything happens for that batch.
+        """Called in the predict loop before anything happens for that batch.
 
         Args:
             batch: The batched data as it is returned by the test DataLoader.
@@ -179,8 +152,7 @@ class ModelHooks:
         """
 
     def on_predict_batch_end(self, outputs: Optional[Any], batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """
-        Called in the predict loop after the batch.
+        """Called in the predict loop after the batch.
 
         Args:
             outputs: The outputs of predict_step_end(test_step(x))
@@ -190,53 +162,36 @@ class ModelHooks:
         """
 
     def on_validation_model_eval(self) -> None:
-        """
-        Sets the model to eval during the val loop
-        """
+        """Sets the model to eval during the val loop."""
         self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
-        """
-        Sets the model to train during the val loop
-        """
+        """Sets the model to train during the val loop."""
         self.trainer.model.train()
 
     def on_test_model_train(self) -> None:
-        """
-        Sets the model to train during the test loop
-        """
+        """Sets the model to train during the test loop."""
         self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
-        """
-        Sets the model to eval during the test loop
-        """
+        """Sets the model to eval during the test loop."""
         self.trainer.model.eval()
 
     def on_predict_model_eval(self) -> None:
-        """
-        Sets the model to eval during the predict loop
-        """
+        """Sets the model to eval during the predict loop."""
         self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
-        """
-        Called when either of train/val/test epoch begins.
-        """
+        """Called when either of train/val/test epoch begins."""
 
     def on_epoch_end(self) -> None:
-        """
-        Called when either of train/val/test epoch ends.
-        """
+        """Called when either of train/val/test epoch ends."""
 
     def on_train_epoch_start(self) -> None:
-        """
-        Called in the training loop at the very beginning of the epoch.
-        """
+        """Called in the training loop at the very beginning of the epoch."""
 
-    def on_train_epoch_end(self, unused: Optional = None) -> None:
-        """
-        Called in the training loop at the very end of the epoch.
+    def on_train_epoch_end(self) -> None:
+        """Called in the training loop at the very end of the epoch.
 
         To access all batch outputs at the end of the epoch, either:
 
@@ -245,38 +200,25 @@ class ModelHooks:
         """
 
     def on_validation_epoch_start(self) -> None:
-        """
-        Called in the validation loop at the very beginning of the epoch.
-        """
+        """Called in the validation loop at the very beginning of the epoch."""
 
     def on_validation_epoch_end(self) -> None:
-        """
-        Called in the validation loop at the very end of the epoch.
-        """
+        """Called in the validation loop at the very end of the epoch."""
 
     def on_test_epoch_start(self) -> None:
-        """
-        Called in the test loop at the very beginning of the epoch.
-        """
+        """Called in the test loop at the very beginning of the epoch."""
 
     def on_test_epoch_end(self) -> None:
-        """
-        Called in the test loop at the very end of the epoch.
-        """
+        """Called in the test loop at the very end of the epoch."""
 
     def on_predict_epoch_start(self) -> None:
-        """
-        Called at the beginning of predicting.
-        """
+        """Called at the beginning of predicting."""
 
     def on_predict_epoch_end(self, results: List[Any]) -> None:
-        """
-        Called at the end of predicting.
-        """
+        """Called at the end of predicting."""
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
-        """
-        Called after ``training_step()`` and before ``optimizer.zero_grad()``.
+        """Called after ``training_step()`` and before ``optimizer.zero_grad()``.
 
         Called in the training loop after taking an optimizer step and before zeroing grads.
         Good place to inspect weight information with weights updated.
@@ -296,8 +238,7 @@ class ModelHooks:
         """
 
     def on_before_backward(self, loss: torch.Tensor) -> None:
-        """
-        Called before ``loss.backward()``.
+        """Called before ``loss.backward()``.
 
         Args:
             loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
@@ -305,8 +246,7 @@ class ModelHooks:
         pass
 
     def on_after_backward(self) -> None:
-        """
-        Called after ``loss.backward()`` and before optimizers are stepped.
+        """Called after ``loss.backward()`` and before optimizers are stepped.
 
         Note:
             If using native AMP, the gradients will not be unscaled at this point.
@@ -314,14 +254,16 @@ class ModelHooks:
         """
 
     def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """
-        Called before ``optimizer.step()``.
+        """Called before ``optimizer.step()``.
 
         The hook is only called if gradients do not need to be accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
+
         If using native AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
         for more information on the scaling of gradients.
+
+        If clipping gradients, the gradients will not have been clipped yet.
 
         Args:
             optimizer: Current optimizer being used.
@@ -339,10 +281,10 @@ class ModelHooks:
         """
 
     def on_post_move_to_device(self) -> None:
-        """
-        Called in the ``parameter_validation`` decorator after :meth:`~pytorch_lightning.core.LightningModule.to`
-        is called. This is a good place to tie weights between modules after moving them to a device. Can be
-        used when training models with weight sharing properties on TPU.
+        """Called in the ``parameter_validation`` decorator after
+        :meth:`~pytorch_lightning.core.LightningModule.to` is called. This is a good place to tie weights between
+        modules after moving them to a device. Can be used when training models with weight sharing properties on
+        TPU.
 
         Addresses the handling of shared weights on TPU:
         https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks
@@ -351,33 +293,42 @@ class ModelHooks:
 
             def on_post_move_to_device(self):
                 self.decoder.weight = self.encoder.weight
-
         """
 
     def configure_sharded_model(self) -> None:
-        """
-        Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
-        where we'd like to shard the model instantly, which is useful for extremely large models
-        which can save memory and initialization time.
+        """Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
+        where we'd like to shard the model instantly, which is useful for extremely large models which can save
+        memory and initialization time.
 
-        The accelerator manages whether to call this hook at every given stage.
-        For sharded plugins where model parallelism is required, the hook is usually on called once
-        to initialize the sharded parameters, and not called again in the same process.
-
-        By default for accelerators/plugins that do not use model sharding techniques,
-        this hook is called during each fit/val/test/predict stages.
+        This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
+        implementation of this hook is idempotent.
         """
 
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
 
-    def prepare_data(self) -> None:
+    def __init__(self) -> None:
         """
-        Use this to download and prepare data.
+        Attributes:
+            prepare_data_per_node:
+                If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data.
+            allow_zero_length_dataloader_with_multiple_devices:
+                If True, dataloader with zero length within local rank is allowed.
+                Default value is False.
+        """
+        super().__init__()
+        self.prepare_data_per_node: bool = True
+        self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
-        .. warning:: DO NOT set state to the model (use `setup` instead)
-            since this is NOT called on every GPU in DDP/TPU
+    def prepare_data(self) -> None:
+        """Use this to download and prepare data. Downloading and saving data with multiple processes (distributed
+        settings) will result in corrupted data. Lightning ensures this method is called only within a single
+        process, so you can safely add your downloading logic within.
+
+        .. warning:: DO NOT set state to the model (use ``setup`` instead)
+            since this is NOT called on every device
 
         Example::
 
@@ -391,10 +342,12 @@ class DataHooks:
                 self.split = data_split
                 self.some_state = some_other_state()
 
-        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+        In DDP ``prepare_data`` can be called in two ways (using Trainer(prepare_data_per_node)):
 
         1. Once per node. This is the default and is only called on LOCAL_RANK=0.
         2. Once in total. Only called on GLOBAL_RANK=0.
+
+        See :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`.
 
         Example::
 
@@ -410,7 +363,7 @@ class DataHooks:
         .. code-block:: python
 
             model.prepare_data()
-                if ddp/tpu: init()
+            initialize_distributed()
             model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()
@@ -418,10 +371,9 @@ class DataHooks:
         """
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """
-        Called at the beginning of fit (train + validate), validate, test, and predict.
-        This is a good hook when you need to build models dynamically or adjust something about them.
-        This hook is called on every process when using DDP.
+        """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
+        you need to build models dynamically or adjust something about them. This hook is called on every process
+        when using DDP.
 
         Args:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
@@ -442,20 +394,17 @@ class DataHooks:
                 def setup(stage):
                     data = Load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
-
         """
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """
-        Called at the end of fit (train + validate), validate, test, predict, or tune.
+        """Called at the end of fit (train + validate), validate, test, or predict.
 
         Args:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
-        """
-        Implement one or more PyTorch DataLoaders for training.
+        """Implement one or more PyTorch DataLoaders for training.
 
         Return:
             A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
@@ -474,11 +423,9 @@ class DataHooks:
 
         .. warning:: do not assign state in prepare_data
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`
         - :meth:`prepare_data`
         - :meth:`setup`
-        - :meth:`train_dataloader`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
@@ -524,17 +471,12 @@ class DataHooks:
                 )
                 # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
-
         """
-        rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
         Implement one or multiple PyTorch DataLoaders for testing.
-
-        The dataloader you return will not be reloaded unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to
-        a postive integer.
 
         For data processing use the following pattern:
 
@@ -546,13 +488,9 @@ class DataHooks:
         .. warning:: do not assign state in prepare_data
 
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`
         - :meth:`prepare_data`
         - :meth:`setup`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
@@ -588,6 +526,7 @@ class DataHooks:
             In the case where you return multiple test dataloaders, the :meth:`test_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -599,12 +538,10 @@ class DataHooks:
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`
         - :meth:`prepare_data`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
+        - :meth:`setup`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware
@@ -640,6 +577,7 @@ class DataHooks:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -647,12 +585,9 @@ class DataHooks:
 
         It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
 
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
+        - :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
         - :meth:`prepare_data`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
+        - :meth:`setup`
 
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware
@@ -662,26 +597,46 @@ class DataHooks:
             A :class:`torch.utils.data.DataLoader` or a sequence of them specifying prediction samples.
 
         Note:
-            In the case where you return multiple prediction dataloaders, the :meth:`predict`
+            In the case where you return multiple prediction dataloaders, the :meth:`predict_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+        raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def on_train_dataloader(self) -> None:
-        """Called before requesting the train dataloader."""
+        """Called before requesting the train dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_train_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`train_dataloader()` directly.
+        """
 
     def on_val_dataloader(self) -> None:
-        """Called before requesting the val dataloader."""
+        """Called before requesting the val dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`val_dataloader()` directly.
+        """
 
     def on_test_dataloader(self) -> None:
-        """Called before requesting the test dataloader."""
+        """Called before requesting the test dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_test_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`test_dataloader()` directly.
+        """
 
     def on_predict_dataloader(self) -> None:
-        """Called before requesting the predict dataloader."""
+        """Called before requesting the predict dataloader.
+
+        .. deprecated:: v1.5
+            :meth:`on_predict_dataloader` is deprecated and will be removed in v1.7.0.
+            Please use :meth:`predict_dataloader()` directly.
+        """
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
-        """
-        Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
-        wrapped in a custom data structure.
+        """Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors wrapped in a custom
+        data structure.
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
@@ -714,18 +669,21 @@ class DataHooks:
 
         Example::
 
-            def transfer_batch_to_device(self, batch, device):
+            def transfer_batch_to_device(self, batch, device, dataloader_idx):
                 if isinstance(batch, CustomBatch):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
+                elif dataloader_idx == 0:
+                    # skip device transfer for the first dataloader or anything you wish
+                    pass
                 else:
-                    batch = super().transfer_batch_to_device(data, device)
+                    batch = super().transfer_batch_to_device(data, device, dataloader_idx)
                 return batch
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`move_data_to_device`
@@ -734,8 +692,7 @@ class DataHooks:
         return move_data_to_device(batch, device)
 
     def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        """
-        Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+        """Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
         Note:
             To check the current state of execution of this hook you can use
@@ -761,7 +718,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -770,8 +727,7 @@ class DataHooks:
         return batch
 
     def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        """
-        Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+        """Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
         Note:
             To check the current state of execution of this hook you can use
@@ -797,7 +753,7 @@ class DataHooks:
 
         Raises:
             MisconfigurationException:
-                If using data-parallel, ``Trainer(accelerator='dp')``.
+                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

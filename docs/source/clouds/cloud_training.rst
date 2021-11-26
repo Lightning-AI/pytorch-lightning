@@ -4,39 +4,45 @@
 Cloud Training
 ##############
 
-Lightning has a native solution for training on AWS/GCP at scale.
-Go to `grid.ai <https://www.grid.ai/>`_ to create an account.
+Lightning makes it easy to scale your training, without the boilerplate.
+If you want to train your models on the cloud, without dealing with engineering infrastructure and servers, you can try `Grid.ai <https://www.grid.ai/>`_.
 
-We've designed Grid to work seamlessly with Lightning, without needing to make ANY code changes.
+Developed by the creators of `PyTorch Lightning <https://www.pytorchlightning.ai/>`_, Grid is a platform that allows you to:
 
-To use Grid, replace ``python`` in your regular command:
+
+- **Scale your models to multi-GPU and multiple nodes** instantly with interactive sessions
+- **Run Hyperparameter Sweeps on 100s of GPUs** in one command
+- **Upload huge datasets** for availability at scale
+- **Iterate faster and cheaper**, you only pay for what you need
+
+
+****************
+Training on Grid
+****************
+
+.. raw:: html
+
+    <video width="50%" max-width="400px" controls
+    poster="https://grid-docs.s3.us-east-2.amazonaws.com/grid.png"
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/grid.mp4"></video>
+
+|
+
+You can launch any Lightning model on Grid using the Grid `CLI <https://pypi.org/project/lightning-grid/>`_:
 
 .. code-block:: bash
 
-    python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+    grid run --instance_type v100 --gpus 4 my_model.py --gpus 4 --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
 
-To use the ``grid run`` command:
+You can also start runs or interactive sessions from the `Grid platform <https://platform.grid.ai>`_, where you can upload datasets, view artifacts, view the logs, the cost, log into tensorboard, and so much more.
 
-.. code-block:: bash
 
-    grid run --gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+**********
+Learn More
+**********
 
-The above command will launch (20 * 4) experiments, each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
-your code.
+`Sign up for Grid <http://platform.grid.ai>`_ and receive free credits to get you started!
 
-The ``uniform`` command is part of our new expressive syntax which lets you construct hyperparameter combinations
-using over 20+ distributions, lists, etc. Of course, you can also configure all of this using yamls which
-can be dynamically assembled at runtime.
+`Grid in 3 minutes <https://docs.grid.ai/#introduction>`_
 
-***************
-Grid Highlights
-***************
-
-* Run any public or private repository with Grid, or use an interactive session.
-* Grid allocates all the machines and GPUs you need on demand, so you only pay for what you need when you need it.
-* Grid handles all the other parts of developing and training at scale: artifacts, logs, metrics, etc.
-* Grid works with the experiment manager of your choice, no code changes needed.
-* Use Grid Datastores- high-performance, low-latency, versioned datasets.
-* Attach Datastores to a Run so you don't have to keep downloading datasets
-* Use Grid Sessions for fast prototyping on a cloud machine of your choice
-* For more information check the `grid documentation <https://docs.grid.ai/>`_
+`Grid.ai Terms of Service <https://www.grid.ai/terms-of-service/>`_

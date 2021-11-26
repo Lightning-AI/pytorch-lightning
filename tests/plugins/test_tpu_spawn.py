@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type import TPUSpawnPlugin
-from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
@@ -30,7 +29,6 @@ from tests.helpers.utils import pl_multi_process_test
 
 
 class BoringModelNoDataloaders(BoringModel):
-
     def train_dataloader(self):
         raise NotImplementedError
 
@@ -59,13 +57,15 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
     ],
 )
 @mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
-def test_error_patched_iterable_dataloaders(
+def test_error_iterable_dataloaders_passed_to_fit(
     _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
+    """Test that the TPUSpawnPlugin identifies dataloaders with iterable datasets and fails early."""
+    trainer = Trainer()
     model = BoringModelNoDataloaders()
-    connector = DataConnector(MagicMock())
+    model.trainer = trainer
 
-    connector.attach_dataloaders(
+    trainer._data_connector.attach_dataloaders(
         model,
         train_dataloaders=train_dataloaders,
         val_dataloaders=val_dataloaders,
@@ -84,7 +84,6 @@ def test_error_process_iterable_dataloader(_):
 
 
 class BoringModelTPU(BoringModel):
-
     def on_train_start(self) -> None:
         assert self.device == torch.device("xla")
         assert os.environ.get("PT_XLA_DEBUG") == "1"

@@ -15,11 +15,14 @@ import torch
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Plugin(DDPPlugin):
-    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+    """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+
+    distributed_backend = _StrategyType.DDP2
 
     @property
     def global_rank(self) -> int:
@@ -29,16 +32,9 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
-    def setup(self, model):
-        self._model = model
-        # set the task idx
-        self.task_idx = self.cluster_environment.local_rank()
-        # the difference to DDP is that we don't call children processes here
-
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
-        """
-        Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
-        In DDP2, the reduction here is only across local devices within the node.
+        """Reduces a collection of tensors from all processes. It can be applied to just a single tensor. In DDP2,
+        the reduction here is only across local devices within the node.
 
         Args:
             collection: The collection of tensors to sync and reduce.

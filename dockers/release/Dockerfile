@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.5
+ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.8
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
@@ -26,7 +26,7 @@ COPY ./ /home/pytorch-lightning/
 # install dependencies
 RUN \
     cd /home && \
-    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \

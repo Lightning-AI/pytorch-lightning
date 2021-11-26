@@ -11,11 +11,13 @@ In this guide, we cover
 
 1.  General purpose cluster (not managed)
 
-2.  SLURM cluster
+2.  Using `Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__
 
-3.  Custom cluster environment
+3.  SLURM cluster
 
-4.  General tips for multi-node training
+4.  Custom cluster environment
+
+5.  General tips for multi-node training
 
 --------
 
@@ -39,6 +41,7 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 - *WORLD_SIZE* - required; how many nodes are in the cluster
 - *NODE_RANK* - required; id of the node in the cluster
 
+.. _training_script_setup:
 
 Training script setup
 ---------------------
@@ -52,7 +55,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
+       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
 
 Submit a job to the cluster
@@ -66,12 +69,45 @@ This means that you need to:
 3. Run the script on each node.
 
 
---------
+----------
 
+.. _torch_distributed_run:
+
+2. Torch Distributed Run
+========================
+
+`Torch Distributed Run <https://pytorch.org/docs/stable/elastic/run.html>`__ provides helper functions to setup distributed environment variables from the `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`__ that need to be defined on each node.
+
+Once the script is setup like described in :ref:`training_script_setup`, you can run the below command across your nodes to start multi-node training.
+
+Like a custom cluster, you have to ensure that there is network connectivity between the nodes with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
+
+Finally, you'll need to decide which node you'd like to be the main node (*MASTER_ADDR*), and the ranks of each node (*NODE_RANK*).
+
+For example:
+
+* *MASTER_ADDR* 10.10.10.16
+* *MASTER_PORT* 29500
+* *NODE_RANK* 0 for the first node, 1 for the second node
+
+Run the below command with the appropriate variables set on each node.
+
+.. code-block:: bash
+
+    python -m torch.distributed.run
+        --nnodes=2 # number of nodes you'd like to run with
+        --master_addr <MASTER_ADDR>
+        --master_port <MASTER_PORT>
+        --node_rank <NODE_RANK>
+        train.py (--arg1 ... train script args...)
+
+.. note::
+
+    ``torch.distributed.run`` assumes that you'd like to spawn a process per GPU if GPU devices are found on the node. This can be adjusted with ``-nproc_per_node``.
 
 .. _slurm:
 
-2. SLURM managed cluster
+3. SLURM managed cluster
 ========================
 
 Lightning automates the details behind training on a SLURM-powered cluster. In contrast to the general purpose
@@ -91,7 +127,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
+       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
 3.  It's a good idea to structure your training script like this:
 
@@ -101,16 +137,12 @@ To train a model using multiple nodes, do the following:
         def main(hparams):
             model = LightningTemplateModel(hparams)
 
-            trainer = Trainer(
-                gpus=8,
-                num_nodes=4,
-                accelerator='ddp'
-            )
+            trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
 
             trainer.fit(model)
 
 
-        if __name__ == '__main__':
+        if __name__ == "__main__":
             root_dir = os.path.dirname(os.path.realpath(__file__))
             parent_parser = ArgumentParser(add_help=False)
             hyperparams = parser.parse_args()
@@ -178,6 +210,14 @@ To get this behavior make sure to add the correct signal to your SLURM script
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
 
+If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import SLURMEnvironment
+
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=False)])
+
 
 Building SLURM scripts
 ----------------------
@@ -197,45 +237,42 @@ See also the multi-node examples
     # grid search 3 values of learning rate and 3 values of number of layers for your net
     # this generates 9 experiments (lr=1e-3, layers=16), (lr=1e-3, layers=32),
     # (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
-    parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
-    parser.opt_list('--learning_rate', default=0.001, type=float,
-                    options=[1e-3, 1e-2, 1e-1], tunable=True)
-    parser.opt_list('--layers', default=1, type=float, options=[16, 32, 64], tunable=True)
+    parser = HyperOptArgumentParser(strategy="grid_search", add_help=False)
+    parser.opt_list("--learning_rate", default=0.001, type=float, options=[1e-3, 1e-2, 1e-1], tunable=True)
+    parser.opt_list("--layers", default=1, type=float, options=[16, 32, 64], tunable=True)
     hyperparams = parser.parse_args()
 
     # Slurm cluster submits 9 jobs, each with a set of hyperparams
     cluster = SlurmCluster(
         hyperparam_optimizer=hyperparams,
-        log_path='/some/path/to/save',
+        log_path="/some/path/to/save",
     )
 
     # OPTIONAL FLAGS WHICH MAY BE CLUSTER DEPENDENT
     # which interface your nodes use for communication
-    cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
+    cluster.add_command("export NCCL_SOCKET_IFNAME=^docker0,lo")
 
     # see the output of the NCCL connection process
     # NCCL is how the nodes talk to each other
-    cluster.add_command('export NCCL_DEBUG=INFO')
+    cluster.add_command("export NCCL_DEBUG=INFO")
 
-    # setting a master port here is a good idea.
-    cluster.add_command('export MASTER_PORT=%r' % PORT)
+    # setting a main port here is a good idea.
+    cluster.add_command("export MASTER_PORT=%r" % PORT)
 
     # ************** DON'T FORGET THIS ***************
     # MUST load the latest NCCL version
-    cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
+    cluster.load_modules(["NCCL/2.4.7-1-cuda.10.0"])
 
     # configure cluster
     cluster.per_experiment_nb_nodes = 12
     cluster.per_experiment_nb_gpus = 8
 
-    cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
+    cluster.add_slurm_cmd(cmd="ntasks-per-node", value=8, comment="1 task per gpu")
 
     # submit a script with 9 combinations of hyper params
     # (lr=1e-3, layers=16), (lr=1e-3, layers=32), (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
     cluster.optimize_parallel_cluster_gpu(
-        main,
-        nb_trials=9, # how many permutations of the grid search to run
-        job_name='name_for_squeue'
+        main, nb_trials=9, job_name="name_for_squeue"  # how many permutations of the grid search to run
     )
 
 
@@ -246,7 +283,7 @@ The other option is that you generate scripts on your own via a bash command or 
 
 .. _custom-cluster:
 
-3. Custom cluster
+4. Custom cluster
 =================
 
 Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
@@ -259,10 +296,11 @@ and node rank (node id). Here is an example of a custom
     import os
     from pytorch_lightning.plugins.environments import ClusterEnvironment
 
-    class MyClusterEnvironment(ClusterEnvironment):
 
-        def creates_children(self) -> bool:
-            # return True if the cluster is managed (you don't launch processes yourself)
+    class MyClusterEnvironment(ClusterEnvironment):
+        @property
+        def creates_processes_externally(self) -> bool:
+            """Return True if the cluster is managed (you don't launch processes yourself)"""
             return True
 
         def world_size(self) -> int:
@@ -277,10 +315,10 @@ and node rank (node id). Here is an example of a custom
         def node_rank(self) -> int:
             return int(os.environ["NODE_RANK"])
 
-        def master_address(self) -> str:
+        def main_address(self) -> str:
             return os.environ["MASTER_ADDRESS"]
 
-        def master_port(self) -> int:
+        def main_port(self) -> int:
             return int(os.environ["MASTER_PORT"])
 
 
@@ -289,7 +327,7 @@ and node rank (node id). Here is an example of a custom
 
 ----------
 
-4. General tips for multi-node training
+5. General tips for multi-node training
 =======================================
 
 Debugging flags

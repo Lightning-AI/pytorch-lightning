@@ -27,12 +27,7 @@ from tests.helpers.runif import RunIf
 def environment_combinations():
     expected = dict(global_rank=3, local_rank=1, node_rank=1, world_size=4)
     # Lightning
-    variables = {
-        "CUDA_VISIBLE_DEVICES": "0,1,2,4",
-        "LOCAL_RANK": "1",
-        "NODE_RANK": "1",
-        "WORLD_SIZE": "8",
-    }
+    variables = {"CUDA_VISIBLE_DEVICES": "0,1,2,4", "LOCAL_RANK": "1", "NODE_RANK": "1", "WORLD_SIZE": "8"}
     environment = LightningEnvironment()
     yield environment, variables, expected
     # SLURM
@@ -60,16 +55,10 @@ def environment_combinations():
 
 
 @pytest.mark.parametrize(
-    "plugin_cls",
-    [
-        DDPPlugin,
-        DDPShardedPlugin,
-        DDP2Plugin,
-        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-    ],
+    "plugin_cls", [DDPPlugin, DDPShardedPlugin, DDP2Plugin, pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True))]
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
-    """ Test that the rank information is readily available after Trainer initialization. """
+    """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
 
@@ -78,13 +67,9 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 
         with mock.patch.dict(os.environ, variables):
             plugin = plugin_cls(
-                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)],
-                cluster_environment=cluster,
+                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
             )
-            trainer = Trainer(
-                plugins=[plugin],
-                num_nodes=num_nodes,
-            )
+            trainer = Trainer(strategy=plugin, num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]
@@ -95,25 +80,25 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(accelerator="ddp", gpus=[1, 2]),
-        dict(accelerator="ddp_sharded", gpus=[1, 2]),
-        dict(accelerator="ddp2", gpus=[1, 2]),
-        dict(accelerator="ddp_cpu", num_processes=2),
-        dict(accelerator="ddp_spawn", gpus=[1, 2]),
+        dict(strategy="ddp", gpus=[1, 2]),
+        dict(strategy="ddp_sharded", gpus=[1, 2]),
+        dict(strategy="ddp2", gpus=[1, 2]),
+        dict(strategy="ddp_spawn", num_processes=2),
+        dict(strategy="ddp_spawn", gpus=[1, 2]),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
 def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
-    """ Test that the rank information is readily available after Trainer initialization. """
+    """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
 
     for cluster, variables, expected in environment_combinations():
 
-        if trainer_kwargs["accelerator"] == "ddp2":
+        if trainer_kwargs["strategy"] == "ddp2":
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
-        if trainer_kwargs["accelerator"] in ("ddp_cpu", "ddp_spawn"):
+        if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn plugins
                 continue
@@ -122,7 +107,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
-            assert type(trainer.training_type_plugin.cluster_environment) == type(cluster)
+            assert type(trainer.training_type_plugin.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]

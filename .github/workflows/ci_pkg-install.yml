@@ -1,4 +1,4 @@
-name: Install pkg
+name: Package
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -9,7 +9,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
 
-  pkg-install:
+  install:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,12 +26,11 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==3.2" setuptools wheel
+          pip install "twine==3.2" setuptools wheel
 
       - name: Create package
         run: |
-          check-manifest
-          # python setup.py check --metadata --strict
+          python setup.py check --metadata --strict
           python setup.py sdist bdist_wheel
 
       - name: Check package

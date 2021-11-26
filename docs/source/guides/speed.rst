@@ -52,8 +52,8 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
     # run on 1 gpu
     trainer = Trainer(gpus=1)
 
-    # train on 8 gpus, using DDP plugin
-    trainer = Trainer(gpus=8, accelerator="ddp")
+    # train on 8 gpus, using the DDP strategy
+    trainer = Trainer(gpus=8, strategy="ddp")
 
     # train on multiple GPUs across nodes (uses 8 gpus in total)
     trainer = Trainer(gpus=2, num_nodes=4)
@@ -71,15 +71,18 @@ Prefer DDP over DP
 
 1. Copy model to device.
 2. Copy data to device.
-3. Copy outputs of each device back to master.
+3. Copy outputs of each device back to main device.
 
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-By default we have set ``find_unused_parameters`` to True for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+When using DDP plugins, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 This by default comes with a performance hit, and can be disabled in most cases.
+
+.. tip::
+    It applies to all DDP plugins that support ``find_unused_parameters`` as input.
 
 .. code-block:: python
 
@@ -87,7 +90,16 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
     trainer = pl.Trainer(
         gpus=2,
-        plugins=DDPPlugin(find_unused_parameters=False),
+        strategy=DDPPlugin(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPSpawnPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        strategy=DDPSpawnPlugin(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters
@@ -133,11 +145,19 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 
 The best thing to do is to increase the ``num_workers`` slowly and stop once you see no more improvement in your training speed.
 
+For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will always log a warning for every dataloader with ``num_workers <= min(2, os.cpu_count())``. In such cases, you can specifically filter this warning by using:
+
+.. code-block:: python
+
+    import warnings
+
+    warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
+
 Spawn
 """""
-When using ``accelerator=ddp_spawn`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
+When using ``strategy=ddp_spawn`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
 The problem is that PyTorch has issues with ``num_workers > 0`` when using ``.spawn()``. For this reason we recommend you
-use ``accelerator=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
+use ``strategy=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
 
 .. code-block:: bash
 
@@ -174,7 +194,7 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 
 -----------
 
-.. _amp:
+.. _speed_amp:
 
 *********************************
 Mixed precision (16-bit) training
@@ -198,11 +218,11 @@ Mixed precision (16-bit) training
 
 Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
-Lightning offers mixed precision or 16-bit training for GPUs and TPUs.
+Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
 
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+    :skipif: torch.cuda.device_count() < 4
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=4)
@@ -304,18 +324,10 @@ If you don't want to check 100% of the training/validation/test set set these fl
 .. testcode::
 
     # DEFAULT
-    trainer = Trainer(
-        limit_train_batches=1.0,
-        limit_val_batches=1.0,
-        limit_test_batches=1.0
-    )
+    trainer = Trainer(limit_train_batches=1.0, limit_val_batches=1.0, limit_test_batches=1.0)
 
     # check 10%, 20%, 30% only, respectively for training, validation and test set
-    trainer = Trainer(
-        limit_train_batches=0.1,
-        limit_val_batches=0.2,
-        limit_test_batches=0.3
-    )
+    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.2, limit_test_batches=0.3)
 
 If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
 
@@ -383,7 +395,6 @@ Here is an example for advanced use-case:
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
     class SimpleGAN(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
@@ -403,8 +414,7 @@ Here is an example for advanced use-case:
             # Sync and clear gradients
             # at the end of accumulation or
             # at the end of an epoch.
-            is_last_batch_to_accumulate = \
-                (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
+            is_last_batch_to_accumulate = (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
 
             g_X = self.sample_G(batch_size)
 
@@ -418,7 +428,7 @@ Here is an example for advanced use-case:
                 d_z = self.D(g_X.detach())
                 errD_fake = self.criterion(d_z, fake_label)
 
-                errD = (errD_real + errD_fake)
+                errD = errD_real + errD_fake
 
                 self.manual_backward(errD)
                 if is_last_batch_to_accumulate:
@@ -437,7 +447,7 @@ Here is an example for advanced use-case:
                     g_opt.step()
                     g_opt.zero_grad()
 
-            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
+            self.log_dict({"g_loss": errG, "d_loss": errD}, prog_bar=True)
 
 -----
 
@@ -448,12 +458,11 @@ Set Grads to None
 In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of pros / cons of this technique,
-read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
 
 .. testcode::
 
     class Model(LightningModule):
-
         def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
             optimizer.zero_grad(set_to_none=True)
 

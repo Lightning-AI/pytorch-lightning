@@ -17,10 +17,9 @@ from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedE
 
 
 class TestDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, *args, **kwargs):
-        """placeholder"""
+        """placeholder."""
 
     def test_dataloader(self):
         return self.dataloader(train=False)
