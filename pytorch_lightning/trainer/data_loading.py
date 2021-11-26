@@ -15,7 +15,6 @@ import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -29,9 +28,10 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -215,7 +215,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
-            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
+            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
@@ -431,19 +431,14 @@ class TrainerDataLoadingMixin(ABC):
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = source.dataloader()
+        with _replace_dataloader_init_method():
+            # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
         return dataloader
-
-    @staticmethod
-    def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-        """Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is
-        enabled."""
-        dataloader.collate_fn = partial(
-            _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
-        )
 
     @staticmethod
     def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:

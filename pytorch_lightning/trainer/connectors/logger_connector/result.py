@@ -280,8 +280,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
 
             # return cached value
-            if self._computed is not None:  # type: ignore
-                return self._computed  # type: ignore
+            if self._computed is not None:
+                return self._computed
             self._computed = compute(*args, **kwargs)
             return self._computed
 

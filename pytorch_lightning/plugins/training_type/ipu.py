@@ -29,6 +29,7 @@ from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -41,7 +42,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in ("mixed", 16):
+        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)

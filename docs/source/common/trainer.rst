@@ -1131,6 +1131,16 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
+.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
+    in the following code:
+
+    .. testcode::
+
+        class LitDataModule(LightningDataModule):
+            def __init__(self):
+                super().__init__()
+                self.prepare_data_per_node = True
 
 .. raw:: html
 
@@ -1140,8 +1150,8 @@ prepare_data_per_node
 
 |
 
-If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
-If False will only call from NODE_RANK=0, LOCAL_RANK=0
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
 
 .. testcode::
 
