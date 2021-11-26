@@ -47,10 +47,10 @@ for i in "${!parametrizations_arr[@]}"; do
     continue
   fi
 
-  # SPECIAL_PATTERN allows filtering the tests to run when debugging.
-  # use as `SPECIAL_PATTERN="foo_bar" ./special_tests.sh` to run only those
+  # STANDALONE_PATTERN allows filtering the tests to run when debugging.
+  # use as `STANDALONE_PATTERN="foo_bar" ./standalone_tests.sh` to run only those
   # test with `foo_bar` in their name
-  if [[ $parametrization != *$SPECIAL_PATTERN* ]]; then
+  if [[ $parametrization != *STANDALONE_PATTERN* ]]; then
     report+="Skipped\t$parametrization\n"
     continue
   fi

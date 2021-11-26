@@ -21,8 +21,8 @@ from io import StringIO
 
 from pytorch_lightning.utilities.warnings import _warn, rank_zero_deprecation, rank_zero_warn, WarningCache
 
-running_special = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
-if running_special:
+standalone = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
+if standalone:
 
     stderr = StringIO()
     # recording

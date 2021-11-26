@@ -1471,7 +1471,7 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
         {"strategy": "ddp", "devices": 2},
     ],
 )
-def test_trainer_predict_special(tmpdir, kwargs):
+def test_trainer_predict_standalone(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
