@@ -112,6 +112,11 @@ class Accelerator:
         """
         return self.training_type_plugin.lightning_module
 
+    @property
+    def root_device(self) -> torch.device:
+        """Returns the root device."""
+        return self.training_type_plugin.root_device
+
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
