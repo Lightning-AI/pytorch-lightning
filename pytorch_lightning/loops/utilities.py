@@ -15,13 +15,14 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Any, Dict, Generator, Iterator, List, Optional, Sequence, Tuple
-from pytorch_lightning.utilities import rank_zero_warn
+
 import numpy as np
 import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -61,6 +62,7 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
     hiddens = recursive_detach(training_step_output["hiddens"])
     return hiddens
 
+
 # rank_zero_warning of type UserWarning for max_epochs if not set
 def _parse_max_epochs_and_steps(max_steps, max_epochs, max_time, min_steps, min_epochs):
     if max_epochs is None and max_steps == -1 and max_time is None:
@@ -68,10 +70,9 @@ def _parse_max_epochs_and_steps(max_steps, max_epochs, max_time, min_steps, min_
             "`max_epochs` is not set. By default it will run for 1000 epochs.",
             UserWarning,
         )
-    min_epochs = (1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs)
+    min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
     max_epochs = max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
     return min_epochs, max_epochs
-
 
 
 def _build_training_step_kwargs(
@@ -180,7 +181,6 @@ def _get_active_optimizers(
     # find optimizer index by looking for the first {item > current_place} in the cumsum list
     opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
     return [(opt_idx, optimizers[opt_idx])]
-
 
 
 def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:

@@ -446,8 +446,10 @@ class Trainer(
         self.tuner = Tuner(self)
 
         # raises rank_zero_warn if max_epochs is not set
-        min_epochs, max_epochs = _parse_max_epochs_and_steps(self.max_steps, self.max_epochs, max_time, self.min_steps, self.min_epochs)
-        
+        min_epochs, max_epochs = _parse_max_epochs_and_steps(
+            self.max_steps, self.max_epochs, max_time, self.min_steps, self.min_epochs
+        )
+
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
@@ -477,7 +479,7 @@ class Trainer(
 
         # todo: remove in v1.7
         self._weights_summary: Optional[str] = None
-        
+
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
