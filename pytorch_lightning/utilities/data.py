@@ -180,7 +180,25 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
-    dataloader = dl_cls(**dl_kwargs)
+    try:
+        dataloader = dl_cls(**dl_kwargs)
+    except TypeError as e:
+        # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
+        # `__init__` arguments map to one `DataLoader.__init__` argument
+        import re
+
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
+        if not match:
+            # an unexpected `TypeError`, continue failure
+            raise
+        argument = match.groups()[0]
+        message = (
+            f"The {dl_cls.__name__} `DataLoader` implementation has an error where more than one `__init__` argument"
+            f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
+            f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
+            f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
+        )
+        raise MisconfigurationException(message) from e
     return dataloader
 
 

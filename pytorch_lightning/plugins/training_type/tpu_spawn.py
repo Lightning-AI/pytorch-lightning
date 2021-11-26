@@ -258,10 +258,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         return output
 
-    def _close_logger(self, trainer) -> None:
-        if trainer.logger is not None:
-            trainer.logger.finalize("success")
-
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
             "nprocs": len(self.parallel_devices),
@@ -297,12 +293,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._close_logger(trainer)
         return super().start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self._close_logger(trainer)
-        return super().start_evaluating(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
