@@ -1179,31 +1179,33 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_validate_fault_tolerant(tmpdir):
+    def data():
+        return range(10)
 
-    data = range(10)
-    dataloader = DataLoader(data)
+    def dataloader():
+        return DataLoader(data())
 
-    _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+    _validate_fault_tolerant_automatic(dataloader(), RunningStage.TRAINING)
 
     with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
-        dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))])
+        dataloaders = CombinedLoader([dataloader(), dataloader()])
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
-        dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))], mode="max_size_cycle")
+        dataloaders = CombinedLoader([dataloader(), dataloader()], mode="max_size_cycle")
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
-    dataloaders = [DataLoader(data), DataLoader(range(10))]
+    dataloaders = [dataloader(), dataloader()]
     with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
-    with pytest.raises(ValueError, match="A `DistributedSampler` sampler shuffle attribute is set to True."):
-        dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=True))]
+    with pytest.raises(TypeError, match="A `DistributedSampler` sampler shuffle attribute is set to True."):
+        dataloaders = [DataLoader(data(), sampler=DistributedSampler(data(), num_replicas=2, rank=0, shuffle=True))]
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
-    dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=False))]
+    dataloaders = [DataLoader(data(), sampler=DistributedSampler(data(), num_replicas=2, rank=0, shuffle=False))]
     _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     dataset = SequentialGetItemDataset(2)
@@ -1228,7 +1230,7 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=SequentialSampler(dataset)),
     ]
 
-    with pytest.raises(ValueError, match="Only `SequentialSampler` is supported."):
+    with pytest.raises(TypeError, match="Only `SequentialSampler` is supported."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
     with pytest.raises(TypeError, match="RandomSampler"):
@@ -1236,18 +1238,18 @@ def test_validate_fault_tolerant(tmpdir):
         class CustomRandomSampler(RandomSampler):
             pass
 
-        dataloader = DataLoader(data, sampler=CustomRandomSampler(data))
-        _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+        dl = DataLoader(data(), sampler=CustomRandomSampler(data()))
+        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
 
     with pytest.raises(TypeError, match="BatchSampler"):
 
         class CustomBatchSampler(BatchSampler):
             pass
 
-        sampler = Sampler(data)
+        sampler = Sampler(data())
         batch_sampler = CustomBatchSampler(sampler, 2, False)
-        dataloader = DataLoader(data, batch_sampler=batch_sampler)
-        _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+        dl = DataLoader(data(), batch_sampler=batch_sampler)
+        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
 
     with pytest.raises(AttributeError, match="without `__next__` method"):
 
@@ -1256,8 +1258,8 @@ def test_validate_fault_tolerant(tmpdir):
                 while True:
                     yield 0
 
-        dataloader = DataLoader(CustomIterable())
-        _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+        iterable_dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
 
     with pytest.raises(TypeError, match="IterableDataset without a sampler as attribute"):
 
@@ -1268,16 +1270,15 @@ def test_validate_fault_tolerant(tmpdir):
             def __next__(self):
                 return torch.tensor(0)
 
-        dataloader = DataLoader(CustomIterable())
-        _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+        iterable_dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
 
     with pytest.raises(TypeError, match="RandomSampler"):
 
         class CustomIterable(IterableDataset):
             def __init__(self):
                 super().__init__()
-                self.data = data
-                self.sampler = CustomRandomSampler(self.data)
+                self.sampler = CustomRandomSampler(data())
 
             def __iter__(self):
                 return self
@@ -1285,10 +1286,10 @@ def test_validate_fault_tolerant(tmpdir):
             def __next__(self):
                 return torch.tensor(0)
 
-        dataloader = DataLoader(CustomIterable())
-        _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
+        iterable_dataloader = DataLoader(CustomIterable())
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
 
-    dataloaders = [DataLoader(data), DataLoader(CustomIterable())]
+    dataloaders = [iterable_dataloader, DataLoader(CustomIterable())]
     with pytest.raises(TypeError, match="RandomSampler"):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
