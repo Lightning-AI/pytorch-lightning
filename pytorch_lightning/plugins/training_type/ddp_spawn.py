@@ -428,5 +428,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 rank_zero_warn(
                     "When using `ddp_spawn`, the `TensorBoardLogger` experiment should be `None`. Setting it to `None`."
                 )
-                del logger._experiment
+                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
+                # we want to make sure these are closed before we spawn our own threads.
+                # assuming nothing else references the experiment object, python should instantly `__del__` it.
                 logger._experiment = None

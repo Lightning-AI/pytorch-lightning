@@ -338,8 +338,9 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
 @pytest.mark.parametrize("use_list", [False, True])
 def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
     tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
-    tensorboard_logger.experiment
-    assert tensorboard_logger._experiment
+    assert tensorboard_logger._experiment is None
+    tensorboard_logger.experiment  # this property access will create the experiment
+    assert tensorboard_logger._experiment is not None
     logger = [tensorboard_logger] if use_list else tensorboard_logger
     trainer = Trainer(strategy="ddp_spawn", devices=2, accelerator="auto", logger=logger)
     trainer.training_type_plugin._clean_logger(trainer)
