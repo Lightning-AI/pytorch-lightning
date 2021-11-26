@@ -1186,22 +1186,23 @@ def test_validate_fault_tolerant(tmpdir):
 
     _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
         dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))])
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
-    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
         dataloaders = CombinedLoader([DataLoader(data), DataLoader(range(10))], mode="max_size_cycle")
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [DataLoader(data), DataLoader(range(10))]
-    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
-    dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=True))]
-    _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+    with pytest.raises(ValueError, match="A `DistributedSampler` sampler shuffle attribute is set to True."):
+        dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=True))]
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [DataLoader(data, sampler=DistributedSampler(data, num_replicas=2, rank=0, shuffle=False))]
     _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
@@ -1212,7 +1213,7 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single dataloader."):
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
 
     dataloaders = [
@@ -1220,8 +1221,16 @@ def test_validate_fault_tolerant(tmpdir):
         DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
     ]
 
-    with pytest.raises(ValueError, match="Fault Tolerant Training supports only a single."):
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single."):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [
+        DataLoader(dataset, sampler=RandomSampler(dataset)),
+        DataLoader(dataset, sampler=SequentialSampler(dataset)),
+    ]
+
+    with pytest.raises(ValueError, match="Only SequentialSampler is supported."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
     with pytest.raises(ValueError, match="RandomSampler"):
 
@@ -1241,7 +1250,7 @@ def test_validate_fault_tolerant(tmpdir):
         dataloader = DataLoader(data, batch_sampler=batch_sampler)
         _validate_fault_tolerant_automatic(dataloader, RunningStage.TRAINING)
 
-    with pytest.raises(AttributeError, match="without a `__next__` method"):
+    with pytest.raises(AttributeError, match="without `__next__` method"):
 
         class CustomIterable(IterableDataset):
             def __iter__(self):

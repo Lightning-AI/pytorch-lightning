@@ -749,8 +749,7 @@ def _teardown_dataloader_get_iterators() -> None:
         del DataLoader._ori_get_iterator
 
 
-def _validate_iterable_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
-
+def _validate_iterable_dataset(dataloader: DataLoader):
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     dataset = dataloader.dataset
@@ -775,13 +774,14 @@ def _validate_iterable_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
     if len(sampler) > 1:
         raise ValueError(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
 
-    if type(sampler[0]) is DistributedSampler:
-        return not sampler.shuffle, "A `DistributedSampler` sampler shuffle attribute is set to True."
+    if type(sampler[0]) is DistributedSampler and sampler.shuffle:
+        raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
 
-    return type(sampler[0]) is SequentialSampler, ""
+    if type(sampler[0]) is RandomSampler:
+        raise ValueError("Only SequentialSampler is supported.")
 
 
-def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
+def _validate_map_dataset(dataloader: DataLoader):
     SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     sampler = getattr(dataloader, "sampler", None)
@@ -792,10 +792,11 @@ def _validate_map_dataset(dataloader: DataLoader) -> Tuple[bool, str]:
     if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
         raise ValueError("Fault-tolerance supports only a BatchSampler.")
 
-    if type(sampler) is DistributedSampler:
-        return not sampler.shuffle, "A `DistributedSampler` sampler shuffle attribute is set to True."
+    if type(sampler) is DistributedSampler and sampler.shuffle:
+        raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
 
-    return type(sampler) is SequentialSampler, ""
+    if type(sampler) is RandomSampler:
+        raise ValueError("Only SequentialSampler is supported.")
 
 
 def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
@@ -823,19 +824,11 @@ def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.
     if len(dl_loaders) > 1 and stage == pl.trainer.states.RunningStage.TRAINING:
         raise ValueError("Fault-tolerance supports only a single dataloader.")
 
-    supported = []
-    messages = []
-
     for dataloader in dl_loaders:
         validator_fn = (
             _validate_iterable_dataset if isinstance(dataloader.dataset, IterableDataset) else _validate_map_dataset
         )
-        is_supported, message = validator_fn(dataloader)
-        supported.append(is_supported)
-        messages.append(message)
-
-    if len(dl_loaders) > 1 and sum(supported) != len(dl_loaders):
-        raise ValueError(f"The current combinaison of DataLoaders isn't supported. Messages: {messages}")
+        validator_fn(dataloader)
 
 
 def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
