@@ -667,6 +667,7 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None)
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
@@ -723,9 +724,7 @@ def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
                 assert not isinstance(loaders["a"][2].loader.dataset, CaptureMapDataset)
                 assert isinstance(loaders["b"].loader.dataset, RangeIterableDataset)
 
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}), mock.patch(
-        "pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None
-    ):
+    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
         model = TestModel()
         model.training_epoch_end = None
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
