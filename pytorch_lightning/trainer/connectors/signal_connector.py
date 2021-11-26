@@ -6,11 +6,11 @@ import threading
 from signal import Signals
 from subprocess import call
 from types import FrameType, FunctionType
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
 
 log = logging.getLogger(__name__)
 
@@ -101,12 +101,33 @@ class SignalConnector:
             signal.signal(signum, handler)
         self._original_handlers = {}
 
-    def _get_current_signal_handlers(self) -> _SIGNAL_HANDLER_DICT:
-        """Collects the currently assigned signal handlers that are relevant for Lightning."""
-        handlers = {signal.SIGTERM: signal.getsignal(signal.SIGTERM)}
-        if not self._is_on_windows():
-            handlers[signal.SIGUSR1] = signal.getsignal(signal.SIGUSR1)
-        return handlers
+    @staticmethod
+    def _get_current_signal_handlers() -> _SIGNAL_HANDLER_DICT:
+        """Collects the currently assigned signal handlers."""
+        valid_signals = SignalConnector._valid_signals()
+        if not _IS_WINDOWS:
+            # SIGKILL and SIGSTOP are not allowed to be modified by the user
+            valid_signals -= {signal.SIGKILL, signal.SIGSTOP}
+        return {signum: signal.getsignal(signum) for signum in valid_signals}
+
+    @staticmethod
+    def _valid_signals() -> Set[Signals]:
+        """Returns all valid signals supported on the current platform. Behaves identically to
+        :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for older Python
+        versions."""
+        if sys.version_info >= (3, 8):
+            return signal.valid_signals()
+        elif _IS_WINDOWS:
+            return {
+                signal.SIGABRT,
+                signal.SIGFPE,
+                signal.SIGILL,
+                signal.SIGINT,
+                signal.SIGSEGV,
+                signal.SIGTERM,
+                signal.SIGBREAK,
+            }
+        return set(signal.Signals)
 
     @staticmethod
     def _is_on_windows() -> bool:
