@@ -22,8 +22,13 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
-from pytorch_lightning.utilities.auto_restart import _reload_dataloader_state_dict, MergedIteratorState
+from pytorch_lightning.utilities.auto_restart import (
+    _collect_states_on_rank_zero_over_collection,
+    _reload_dataloader_state_dict,
+    MergedIteratorState,
+)
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
@@ -44,15 +49,12 @@ class EvaluationEpochLoop(Loop):
         self._num_dataloaders: Optional[int] = None
         self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[DataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = None
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
-
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
@@ -173,17 +175,21 @@ class EvaluationEpochLoop(Loop):
         state_to_save = "state" if self._has_completed() else "previous_state"
         state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
         if state:
-            state_dict["dataloader_state_dict"] = asdict(state)
+            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
+        # dataset states are collected across all ranks
+        dataloader_state_dict = state_dict.get("dataloader_state_dict", None)
+        if not _fault_tolerant_training() or not dataloader_state_dict:
+            return
+        self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
             _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches

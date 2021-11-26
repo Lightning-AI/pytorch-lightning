@@ -434,7 +434,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 

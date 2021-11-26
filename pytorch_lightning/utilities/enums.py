@@ -143,23 +143,24 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
         )
 
 
-class DeviceType(LightningEnum):
-    """Define Device type by its nature - acceleatrors.
+class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
+    """Define Device type by its nature - accelerators.
 
-    >>> DeviceType.CPU == DeviceType.from_str('cpu')
-    True
-    >>> # you can match the type with string
-    >>> DeviceType.GPU == 'GPU'
-    True
-    >>> # which is case invariant
-    >>> DeviceType.TPU in ('tpu', 'CPU')
-    True
+    Deprecated since v1.6.0 and will be removed in v1.8.0.
+
+    Use `_AcceleratorType` instead.
     """
 
     CPU = "CPU"
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+
+    def deprecate(self) -> None:
+        rank_zero_deprecation(
+            "`DeviceType` Enum has been deprecated in v1.6 and will be removed in v1.8."
+            " Use the string value `{self.value!r}` instead."
+        )
 
 
 class GradClipAlgorithmType(LightningEnum):
@@ -258,6 +259,25 @@ class _StrategyType(LightningEnum):
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
         return self in _StrategyType.interactive_compatible_types()
+
+
+class _AcceleratorType(LightningEnum):
+    """Define Accelerator type by its nature.
+
+    >>> _AcceleratorType.CPU == _AcceleratorType.from_str('cpu')
+    True
+    >>> # you can match the type with string
+    >>> _AcceleratorType.GPU == 'GPU'
+    True
+    >>> # which is case invariant
+    >>> _AcceleratorType.TPU in ('tpu', 'CPU')
+    True
+    """
+
+    CPU = "CPU"
+    GPU = "GPU"
+    IPU = "IPU"
+    TPU = "TPU"
 
 
 class _FaultTolerantMode(LightningEnum):
