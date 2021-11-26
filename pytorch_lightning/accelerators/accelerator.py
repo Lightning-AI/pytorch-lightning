@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from abc import abstractmethod
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Generator
 
 import torch
 from torch.nn import Module
@@ -175,6 +176,17 @@ class Accelerator:
         """
         with self.training_type_plugin.precision_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
+
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to.
+        shard the model instantly - useful for extremely large models. Can save memory and
+        initialization time.
+        Returns:
+            Model parallel context.
+        """
+        with self.training_type_plugin.model_sharded_context():
+            yield
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device.

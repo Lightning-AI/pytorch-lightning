@@ -1393,7 +1393,7 @@ class Trainer(
         self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        with self.training_type_plugin.model_sharded_context():
+        with self.accelerator.model_sharded_context():
             self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")
