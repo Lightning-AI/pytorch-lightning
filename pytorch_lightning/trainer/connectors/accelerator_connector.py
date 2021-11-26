@@ -786,6 +786,9 @@ class AcceleratorConnector:
                     "Specified `Precision` and `TrainingType` plugins will be ignored,"
                     " since an `Accelerator` instance was provided."
                 )
+            self.distributed_backend.training_type_plugin = self.resolve_training_type_plugin(
+                self.distributed_backend.training_type_plugin
+            )
             return self.distributed_backend
 
         if self.use_gpu:

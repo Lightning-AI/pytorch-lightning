@@ -1064,3 +1064,12 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
     assert trainer.gpus == 2
+
+
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_training_plugin_attrs_set_when_passed_with_accelerator(is_gpu_available_mock, device_count_mock):
+
+    trainer = Trainer(accelerator=GPUAccelerator(PrecisionPlugin(), DDPPlugin()), gpus=2)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
