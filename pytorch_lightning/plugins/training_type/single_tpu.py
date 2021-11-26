@@ -55,7 +55,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # Revisit strategy inheritance.
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         if is_overridden("on_post_move_to_device", self.lightning_module):

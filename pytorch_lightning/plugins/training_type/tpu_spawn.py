@@ -122,7 +122,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # Revisit strategy inheritance
         self.create_mp_queue()
         if not self.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
