@@ -147,18 +147,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        logger = trainer.logger
-        if isinstance(logger, pl.loggers.TensorBoardLogger):
-            log.info("DEBUGGING: is TensorBoardLogger")
-            if logger._experiment is not None:
-                import traceback
-
-                log.critical("DEBUGGING: experiment already exists")
-                traceback.print_stack()
-                raise SystemExit(1)
-            # tensorboard applies a lock on the `dir_path`
-            trainer.logger.finalize("")
-
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
