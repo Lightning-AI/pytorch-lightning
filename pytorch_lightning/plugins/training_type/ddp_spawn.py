@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
 import logging
 import os
 import re
@@ -431,4 +430,3 @@ class DDPSpawnPlugin(ParallelPlugin):
                 )
                 del logger._experiment
                 logger._experiment = None
-                gc.collect()
