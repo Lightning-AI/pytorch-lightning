@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import abstractmethod
-from typing import Any, Dict, Optional, Union, Generator
+from typing import Any, Dict, Generator, Optional, Union
 
 import torch
 from torch.nn import Module
@@ -180,6 +180,7 @@ class Accelerator:
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to.
+
         shard the model instantly - useful for extremely large models. Can save memory and
         initialization time.
         Returns:
