@@ -172,8 +172,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        if isinstance(args[0].logger, pl.loggers.TensorBoardLogger):
-            args[0].logger.finalize("")
+        # if isinstance(args[0], pl.Trainer) and isinstance(args[0].logger, pl.loggers.TensorBoardLogger):
+        #    breakpoint()
+        #    args[0].logger.finalize("")
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None

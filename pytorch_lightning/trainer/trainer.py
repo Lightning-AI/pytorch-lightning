@@ -1175,7 +1175,6 @@ class Trainer(
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
-        self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
         # log hyper-parameters
@@ -1234,6 +1233,7 @@ class Trainer(
     def run_stage(self):
         self.accelerator.dispatch(self)
         self.__setup_profiler()
+        self._log_hyperparams()
 
         if self.evaluating:
             return self._run_evaluate()
