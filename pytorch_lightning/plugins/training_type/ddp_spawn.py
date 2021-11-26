@@ -148,14 +148,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
@@ -173,7 +176,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        self._clean_logger(*args)
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
@@ -419,11 +421,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.cuda.empty_cache()
 
     @staticmethod
-    def _clean_logger(*args: Any) -> None:
-        if isinstance(args[0], pl.Trainer):
-            trainer = args[0]
-            loggers = trainer._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
-            for logger in loggers:
-                if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
-                    rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment should be `None`.")
-                    logger._experiment = None
+    def _clean_logger(trainer: "pl.Trainer") -> None:
+        loggers = trainer._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+        for logger in loggers:
+            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
+                rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment should be `None`.")
+                logger._experiment = None
