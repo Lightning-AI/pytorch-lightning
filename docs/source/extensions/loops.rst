@@ -347,7 +347,12 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
-     TODO add prediction/evaluation_loop
+   * - :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` is the top-level loop where validation/testing starts.
+       It simply iterates over each evaluation dataloader from one to the next by calling :code:`EvaluationEpochLoop.run()` in its :code:`advance()` method.
+   * - :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` is the top-level loop where prediction starts.
+       It simply iterates over each prediction dataloader from one to the next by calling :code:`PredictionEpochLoop.run()` in its :code:`advance()` method.
 
 
 ----------
@@ -382,6 +387,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # Implement the research use-case where we mask labels from labelled dataset.
     datamodule = ActiveLearningDataModule(
         ImageClassificationData.from_folders(train_folder="data/hymenoptera_data/train/", batch_size=2),
+        initial_num_labels=5,
         val_split=0.1,
     )
 
@@ -390,7 +396,8 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
         torch.nn.Dropout(p=0.1),
         torch.nn.Linear(512, datamodule.num_classes),
     )
-    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, serializer=Probabilities())
+    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, output=Probabilities())
+
 
     # 3.1 Create the trainer
     trainer = flash.Trainer(max_epochs=3)
