@@ -775,8 +775,7 @@ def _validate_iterable_dataset(dataloader: DataLoader) -> None:
         raise ValueError(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
 
     if type(sampler[0]) is DistributedSampler and sampler.shuffle:
-        raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
-
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
     elif type(sampler[0]) is not SequentialSampler:
         raise TypeError("Only `SequentialSampler` is supported.")
 
@@ -793,18 +792,17 @@ def _validate_map_dataset(dataloader: DataLoader) -> None:
         raise TypeError("Fault-tolerance supports only a `BatchSampler`.")
 
     if type(sampler) is DistributedSampler and sampler.shuffle:
-        raise ValueError("A `DistributedSampler` sampler shuffle attribute is set to True.")
-
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
     elif type(sampler) is RandomSampler:
-        raise ValueError("Only `SequentialSampler` is supported.")
+        raise TypeError("Only `SequentialSampler` is supported.")
 
 
 def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
     """This function is used to validate that Fault-tolerance is possible with the user data."""
-    from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-
     if not _FaultTolerantMode.detect_current_mode().is_automatic:
         return
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 
     if isinstance(dataloader, CombinedLoader):
         dataloaders = dataloader.loaders
