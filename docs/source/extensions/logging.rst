@@ -19,12 +19,6 @@ Supported Loggers
 
 The following are loggers we support:
 
-.. note::
-    The following loggers will normally plot an additional chart (**global_step VS epoch**).
-
-.. note::
-    Depending on the loggers you use, there might be some additional charts.
-
 .. currentmodule:: pytorch_lightning.loggers
 
 .. autosummary::
@@ -40,6 +34,8 @@ The following are loggers we support:
     TestTubeLogger
     WandbLogger
 
+
+The above loggers will normally plot an additional chart (**global_step VS epoch**). Depending on the loggers you use, there might be some additional charts too.
 
 By default, Lightning uses ``TensorBoard`` logger under the hood, and stores the logs to a directory (by default in ``lightning_logs/``).
 
@@ -91,7 +87,7 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. note::
 
-    By default, lightning logs every 50 steps. Use Trainer flags to :ref:`logging_frequency`.
+    By default, Lightning logs every 50 steps. Use Trainer flags to :ref:`logging_frequency`.
 
 .. note::
 
@@ -178,7 +174,7 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
 
 
-Manual logging Non-Scalar Artifacts
+Manual Logging Non-Scalar Artifacts
 ===================================
 If you want to log anything that is not a scalar, like histograms, text, images, etc. you may need to use the logger object directly.
 
@@ -196,7 +192,7 @@ If you want to log anything that is not a scalar, like histograms, text, images,
 ----------
 
 ********************
-Make a custom logger
+Make a Custom Logger
 ********************
 
 You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`.
@@ -258,7 +254,7 @@ a pull request to add it to Lightning!
 
 
 *************************
-Control logging frequency
+Control Logging Frequency
 *************************
 
 Logging frequency
@@ -273,11 +269,11 @@ To change this behaviour, set the ``log_every_n_steps`` :class:`~pytorch_lightni
    trainer = Trainer(log_every_n_steps=k)
 
 
-Log writing frequency
+Log Writing Frequency
 =====================
 
 Writing to a logger can be expensive, so by default Lightning writes logs to disk or to the given logger every 100 training steps.
-To change this behaviour, set the interval at which you wish to flush logs to the filesystem using the ``flush_logs_every_n_steps`` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+If wish to flush logs to the filesystem at a different step rate, use the ``flush_logs_every_n_steps`` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 
@@ -303,7 +299,7 @@ method, setting ``prog_bar=True``.
         self.log("my_loss", loss, prog_bar=True)
 
 
-Modifying the progress bar
+Modifying the Progress Bar
 ==========================
 
 The progress bar by default already includes the training loss and version number of the experiment
@@ -327,7 +323,7 @@ if you are using a logger. These defaults can be customized by overriding the
 
 
 *************************
-Configure console logging
+Configure Console Logging
 *************************
 
 Lightning logs useful information about the training process and user warnings to the console.
@@ -338,7 +334,7 @@ or redirect output for certain modules to log files:
 
     import logging
 
-    # configure logging at the root level of lightning
+    # configure logging at the root level of Lightning
     logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 
     # configure logging on module level, redirect to file
@@ -351,7 +347,7 @@ Read more about custom Python logging `here <https://docs.python.org/3/library/l
 ----------
 
 ***********************
-Logging hyperparameters
+Logging Hyperparameters
 ***********************
 
 When training a model, it is useful to know what hyperparams went into that model.
@@ -390,7 +386,7 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
 ----------
 
 *************
-Snapshot code
+Snapshot Code
 *************
 
 Loggers also allow you to snapshot a copy of the code used in this experiment.
