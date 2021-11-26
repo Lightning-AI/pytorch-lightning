@@ -172,11 +172,20 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
+        self._finalize_logger(*args)
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
         return return_queue.get() if return_result else None
+
+    def _finalize_logger(self, *args: Any) -> None:
+        if isinstance(args[0], pl.Trainer):
+            trainer = args[0]
+            if isinstance(trainer.logger, pl.loggers.TensorBoardLogger):
+                if trainer.logger._experiment is not None:
+                    rank_zero_warn("When using `ddp_spawn`, the Tensorboard shouldn't be created.")
+                trainer.logger._experiment = None
 
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
