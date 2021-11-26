@@ -263,7 +263,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
-    # @rank_zero_only
+    @rank_zero_only
     def finalize(self, status: str) -> None:
         self.experiment.flush()
         self.experiment.close()
