@@ -160,7 +160,7 @@ def test_pruning_callback(
     )
 
 
-@RunIf(special=True, min_gpus=2)
+@RunIf(standalone=True, min_gpus=2)
 @pytest.mark.parametrize("parameters_to_prune", (False, True))
 @pytest.mark.parametrize("use_global_unstructured", (False, True))
 def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured):

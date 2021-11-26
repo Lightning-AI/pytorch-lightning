@@ -190,7 +190,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
         assert torch.equal(w_pure.cpu(), w_lite.cpu())
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [

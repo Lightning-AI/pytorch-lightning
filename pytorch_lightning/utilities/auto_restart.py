@@ -31,6 +31,8 @@ from torch.utils.data.dataloader import (
 from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -251,9 +253,7 @@ class CaptureMapDataset(Dataset):
 
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        state_dict = deepcopy(state_dict)
-        state_dict = _rotate_worker_indices(state_dict, latest_worker_id, num_workers)
-        self._cached_state_dict = state_dict
+        self._cached_state_dict = _rotate_worker_indices(deepcopy(state_dict), latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
@@ -513,14 +513,17 @@ def patch_dataloader_iterator(
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
-    faut_tolerant_mode = _FaultTolerantMode.detect_current_mode()
-    if not faut_tolerant_mode.is_enabled:
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+    collate_fn = dataloader.collate_fn
+    if not fault_tolerant_mode.is_enabled or (
+        isinstance(collate_fn, partial) and collate_fn.func is _capture_metadata_collate
+    ):
         return
     dataloader.collate_fn = partial(
         _capture_metadata_collate,
         dataset=dataloader.dataset,
-        collate_fn=dataloader.collate_fn,
-        fault_tolerant_mode=faut_tolerant_mode,
+        collate_fn=collate_fn,
+        fault_tolerant_mode=fault_tolerant_mode,
     )
 
 
@@ -658,8 +661,7 @@ class _StatefulDataLoaderIter:
         return indexes
 
     def _prepare_loader(self, loader):
-        if not isinstance(loader.collate_fn, partial):
-            loader.collate_fn = partial(_capture_metadata_collate, dataset=loader.dataset, collate_fn=loader.collate_fn)
+        _add_capture_metadata_collate(loader)
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
@@ -723,6 +725,8 @@ def _get_iterator(self) -> "_BaseDataLoaderIter":
 
 def _patch_dataloader_get_iterators() -> None:
     """This function is used to replace the DataLoader iterator by their stateful version."""
+    if not _FaultTolerantMode.detect_current_mode().is_manual:
+        return
     if not hasattr(DataLoader, "_ori_get_iterator"):
         DataLoader._ori_get_iterator = DataLoader._get_iterator
     DataLoader._get_iterator = _get_iterator
@@ -735,3 +739,14 @@ def _teardown_dataloader_get_iterators() -> None:
     if get_iterator:
         DataLoader._get_iterator = get_iterator
         del DataLoader._ori_get_iterator
+
+
+def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
+    """This utility collects the state across processes for a collection of state."""
+
+    def fn(state: Dict):
+        if key in state:
+            return _collect_states_on_rank_zero(state)
+        return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
+
+    return apply_to_collection(state_dict, Dict, fn)
