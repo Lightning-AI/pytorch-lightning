@@ -38,7 +38,7 @@ class Callback(abc.ABC):
         """Identifier for the state of the callback.
 
         Used to store and retrieve a callback's state from the checkpoint dictionary by
-        ``checkpoint["callbacks"][state_key]``. Implementations of a callback need to provide a unique state key if 1)
+        ``checkpoint["callbacks"]["state_key"]``. Implementations of a callback need to provide a unique state key if 1)
         the callback has state and 2) it is desired to maintain the state of multiple instances of that callback.
         """
         return self.__class__.__qualname__
@@ -169,6 +169,10 @@ class Callback(abc.ABC):
         """Called when the training batch begins."""
         pass
 
+    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Called when the training batch ends."""
+        pass
+
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
@@ -221,10 +225,6 @@ class Callback(abc.ABC):
         dataloader_idx: int,
     ) -> None:
         """Called when the predict batch ends."""
-        pass
-
-    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch ends."""
         pass
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
