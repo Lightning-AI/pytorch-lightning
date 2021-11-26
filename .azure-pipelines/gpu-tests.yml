@@ -72,10 +72,10 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
-        bash tests/special_tests.sh
+        bash tests/standalone_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Testing: special'
+      displayName: 'Testing: standalone'
 
     - bash: |
         python -m coverage report

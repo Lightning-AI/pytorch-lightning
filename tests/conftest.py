@@ -172,13 +172,13 @@ def single_process_pg():
 
 
 def pytest_collection_modifyitems(items):
-    if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") != "1":
+    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
         return
-    # filter out non-special tests
+    # filter out non-standalone tests
     items[:] = [
         item
         for item in items
         for marker in item.own_markers
-        # has `@RunIf(special=True)`
-        if marker.name == "skipif" and marker.kwargs.get("special")
+        # has `@RunIf(standalone=True)`
+        if marker.name == "skipif" and marker.kwargs.get("standalone")
     ]
