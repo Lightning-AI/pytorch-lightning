@@ -89,7 +89,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -98,7 +98,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
@@ -136,7 +136,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.test(ckpt_path=model_path)
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
 def test_fsdp_gradient_clipping_raises(tmpdir):
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
     model = BoringModel()

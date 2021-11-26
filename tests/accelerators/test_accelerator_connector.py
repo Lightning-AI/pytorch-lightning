@@ -323,8 +323,8 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-@RunIf(special=True)
-def test_accelerator_choice_ddp_cpu_and_plugin(tmpdir):
+@RunIf(skip_windows=True, standalone=True)
+def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
     _test_accelerator_choice_ddp_cpu_and_plugin(tmpdir, ddp_plugin_class=DDPPlugin)
 

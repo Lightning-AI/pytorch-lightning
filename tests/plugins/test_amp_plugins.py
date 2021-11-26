@@ -190,7 +190,7 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True, special=True)
+@RunIf(min_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
     class CustomBoringModel(BoringModel):

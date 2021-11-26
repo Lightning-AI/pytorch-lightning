@@ -65,7 +65,7 @@ class RunIf:
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
-        special: bool = False,
+        standalone: bool = False,
         fairscale: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
@@ -87,7 +87,7 @@ class RunIf:
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically for some limited torch functionality)
-            special: running in special mode, outside pytest suit
+            standalone: Mark the test as standalone, our CI will run it in a separate process.
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
@@ -146,12 +146,12 @@ class RunIf:
             conditions.append(not _HOROVOD_NCCL_AVAILABLE)
             reasons.append("Horovod with NCCL")
 
-        if special:
-            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
+        if standalone:
+            env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
             conditions.append(env_flag != "1")
-            reasons.append("Special execution")
+            reasons.append("Standalone execution")
             # used in tests/conftest.py::pytest_collection_modifyitems
-            kwargs["special"] = True
+            kwargs["standalone"] = True
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
