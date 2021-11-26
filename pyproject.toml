@@ -75,8 +75,6 @@ module = [
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.evaluation_epoch_loop",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
-    "pytorch_lightning.loops.fit_loop",
-    "pytorch_lightning.loops.utilities",
     "pytorch_lightning.overrides.base",
     "pytorch_lightning.overrides.data_parallel",
     "pytorch_lightning.overrides.distributed",
