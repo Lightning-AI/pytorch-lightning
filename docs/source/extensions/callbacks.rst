@@ -211,7 +211,7 @@ Properties
 state_key
 ~~~~~~~~~
 
-.. automethod:: pytorch_lightning.callbacks.Callback.state_key
+.. autoattribute:: pytorch_lightning.callbacks.Callback.state_key
     :noindex:
 
 
