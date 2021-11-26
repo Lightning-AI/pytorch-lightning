@@ -169,10 +169,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = []
         else:
             # hook
-            response = self.trainer.call_hook("on_batch_start")
-            if response == -1:
-                self.batch_progress.increment_processed()
-                raise StopIteration
+            self.trainer.call_hook("on_batch_start")
 
             # TODO: Update this in v1.7 (deprecation: #9816)
             model_fx = self.trainer.lightning_module.on_train_batch_start
