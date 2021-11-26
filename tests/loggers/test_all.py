@@ -330,7 +330,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-@pytest.mark.parametrize("logger_class", [TensorBoardLogger])
+@pytest.mark.parametrize("logger_class", [CometLogger, CSVLogger, MLFlowLogger, TensorBoardLogger, TestTubeLogger])
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
