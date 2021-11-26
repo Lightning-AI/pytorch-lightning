@@ -38,6 +38,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.utilities import _parse_max_epochs_and_steps
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
@@ -444,19 +445,10 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # rank_zero_warning of type UserWarning for max_epochs if not set
-        if self.max_epochs is None and max_steps == -1 and max_time is None:
-            rank_zero_warn(
-                "`max_epochs` is not set. By default it will run for 1000 epochs.",
-                UserWarning,
-            )
-
-        fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(
-                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
-            ),
-        )
+        # raises rank_zero_warn if max_epochs is not set
+        min_epochs, max_epochs = _parse_max_epochs_and_steps(self.max_steps, self.max_epochs, max_time, self.min_steps, self.min_epochs)
+        
+        fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
@@ -485,7 +477,7 @@ class Trainer(
 
         # todo: remove in v1.7
         self._weights_summary: Optional[str] = None
-
+        
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
