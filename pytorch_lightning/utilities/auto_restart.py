@@ -31,6 +31,8 @@ from torch.utils.data.dataloader import (
 from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -737,3 +739,14 @@ def _teardown_dataloader_get_iterators() -> None:
     if get_iterator:
         DataLoader._get_iterator = get_iterator
         del DataLoader._ori_get_iterator
+
+
+def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
+    """This utility collects the state across processes for a collection of state."""
+
+    def fn(state: Dict):
+        if key in state:
+            return _collect_states_on_rank_zero(state)
+        return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
+
+    return apply_to_collection(state_dict, Dict, fn)
