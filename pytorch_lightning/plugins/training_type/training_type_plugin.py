@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -44,9 +45,9 @@ class TrainingTypePlugin(ABC):
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
-        self.optimizers: List = []
-        self.lr_schedulers: List = []
-        self.optimizer_frequencies: List = []
+        self.optimizers: List[Optimizer] = []
+        self.lr_schedulers: List[_LRScheduler] = []
+        self.optimizer_frequencies: List[int] = []
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
