@@ -63,11 +63,11 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerSta
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _AcceleratorType,
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
-    DeviceType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -1567,32 +1567,38 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}")
+        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
+        num_tpu_cores = (
+            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+        )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
             )
 
-        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
+        if (
+            _IPU_AVAILABLE
+            and self._device_type != _AcceleratorType.IPU
+            and not isinstance(self.accelerator, IPUAccelerator)
+        ):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self):
+    def _on_exception(self) -> None:
         if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
@@ -1643,7 +1649,7 @@ class Trainer(
         return self._accelerator_connector._distrib_type
 
     @property
-    def _device_type(self) -> DeviceType:
+    def _device_type(self) -> _AcceleratorType:
         return self._accelerator_connector._device_type
 
     @property
@@ -2142,10 +2148,13 @@ class Trainer(
             return active_loop._results
 
     def _exit_gracefully_on_signal(self) -> None:
-        if _fault_tolerant_training() and self._terminate_gracefully:
-            caller = inspect.stack()[1]
-            class_name = caller[0].f_locals["self"].__class__.__name__
-            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
+            return
+        raise ExitGracefullyException(0)
+
+    def _should_terminate_gracefully(self) -> bool:
+        value = torch.tensor(int(self._terminate_gracefully), device=self.training_type_plugin.root_device)
+        return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
 
     @property
     def weights_summary(self) -> Optional[str]:
