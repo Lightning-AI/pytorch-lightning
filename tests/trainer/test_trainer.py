@@ -1462,7 +1462,7 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
     predict(tmpdir, datamodule=datamodule, enable_progress_bar=enable_progress_bar)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -1899,7 +1899,7 @@ class CustomException(Exception):
     pass
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
 
