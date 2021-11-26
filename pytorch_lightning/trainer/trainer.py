@@ -1166,6 +1166,7 @@ class Trainer(
         # been included at the end of `new_process` functions)
         if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
             self._call_teardown_hook()
+        self.logger.finalize("success")
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
