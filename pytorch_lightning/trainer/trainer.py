@@ -445,7 +445,6 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # raises rank_zero_warn if max_epochs is not set
         min_epochs, max_epochs = _parse_max_epochs_and_steps(
             self.max_steps, self.max_epochs, max_time, self.min_steps, self.min_epochs
         )
