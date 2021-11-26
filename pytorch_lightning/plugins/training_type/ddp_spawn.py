@@ -25,6 +25,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -172,20 +173,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         Return:
             The output of the function of process 0.
         """
-        self._finalize_logger(*args)
+        self._clean_logger(*args)
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue() if return_result else None
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
         return return_queue.get() if return_result else None
-
-    def _finalize_logger(self, *args: Any) -> None:
-        if isinstance(args[0], pl.Trainer):
-            trainer = args[0]
-            if isinstance(trainer.logger, pl.loggers.TensorBoardLogger):
-                if trainer.logger._experiment is not None:
-                    rank_zero_warn("When using `ddp_spawn`, the Tensorboard shouldn't be created.")
-                trainer.logger._experiment = None
 
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
@@ -424,3 +417,14 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    @staticmethod
+    def _clean_logger(*args: Any) -> None:
+        if isinstance(args[0], pl.Trainer):
+            trainer = args[0]
+            loggers = trainer._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+            for logger in loggers:
+                if isinstance(logger, TensorBoardLogger):
+                    if logger._experiment is not None:
+                        rank_zero_warn("When using `ddp_spawn`, the Tensorboard experiment shouldn't be created.")
+                    logger._experiment = None
