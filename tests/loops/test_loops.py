@@ -61,7 +61,7 @@ def test_connect_loops_direct(loop_name):
 
     trainer = Trainer()
 
-    # trainer.loop = loop
+    # trainer.loop_name = loop
     setattr(trainer, loop_name, loop)
     assert loop.trainer is trainer
 

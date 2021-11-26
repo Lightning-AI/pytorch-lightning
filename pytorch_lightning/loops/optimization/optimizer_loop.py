@@ -176,8 +176,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._outputs: _OUTPUTS_TYPE = {}
         self._skip_backward: bool = False
         self._batch_idx: int = 0
-        self._optimizers: List[Optimizer] = []
-        self._indices: List[int] = []
+        self._optimizers: Tuple[Optimizer, ...] = tuple()
+        self._indices: Tuple[int, ...] = tuple()
         self._hiddens: Optional[Any] = None
 
     @property
@@ -223,6 +223,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self._outputs = self._outputs, {}  # free memory
+        self._indices = tuple()
+        self._optimizers = tuple()
         return outputs
 
     def _run_optimization(
@@ -268,9 +270,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
-            assert self.trainer.fit_loop is not None
-            assert self.trainer.fit_loop.epoch_loop is not None
-            assert self.trainer.fit_loop.epoch_loop.batch_loop is not None
             self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
         # untoggle model params

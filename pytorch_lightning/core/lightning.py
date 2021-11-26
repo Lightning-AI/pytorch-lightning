@@ -878,7 +878,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         """Called at the end of the validation epoch with the outputs of all validation steps.
 
         .. code-block:: python
@@ -1056,7 +1056,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         """Called at the end of a test epoch with the output of all test steps.
 
         .. code-block:: python
