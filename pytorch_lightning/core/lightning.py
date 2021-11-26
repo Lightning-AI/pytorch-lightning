@@ -18,10 +18,10 @@ import inspect
 import logging
 import numbers
 import os
+import tempfile
 import types
 import uuid
 from abc import ABC
-import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
@@ -1808,8 +1808,7 @@ class LightningModule(
         model_check_fn: Callable = None,
         **kwargs,
     ) -> None:
-        """
-        Saves the model in ONNX format.
+        """Saves the model in ONNX format.
 
         Args:
             file_path: The path of the file the onnx model should be saved to.
@@ -1846,7 +1845,7 @@ class LightningModule(
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
         if not isinstance(input_sample, (Tuple, List)):
-            input_sample = (input_sample, )
+            input_sample = (input_sample,)
 
         if "example_outputs" not in kwargs:
             self.eval()
@@ -1855,7 +1854,7 @@ class LightningModule(
         torch.onnx.export(self, input_sample, file_path, **kwargs)
 
         model_check_fn = model_check_fn or self._default_model_check_fn
-        model_check_fn(file_path, input_sample, kwargs['example_outputs'])
+        model_check_fn(file_path, input_sample, kwargs["example_outputs"])
 
         self.train(mode)
 
@@ -1881,7 +1880,7 @@ class LightningModule(
 
         # compare against PyTorch outputs
         if not isinstance(torch_outs, (tuple, list)):
-            torch_outs = (torch_outs, )
+            torch_outs = (torch_outs,)
         for ort_out, torch_out in zip(ort_outs, torch_outs):
             np.testing.assert_allclose(torch_out.detach().cpu().numpy(), ort_out, rtol=1e-03, atol=1e-05)
 
