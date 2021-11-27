@@ -46,7 +46,7 @@ class _LiteOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_LiteOptimizer
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._accelerator = accelerator
@@ -54,6 +54,9 @@ class _LiteOptimizer:
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
+
+    def state_dict(self) -> Dict[str, Tensor]:
+        return self._accelerator.optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
