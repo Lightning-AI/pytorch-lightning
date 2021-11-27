@@ -5,7 +5,7 @@ PyTorch Lightning enables working with data from a variety of filesystems, inclu
 such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
 
 This applies to saving and writing checkpoints, as well as for logging.
-Working with different filesystems could be accomplished by appending a protocol like "s3:/" to file paths for writing and reading data.
+Working with different filesystems can be accomplished by appending a protocol like "s3:/" to file paths for writing and reading data.
 
 
 .. code-block:: python
