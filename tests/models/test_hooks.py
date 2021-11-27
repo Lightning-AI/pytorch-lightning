@@ -494,6 +494,7 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         "optimizer_states": ANY,
         "pytorch-lightning_version": __version__,
         "state_dict": ANY,
+        "loops": ANY,
     }
     if kwargs.get("amp_backend") == "native":
         saved_ckpt["native_amp_scaling_state"] = ANY
@@ -621,6 +622,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         "optimizer_states": ANY,
         "pytorch-lightning_version": __version__,
         "state_dict": ANY,
+        "loops": ANY,
     }
     # TODO: wrong saved epoch, should be 0
     saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 2}

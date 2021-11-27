@@ -234,7 +234,7 @@ class Loop(ABC, Generic[T]):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
-            elif isinstance(v, ResultCollection):
+            elif self.trainer.state._fault_tolerant_mode.is_enabled and isinstance(v, ResultCollection):
                 # sync / unsync metrics
                 v.sync()
                 destination[key] = v.state_dict()
@@ -257,6 +257,10 @@ class Loop(ABC, Generic[T]):
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
+            if not self.trainer.state._fault_tolerant_mode.is_enabled or key not in state_dict:
+                # no state for this object, maybe we are loading an old checkpoint
+                continue
+
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
             elif (

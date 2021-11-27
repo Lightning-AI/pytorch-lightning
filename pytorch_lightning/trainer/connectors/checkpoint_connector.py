@@ -371,9 +371,8 @@ class CheckpointConnector:
             "global_step": global_step,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
+            "loops": self._get_loops_state_dict(),
         }
-        if _fault_tolerant_training():
-            checkpoint["loops"] = self._get_loops_state_dict()
 
         if not weights_only:
             # dump callbacks
