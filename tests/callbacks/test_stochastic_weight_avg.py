@@ -138,7 +138,7 @@ def train_with_swa(
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, strategy="ddp", gpus=2)
 

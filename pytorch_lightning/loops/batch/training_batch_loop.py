@@ -48,7 +48,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         return len(self._remaining_splits) == 0
 
     def connect(
-        self, optimizer_loop: Optional["Loop"] = None, manual_loop: Optional[ManualOptimization] = None
+        self, optimizer_loop: Optional[OptimizerLoop] = None, manual_loop: Optional[ManualOptimization] = None
     ) -> None:
         if optimizer_loop is not None:
             self.optimizer_loop = optimizer_loop

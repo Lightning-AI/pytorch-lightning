@@ -27,9 +27,9 @@ from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch import autocast
+    from torch import autocast as new_autocast
 else:
-    from torch.cuda.amp import autocast
+    from torch.cuda.amp import autocast as old_autocast
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -72,7 +72,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
@@ -103,12 +103,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
 
-    def autocast_context_manager(self) -> autocast:
+    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
-            return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return autocast()
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
