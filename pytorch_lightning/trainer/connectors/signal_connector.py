@@ -114,13 +114,13 @@ class SignalConnector:
     def _valid_signals() -> Set[Signals]:
         """Returns all valid signals supported on the current platform.
 
-        Behaves identically to
-        :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for older Python
-        versions.
+        Behaves identically to :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for
+        older Python versions.
         """
         if sys.version_info >= (3, 8):
             return signal.valid_signals()
         elif _IS_WINDOWS:
+            # supported signals on Windows: https://docs.python.org/3/library/signal.html#signal.signal
             return {
                 signal.SIGABRT,
                 signal.SIGFPE,
