@@ -1052,7 +1052,7 @@ def test_unsupported_ipu_choice(monkeypatch):
 @mock.patch("torch.cuda.is_available", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
-def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
+def test_devices_auto_choice_cpu(*_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 1
     assert trainer.num_processes == 1
@@ -1086,7 +1086,7 @@ def test_training_plugin_attrs_set_when_passed_with_cpu_accelerator():
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_training_plugin_attrs_set_when_passed_with_gpu_accelerator(is_gpu_available_mock, device_count_mock):
+def test_training_plugin_attrs_set_when_passed_with_gpu_accelerator(*_):
 
     trainer = Trainer(accelerator=GPUAccelerator(PrecisionPlugin(), DDPPlugin()), gpus=2)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
@@ -1109,9 +1109,7 @@ def test_training_plugin_attrs_set_when_passed_with_gpu_accelerator(is_gpu_avail
 
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._IPU_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.plugins.training_type.ipu._IPU_AVAILABLE", return_value=True)
-def test_training_plugin_attrs_set_when_passed_with_ipu_accelerator(
-    acc_connector_ipu_mock, is_training_type_ipu_available_mock
-):
+def test_training_plugin_attrs_set_when_passed_with_ipu_accelerator(*_):
 
     trainer = Trainer(accelerator=IPUAccelerator(PrecisionPlugin(), IPUPlugin()), ipus=2)
     assert isinstance(trainer.training_type_plugin, IPUPlugin)
@@ -1127,9 +1125,7 @@ def test_training_plugin_attrs_set_when_passed_with_ipu_accelerator(
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._TPU_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.utilities.device_parser._TPU_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn._TPU_AVAILABLE", return_value=True)
-def test_training_plugin_attrs_set_when_passed_with_tpu_accelerator(
-    acc_connector_tpu_mock, device_parser_tpu_mock, training_type_tpu_available_mock
-):
+def test_training_plugin_attrs_set_when_passed_with_tpu_accelerator(*_):
 
     trainer = Trainer(accelerator=TPUAccelerator(PrecisionPlugin(), TPUSpawnPlugin()), tpu_cores=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
