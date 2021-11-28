@@ -38,7 +38,7 @@ class Callback(abc.ABC):
         """Identifier for the state of the callback.
 
         Used to store and retrieve a callback's state from the checkpoint dictionary by
-        ``checkpoint["callbacks"]["state_key"]``. Implementations of a callback need to provide a unique state key if 1)
+        ``checkpoint["callbacks"][state_key]``. Implementations of a callback need to provide a unique state key if 1)
         the callback has state and 2) it is desired to maintain the state of multiple instances of that callback.
         """
         return self.__class__.__qualname__

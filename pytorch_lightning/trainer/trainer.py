@@ -2004,7 +2004,7 @@ class Trainer(
         """Attach a custom fit loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.fit`.
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`.
         """
         loop.trainer = self
         self._fit_loop = loop
@@ -2018,7 +2018,7 @@ class Trainer(
         """Attach a custom validation loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
         running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
         """
         loop.trainer = self
