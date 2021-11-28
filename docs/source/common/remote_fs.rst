@@ -30,17 +30,17 @@ Additionally, you could also resume training with a checkpoint stored at a remot
 .. code-block:: python
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
-    trainer.fit(model, ckpt_path="s3://lightning/ckpts/classifier.ckpt")
+    trainer.fit(model, ckpt_path="s3://my_bucket/ckpts/classifier.ckpt")
 
 PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/en/latest/>`__ internally to handle all filesystem operations.
 
 The most common filesystems supported by Lightning are:
 
-* Local filesystem: ``file://`` - It's the default and doesn't need any protocol to be used.
-* Amazon S3: ``s3://`` - Amazon S3 remote binary store, using the library `s3fs <https://s3fs.readthedocs.io/>`__.
-* Google Cloud Storage: ``gcs://`` or ``gs://`` - Google Cloud Storage, using `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`__.
-* Microsoft Azure Storage: ``adl://``, ``abfs://`` or ``az://`` - Microsoft Azure Storage, using `adlfs <https://github.com/fsspec/adlfs>`__.
-* Hadoop File System: ``hdfs://`` - Hadoop Distributed File System. This uses `PyArrow <https://arrow.apache.org/docs/python/>`__ as the backend.
+* Local filesystem: ``file://`` - It's the default and doesn't need any protocol to be used. It's installed by default in Lightning.
+* Amazon S3: ``s3://`` - Amazon S3 remote binary store, using the library `s3fs <https://s3fs.readthedocs.io/>`__. Run ``pip install fsspec[s3]`` to install it.
+* Google Cloud Storage: ``gcs://`` or ``gs://`` - Google Cloud Storage, using `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`__. Run ``pip install fsspec[gcs]`` to install it.
+* Microsoft Azure Storage: ``adl://``, ``abfs://`` or ``az://`` - Microsoft Azure Storage, using `adlfs <https://github.com/fsspec/adlfs>`__. Run ``pip install fsspec[adl]`` to install it.
+* Hadoop File System: ``hdfs://`` - Hadoop Distributed File System. This uses `PyArrow <https://arrow.apache.org/docs/python/>`__ as the backend. Run ``pip install fsspec[hdfs]`` to install it.
 
 You could learn more about the available filesystems with:
 
