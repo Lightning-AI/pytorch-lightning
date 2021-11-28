@@ -36,7 +36,7 @@ disable_error_code = "attr-defined"
 # style choices
 warn_no_return = "False"
 
-# Changes mypy default to ignore all errors
+# Ignore mypy errors for these files
 # TODO: the goal is for this to be empty
 [[tool.mypy.overrides]]
 # the list can be generated with:
@@ -63,8 +63,6 @@ module = [
     "pytorch_lightning.core.mixins.hparams_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.distributed.dist",
-    "pytorch_lightning.lite.lite",
-    "pytorch_lightning.lite.wrappers",
     "pytorch_lightning.loggers.base",
     "pytorch_lightning.loggers.comet",
     "pytorch_lightning.loggers.csv_logs",
@@ -88,9 +86,6 @@ module = [
     "pytorch_lightning.plugins.environments.lsf_environment",
     "pytorch_lightning.plugins.environments.slurm_environment",
     "pytorch_lightning.plugins.environments.torchelastic_environment",
-    "pytorch_lightning.plugins.precision.deepspeed",
-    "pytorch_lightning.plugins.precision.native_amp",
-    "pytorch_lightning.plugins.precision.precision_plugin",
     "pytorch_lightning.plugins.training_type.ddp",
     "pytorch_lightning.plugins.training_type.ddp2",
     "pytorch_lightning.plugins.training_type.ddp_spawn",
