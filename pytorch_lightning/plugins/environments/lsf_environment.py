@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import os
-import sys
-import re
 import socket
-import warnings
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 
