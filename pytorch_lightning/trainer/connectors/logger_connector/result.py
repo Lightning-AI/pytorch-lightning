@@ -432,6 +432,7 @@ class ResultCollection(dict):
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
+        add_dataloader_idx: bool = True,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
@@ -449,7 +450,7 @@ class ResultCollection(dict):
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
-        if dataloader_idx is not None:
+        if add_dataloader_idx:
             key += f".{dataloader_idx}"
             fx += f".{dataloader_idx}"
 
@@ -527,8 +528,9 @@ class ResultCollection(dict):
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
-        dl_idx = result_metric.meta.dataloader_idx
-        if dl_idx is not None:
+        add_datalaoder_idx = result_metric.meta.add_dataloader_idx
+        if add_datalaoder_idx is not None:
+            dl_idx = result_metric.meta.dataloader_idx
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
             forked_name += dataloader_suffix
@@ -565,8 +567,8 @@ class ResultCollection(dict):
 
             # populate callback metrics. callback metrics don't take `_step` forked metrics
             if self.training or result_metric.meta.on_epoch and not on_step:
-                metrics["callback"][name] = value
-                metrics["callback"][forked_name] = value
+                metrics["callback"][name] = {"value": value, "dataloader_idx": result_metric.meta.dataloader_idx}
+                metrics["callback"][forked_name] = {"value": value, "dataloader_idx": result_metric.meta.dataloader_idx}
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:

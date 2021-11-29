@@ -156,10 +156,8 @@ class LoggerConnector:
         self._increment_eval_log_step()
 
     @staticmethod
-    def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
-    ) -> _OUT_DICT:
-        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
+    def _filter_metrics_for_dataloader(dl_idx: int, metrics: _OUT_DICT) -> _OUT_DICT:
+        return {k: v["value"] for k, v in metrics.items() if v["dataloader_idx"] == dl_idx}
 
     def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
         if self.trainer.sanity_checking:
@@ -279,7 +277,7 @@ class LoggerConnector:
         assert self._epoch_end_reached
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
-        self._callback_metrics.update(metrics["callback"])
+        self._callback_metrics.update({k: v["value"] for k, v in metrics["callback"].items()})
         self._logged_metrics.update(metrics["log"])
         self._current_fx = None
 
@@ -287,7 +285,7 @@ class LoggerConnector:
         assert not self._epoch_end_reached
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
-        self._callback_metrics.update(metrics["callback"])
+        self._callback_metrics.update({k: v["value"] for k, v in metrics["callback"].items()})
         self._logged_metrics.update(metrics["log"])
 
         assert self.trainer._results is not None
@@ -338,6 +336,7 @@ class LoggerConnector:
     def callback_metrics(self) -> _OUT_DICT:
         if self.trainer._results:
             metrics = self.metrics["callback"]
+            metrics = {k: v["value"] for k, v in metrics["callback"].items()}
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
