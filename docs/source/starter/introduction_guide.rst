@@ -443,7 +443,7 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             logits = self(x)
             loss = F.nll_loss(logits, y)
             return loss
-            
+
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
