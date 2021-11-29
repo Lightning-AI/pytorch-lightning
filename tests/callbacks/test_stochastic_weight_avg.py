@@ -360,3 +360,19 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
 @RunIf(skip_windows=True)
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     swa_resume_training_from_checkpoint(tmpdir, ddp=True)
+
+
+@RunIf(min_gpus=1)
+def test_misconfiguration_error_with_sharded_model(tmpdir):
+    model = SwaTestModel()
+    swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=5,
+        callbacks=[swa_callback],
+        strategy="ddp_fully_sharded",
+        gpus=1,
+    )
+    with pytest.raises(MisconfigurationException, match="SWA does not currently support sharded models"):
+        trainer.fit(model)

@@ -24,6 +24,8 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin, FullyShardedDataParallel
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -150,6 +152,9 @@ class StochasticWeightAveraging(Callback):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         optimizers = trainer.optimizers
         lr_schedulers = trainer.lr_schedulers
+
+        if isinstance(trainer.training_type_plugin, (DDPFullyShardedPlugin, FullyShardedDataParallel, DeepSpeedPlugin)):
+            raise MisconfigurationException("SWA does not currently support sharded models.")
 
         if len(optimizers) != 1:
             raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
