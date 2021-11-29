@@ -22,11 +22,13 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
     MergedIteratorState,
 )
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -186,9 +188,17 @@ class EvaluationEpochLoop(Loop):
         self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
-        if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = {}
+        if self.trainer.sanity_checking or not self._dataloader_state_dict:
+            return
+        dataloader = data_fetcher.dataloader
+        if isinstance(dataloader, CombinedLoader):
+            raise MisconfigurationException(
+                "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
+                " in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+            )
+        assert dataloader is not None
+        _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
+        self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
