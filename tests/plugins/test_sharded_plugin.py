@@ -278,12 +278,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     plugin = DDPShardedPlugin(**params)
     plugin.num_nodes = num_nodes
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs
 
