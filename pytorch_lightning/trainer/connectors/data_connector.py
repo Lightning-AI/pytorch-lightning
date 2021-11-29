@@ -183,10 +183,13 @@ class DataConnector:
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
-    def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
-        model.trainer = proxy(self.trainer)
-        model.use_amp = self.trainer.amp_backend is not None
-        model.precision = self.trainer.precision
+    def _copy_trainer_model_properties(self, model):
+        ref_model = self.trainer.lightning_module or model
+
+        for m in [model, ref_model]:
+            m.trainer = proxy(self.trainer)
+            m.use_amp = self.trainer.amp_backend is not None
+            m.precision = self.trainer.precision
 
     def attach_dataloaders(
         self,
