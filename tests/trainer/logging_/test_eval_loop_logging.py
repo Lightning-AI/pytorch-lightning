@@ -733,18 +733,18 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     fast_dev_run = 5
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
     results = trainer.test(model)
+
     accumulated_value = fast_dev_run * (fast_dev_run + 1) / (2 * fast_dev_run)
-    breakpoint()
     assert len(results) == num_dataloaders
-    results[0] = {
-        "test_log_common/dataloader_idx_0": 789,
-        "test_log_common_diff_value/dataloader_idx_0": 1,
-        "test_log_no_dl_class": accumulated_value * 1,
-        "test_log_a_class": 123,
+    assert results[0] == {
+        "test_log_common/dataloader_idx_0": 789.0,
+        "test_log_common_diff_value/dataloader_idx_0": 1.0,
+        "test_log_no_dl_idx_0": accumulated_value * 1,
+        "test_log_a_class": 123.0,
     }
-    results[0] = {
-        "test_log_common/datalaoder_idx_1": 789,
-        "test_log_common_diff_value/dataloader_idx_1": 2,
-        "test_log_no_dl_class": accumulated_value * 2,
-        "test_log_a_class": 456,
+    assert results[1] == {
+        "test_log_common/dataloader_idx_1": 789.0,
+        "test_log_common_diff_value/dataloader_idx_1": 2.0,
+        "test_log_no_dl_idx_1": accumulated_value * 2,
+        "test_log_b_class": 456.0,
     }
