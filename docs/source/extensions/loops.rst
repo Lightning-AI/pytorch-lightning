@@ -50,7 +50,7 @@ Think of this as swapping out the engine in a car!
 
 ----------
 
-Understanding the default Trainer Loop
+Understanding the Default Trainer Loop
 --------------------------------------
 
 The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` automates the standard optimization loop which every PyTorch user is familiar with:
