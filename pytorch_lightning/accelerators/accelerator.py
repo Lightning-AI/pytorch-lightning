@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -144,24 +144,6 @@ class Accelerator:
         It is the right place to release memory and free other resources.
         """
         self.training_type_plugin.teardown()
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        """Moves the batch to the correct device. The returned batch is of the same type as the input batch, just
-        having all tensors on the correct device.
-
-        Args:
-            batch: The batch of samples to move to the correct device
-            device: The target device
-            dataloader_idx: The index of the dataloader to which the batch belongs.
-        """
-        model = self.lightning_module
-        device = device or self.root_device
-
-        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
-            # no need to transfer batch to device in DP mode
-            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
-
-        return move_data_to_device(batch, device)
 
     def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual training step.
