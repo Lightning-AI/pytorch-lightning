@@ -410,8 +410,8 @@ Training
 So far we defined 4 key ingredients in pure PyTorch but organized the code with the LightningModule.
 
 1. Model.
-2. Training data.
-3. Optimizer.
+2. Optimizer.
+3. Training data.
 4. What happens in the training loop.
 
 |
@@ -443,6 +443,9 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             logits = self(x)
             loss = F.nll_loss(logits, y)
             return loss
+            
+        def configure_optimizers(self):
+            return Adam(self.parameters(), lr=1e-3)
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
