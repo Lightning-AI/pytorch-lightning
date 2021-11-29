@@ -23,7 +23,6 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
-from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
