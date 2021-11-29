@@ -1304,13 +1304,9 @@ class Trainer(
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
-        using_val_step = self._data_connector._val_dataloader_source.is_defined() and is_overridden(
-            "validation_step", ref_model
-        )
         should_sanity_check = (
-            using_val_step
+            self.enable_validation
             and self.num_sanity_val_steps > 0
-            and self.limit_val_batches > 0
             # do not sanity check if restarting because it would mess up the loaded state
             and not self._evaluation_loop.restarting
         )
@@ -1787,8 +1783,9 @@ class Trainer(
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         model_ref = self.lightning_module
-        val_loop_enabled = is_overridden("validation_step", model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled
+        val_dataloader_defined = self._data_connector._val_dataloader_source.is_defined()
+        val_step_overridden = is_overridden("validation_step", model_ref)
+        return val_dataloader_defined and val_step_overridden and self.limit_val_batches > 0
 
     @property
     def default_root_dir(self) -> str:
