@@ -32,11 +32,11 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
-    elif trainer.state.fn == TrainerFn.VALIDATING:
+    elif trainer.state.fn is TrainerFn.VALIDATING:
         __verify_eval_loop_configuration(trainer, model, "val")
-    elif trainer.state.fn == TrainerFn.TESTING:
+    elif trainer.state.fn is TrainerFn.TESTING:
         __verify_eval_loop_configuration(trainer, model, "test")
-    elif trainer.state.fn == TrainerFn.PREDICTING:
+    elif trainer.state.fn is TrainerFn.PREDICTING:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
     __verify_dp_batch_transfer_support(trainer, model)
@@ -221,7 +221,7 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
         )
 
 
-def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule"):
+def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
     """Check if the current `training_step` is requesting `dataloader_iter`."""
     training_step_fx = model.training_step
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):

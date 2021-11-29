@@ -106,7 +106,6 @@ module = [
     "pytorch_lightning.profiler.pytorch",
     "pytorch_lightning.profiler.simple",
     "pytorch_lightning.trainer.callback_hook",
-    "pytorch_lightning.trainer.configuration_validator",
     "pytorch_lightning.trainer.connectors.accelerator_connector",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.checkpoint_connector",
