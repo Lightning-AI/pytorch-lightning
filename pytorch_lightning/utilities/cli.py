@@ -282,8 +282,8 @@ class LightningArgumentParser(ArgumentParser):
             return clean_argv + [help_key, class_path]
 
         # generate the associated config file
-        argv_class = passed_args.pop(argv_key, None)
-        if argv_class is None:
+        argv_class = passed_args.pop(argv_key, "")
+        if not argv_class:
             # the user passed a config as a str
             class_path = passed_args[f"{argv_key}.class_path"]
             init_args_key = f"{argv_key}.init_args"
