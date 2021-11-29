@@ -91,8 +91,8 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. note::
 
-    All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
-    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')``
+    By default, all loggers log to ``os.getcwd()``. You can change the log path using
+    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')`` without instantiating a logger.
 
 ----------
 
@@ -113,12 +113,13 @@ method to log from anywhere in a :doc:`lightning module <../common/lightning_mod
         self.log("my_metric", x)
 
 
-    # or a dict to get multiple metrics on the same plot of the logger supports it
+    # or a dict to get multiple metrics on the same plot if the logger supports it
     def training_step(self, batch, batch_idx):
         self.log("performance", {"acc": acc, "recall": recall})
 
-Depending on where log is called from, Lightning auto-determines the correct logging mode for you. But of course you can
-override the default behavior by manually setting the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` parameters.
+Depending on where Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method is called, Lightning auto-determines
+the correct logging mode for you. Of course you can override the default behavior by manually setting the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.log` parameters.
 
 .. code-block:: python
 
