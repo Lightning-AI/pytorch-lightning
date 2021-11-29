@@ -24,7 +24,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Protocol,
     runtime_checkable,
     Sequence,
     Type,
@@ -36,6 +35,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
+from typing_extensions import Protocol
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
