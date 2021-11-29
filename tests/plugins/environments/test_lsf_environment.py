@@ -12,78 +12,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
 from pytorch_lightning.plugins.environments import LSFEnvironment
 
 
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
-def test_missing_lsb_hosts():
-    """Test an error when the lsb hosts list cannot be found."""
-    del os.environ["LSB_HOSTS"]
-    with pytest.raises(ValueError, match="Could not find hosts in environment variable LSB_HOSTS"):
-        LSFEnvironment()
+def _make_rankfile(tmp_path):
+    hosts = "batch\n10.10.10.0\n10.10.10.1\n10.10.10.2\n10.10.10.3"
+    p = tmp_path / "lsb_djob_rankfile"
+    p.write_text(hosts)
+    return str(p)
 
 
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+def test_missing_lsb_djob_rankfile():
+    """Test an error when the LSB_DJOB_RANKFILE cannot be found."""
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": None, "LSB_JOBID": "1234"}):
+        del os.environ["LSB_DJOB_RANKFILE"]
+        with pytest.raises(ValueError, match="Could not find environment variable LSB_DJOB_RANKFILE"):
+            LSFEnvironment()
+
+
+def test_empty_lsb_djob_rankfile():
+    """Test an error when the LSB_DJOB_RANKFILE is not populated."""
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": None, "LSB_JOBID": "1234"}):
+        with pytest.raises(ValueError, match="Environment variable LSB_DJOB_RANKFILE is empty"):
+            LSFEnvironment()
+
+
 def test_missing_lsb_job_id():
     """Test an error when the job id cannot be found."""
-    del os.environ["LSB_JOBID"]
-    with pytest.raises(ValueError, match="Could not find job id in environment variable LSB_JOBID"):
-        LSFEnvironment()
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(), "LSB_JOBID": "1234"}):
+        del os.environ["LSB_JOBID"]
+        with pytest.raises(ValueError, match="Could not find job id in environment variable LSB_JOBID"):
+            LSFEnvironment()
 
 
-@mock.patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1"})
-def test_manual_main_port_and_address():
+def test_manual_main_port_and_address(tmp_path):
     """Test a user can set the port manually through the MASTER_PORT env variable."""
-    env = LSFEnvironment()
-    assert env.main_port == 4321
+    with patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_DJOB_RANKFILE": _make_rankfile()}):
+        env = LSFEnvironment()
+        assert env.main_port == 4321
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "LSB_HOSTS": "batch 10.10.10.0 10.10.10.1 10.10.10.2 10.10.10.3",
+def test_attributes_from_environment_variables():
+    """Test that the LSF environment takes the attributes from the environment variables."""
+
+    environ = {
+        "LSB_DJOB_RANKFILE": _make_rankfile(),
         "LSB_JOBID": "1234",
         "JSM_NAMESPACE_SIZE": "4",
         "JSM_NAMESPACE_RANK": "3",
         "JSM_NAMESPACE_LOCAL_RANK": "1",
-    },
-)
-def test_attributes_from_environment_variables():
-    """Test that the LSF environment takes the attributes from the environment variables."""
-    env = LSFEnvironment()
-    assert env.creates_processes_externally
-    assert env.main_address == "10.10.10.0"
-    assert env.main_port == 10234
-    assert env.world_size() == 4
-    assert env.global_rank() == 3
-    assert env.local_rank() == 1
-    env.set_global_rank(100)
-    assert env.global_rank() == 3
-    env.set_world_size(100)
-    assert env.world_size() == 4
-    assert LSFEnvironment.detect()
+    }
+    with patch.dict(os.environ, environ):
+        env = LSFEnvironment()
+        assert env.creates_processes_externally
+        assert env.main_address == "10.10.10.0"
+        assert env.main_port == 10234
+        assert env.world_size() == 4
+        assert env.global_rank() == 3
+        assert env.local_rank() == 1
+        env.set_global_rank(100)
+        assert env.global_rank() == 3
+        env.set_world_size(100)
+        assert env.world_size() == 4
+        assert LSFEnvironment.detect()
 
 
-@mock.patch("socket.gethostname", return_value="host2")
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch host0 host1 host2 host3", "LSB_JOBID": "1234"})
-def test_node_rank(_):
-    env = LSFEnvironment()
-    assert env.node_rank() == 2
+def test_node_rank():
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(), "LSB_JOBID": "1234"}):
+        with patch("socket.gethostname", return_value="10.10.10.2"):
+            env = LSFEnvironment()
+            assert env.node_rank() == 2
 
 
 def test_detect():
     """Test the detection of a LSF environment configuration."""
-    with mock.patch.dict(os.environ, {}):
+    with patch.dict(os.environ, {}):
         assert not LSFEnvironment.detect()
 
-    with mock.patch.dict(
+    with patch.dict(
         os.environ,
         {
-            "LSB_HOSTS": "",
+            "LSB_DJOB_RANKFILE": "",
             "LSB_JOBID": "",
             "JSM_NAMESPACE_SIZE": "",
             "JSM_NAMESPACE_LOCAL_RANK": "",
