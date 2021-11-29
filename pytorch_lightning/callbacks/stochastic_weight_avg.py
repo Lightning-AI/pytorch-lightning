@@ -305,14 +305,9 @@ class StochasticWeightAveraging(Callback):
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        if callback_state:
-            self._init_n_averaged = callback_state["n_averaged"]
-            self._scheduler_step_count = callback_state["scheduler_step_count"]
-            self._load_average_model_parameters(callback_state["average_model_parameters"])
-        else:
-            rank_zero_warn(
-                f"Checkpoint has no data for the {self.state_key} callback, not initializing the callback state."
-            )
+        self._init_n_averaged = callback_state["n_averaged"]
+        self._scheduler_step_count = callback_state["scheduler_step_count"]
+        self._load_average_model_parameters(callback_state["average_model_parameters"])
 
     def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Optional[List[nn.Parameter]]:
         if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
