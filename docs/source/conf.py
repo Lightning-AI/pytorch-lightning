@@ -16,6 +16,7 @@ import glob
 import os
 import shutil
 import sys
+import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
@@ -23,14 +24,16 @@ import pt_lightning_sphinx_theme
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
-PATH_IPYNB = os.path.join(PATH_HERE, "notebooks")
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
+
+_SHOULD_COPY_NOTEBOOKS = True
 
 try:
     from helpers import HelperCLI
 except Exception:
-    raise ModuleNotFoundError("To build the code, please run: `git submodule update --init --recursive`")
+    _SHOULD_COPY_NOTEBOOKS = False
+    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
 FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
@@ -42,8 +45,8 @@ about = module_from_spec(spec)
 spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
-
-HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
+if _SHOULD_COPY_NOTEBOOKS:
+    HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_HERE, "notebooks")
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -110,6 +113,11 @@ extensions = [
     "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
 ]
 
+# Suppress warnings about duplicate labels (needed for PL tutorials)
+suppress_warnings = [
+    "autosectionlabel.*",
+]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -145,7 +153,6 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
-    "notebooks/course_UvA-DL/*",
     "notebooks/sample-template*",
 ]
 
@@ -366,13 +373,11 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
-    _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
-    _TORCH_BFLOAT_AVAILABLE,
-    _TORCH_CPU_AMP_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _module_available,
 )
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")

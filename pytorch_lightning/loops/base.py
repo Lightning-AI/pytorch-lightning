@@ -20,8 +20,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress, Progress
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")  # the output type of `run`
@@ -36,7 +35,7 @@ class Loop(ABC, Generic[T]):
 
     This class implements the following loop structure:
 
-    .. codeblock:: python
+    .. code-block:: python
 
         on_run_start()
 
@@ -73,11 +72,25 @@ class Loop(ABC, Generic[T]):
     @property
     @abstractmethod
     def done(self) -> bool:
-        """Property indicating when loop is finished."""
+        """Property indicating when the loop is finished.
+
+        Example::
+
+            @property
+            def done(self):
+                return self.trainer.global_step >= self.trainer.max_steps
+        """
 
     @property
     def skip(self) -> bool:
-        """Determine whether to return immediately from the call to :meth:`run`."""
+        """Determine whether to return immediately from the call to :meth:`run`.
+
+        Example::
+
+            @property
+            def skip(self):
+                return len(self.trainer.train_dataloader) == 0
+        """
         return False
 
     def connect(self, **kwargs: "Loop") -> None:
@@ -99,8 +112,25 @@ class Loop(ABC, Generic[T]):
         Will frequently check the :attr:`done` condition and calls :attr:`advance`
         until :attr:`done` evaluates to ``True``.
 
+        Override this if you wish to change the default behavior. The default implementation is:
+
+        Example::
+
+            def run(self, *args, **kwargs):
+                if self.skip:
+                    return self.on_skip()
+
+                self.reset()
+                self.on_run_start(*args, **kwargs)
+
+                while not self.done:
+                    self.advance(*args, **kwargs)
+
+                output = self.on_run_end()
+                return output
+
         Returns:
-            the output of :attr:`on_run_end` (often outputs collected from each step of the loop)
+            The output of :attr:`on_run_end` (often outputs collected from each step of the loop)
         """
         if self.skip:
             return self.on_skip()
@@ -123,7 +153,16 @@ class Loop(ABC, Generic[T]):
 
     @abstractmethod
     def reset(self) -> None:
-        """Resets the internal state of the loop at the beginning of each call to :attr:`run`."""
+        """Resets the internal state of the loop at the beginning of each call to :attr:`run`.
+
+        Example::
+
+            def reset(self):
+                # reset your internal state or add custom logic
+                # if you expect run() to be called multiple times
+                self.current_iteration = 0
+                self.outputs = []
+        """
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Hook to be called as the first thing after entering :attr:`run` (except the state reset).
@@ -144,6 +183,13 @@ class Loop(ABC, Generic[T]):
         """Performs a single step.
 
         Accepts all arguments passed to :attr:`run`.
+
+        Example::
+
+            def advance(self, iterator):
+                batch = next(iterator)
+                loss = self.trainer.lightning_module.training_step(batch, batch_idx)
+                ...
         """
 
     def on_advance_end(self) -> None:
@@ -200,25 +246,19 @@ class Loop(ABC, Generic[T]):
         self,
         state_dict: Dict,
         prefix: str = "",
-        restart_progress: bool = True,
         metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, restart_progress, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.load_state_dict(state_dict.copy(), prefix + k + ".", restart_progress)
+                v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
-    def _load_from_state_dict(
-        self, state_dict: Dict, prefix: str, restart_progress: bool, metrics: Optional[Dict[str, Metric]] = None
-    ) -> None:
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-                if restart_progress:
-                    apply_to_collection(v, Progress, lambda p: p.current.reset_on_restart())
-
             elif (
                 isinstance(v, ResultCollection)
                 and self.trainer is not None

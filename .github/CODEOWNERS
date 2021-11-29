@@ -5,7 +5,7 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
+* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11 @rohitgr7
 
 # CI/CD and configs
 /.github/       @borda @tchaton @carmocca
@@ -23,6 +23,7 @@
 /pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
 /pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
 /pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
+/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
 /pytorch_lightning/loggers/wandb.py     @borisdayma
 /pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
@@ -30,6 +31,7 @@
 /pytorch_lightning/overrides            @tchaton @SeanNaren @borda
 /pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
 /pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
+/pytorch_lightning/profiler/pytorch.py  @nbcsm @guotuofeng
 /pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 /pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
 /pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli

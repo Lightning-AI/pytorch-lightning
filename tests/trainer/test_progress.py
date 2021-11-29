@@ -38,7 +38,7 @@ def test_tracker_reset_on_restart():
 
     t = ProcessedTracker(ready=4, started=4, processed=3, completed=2)
     t.reset_on_restart()
-    assert t == ProcessedTracker(ready=3, started=3, processed=3, completed=3)
+    assert t == ProcessedTracker(ready=2, started=2, processed=2, completed=2)
 
 
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))

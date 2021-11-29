@@ -13,21 +13,21 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.utilities.enums import DeviceType, ModelSummaryMode, PrecisionType
+from pytorch_lightning.utilities.enums import _AcceleratorType, GradClipAlgorithmType, ModelSummaryMode, PrecisionType
 
 
 def test_consistency():
-    assert DeviceType.TPU not in ("GPU", "CPU")
-    assert DeviceType.TPU in ("TPU", "CPU")
-    assert DeviceType.TPU in ("tpu", "CPU")
-    assert DeviceType.TPU not in {"GPU", "CPU"}
+    assert _AcceleratorType.TPU not in ("GPU", "CPU")
+    assert _AcceleratorType.TPU in ("TPU", "CPU")
+    assert _AcceleratorType.TPU in ("tpu", "CPU")
+    assert _AcceleratorType.TPU not in {"GPU", "CPU"}
     # hash cannot be case invariant
-    assert DeviceType.TPU not in {"TPU", "CPU"}
-    assert DeviceType.TPU in {"tpu", "CPU"}
+    assert _AcceleratorType.TPU not in {"TPU", "CPU"}
+    assert _AcceleratorType.TPU in {"tpu", "CPU"}
 
 
 def test_precision_supported_types():
-    assert PrecisionType.supported_types() == ["16", "32", "64", "bf16"]
+    assert PrecisionType.supported_types() == ["16", "32", "64", "bf16", "mixed"]
     assert PrecisionType.supported_type(16)
     assert PrecisionType.supported_type("16")
     assert not PrecisionType.supported_type(1)
@@ -42,3 +42,10 @@ def test_model_summary_mode():
 
     with pytest.raises(ValueError, match=f"`mode` can be {', '.join(list(ModelSummaryMode))}, got invalid."):
         ModelSummaryMode.get_max_depth("invalid")
+
+
+def test_gradient_clip_algorithms():
+    assert GradClipAlgorithmType.supported_types() == ["value", "norm"]
+    assert GradClipAlgorithmType.supported_type("norm")
+    assert GradClipAlgorithmType.supported_type("value")
+    assert not GradClipAlgorithmType.supported_type("norm2")

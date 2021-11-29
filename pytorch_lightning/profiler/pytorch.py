@@ -117,11 +117,11 @@ class ScheduleWrapper:
 
     def reset(self):
         # handle properly `fast_dev_run`. PyTorch Profiler will fail otherwise.
-        self._num_optimizer_step_and_closure = 0
+        self._num_optimizer_step_with_closure = 0
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
-        self._optimizer_step_and_closure_reached_end = False
+        self._optimizer_step_with_closure_reached_end = False
         self._validation_step_reached_end = False
         self._test_step_reached_end = False
         self._predict_step_reached_end = False
@@ -132,13 +132,13 @@ class ScheduleWrapper:
     @property
     def is_training(self) -> bool:
         return self._current_action is not None and (
-            self._current_action.startswith("optimizer_step_and_closure_") or self._current_action == "training_step"
+            self._current_action.startswith("optimizer_step_with_closure_") or self._current_action == "training_step"
         )
 
     @property
     def num_step(self) -> int:
         if self.is_training:
-            return self._num_optimizer_step_and_closure
+            return self._num_optimizer_step_with_closure
         if self._current_action == "validation_step":
             return self._num_validation_step
         if self._current_action == "test_step":
@@ -149,10 +149,10 @@ class ScheduleWrapper:
 
     def _step(self) -> None:
         if self.is_training:
-            self._num_optimizer_step_and_closure += 1
+            self._num_optimizer_step_with_closure += 1
         elif self._current_action == "validation_step":
             if self._start_action_name == "on_fit_start":
-                if self._num_optimizer_step_and_closure > 0:
+                if self._num_optimizer_step_with_closure > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
@@ -164,7 +164,7 @@ class ScheduleWrapper:
     @property
     def has_finished(self) -> bool:
         if self.is_training:
-            return self._optimizer_step_and_closure_reached_end
+            return self._optimizer_step_with_closure_reached_end
         if self._current_action == "validation_step":
             return self._validation_step_reached_end
         if self._current_action == "test_step":
@@ -182,7 +182,7 @@ class ScheduleWrapper:
         action = self._schedule(max(self.num_step, 0))
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
-                self._optimizer_step_and_closure_reached_end = True
+                self._optimizer_step_with_closure_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
             elif self._current_action == "test_step":
@@ -202,9 +202,9 @@ class PyTorchProfiler(BaseProfiler):
         "test_step",
         "predict_step",
     }
-    RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
+    RECORD_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
-    STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
+    STEP_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -383,8 +383,8 @@ class PyTorchProfiler(BaseProfiler):
                 self._register.__enter__()
 
         if self._lightning_module is not None:
-            # when the model is used in automatic optimization,
-            # we use `optimizer_step_and_closure` to step the model.
+            # when the model is used in automatic optimization, we use `optimizer_step_with_closure` to step the model.
+            # this profiler event is generated in the `LightningOptimizer.step` method
             if self._lightning_module.automatic_optimization and "training_step" in self.STEP_FUNCTIONS:
                 self.STEP_FUNCTIONS.remove("training_step")
 

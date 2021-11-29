@@ -24,7 +24,7 @@ from pytorch_lightning.trainer.progress import DataLoaderProgress
 class DataLoaderLoop(Loop):
     """Base class to loop over all dataloaders."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.dataloader_progress = DataLoaderProgress()
 
@@ -56,7 +56,9 @@ class DataLoaderLoop(Loop):
     def reset(self) -> None:
         """Resets the internal state."""
         if not self.restarting:
-            self.dataloader_progress.current.reset()
+            self.dataloader_progress.reset_on_run()
+        else:
+            self.dataloader_progress.reset_on_restart()
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         self.dataloader_progress.increment_ready()

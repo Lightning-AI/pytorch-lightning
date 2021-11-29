@@ -16,6 +16,7 @@ import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
+from functools import wraps
 from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
 import pytorch_lightning as pl
@@ -139,7 +140,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
         arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
-        except AttributeError:
+        except (AttributeError, TypeError):
             arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))
@@ -295,13 +296,6 @@ def _gpus_allowed_type(x: str) -> Union[int, str]:
     return int(x)
 
 
-def _gpus_arg_default(x: str) -> Union[int, str]:  # pragma: no-cover
-    # unused, but here for backward compatibility with old checkpoints that need to be able to
-    # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
-    # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
-    pass
-
-
 def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if "." in str(x):
         return float(x)
@@ -319,3 +313,22 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
         return int(x)
     except ValueError:
         return x
+
+
+def _defaults_from_env_vars(fn: Callable) -> Callable:
+    @wraps(fn)
+    def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
+        cls = self.__class__  # get the class
+        if args:  # in case any args passed move them to kwargs
+            # parse only the argument names
+            cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
+            # convert args to kwargs
+            kwargs.update(dict(zip(cls_arg_names, args)))
+        env_variables = vars(parse_env_variables(cls))
+        # update the kwargs by env variables
+        kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
+
+        # all args were already moved to kwargs
+        return fn(self, **kwargs)
+
+    return insert_env_defaults

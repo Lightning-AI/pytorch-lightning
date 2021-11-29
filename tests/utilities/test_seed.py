@@ -10,7 +10,7 @@ import pytorch_lightning.utilities.seed as seed_utils
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_seed_stays_same_with_multiple_seed_everything_calls():
     """Ensure that after the initial seed everything, the seed stays the same for the same run."""
-    with pytest.warns(UserWarning, match="No correct seed found"):
+    with pytest.warns(UserWarning, match="No seed found"):
         seed_utils.seed_everything()
     initial_seed = os.environ.get("PL_GLOBAL_SEED")
 
@@ -32,7 +32,7 @@ def test_correct_seed_with_environment_variable():
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", new=lambda *_: 123)
 def test_invalid_seed():
     """Ensure that we still fix the seed even if an invalid seed is given."""
-    with pytest.warns(UserWarning, match="No correct seed found"):
+    with pytest.warns(UserWarning, match="Invalid seed found"):
         seed = seed_utils.seed_everything()
     assert seed == 123
 
@@ -56,12 +56,19 @@ def test_reset_seed_no_op():
     assert "PL_GLOBAL_SEED" not in os.environ
 
 
-def test_reset_seed_everything():
+@pytest.mark.parametrize("workers", (True, False))
+def test_reset_seed_everything(workers):
     """Test that we can reset the seed to the initial value set by seed_everything()"""
     assert "PL_GLOBAL_SEED" not in os.environ
-    seed_utils.seed_everything(123)
-    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert "PL_SEED_WORKERS" not in os.environ
+
+    seed_utils.seed_everything(123, workers)
     before = torch.rand(1)
+    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
+
     seed_utils.reset_seed()
     after = torch.rand(1)
+    assert os.environ["PL_GLOBAL_SEED"] == "123"
+    assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
     assert torch.allclose(before, after)

@@ -40,18 +40,12 @@ class MNISTDataModule(LightningDataModule):
         # TrialMNIST is a constrained MNIST dataset
         self.dataset_cls = TrialMNIST if use_trials else MNIST
 
-        # self.dims is returned when you call dm.size()
-        # Setting default dims here because we know them.
-        # Could optionally be assigned dynamically in dm.setup()
-        self.dims = (1, 28, 28)
-
     def prepare_data(self):
         # download only
         self.dataset_cls(self.data_dir, train=True, download=True)
         self.dataset_cls(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        # TODO: need to split using random_split once updated to torch >= 1.6
         if stage == "fit" or stage is None:
             self.mnist_train = self.dataset_cls(self.data_dir, train=True)
         if stage == "test" or stage is None:
@@ -92,6 +86,11 @@ class SklearnDataModule(LightningDataModule):
         )
 
     def test_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
+    def predict_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
         )

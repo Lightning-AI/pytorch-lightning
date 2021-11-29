@@ -7,7 +7,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from tests.helpers.boring_model import BoringModel
 
-if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
+if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1" and os.getenv("PL_RECONCILE_PROCESS", "0") == "1":
 
     class CustomException(Exception):
         pass
@@ -23,7 +23,7 @@ if os.getenv("PL_RUNNING_SPECIAL_TESTS", "0") == "1":
     model = Model()
 
     trainer = Trainer(
-        default_root_dir=".", max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, accelerator="ddp"
+        default_root_dir=".", max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, strategy="ddp"
     )
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 

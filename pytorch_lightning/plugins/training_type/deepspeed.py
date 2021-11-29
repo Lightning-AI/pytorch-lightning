@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import contextlib
 import json
 import logging
@@ -18,25 +19,30 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.distributed import log, rank_zero_info
+from pytorch_lightning.utilities.enums import _StrategyType, AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -77,7 +83,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedPlugin(DDPPlugin):
-    distributed_backend = "deepspeed"
+    distributed_backend = _StrategyType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -111,7 +117,6 @@ class DeepSpeedPlugin(DDPPlugin):
         logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -124,6 +129,8 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
+        partition_module: bool = True,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -253,6 +260,12 @@ class DeepSpeedPlugin(DDPPlugin):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
+
+            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
+                This is the default behaviour to ensure that the entire module is appropriately initialized
+                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
+                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
+                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -261,8 +274,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
         super().__init__(
             parallel_devices=parallel_devices,
-            num_nodes=num_nodes,
             cluster_environment=cluster_environment,
+            precision_plugin=precision_plugin,
         )
 
         self.config = self._load_config(config)
@@ -305,6 +318,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -327,33 +341,33 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def setup_distributed(self):
-        super().setup_distributed()
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        self._init_deepspeed_distributed()
+
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
 
-    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+    def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
-            global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
-            world_size = world_size if world_size is not None else self.cluster_environment.world_size()
-            self._set_node_environment_variables(global_rank, world_size)
+            self._set_node_environment_variables()
             log.info(
                 "initializing deepspeed distributed: "
-                f"GLOBAL_RANK: {global_rank}, "
-                f"MEMBER: {global_rank + 1}/{world_size}"
+                f"GLOBAL_RANK: {self.global_rank}, "
+                f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        deepspeed.init_distributed(
-            self.torch_distributed_backend, distributed_port=self.cluster_environment.master_port()
-        )
+        deepspeed.init_distributed(self.torch_distributed_backend, distributed_port=self.cluster_environment.main_port)
 
-    def _set_node_environment_variables(
-        self, global_rank: Optional[int] = None, world_size: Optional[int] = None
-    ) -> None:
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["RANK"] = str(global_rank)
-        os.environ["WORLD_SIZE"] = str(world_size)
+    def _set_node_environment_variables(self) -> None:
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
+        os.environ["RANK"] = str(self.global_rank)
+        os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
@@ -364,15 +378,78 @@ class DeepSpeedPlugin(DDPPlugin):
         self.init_deepspeed()
         self.barrier()
 
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
+
+        Currently only a single optimizer is supported.
+
+        Return:
+            The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
+            deepspeed optimizer.
+        """
+        if len(optimizers) != 1:
+            raise ValueError(
+                f"Currently only one optimizer is supported with DeepSpeed."
+                f" Got {len(optimizers)} optimizers instead."
+            )
+
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # normally we set this to the batch size, but it is not available here unless the user provides it
+        # as part of the config
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
+        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
+        self._set_deepspeed_activation_checkpointing()
+        return self._model, [optimizer]
+
+    def _setup_model_and_optimizer(
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+    ):
+        """Initialize one model and one optimizer with an optional learning rate scheduler.
+
+        This calls :func:`deepspeed.initialize` internally.
+        """
+        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
+            config=self.config,
+            model=model,
+            model_parameters=model_parameters,  # type: ignore
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            dist_init_required=False,
+        )
+        return deepspeed_engine, deepspeed_optimizer
+
     def init_deepspeed(self):
-        self._handle_gradient_accumulation_steps()
+        # deepspeed handles gradient clipping internally
+        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
+            rank_zero_warn(
+                "Since DeepSpeed handles gradient clipping internally, the default"
+                " `LightningModule.configure_gradient_clipping` implementation will not actually clip gradients."
+                " The hook will still be called. Consider setting"
+                " `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
+                " which will use the internal mechanism."
+            )
 
-        precision = self.lightning_module.trainer.accelerator.precision
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if self.zero_stage_3:
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
+            )
+
+        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
+
+        if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
-            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
             deepspeed.zero.Init(
                 module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
             )
@@ -406,27 +483,21 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
         scheduler = lr_scheduler["scheduler"]
-
-        model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
-        model, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
-            config=self.config,
-            model=model,
-            model_parameters=model_parameters,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
-            dist_init_required=False,
-        )
-
+        model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+
+        deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
+            # disable deepspeed lr scheduling as lightning manages scheduling
+            model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
@@ -435,7 +506,11 @@ class DeepSpeedPlugin(DDPPlugin):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
-            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
             model_parallel_context = deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
             )
@@ -444,10 +519,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         with model_parallel_context:
             yield
-
-    @property
-    def precision(self) -> Union[str, int]:
-        return self.lightning_module.trainer.precision
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get("activation_checkpointing"):
@@ -466,7 +537,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                "Using `configure_optimizers` to define optimizer and scheduler."
+                " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
             scheduler = lr_scheduler["scheduler"]
@@ -486,6 +557,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
             optimizer=optimizer,
@@ -512,23 +584,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
 
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
-        # internally, the engine has a reference to the optimizer already.
-        self.model.step(**kwargs)
-
-    def _handle_gradient_accumulation_steps(self):
-        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
-
-        Therefore, ``optimizer_step`` will be called on every batches seen so DeepSpeed Engine handles the gradient
-        accumulation logic internally.
-        """
-        if self.config.get("gradient_accumulation_steps") > 1:
-            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
-        else:
-            self._original_accumulate_grad_batches = None
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
 
     def _format_config(self):
         if self.config is None:
@@ -540,39 +599,46 @@ class DeepSpeedPlugin(DDPPlugin):
         self._format_precision_config()
 
     def _format_batch_size_and_grad_accum_config(self):
+        # todo: using lite, we do not support these variables within the config
+        if self.lightning_module is None:
+            return
+
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
-                "Within the DeepSpeed config, do not set gradient_accumulation_steps"
-                " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
+                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
+                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
             )
+        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "train_micro_batch_size_per_gpu" not in self.config:
-            rank_zero_warn(
-                "Inferring the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                "If you require skipping this, please pass "
-                "`Trainer(plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`"
-            )
             batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
-        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
-            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         batch_size = 1
-        if hasattr(self.lightning_module, "train_dataloader"):
-            train_dataloader = self.lightning_module.train_dataloader()
-            if hasattr(train_dataloader, "batch_sampler"):
-                batch_size = train_dataloader.batch_sampler.batch_size
+        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
+        if train_dl_source.is_defined():
+            try:
+                train_dataloader = train_dl_source.dataloader()
+                if hasattr(train_dataloader, "batch_sampler"):
+                    batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
+            except Exception:
+                if self.global_rank == 0:
+                    deepspeed.utils.logging.logger.warning(
+                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                    )
         return batch_size
 
-    def _format_precision_config(self):
-        amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
-        amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
-        precision = self.lightning_module.trainer.accelerator_connector.precision
-        if precision in (16, "mixed"):
-            if "fp16" not in self.config and amp_type == AMPType.NATIVE:
+    def _format_precision_config(self) -> None:
+        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -583,9 +649,9 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and amp_type == AMPType.APEX:
-                rank_zero_only("Enabling DeepSpeed APEX Implementation.")
-                self.config["amp"] = {"enabled": True, "opt_level": amp_level}
+            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+                rank_zero_info("Enabling DeepSpeed APEX Implementation.")
+                self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
 
     def _create_default_config(
         self,
@@ -664,7 +730,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
+    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -685,7 +751,7 @@ class DeepSpeedPlugin(DDPPlugin):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
@@ -702,7 +768,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(plugins=DeepSpeedPlugin(load_full_weights=True))`."
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
 
@@ -770,13 +836,6 @@ class DeepSpeedPlugin(DDPPlugin):
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
-
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self._original_accumulate_grad_batches is None:
-            return super().update_global_step(total_batch_idx, current_global_step)
-        if total_batch_idx % self._original_accumulate_grad_batches == 0:
-            current_global_step += 1
-        return current_global_step
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

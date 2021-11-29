@@ -13,13 +13,16 @@
 # limitations under the License
 import logging
 import os
+import uuid
 from typing import Optional, Tuple
+
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import has_len
+from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
@@ -50,7 +53,7 @@ def scale_batch_size(
             " If this is not the intended behavior, please remove either one."
         )
 
-    if hasattr(model.train_dataloader, "patch_loader_code"):
+    if not trainer._data_connector._train_dataloader_source.is_module():
         raise MisconfigurationException(
             "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`."
             " Please disable the feature or incorporate the dataloader into the model."
@@ -63,7 +66,7 @@ def scale_batch_size(
     __scale_batch_reset_params(trainer, model, steps_per_trial)
 
     # Save initial model, that is loaded after batch size is found
-    save_path = os.path.join(trainer.default_root_dir, "scale_batch_size_temp_model.ckpt")
+    save_path = os.path.join(trainer.default_root_dir, f"scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(str(save_path))
 
     if trainer.progress_bar_callback:
@@ -101,8 +104,8 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> None:
     trainer.__dumped_params = {
         "auto_lr_find": trainer.auto_lr_find,
         "current_epoch": trainer.current_epoch,
+        "global_step": trainer.global_step,
         "max_steps": trainer.max_steps,
-        "weights_summary": trainer.weights_summary,
         "logger": trainer.logger,
         "callbacks": trainer.callbacks,
         "checkpoint_callback": trainer.checkpoint_callback,
@@ -117,8 +120,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
-    trainer.weights_summary = None  # not needed before full run
-    trainer.logger = DummyLogger()
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
     trainer.optimizers, trainer.lr_schedulers = [], []  # required for saving
@@ -128,8 +130,8 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
 def __scale_batch_restore_params(trainer: "pl.Trainer") -> None:
     trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
+    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
-    trainer.weights_summary = trainer.__dumped_params["weights_summary"]
     trainer.logger = trainer.__dumped_params["logger"]
     trainer.callbacks = trainer.__dumped_params["callbacks"]
     trainer.auto_scale_batch_size = trainer.__dumped_params["auto_scale_batch_size"]
@@ -163,6 +165,7 @@ def _run_power_scaling(
         if changed:
             # Force the train dataloader to reset as the batch size has changed
             trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
         else:
             break
     return new_size
@@ -201,6 +204,7 @@ def _run_binsearch_scaling(
             if changed:
                 # Force the train dataloader to reset as the batch size has changed
                 trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
             else:
                 break
 
@@ -252,7 +256,7 @@ def _adjust_batch_size(
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    if not _is_valid_batch_size(new_size, trainer.train_dataloader):
+    if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
@@ -260,5 +264,6 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(current_size, dataloader):
-    return not has_len(dataloader) or current_size <= len(dataloader)
+def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
+    module = trainer.lightning_module or trainer.datamodule
+    return not has_len_all_ranks(dataloader, trainer.training_type_plugin, module) or batch_size <= len(dataloader)

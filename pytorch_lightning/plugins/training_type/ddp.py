@@ -27,40 +27,39 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _HYDRA_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_7,
+    _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_deprecation,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
-    distributed_available,
-    init_ddp_connection,
+    init_dist_connection,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
 )
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -69,9 +68,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
-if _TORCH_GREATER_EQUAL_1_10:
-    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-    import torch.distributed.algorithms.model_averaging.averagers as averagers
+
 
 log = logging.getLogger(__name__)
 
@@ -79,19 +76,18 @@ log = logging.getLogger(__name__)
 class DDPPlugin(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
-    The master process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = "ddp"
+    distributed_backend = _StrategyType.DDP
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -102,30 +98,20 @@ class DDPPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.interactive_ddp_procs = []
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
-                " Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
-        self.dist = LightningDistributed()
+        self._num_nodes = 1
+        self.sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
-        self._task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
+        self._rank_0_has_called_call_children_scripts: bool = False
         self.set_world_ranks()
 
     @property
@@ -147,26 +133,6 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def sync_batchnorm(self) -> bool:
-        return self._sync_batchnorm
-
-    @sync_batchnorm.setter
-    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
-        self._sync_batchnorm = sync_batchnorm
-
-    @property
-    def task_idx(self) -> Optional[int]:
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.task_idx` is deprecated in v1.4 and will be removed in v1.6. Use "
-            f"`{self.__class__.__name__}.local_rank` instead."
-        )
-        return self._task_idx
-
-    @task_idx.setter
-    def task_idx(self, task_idx: int) -> None:
-        self._task_idx = task_idx
-
-    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -177,21 +143,22 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment.creates_children():
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
-        # set the task idx
-        self.task_idx = self.cluster_environment.local_rank()
-
         self.setup_distributed()
+
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
+        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
 
         # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
@@ -252,6 +219,8 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
+        self._rank_0_has_called_call_children_scripts = True
+
     def setup_distributed(self):
         reset_seed()
 
@@ -264,18 +233,14 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend)
-
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
+        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
 
     def _check_can_spawn_children(self):
         if self.local_rank != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_children()` incorrectly implemented."
+                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
 
     def set_world_ranks(self) -> None:
@@ -291,15 +256,13 @@ class DDPPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-        if (
-            _TORCH_GREATER_EQUAL_1_7
-            and not self.lightning_module.automatic_optimization
-            and not self._ddp_kwargs.get("find_unused_parameters", False)
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
+            "find_unused_parameters", False
         ):
+            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
-                "to properly work with DDP."
+                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
+                " properly work with DDP. Using `find_unused_parameters=True`."
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
@@ -316,12 +279,11 @@ class DDPPlugin(ParallelPlugin):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if (
-                _TORCH_GREATER_EQUAL_1_10
-                and isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
-                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            ):
-                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                    self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
@@ -329,13 +291,20 @@ class DDPPlugin(ParallelPlugin):
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
+        if _TORCH_GREATER_EQUAL_1_10:
+            if not _IS_WINDOWS:
+                from torch.distributed.optim import DistributedOptimizer
+            import torch.distributed.algorithms.model_averaging.averagers as averagers
+            from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+
         averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
+            is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
             if (
-                isinstance(optimizer, DistributedOptimizer)
+                is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
             ):
@@ -361,9 +330,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model), device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs
-        )
+        self._model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
@@ -373,7 +340,9 @@ class DDPPlugin(ParallelPlugin):
 
     def pre_dispatch(self):
         # share ddp pids to all processes
-        self._share_information_to_prevent_deadlock()
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
 
         # move the model to the correct device
         self.model_to_device()
@@ -398,7 +367,11 @@ class DDPPlugin(ParallelPlugin):
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj)
+        obj = [obj]
+        if self.global_rank != src:
+            obj = [None]
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""
@@ -454,7 +427,16 @@ class DDPPlugin(ParallelPlugin):
             find_unused_parameters=False,
         )
 
-    def _share_information_to_prevent_deadlock(self):
+    def _should_run_deadlock_detection(self) -> bool:
+        """Determines whether the plugin will perform process reconciliation in case of errors.
+
+        If the environment variable `PL_RECONCILE_PROCESS` is set, run detection regardless of the cluster environment.
+        By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
+        parent process to perform the process termination, external to Lightning.
+        """
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_has_called_call_children_scripts
+
+    def _share_information_to_prevent_deadlock(self) -> None:
         self._share_pids()
 
         # there should be a unique sync_dir per nodes.
@@ -470,15 +452,18 @@ class DDPPlugin(ParallelPlugin):
 
         self._sync_dir = sync_dirs[self.node_rank]
 
-    def _share_pids(self):
+    def _share_pids(self) -> None:
         """Make all DDP processes aware of all processes pids."""
         self.barrier()
         pids = self.all_gather(torch.tensor(os.getpid(), device=self.root_device))
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 
-    def reconciliate_processes(self, trace: str):
+    def reconciliate_processes(self, trace: str) -> None:
         if self.world_size < 2:
+            return
+
+        if not self._should_run_deadlock_detection():
             return
 
         sync_dir = self._sync_dir

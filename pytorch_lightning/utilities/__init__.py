@@ -18,8 +18,9 @@ import numpy
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.enums import (  # noqa: F401
+    _AcceleratorType,
+    _StrategyType,
     AMPType,
-    DeviceType,
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
@@ -28,7 +29,6 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _BOLTS_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -39,25 +39,22 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
+    _IS_WINDOWS,
     _JSONARGPARSE_AVAILABLE,
     _module_available,
-    _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,
-    _TORCH_BFLOAT_AVAILABLE,
-    _TORCH_CPU_AMP_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
-    _TORCH_SHARDED_TENSOR_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
+from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
 

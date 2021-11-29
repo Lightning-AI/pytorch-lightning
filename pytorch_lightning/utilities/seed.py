@@ -21,7 +21,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 log = logging.getLogger(__name__)
@@ -46,13 +46,19 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 
-    try:
-        if seed is None:
-            seed = os.environ.get("PL_GLOBAL_SEED")
+    if seed is None:
+        env_seed = os.environ.get("PL_GLOBAL_SEED")
+        if env_seed is None:
+            seed = _select_seed_randomly(min_seed_value, max_seed_value)
+            rank_zero_warn(f"No seed found, seed set to {seed}")
+        else:
+            try:
+                seed = int(env_seed)
+            except ValueError:
+                seed = _select_seed_randomly(min_seed_value, max_seed_value)
+                rank_zero_warn(f"Invalid seed found: {repr(env_seed)}, seed set to {seed}")
+    elif not isinstance(seed, int):
         seed = int(seed)
-    except (TypeError, ValueError):
-        seed = _select_seed_randomly(min_seed_value, max_seed_value)
-        rank_zero_warn(f"No correct seed found, seed set to {seed}")
 
     if not (min_seed_value <= seed <= max_seed_value):
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
@@ -82,12 +88,12 @@ def reset_seed() -> None:
     If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
-    workers = os.environ.get("PL_SEED_WORKERS", False)
+    workers = os.environ.get("PL_SEED_WORKERS", "0")
     if seed is not None:
-        seed_everything(int(seed), workers=bool(workers))
+        seed_everything(int(seed), workers=bool(int(workers)))
 
 
-def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
+def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
     """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set set the seed
     with ``seed_everything(seed, workers=True)``.
 
@@ -107,9 +113,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # p
     np.random.seed(ss.generate_state(4))
     # Spawn distinct SeedSequences for the PyTorch PRNG and the stdlib random module
     torch_ss, stdlib_ss = ss.spawn(2)
-    # PyTorch 1.7 and above takes a 64-bit seed
-    dtype = np.uint64 if _TORCH_GREATER_EQUAL_1_7 else np.uint32
-    torch.manual_seed(torch_ss.generate_state(1, dtype=dtype)[0])
+    torch.manual_seed(torch_ss.generate_state(1, dtype=np.uint64)[0])
     # use 128 bits expressed as an integer
     stdlib_seed = (stdlib_ss.generate_state(2, dtype=np.uint64).astype(object) * [1 << 64, 1]).sum()
     random.seed(stdlib_seed)

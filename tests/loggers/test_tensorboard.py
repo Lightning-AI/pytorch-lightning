@@ -25,6 +25,7 @@ from omegaconf import OmegaConf
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
 
@@ -120,6 +121,7 @@ def test_tensorboard_no_name(tmpdir, name):
     assert os.listdir(tmpdir / "version_0")
 
 
+@mock.patch.dict(os.environ, {})
 def test_tensorboard_log_sub_dir(tmpdir):
     class TestLogger(TensorBoardLogger):
         # for reproducibility
@@ -256,7 +258,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
         def training_step(self, *args):
             self.log("foo", 1, on_step=True, on_epoch=True)
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 if self.trainer.logger_connector.should_update_logs:
                     self.indexes.append(self.trainer.global_step)
             return super().training_step(*args)
@@ -331,3 +333,17 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
         assert logger.version == 0
 
     assert "Missing logger folder:" in caplog.text
+
+
+@pytest.mark.parametrize("use_list", [False, True])
+def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
+    tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
+    assert tensorboard_logger._experiment is None
+    tensorboard_logger.experiment  # this property access will create the experiment
+    assert tensorboard_logger._experiment is not None
+    logger = [tensorboard_logger] if use_list else tensorboard_logger
+    trainer = Trainer(strategy="ddp_spawn", devices=2, accelerator="auto", logger=logger)
+    trainer.training_type_plugin._clean_logger(trainer)
+    if use_list:
+        assert isinstance(trainer.logger, LoggerCollection)
+    assert tensorboard_logger._experiment is None

@@ -322,7 +322,7 @@ class DQNLightning(pl.LightningModule):
             Training loss and log metrics
         """
         device = self.get_device(batch)
-        epsilon = max(self.eps_end, self.eps_start - self.global_step + 1 / self.eps_last_frame)
+        epsilon = max(self.eps_end, self.eps_start - (self.global_step + 1) / self.eps_last_frame)
 
         # step through environment with agent
         reward, done = self.agent.play_step(self.net, epsilon, device)
@@ -391,7 +391,7 @@ class DQNLightning(pl.LightningModule):
 def main(args) -> None:
     model = DQNLightning(**vars(args))
 
-    trainer = pl.Trainer(gpus=1, accelerator="dp", val_check_interval=100)
+    trainer = pl.Trainer(gpus=1, strategy="dp", val_check_interval=100)
 
     trainer.fit(model)
 

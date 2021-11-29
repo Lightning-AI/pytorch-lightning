@@ -33,7 +33,7 @@ def _setup_ddp(rank, worldsize):
 def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
-    sync = _Sync(sync_ddp_if_available, _should=True, op="SUM")
+    sync = _Sync(sync_ddp_if_available, _should=True, _op="SUM")
     actual = sync(tensor)
     assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
@@ -41,6 +41,6 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)

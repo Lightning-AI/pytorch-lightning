@@ -131,7 +131,7 @@ class ModelPruning(Callback):
             make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks
                 when training ends or the model is saved.
 
-            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_:
+            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/abs/1803.03635>`_:
 
                 - ``bool``. Whether to apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
@@ -166,7 +166,7 @@ class ModelPruning(Callback):
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs: Dict[str, Any] = {}
         self._original_layers: Optional[Dict[int, _LayerRef]] = None
-        self._pruning_fn_name: Optional[str] = None
+        self._pruning_method_name: Optional[str] = None
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
@@ -240,20 +240,20 @@ class ModelPruning(Callback):
         IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
         pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
         """
-        pruning_fn = (
+        pruning_meth = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
             if self._use_global_unstructured
             else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
-        assert callable(pruning_fn)
+        assert callable(pruning_meth), "Selected pruning method is not callable"
         if self._use_global_unstructured:
             self._global_kwargs = kwargs
         # save the function __name__ now because partial does not include it
         # and there are issues setting the attribute manually in ddp.
-        self._pruning_fn_name = pruning_fn.__name__
+        self._pruning_method_name = pruning_meth.__name__
         if self._use_global_unstructured:
-            return pruning_fn
-        return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
+            return pruning_meth
+        return ModelPruning._wrap_pruning_fn(pruning_meth, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
@@ -348,7 +348,7 @@ class ModelPruning(Callback):
         prev_total_zeros = sum(zeros for zeros, _ in prev)
         curr_total_zeros = sum(zeros for zeros, _ in curr)
         log.info(
-            f"Applied `{self._pruning_fn_name}`. Pruned:"
+            f"Applied `{self._pruning_method_name}`. Pruned:"
             f" {prev_total_zeros}/{total_params} ({prev_total_zeros / total_params:.2%}) ->"
             f" {curr_total_zeros}/{total_params} ({curr_total_zeros / total_params:.2%})"
         )
@@ -357,7 +357,7 @@ class ModelPruning(Callback):
                 prev_mask_zeros, prev_mask_size = prev[i]
                 curr_mask_zeros, curr_mask_size = curr[i]
                 log.info(
-                    f"Applied `{self._pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
+                    f"Applied `{self._pruning_method_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
                     f" {prev_mask_zeros} ({prev_mask_zeros / prev_mask_size:.2%}) ->"
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )

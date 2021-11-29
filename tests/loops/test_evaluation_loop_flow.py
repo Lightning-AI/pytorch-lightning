@@ -52,7 +52,7 @@ def test__eval_step__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -64,14 +64,12 @@ def test__eval_step__flow(tmpdir):
     # simulate training manually
     trainer.state.stage = RunningStage.TRAINING
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
-    assert out.signal == 0
+    train_step_out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
 
-    train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.loss, torch.Tensor)
-    assert train_step_out.loss.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -117,7 +115,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -129,14 +127,12 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
-    out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
-    assert out.signal == 0
+    train_step_out = trainer.fit_loop.epoch_loop.batch_loop.run(batch, batch_idx)
 
-    train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out.loss, torch.Tensor)
-    assert train_step_out.loss.item() == 171
+    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -188,7 +184,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -246,7 +242,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)

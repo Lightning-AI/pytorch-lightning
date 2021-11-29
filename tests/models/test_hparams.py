@@ -17,6 +17,7 @@ import os
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
+from enum import Enum
 from unittest import mock
 
 import cloudpickle
@@ -24,6 +25,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
+from omegaconf.dictconfig import DictConfig
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -247,6 +249,13 @@ class SubClassBoringModel(CustomBoringModel):
         self.save_hyperparameters()
 
 
+class NonSavingSubClassBoringModel(CustomBoringModel):
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class SubSubClassBoringModel(SubClassBoringModel):
     pass
 
@@ -277,6 +286,7 @@ class DictConfSubClassBoringModel(SubClassBoringModel):
     [
         CustomBoringModel,
         SubClassBoringModel,
+        NonSavingSubClassBoringModel,
         SubSubClassBoringModel,
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
@@ -296,7 +306,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, SubClassBoringModel):
+    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
@@ -469,22 +479,40 @@ def test_hparams_pickle_warning(tmpdir):
 
 
 def test_hparams_save_yaml(tmpdir):
+    class Options(str, Enum):
+        option1name = "option1val"
+        option2name = "option2val"
+        option3name = "option3val"
+
     hparams = dict(
-        batch_size=32, learning_rate=0.001, data_root="./any/path/here", nasted=dict(any_num=123, anystr="abcd")
+        batch_size=32,
+        learning_rate=0.001,
+        data_root="./any/path/here",
+        nested=dict(any_num=123, anystr="abcd"),
+        switch=Options.option3name,
     )
     path_yaml = os.path.join(tmpdir, "testing-hparams.yaml")
 
+    def _compare_params(loaded_params, default_params: dict):
+        assert isinstance(loaded_params, (dict, DictConfig))
+        assert loaded_params.keys() == default_params.keys()
+        for k, v in default_params.items():
+            if isinstance(v, Enum):
+                assert v.name == loaded_params[k]
+            else:
+                assert v == loaded_params[k]
+
     save_hparams_to_yaml(path_yaml, hparams)
-    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, Namespace(**hparams))
-    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
-    assert load_hparams_from_yaml(path_yaml, use_omegaconf=False) == hparams
+    _compare_params(load_hparams_from_yaml(path_yaml, use_omegaconf=False), hparams)
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
-    assert load_hparams_from_yaml(path_yaml) == hparams
+    _compare_params(load_hparams_from_yaml(path_yaml), hparams)
 
 
 class NoArgsSubClassBoringModel(CustomBoringModel):
@@ -503,7 +531,7 @@ def test_model_nohparams_train_test(tmpdir, cls):
     trainer.fit(model, train_loader)
 
     test_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
-    trainer.test(test_dataloaders=test_loader)
+    trainer.test(dataloaders=test_loader)
 
 
 def test_model_ignores_non_exist_kwargument(tmpdir):
@@ -675,6 +703,14 @@ def test_empty_hparams_container(tmpdir):
     assert not model.hparams
     model = HparamsNamespaceContainerModel(Namespace())
     assert not model.hparams
+
+
+def test_hparams_name_from_container(tmpdir):
+    """Test that save_hyperparameters(container) captures the name of the argument correctly."""
+    model = HparamsKwargsContainerModel(a=1, b=2)
+    assert model._hparams_name is None
+    model = HparamsNamespaceContainerModel(Namespace(a=1, b=2))
+    assert model._hparams_name == "config"
 
 
 @dataclass

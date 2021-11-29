@@ -23,7 +23,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.callbacks import Callback
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -68,7 +67,7 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(amp_native=True, min_gpus=1)),
+        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
             {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),
@@ -118,7 +117,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         **kwargs,
     )
 
@@ -160,7 +159,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
@@ -187,13 +186,13 @@ def test_multiple_optimizers_manual_log(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
 @RunIf(min_gpus=1)
@@ -208,7 +207,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         precision=16,
         gpus=1,
     )
@@ -232,7 +231,7 @@ class ManualOptimizationExtendedModel(BoringModel):
     def should_update(self):
         return self.count % 2 == 0
 
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_train_batch_start(self, batch, batch_idx):
         self.called["on_train_batch_start"] += 1
         self.weight_before = self.layer.weight.clone()
 
@@ -253,7 +252,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, outputs, batch, batch_idx):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -296,36 +295,10 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend="native",
-        accelerator="ddp_spawn",
+        strategy="ddp_spawn",
         gpus=2,
     )
     trainer.fit(model)
-
-
-@RunIf(min_gpus=2)
-def test_manual_optimization_and_return_detached_tensor(tmpdir):
-    """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
-    `training_step` When the tensor is detached, return MisConfiguration Error."""
-
-    model = ManualOptimizationExtendedModel()
-    model.detach = True
-    model.training_step_end = None
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=10,
-        limit_test_batches=0,
-        limit_val_batches=0,
-        precision=16,
-        amp_backend="native",
-        accelerator="ddp_spawn",
-        gpus=2,
-    )
-    expected_message = "In manual optimization, `training_step` should not return a Tensor"
-    with pytest.raises(Exception, match=expected_message):
-        trainer.fit(model)
 
 
 @RunIf(min_gpus=1)
@@ -356,7 +329,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         def has_gradient(self):
             return self.layer.weight.grad is not None
 
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
@@ -378,7 +351,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             return loss.detach() if self.detach else loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
@@ -420,17 +393,7 @@ def test_multiple_optimizers_step(tmpdir):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
-
-        called = False
-
-        def on_before_optimizer_step(self, *args):
-            self.called = True
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-            if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 100, norm.item()
-
         def training_step(self, batch, batch_idx):
-            # manual
             opt_a, opt_b = self.optimizers()
             x = batch[0]
 
@@ -463,6 +426,33 @@ def test_multiple_optimizers_step(tmpdir):
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
 
+        # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
+        def on_after_backward(self) -> None:
+            # check grads are scaled
+            scale = self.trainer.precision_plugin.scaler.get_scale()
+            assert scale != 1.0  # the return value if not enabled
+            grads = [p.grad for p in self.parameters()]
+            inv_scale = 1 / scale
+            self.original_grads = [p * inv_scale for p in grads]
+
+        def check_grads_unscaled(self, optimizer=None):
+            if optimizer is not None:
+                scaler = self.trainer.precision_plugin.scaler
+                state = scaler._per_optimizer_states[id(optimizer)]
+                assert state["stage"].name == "UNSCALED"
+
+            grads = [p.grad for p in self.parameters()]
+            assert len(grads) == len(self.original_grads)
+            for actual, expected in zip(grads, self.original_grads):
+                torch.testing.assert_allclose(actual, expected)
+
+        def on_before_optimizer_step(self, optimizer, *_):
+            self.check_grads_unscaled(optimizer)
+
+        def log_grad_norm(self, grad_norm_dict):
+            self.check_grads_unscaled()
+            assert len(grad_norm_dict)
+
     model = TestModel()
     model.val_dataloader = None
 
@@ -473,16 +463,16 @@ def test_multiple_optimizers_step(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         precision=16,
         amp_backend="native",
         gpus=1,
+        track_grad_norm=2,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):
@@ -585,7 +575,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             opt.step(closure=optimizer_closure)
 
             weight_after = self.layer.weight.clone()
-            if not self.trainer.fit_loop.should_accumulate():
+            if not self.trainer.fit_loop._should_accumulate():
                 assert not torch.equal(weight_before, weight_after)
             else:
                 assert self.layer.weight.grad is not None
@@ -619,6 +609,9 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
+
+        def on_train_start(self) -> None:
+            step_mock.reset_mock()
 
         def training_step(self, batch, batch_idx):
             # manual
@@ -655,8 +648,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY) for _ in range(2)]
-    step_mock.assert_has_calls(expected_calls)
+    assert step_mock.mock_calls == [call(closure=ANY) for _ in range(limit_train_batches)]
 
 
 @patch("torch.optim.Adam.step")
@@ -668,6 +660,10 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
+
+        def on_train_start(self) -> None:
+            mock_sgd_step.reset_mock()
+            mock_adam_step.reset_mock()
 
         def training_step(self, batch, batch_idx):
 
@@ -726,18 +722,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY, optim="sgd") for s in range(4)]
-    mock_sgd_step.assert_has_calls(expected_calls)
-    expected_calls = [call(closure=ANY) for s in range(2)]
-    mock_adam_step.assert_has_calls(expected_calls)
-
-
-class TestManualOptimizationDDPCallack(Callback):
-    def on_train_end(self, trainer, pl_module):
-
-        opt_a, opt_b = pl_module.optimizers()
-        assert opt_a._total_optimizer_step_calls == 4
-        assert opt_b._total_optimizer_step_calls == 2
+    assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for _ in range(4)]
+    assert mock_adam_step.mock_calls == [call(closure=ANY) for _ in range(2)]
 
 
 class TesManualOptimizationDDPModel(BoringModel):
@@ -813,8 +799,22 @@ class TesManualOptimizationDDPModel(BoringModel):
         optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
         return [optimizer_gen, optimizer_dis]
 
+    def on_train_start(self):
+        # this is done here instead of in the calling function due to `spawn`
+        sgd, adam = self.optimizers()
+        self.sgd_step_patch = patch.object(sgd, "step", wraps=sgd.step)
+        self.sgd_step_mock = self.sgd_step_patch.start()
+        self.adam_step_patch = patch.object(adam, "step", wraps=adam.step)
+        self.adam_step_mock = self.adam_step_patch.start()
 
-def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizationDDPModel):
+    def on_train_end(self):
+        self.sgd_step_patch.stop()
+        assert self.sgd_step_mock.call_count == 4
+        self.adam_step_patch.stop()
+        assert self.adam_step_mock.call_count == 2
+
+
+def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
 
     seed_everything(42)
 
@@ -831,8 +831,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         max_epochs=1,
         log_every_n_steps=1,
         gpus=2,
-        accelerator=accelerator,
-        callbacks=[TestManualOptimizationDDPCallack()],
+        strategy=strategy,
     )
 
     trainer.fit(model)
@@ -841,7 +840,7 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
@@ -911,7 +910,7 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
 
@@ -1074,14 +1073,14 @@ def test_multiple_optimizers_logging(precision, tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         gpus=1,
         precision=precision,
     )
 
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"epoch", "loss_d", "loss_g"}
+    assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
 
 

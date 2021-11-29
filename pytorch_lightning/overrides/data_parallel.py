@@ -96,7 +96,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."
-                " When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                " When using DataParallel (strategy='dp'), be aware that in case you are using self.device"
                 " in your code, it will reference only the root device."
             )
 

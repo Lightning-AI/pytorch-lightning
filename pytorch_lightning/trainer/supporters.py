@@ -19,19 +19,17 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
-from torch.utils.data.dataloader import _BaseDataLoaderIter, DataLoader
+from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
-    _find_fast_forward_samplers,
-    CaptureIterableDataset,
-    CaptureMapDataset,
-    IteratorState,
+    _reload_dataloader_state_dict,
     MergedIteratorState,
     patch_dataloader_iterator,
 )
 from pytorch_lightning.utilities.data import get_len
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -360,7 +358,13 @@ class CombinedLoader:
     def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
         if isinstance(dataloader, CycleIterator):
             iterator = dataloader._loader_iter
-        state = getattr(iterator, "state", None) if has_completed else getattr(iterator, "previous_state", None)
+
+        # There is currently 2 dataloader states being tracked: (batch_n - 1, state_n - 1), (batch_n, state_n)
+        # where `n` is the current batch. If the batch was processed, it should be saved to reproduce the next batch.
+        # Otherwise, we want to get the state of the previous batch, so we can reproduce the current batch.
+        # The state is stored directly on the Iterator as an attribute by the DataFetcher for accessibility
+        state_to_save = "state" if has_completed else "previous_state"
+        state: Optional[MergedIteratorState] = getattr(iterator, state_to_save, None)
         if state:
             return asdict(state)
         return {}
@@ -400,37 +404,11 @@ class CombinedLoader:
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
 
-            dataset = dataloader.dataset
+            # dataset states are collected across all ranks
+            rank = torch.distributed.get_rank() if distributed_available() else 0
+            state_dict = state_dict[rank]
 
-            # We reload the states before creating the workers
-            # The specific type of dataset will then decide if the state should be applied before or after
-            # spawning the workers
-            if isinstance(dataset, CaptureMapDataset):
-                iterator_state = state_dict["state"][0]
-
-                if not isinstance(iterator_state, IteratorState):
-                    iterator_state = IteratorState.from_state_dict(iterator_state)
-
-                # reload sampler state
-                ff_sampler = _find_fast_forward_samplers(dataloader)
-                ff_sampler.load_state_dict(iterator_state.sampler_state)
-                # reload dataset state
-                dataset.load_state_dict(
-                    iterator_state.dataset_state,
-                    latest_worker_id=state_dict["latest_worker_id"],
-                    num_workers=iterator_state.num_workers,
-                )
-
-            elif isinstance(dataset, CaptureIterableDataset):
-                dataset_dict = {
-                    sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()
-                }
-                dataset.load_state_dict(dataset_dict)
-
-            else:
-                raise MisconfigurationException(
-                    "This shouldn't happen. Please, open an issue on PyTorch Lightning Github."
-                )
+            _reload_dataloader_state_dict(dataloader, state_dict)
 
             # We finally spawned the workers if any.
             it = iter(dataloader_to_iter_on)
@@ -484,6 +462,19 @@ class CombinedLoader:
             )
             state.reset()
 
+    def _apply_cycle_iterator_length(self) -> None:
+        """When the model is `max_size_cycle`, compute the length across all ``CycleIterator`` and re-assign it to
+        all dataloaders."""
+        if self.mode != "max_size_cycle":
+            return
+
+        def set_len(cycle_iterator: CycleIterator, length: int) -> None:
+            cycle_iterator.length = length
+
+        all_lengths = apply_to_collection(self.loaders, CycleIterator, lambda c: get_len(c.loader))
+        max_length = _nested_calc_num_data(all_lengths, max)
+        apply_to_collection(self.loaders, CycleIterator, set_len, length=max_length)
+
     def __iter__(self) -> Any:
         """Create and return an iterator, `CombinedLoaderIterator`, for the combined loader."""
 
@@ -500,11 +491,12 @@ class CombinedLoader:
         return iterator
 
     @staticmethod
-    def _calc_num_batches(loaders: Any) -> Union[int, float]:
+    def _calc_num_batches(loaders: Any, mode="min_size") -> Union[int, float]:
         """Compute the length (aka the number of batches) of `CombinedLoader`.
 
         Args:
             loaders: a collections of loaders.
+            mode: Mode used by the CombinedDataloader
 
         Returns:
             length: the minimum length of loaders
@@ -513,10 +505,23 @@ class CombinedLoader:
 
         if isinstance(all_lengths, (int, float)):
             return all_lengths
-        return _nested_calc_num_data(all_lengths, min)
+        return _nested_calc_num_data(all_lengths, max if mode == "max_size_cycle" else min)
 
     def __len__(self) -> int:
-        return self._calc_num_batches(self.loaders)
+        return self._calc_num_batches(self.loaders, mode=self.mode)
+
+    @staticmethod
+    def _shutdown_workers_and_reset_iterator(dataloader) -> None:
+        if hasattr(dataloader, "_iterator") and isinstance(dataloader._iterator, _MultiProcessingDataLoaderIter):
+            dataloader._iterator._shutdown_workers()
+        dataloader._iterator = None
+
+    def reset(self):
+        if self._iterator:
+            self._iterator._loader_iters = None
+        if self.loaders is not None:
+            apply_to_collection(self.loaders, DataLoader, self._shutdown_workers_and_reset_iterator)
+        self._iterator = None
 
 
 class CombinedLoaderIterator:

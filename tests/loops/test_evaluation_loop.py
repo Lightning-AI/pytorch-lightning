@@ -14,7 +14,7 @@
 from unittest import mock
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import EvaluationEpochLoop
@@ -23,14 +23,14 @@ from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop.on_evaluation_epoch_end")
+@mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
     hooks."""
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, weights_summary=None
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
     )
 
     trainer.fit(model)
@@ -55,7 +55,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
             order.append("on_validation_end")
             super().on_validation_end()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, weights_summary=None, num_sanity_val_steps=0)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0)
     trainer.fit(LessBoringModel())
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
@@ -99,7 +99,9 @@ def test_memory_consumption_validation(tmpdir):
             return super().validation_step(batch, batch_idx)
 
     torch.cuda.empty_cache()
-    trainer = Trainer(gpus=1, default_root_dir=tmpdir, fast_dev_run=2, move_metrics_to_cpu=True, weights_summary=None)
+    trainer = Trainer(
+        gpus=1, default_root_dir=tmpdir, fast_dev_run=2, move_metrics_to_cpu=True, enable_model_summary=False
+    )
     trainer.fit(BoringLargeBatchModel())
 
 
@@ -114,7 +116,7 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     class TestLoop(EvaluationEpochLoop):
         def on_advance_end(self):
             # should be empty
-            assert not self.outputs
+            assert not self._outputs
             # sanity check
             nonlocal did_assert
             did_assert = True

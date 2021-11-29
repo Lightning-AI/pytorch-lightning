@@ -16,6 +16,7 @@ import logging
 import os
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -27,22 +28,36 @@ class KubeflowEnvironment(ClusterEnvironment):
     .. _Kubeflow: https://www.kubeflow.org
     """
 
-    @staticmethod
-    def is_using_kubeflow() -> bool:
-        """Returns ``True`` if the current process was launched using Kubeflow PyTorchJob."""
-        required_env_vars = ("KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK")
-        # torchelastic sets these. Make sure we're not in torchelastic
-        excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars)
+    def __init__(self) -> None:
+        super().__init__()
+        # TODO: remove in 1.7
+        if hasattr(self, "is_using_kubeflow") and callable(self.is_using_kubeflow):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.is_using_kubeflow` has been deprecated in v1.6 and will be removed in"
+                f" v1.7. Implement the static method `detect()` instead (do not forget to add the `@staticmethod`"
+                f" decorator)."
+            )
 
-    def creates_children(self) -> bool:
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    @property
+    def main_address(self) -> str:
         return os.environ["MASTER_ADDR"]
 
-    def master_port(self) -> int:
+    @property
+    def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched using Kubeflow PyTorchJob."""
+        required_env_vars = {"KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK"}
+        # torchelastic sets these. Make sure we're not in torchelastic
+        excluded_env_vars = {"GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
+        env_vars = os.environ.keys()
+        return required_env_vars.issubset(env_vars) and excluded_env_vars.isdisjoint(env_vars)
 
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])

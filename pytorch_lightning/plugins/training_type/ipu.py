@@ -19,15 +19,17 @@ import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -40,7 +42,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in ("mixed", 16):
+        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)
@@ -65,6 +67,7 @@ class IPUPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         training_opts: Optional["poptorch.Options"] = None,
         inference_opts: Optional["poptorch.Options"] = None,
     ) -> None:
@@ -85,8 +88,9 @@ class IPUPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
-        if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
+        if not _IPU_AVAILABLE:
             raise MisconfigurationException(
                 "The IPU Accelerator requires IPU devices to run. "
                 "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
@@ -96,7 +100,6 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
-        self._original_accumulate_grad_batches = None
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
@@ -109,32 +112,49 @@ class IPUPlugin(ParallelPlugin):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
     def setup(self) -> None:
+        # set the `accumulate_grad_batches` property as early as possible
+        self._handle_gradient_accumulation_steps()
+
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self.lightning_module.trainer.replace_sampler = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
+        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
 
     def pre_dispatch(self) -> None:
-        precision = self.lightning_module.trainer.precision
-        model = LightningIPUModule(self.lightning_module, precision)
+        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
+
+        # reset the backup
+        self.poptorch_models = {}
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
-
-        if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
-            # Create model for training which will run training.
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            # Create model for training and validation which will run on fit
+            training_opts = self.training_opts
+            inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
-        for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
+
+            if self.lightning_module.trainer.enable_validation:
+                model = poptorch.inferenceModel(model=model, options=inference_opts)
+                self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
-            self.poptorch_models[x] = model
-        self._handle_gradient_accumulation_steps()
+            self.poptorch_models[RunningStage.VALIDATING] = model
+        elif trainer_fn == TrainerFn.TESTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.TESTING] = model
+        elif trainer_fn == TrainerFn.PREDICTING:
+            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            self.poptorch_models[RunningStage.PREDICTING] = model
 
     @property
     def replication_factor(self) -> int:
-        if not self.lightning_module:
+        if not self.lightning_module or not self.poptorch_models:
             # The plugin has been passed in by the user and has not been connected to the Trainer.
             # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
             # In this scenario we prioritize the training options.
@@ -142,13 +162,17 @@ class IPUPlugin(ParallelPlugin):
                 return self._training_opts.replication_factor
             if self._inference_opts:
                 return self._inference_opts.replication_factor
-        return len(self.parallel_devices)
+
+            return len(self.parallel_devices)
+
+        stage = self.lightning_module.trainer.state.stage
+        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
-        gradient_accumulation = self.accumulate_grad_batches if training else 1
+        gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
 
         if os.environ.get("PL_GLOBAL_SEED"):
@@ -174,8 +198,7 @@ class IPUPlugin(ParallelPlugin):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        # use full path to avoid circular imports
-        dl_kwargs = pl.trainer.trainer.TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, sampler)
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_kwargs["drop_last"] = True
 
@@ -183,35 +206,21 @@ class IPUPlugin(ParallelPlugin):
         dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
         return dataloader
 
-    @property
-    def accumulate_grad_batches(self) -> int:
-        """Tracks lazily the set accumulate_grad_batches in the trainer.
+    def _handle_gradient_accumulation_steps(self) -> None:
+        """Override the trainer.accumulation_scheduler to act as ``accumulate_grad_batches=1`` if gradient
+        accumulation has been set.
 
-        The IPUPlugin replaces the original accumulate_grad_batches.
+        ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
-        if self._original_accumulate_grad_batches is None:
-            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-            if not isinstance(self._original_accumulate_grad_batches, int):
-                raise MisconfigurationException(
-                    "IPUs currently only support accumulate_grad_batches being an integer value. "
-                    f"Received {self.accumulate_grad_batches}"
-                )
-        return self._original_accumulate_grad_batches
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
-    def _handle_gradient_accumulation_steps(self):
-        """This functions overrides the trainer.accumulation_scheduler to generate ``accumulate_grad_batches=1``.
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
+            )
 
-        Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
-        """
-        if self.accumulate_grad_batches > 1:
-            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
-
-    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        if self.accumulate_grad_batches > 1:
-            if total_batch_idx % self.accumulate_grad_batches == 0:
-                current_global_step += 1
-            return current_global_step
-        return super().update_global_step(total_batch_idx, current_global_step)
+        # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
+        accumulation_scheduler.scheduling.update({0: 1})
 
     @property
     def _n_replicate(self):
@@ -232,25 +241,30 @@ class IPUPlugin(ParallelPlugin):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def training_step(self, *args, **kwargs):
+    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TRAINING](*args, **kwargs)
+        poptorch_model = self.poptorch_models[stage]
+        self.lightning_module._running_torchscript = True
+        out = poptorch_model(*args, **kwargs)
+        self.lightning_module._running_torchscript = False
+        return out
+
+    def training_step(self, *args, **kwargs):
+        return self._step(RunningStage.TRAINING, *args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.VALIDATING](*args, **kwargs)
+        return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.TESTING](*args, **kwargs)
+        return self._step(RunningStage.TESTING, *args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        args = self._prepare_input(args)
-        return self.poptorch_models[RunningStage.PREDICTING](*args, **kwargs)
+        return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
         # undo dataloader patching
-        self.lightning_module.trainer.replace_sampler = pl.trainer.trainer.TrainerDataLoadingMixin.replace_sampler
+        pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
+
         for model in self.poptorch_models.values():
             model.destroy()
 
@@ -299,7 +313,7 @@ class IPUPlugin(ParallelPlugin):
     def on_predict_end(self):
         self._detach_models()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.lightning_module.trainer.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)

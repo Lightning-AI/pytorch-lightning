@@ -237,7 +237,7 @@ def test_fx_validator_integration(tmpdir):
     }
     model = HookedModel(not_supported)
 
-    with pytest.raises(MisconfigurationException, match=not_supported[None]):
+    with pytest.warns(UserWarning, match=not_supported[None]):
         model.log("foo", 1)
 
     callback = HookedCallback(not_supported)
@@ -250,7 +250,8 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model)
 
     not_supported.update(
         {
@@ -262,7 +263,8 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    trainer.test(model, verbose=False)
+    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+        trainer.test(model, verbose=False)
 
     not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
     not_supported.update(
@@ -279,7 +281,8 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "ResultCollection` is not registered yet",
         }
     )
-    trainer.predict(model)
+    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+        trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
@@ -330,7 +333,7 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
     )
     trainer.fit(model)
     trainer.test(model)
@@ -361,7 +364,7 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
             assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -510,9 +513,9 @@ def test_metrics_reset(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         num_sanity_val_steps=2,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
@@ -527,9 +530,9 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True, torch.device("cpu"))
+    result_collection = ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    values = torch.arange(1, 10)
     batches = values * values
 
     for i, v in enumerate(values):
@@ -545,16 +548,21 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    result_collection.log(
-                        "training_step",
-                        name,
-                        v,
+                    log_kwargs = dict(
+                        fx="training_step",
+                        name=name,
+                        value=v,
                         on_step=on_step,
                         on_epoch=on_epoch,
                         batch_size=batches[i],
                         prog_bar=prog_bar,
                         logger=logger,
                     )
+                    if not on_step and not on_epoch:
+                        with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
+                            result_collection.log(**log_kwargs)
+                    else:
+                        result_collection.log(**log_kwargs)
 
     total_value = sum(values * batches)
     total_batches = sum(batches)

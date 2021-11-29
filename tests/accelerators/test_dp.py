@@ -59,7 +59,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     with early stopping
     """
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
@@ -71,7 +71,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator="dp",
+        strategy="dp",
     )
 
     tpipes.run_model_test(trainer_options, model, dm)
@@ -79,7 +79,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -87,8 +87,8 @@ def test_multi_gpu_model_dp(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        accelerator="dp",
-        progress_bar_refresh_rate=0,
+        strategy="dp",
+        enable_progress_bar=False,
     )
 
     model = BoringModel()
@@ -143,11 +143,11 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             batch = batch.to(device)
             return batch
 
-    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, gpus=[0, 1], accelerator="dp")
+    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, gpus=[0, 1], strategy="dp")
 
     trainer = Trainer(**trainer_options)
     model = CustomModel()
@@ -193,6 +193,6 @@ def test_dp_training_step_dict(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         gpus=2,
-        accelerator="dp",
+        strategy="dp",
     )
     trainer.fit(model)

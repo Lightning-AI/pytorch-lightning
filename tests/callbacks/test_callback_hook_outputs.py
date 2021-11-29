@@ -22,7 +22,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     """Tests that only training_step can be used."""
 
     class CB(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             assert "loss" in outputs
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -32,7 +32,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
             assert "x" in outputs
 
     class TestModel(BoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_end(self, outputs, batch, batch_idx: int) -> None:
             assert "loss" in outputs
 
         def on_validation_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
@@ -53,7 +53,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
@@ -64,7 +64,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 def test_free_memory_on_eval_outputs(tmpdir):
     class CB(Callback):
         def on_epoch_end(self, trainer, pl_module):
-            assert len(trainer._evaluation_loop.outputs) == 0
+            assert not trainer._evaluation_loop._outputs
 
     model = BoringModel()
 
@@ -74,7 +74,7 @@ def test_free_memory_on_eval_outputs(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)

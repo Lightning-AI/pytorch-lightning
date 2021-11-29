@@ -23,7 +23,10 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
@@ -51,11 +54,11 @@ def test__validation_step__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch", "epoch"}
+    assert set(trainer.logged_metrics) == {"a2", "a_step", "a_epoch", "b_step", "b_epoch"}
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
@@ -89,12 +92,12 @@ def test__validation_step__epoch_end__log(tmpdir):
         limit_val_batches=2,
         max_epochs=2,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     # make sure all the metrics are available for loggers
-    assert set(trainer.logged_metrics) == {"epoch", "a", "b_step", "b_epoch", "c", "d_step", "d_epoch", "g"}
+    assert set(trainer.logged_metrics) == {"a", "b_step", "b_epoch", "c", "d_step", "d_epoch", "g"}
 
     assert not trainer.progress_bar_metrics
 
@@ -117,20 +120,20 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         limit_val_batches=batches,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     # assert the loggers received the expected number
     logged_metrics = set(trainer.logged_metrics)
-    assert logged_metrics == {"c", "d/e/f", "epoch"}
+    assert logged_metrics == {"c", "d/e/f"}
 
     pbar_metrics = set(trainer.progress_bar_metrics)
     assert pbar_metrics == {"c"}
 
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
-    assert callback_metrics == (logged_metrics | pbar_metrics) - {"epoch"}
+    assert callback_metrics == (logged_metrics | pbar_metrics)
 
 
 def test_eval_float_logging(tmpdir):
@@ -149,11 +152,11 @@ def test_eval_float_logging(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
-    assert set(trainer.logged_metrics) == {"a", "epoch"}
+    assert set(trainer.logged_metrics) == {"a"}
 
 
 def test_eval_logging_auto_reduce(tmpdir):
@@ -180,7 +183,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         limit_val_batches=3,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
@@ -210,7 +213,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
         max_epochs=max_epochs,
         limit_test_batches=batches,
         log_every_n_steps=log_interval,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     results = trainer.test(model)
 
@@ -244,7 +247,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
         limit_test_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        weights_summary=None,
+        enable_model_summary=False,
     )
     results = trainer.test(model)
 
@@ -273,6 +276,10 @@ def test_log_works_in_val_callback(tmpdir):
 
             for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
                 fx = f"{func_name}_{idx}"
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 self.logged_values[fx].append(self.count)
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
@@ -380,6 +387,10 @@ def test_log_works_in_test_callback(tmpdir):
                 func_name = original_func_name[:]
                 custom_func_name = f"{idx}_{func_name}"
 
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
@@ -414,6 +425,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, trainer, pl_module):
+            if trainer.testing:
+                self.make_logging(
+                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                )
+
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -434,7 +451,7 @@ def test_log_works_in_test_callback(tmpdir):
     class TestModel(BoringModel):
         seen_losses = {i: [] for i in range(num_dataloaders)}
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             loss = super().test_step(batch, batch_idx)["y"]
             self.log("test_loss", loss)
             self.seen_losses[dataloader_idx].append(loss)
@@ -507,7 +524,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
             self.log("valid_loss_2", loss, on_step=True, on_epoch=False)
-            self.log("valid_loss_3", loss, on_step=False, on_epoch=False)
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
@@ -527,7 +543,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     # Train the model ⚡
@@ -536,6 +551,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     # hp_metric + 2 steps + epoch + 2 steps + epoch
     expected_num_calls = 1 + 2 + 1 + 2 + 1
 
+    assert set(trainer.callback_metrics) == {
+        "train_loss",
+        "valid_loss_0_epoch",
+        "valid_loss_0",
+        "valid_loss_1",
+    }
     assert len(mock_log_metrics.mock_calls) == expected_num_calls
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
@@ -569,10 +590,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     results = trainer.test(model)
     assert set(trainer.callback_metrics) == {
-        "train_loss",
-        "valid_loss_0_epoch",
-        "valid_loss_0",
-        "valid_loss_1",
         "test_loss",
     }
     assert set(results[0]) == {"test_loss"}
@@ -598,7 +615,111 @@ def test_logging_dict_on_validation_step(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
-        progress_bar_refresh_rate=1,
     )
 
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
+def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            value = 1 + batch_idx
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("batch_idx", value, on_step=True, on_epoch=True, prog_bar=True)
+            return out
+
+        def training_epoch_end(self, outputs):
+            metrics = self.trainer.progress_bar_metrics
+            v = 15 if self.current_epoch == 0 else 150
+            assert metrics["batch_idx_epoch"] == (v / 5.0)
+
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            value = (1 + batch_idx) * (1 + dataloader_idx)
+            if self.current_epoch != 0:
+                value *= 10
+            self.log("val_loss", value, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            return value
+
+        def validation_epoch_end(self, outputs):
+            if self.current_epoch == 0:
+                assert sum(outputs[0]) / 5 == 3
+                assert sum(outputs[1]) / 5 == 6
+            else:
+                assert sum(outputs[0]) / 5 == 30
+                assert sum(outputs[1]) / 5 == 60
+
+            tot_loss = torch.mean(torch.tensor(outputs, dtype=torch.float))
+            if self.current_epoch == 0:
+                assert tot_loss == (3 + 6) / 2
+            else:
+                assert tot_loss == (30 + 60) / 2
+            assert self.trainer._results["validation_step.val_loss.0"].cumulated_batch_size == 5
+            assert self.trainer._results["validation_step.val_loss.1"].cumulated_batch_size == 5
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        num_sanity_val_steps=0,
+        val_check_interval=val_check_interval,
+        max_epochs=3,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
+        (
+            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
+            {"acc/dataloader_idx_0": 123},
+        ),
+        (
+            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
+            {"acc/dataloader_idx_10": 321},
+        ),
+        (
+            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
+            {"top_3_acc/dataloader_idx_3": 321},
+        ),
+        # theoretical case, as `/dataloader_idx_3` would have been added
+        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
+    ],
+)
+def test_filter_metrics_for_dataloader(kwargs, expected):
+    """Logged metrics should only include metrics from the concerned dataloader."""
+    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
+    assert actual == expected
+
+
+@RunIf(min_gpus=1)
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, *args):
+            x = torch.tensor(2.0, requires_grad=True, device=self.device)
+            y = x * 2
+            assert x.requires_grad is True
+            assert y.grad_fn is None  # disabled by validation
+
+            self.log("foo", y)
+            return y
+
+        def validation_epoch_end(self, outputs):
+            # the step outputs were not moved
+            assert all(o.device == self.device for o in outputs), outputs
+            # but the logging results were
+            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer.validate(model, verbose=False)

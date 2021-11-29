@@ -22,18 +22,18 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True, standalone=True)
 def test_deepspeed_collate_checkpoint(tmpdir):
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.accelerator.broadcast(checkpoint_path)
+    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.accelerator.barrier()
+    trainer.training_type_plugin.barrier()
     if trainer.is_global_zero:
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")

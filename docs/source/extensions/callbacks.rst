@@ -72,10 +72,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -99,6 +99,7 @@ Lightning has a few built-in callbacks.
     BaseFinetuning
     BasePredictionWriter
     Callback
+    DeviceStatsMonitor
     EarlyStopping
     GPUStatsMonitor
     GradientAccumulationScheduler
@@ -106,8 +107,10 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
+    ModelSummary
     ProgressBar
     ProgressBarBase
+    RichModelSummary
     RichProgressBar
     QuantizationAwareTraining
     StochasticWeightAveraging
@@ -393,6 +396,12 @@ on_keyboard_interrupt
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_keyboard_interrupt
+    :noindex:
+
+on_exception
+^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
 
 on_save_checkpoint

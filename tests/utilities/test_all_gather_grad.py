@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 import sys
 
@@ -41,13 +54,13 @@ def _test_all_gather_ddp(rank, world_size):
     assert torch.allclose(grad2, tensor2.grad)
 
 
-@RunIf(skip_windows=True)
-def test_all_gather_ddp():
+@RunIf(skip_windows=True, skip_49370=True)
+def test_all_gather_ddp_spawn():
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
-@RunIf(min_gpus=2, skip_windows=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
 
@@ -91,14 +104,14 @@ def test_all_gather_collection(tmpdir):
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         gpus=2,
-        accelerator="ddp",
+        strategy="ddp",
     )
 
     trainer.fit(model)
     assert model.training_epoch_end_called
 
 
-@RunIf(min_gpus=2, skip_windows=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_sync_grads(tmpdir):
     class TestModel(BoringModel):
 
@@ -115,6 +128,6 @@ def test_all_gather_sync_grads(tmpdir):
             return loss
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp")
     trainer.fit(model)
     assert model.training_step_called

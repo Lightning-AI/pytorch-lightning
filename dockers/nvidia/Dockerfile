@@ -32,7 +32,8 @@ RUN \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv pytorch-lightning-*/ pytorch-lightning ; \
+        mv pytorch-lightning-*/* pytorch-lightning ; \
+        rm -rf pytorch-lightning-* ; \
         rm *.zip ; \
     fi && \
 # save the examples
@@ -40,7 +41,7 @@ RUN \
     mv pytorch-lightning/pl_examples . && \
 
 # Installations
-    python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    python .github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "horovod" && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
@@ -60,7 +61,7 @@ RUN \
     python --version && \
     pip --version && \
     pip list | grep torch && \
-    python -c "from torch import __version__ as ver ; assert ver == '$TORCH_VERSION', ver" && \
+    python -c "import torch; assert torch.__version__.startswith('$TORCH_VERSION'), torch.__version__" && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

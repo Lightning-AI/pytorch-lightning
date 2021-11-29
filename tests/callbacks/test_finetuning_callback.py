@@ -128,8 +128,8 @@ def test_finetuning_callback_warning(tmpdir):
         trainer.fit(model)
 
     assert model.backbone.has_been_used
-    trainer = Trainer(max_epochs=3, resume_from_checkpoint=chk.last_model_path)
-    trainer.fit(model)
+    trainer = Trainer(max_epochs=3)
+    trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_freeze_unfreeze_function(tmpdir):
@@ -186,7 +186,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     model = FreezeModel()
     optimizer = SGD(model.backbone[0].parameters(), lr=0.01)
 
-    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+    with pytest.warns(UserWarning, match="The provided params to be frozen already"):
         BaseFinetuning.unfreeze_and_add_param_group(model.backbone[0], optimizer=optimizer)
     assert optimizer.param_groups[0]["lr"] == 0.01
 
@@ -197,7 +197,7 @@ def test_unfreeze_and_add_param_group_function(tmpdir):
     assert torch.equal(optimizer.param_groups[1]["params"][0], model.backbone[1].weight)
     assert model.backbone[1].weight.requires_grad
 
-    with pytest.warns(UserWarning, match="The provided params to be freezed already"):
+    with pytest.warns(UserWarning, match="The provided params to be frozen already"):
         BaseFinetuning.unfreeze_and_add_param_group(model, optimizer=optimizer, lr=100, train_bn=False)
     assert len(optimizer.param_groups) == 3
     assert optimizer.param_groups[2]["lr"] == 100
@@ -258,9 +258,9 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
-    trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
+    trainer = Trainer(max_epochs=10, callbacks=[cb])
     with pytest.raises(IndexError, match="index 6 is out of range"):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):
@@ -400,10 +400,9 @@ def test_callbacks_restore(tmpdir):
     }
 
     trainer_kwargs["max_epochs"] = 3
-    trainer_kwargs["resume_from_checkpoint"] = chk.last_model_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
 def test_callbacks_restore_backbone(tmpdir):
@@ -425,7 +424,7 @@ def test_callbacks_restore_backbone(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)],
     )
     trainer.fit(BackboneBoringModel())
@@ -436,8 +435,7 @@ def test_callbacks_restore_backbone(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=3,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
-        resume_from_checkpoint=ckpt.last_model_path,
     )
-    trainer.fit(BackboneBoringModel())
+    trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)

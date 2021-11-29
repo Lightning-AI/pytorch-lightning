@@ -28,6 +28,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -297,6 +298,20 @@ class LightningLoggerBase(ABC):
         """
         pass
 
+    def log_text(self, *args, **kwargs) -> None:
+        """Log text.
+
+        Arguments are directly passed to the logger.
+        """
+        raise NotImplementedError
+
+    def log_image(self, *args, **kwargs) -> None:
+        """Log image.
+
+        Arguments are directly passed to the logger.
+        """
+        raise NotImplementedError
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -310,7 +325,18 @@ class LightningLoggerBase(ABC):
         self.save()
 
     def close(self) -> None:
-        """Do any cleanup that is necessary to close an experiment."""
+        """Do any cleanup that is necessary to close an experiment.
+
+        See deprecation warning below.
+
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LightningLoggerBase.finalize` instead.
+        """
+        rank_zero_deprecation(
+            "`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LightningLoggerBase.finalize` instead."
+        )
         self.save()
 
     @property
@@ -318,6 +344,11 @@ class LightningLoggerBase(ABC):
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
+
+    @property
+    def group_separator(self):
+        """Return the default separator used by the logger to group the data into subfolders."""
+        return "/"
 
     @property
     @abstractmethod
@@ -383,6 +414,14 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
+    def log_text(self, *args, **kwargs) -> None:
+        for logger in self._logger_iterable:
+            logger.log_text(*args, **kwargs)
+
+    def log_image(self, *args, **kwargs) -> None:
+        for logger in self._logger_iterable:
+            logger.log_image(*args, **kwargs)
+
     def save(self) -> None:
         for logger in self._logger_iterable:
             logger.save()
@@ -392,6 +431,15 @@ class LoggerCollection(LightningLoggerBase):
             logger.finalize(status)
 
     def close(self) -> None:
+        """
+        .. deprecated:: v1.5
+            This method is deprecated in v1.5 and will be removed in v1.7.
+            Please use `LoggerCollection.finalize` instead.
+        """
+        rank_zero_deprecation(
+            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
+            " Please use `LoggerCollection.finalize` instead."
+        )
         for logger in self._logger_iterable:
             logger.close()
 
@@ -461,6 +509,10 @@ class DummyLogger(LightningLoggerBase):
     def __getitem__(self, idx) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
+
+    def __iter__(self):
+        # if DummyLogger is substituting a logger collection, pretend it is empty
+        yield from ()
 
 
 def merge_dicts(

@@ -171,7 +171,6 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         max_epochs=1,
         limit_train_batches=limit_batches,
         limit_val_batches=limit_batches,
-        log_gpu_memory=True,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}

@@ -27,8 +27,13 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.trainer.connectors.logger_connector.result import (
+    _Metadata,
+    _Sync,
+    ResultCollection,
+    ResultMetric,
+)
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -98,7 +103,7 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
@@ -458,31 +463,27 @@ def result_collection_reload(**kwargs):
         else trainer_kwargs["default_root_dir"]
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
-    trainer_kwargs["resume_from_checkpoint"] = ckpt_path
 
     trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=1)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, accelerator="ddp", gpus=2)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
 
 
 def test_metric_collections(tmpdir):
@@ -544,3 +545,46 @@ def test_metric_collections(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
     trainer.fit(model)
+
+
+def test_metric_result_computed_check():
+    """Unittest ``_get_cache`` with multielement tensors."""
+    metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
+    metadata.sync = _Sync()
+    rm = ResultMetric(metadata, is_tensor=True)
+    computed_value = torch.tensor([1, 2, 3])
+    rm._computed = computed_value
+    cache = ResultCollection._get_cache(rm, on_step=False)
+    # `enable_graph=True` so no detach, identity works
+    assert cache is computed_value
+
+
+@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
+def test_metric_result_respects_dtype(floating_dtype):
+    torch.set_default_dtype(floating_dtype)
+    fixed_dtype = torch.long  # default by PyTorch
+
+    metadata = _Metadata("foo", "bar")
+    metadata.sync = _Sync()
+    rm = ResultMetric(metadata, is_tensor=True)
+
+    assert rm.value.dtype == floating_dtype
+    assert rm.cumulated_batch_size.dtype == fixed_dtype
+
+    # two fixed point numbers - should be converted
+    value, batch_size = torch.tensor(2), torch.tensor(3)
+    assert value.dtype == fixed_dtype
+    with pytest.warns(
+        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
+    ):
+        rm.update(value, batch_size)
+    # floating and fixed
+    rm.update(torch.tensor(4.0), torch.tensor(5))
+
+    total = rm.compute()
+
+    assert total == (2 * 3 + 4 * 5) / (5 + 3)
+    assert total.dtype == floating_dtype
+
+    # restore to avoid impacting other tests
+    torch.set_default_dtype(torch.float)
