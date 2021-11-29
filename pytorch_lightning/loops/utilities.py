@@ -63,9 +63,10 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
     hiddens = recursive_detach(training_step_output["hiddens"])
     return hiddens
 
+
 def _parse_loop_limits(
     min_steps: int, max_steps: int, min_epochs: int, max_epochs: int, max_time: Union[str, timedelta, Dict[str, int]]
-    ) -> Tuple[int, int]:
+) -> Tuple[int, int]:
     if max_epochs is None and max_steps == -1 and max_time is None:
         rank_zero_warn(
             "`max_epochs` was not set. Setting it to 1000 epochs.",
