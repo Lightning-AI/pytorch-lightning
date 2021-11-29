@@ -92,7 +92,7 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 .. note::
 
     By default, all loggers log to ``os.getcwd()``. You can change the log path using
-    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')`` without instantiating a logger.
+    ``Trainer(default_root_dir="/your/path/to/save/checkpoints")`` without instantiating a logger.
 
 ----------
 
@@ -133,6 +133,17 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 * ``prog_bar``: Logs to the progress bar (Default: ``False``).
 * ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the
     :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
+* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
+* ``enable_graph``: If True, will not auto detach the graph.
+* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant
+    communication overhead.
+* ``sync_dist_group``: The DDP group to sync across.
+* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name
+    (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
+* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_step=True``.
+    This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
+* ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which
+    would produce a deadlock as not all processes would perform this log call.
 
 .. list-table:: Default behavior of logging in Callback or LightningModule
    :widths: 50 25 25
