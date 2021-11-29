@@ -1673,15 +1673,15 @@ class Trainer(
 
     @property
     def amp_backend(self) -> Optional[str]:
-        return self.precision_plugin.amp_backend
+        return getattr(self.precision_plugin, "backend")
 
     @property
     def precision(self) -> Union[str, int]:
         return self.training_type_plugin.precision_plugin.precision
 
     @property
-    def scaler(self):
-        return self.precision_plugin.scaler
+    def scaler(self) -> Optional[Any]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:

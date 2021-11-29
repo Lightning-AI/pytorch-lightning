@@ -17,7 +17,6 @@ from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -49,14 +48,6 @@ class PrecisionPlugin(CheckpointHooks):
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
-
-    @property
-    def scaler(self) -> Optional["GradScaler"]:
-        return None
-
-    @property
-    def amp_backend(self) -> Optional[LightningEnum]:
-        return None
 
     def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         """Run before precision plugin executes backward.
