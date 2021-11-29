@@ -60,7 +60,6 @@ module = [
     "pytorch_lightning.core.decorators",
     "pytorch_lightning.core.lightning",
     "pytorch_lightning.core.mixins.device_dtype_mixin",
-    "pytorch_lightning.core.mixins.hparams_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
