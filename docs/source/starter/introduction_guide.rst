@@ -122,11 +122,13 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     torch.Size([1, 10])
 
 
-Now we add the training_step which has all our training loop logic
+Now we add the training_step to the previously defined class which has all our training loop logic
 
 .. testcode::
 
     class LitMNIST(LightningModule):
+        ... # code previously written
+        
         def training_step(self, batch, batch_idx):
             x, y = batch
             logits = self(x)
