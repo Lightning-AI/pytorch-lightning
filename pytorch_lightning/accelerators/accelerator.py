@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT, LR_SCHEDULER_CONFIG
 
 
 class Accelerator:
@@ -63,7 +63,7 @@ class Accelerator:
             self.training_type_plugin._precision_plugin = precision_plugin
 
         self.optimizers: List = []
-        self.lr_schedulers: List = []
+        self.lr_schedulers: List[LR_SCHEDULER_CONFIG] = []
         self.optimizer_frequencies: List = []
 
     def setup_environment(self) -> None:

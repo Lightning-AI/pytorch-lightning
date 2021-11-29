@@ -95,6 +95,7 @@ from pytorch_lightning.utilities.types import (
     EVAL_DATALOADERS,
     LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
+    LR_SCHEDULER_CONFIG,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
@@ -1656,11 +1657,11 @@ class Trainer(
         self.accelerator.optimizers = new_optims
 
     @property
-    def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
+    def lr_schedulers(self) -> List[LR_SCHEDULER_CONFIG]:
         return self.accelerator.lr_schedulers
 
     @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
+    def lr_schedulers(self, new_schedulers: List[LR_SCHEDULER_CONFIG]) -> None:
         self.accelerator.lr_schedulers = new_schedulers
 
     @property

@@ -86,7 +86,7 @@ class LearningRateMonitor(Callback):
 
     """
 
-    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
+    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False) -> None:
         if logging_interval not in (None, "step", "epoch"):
             raise MisconfigurationException("logging_interval should be `step` or `epoch` or `None`.")
 

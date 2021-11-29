@@ -45,7 +45,6 @@ module = [
     "pytorch_lightning.accelerators.accelerator",
     "pytorch_lightning.accelerators.gpu",
     "pytorch_lightning.callbacks.finetuning",
-    "pytorch_lightning.callbacks.lr_monitor",
     "pytorch_lightning.callbacks.model_checkpoint",
     "pytorch_lightning.callbacks.prediction_writer",
     "pytorch_lightning.callbacks.progress.base",

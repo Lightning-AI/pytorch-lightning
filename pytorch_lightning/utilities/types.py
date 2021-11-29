@@ -14,13 +14,26 @@
 """
 Convention:
  - Do not include any `_TYPE` suffix
- - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
+ - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Sequence, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Sequence,
+    Type,
+    Union,
+    TypedDict,
+    Optional,
+    runtime_checkable,
+    Protocol,
+)
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 
@@ -43,7 +56,30 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
-# todo: improve LRSchedulerType naming/typing
+
+
+@runtime_checkable
+class _LRScheduler(Protocol):
+    optimizer: Optimizer
+
+
+@runtime_checkable
+class ReduceLROnPlateau(Protocol):
+    optimizer: Optimizer
+
+
+# todo: improve LRSchedulerType naming/typing ???
 LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
+
+
+class LR_SCHEDULER_CONFIG(TypedDict):
+    scheduler: LRSchedulerTypeUnion
+    name: Optional[str]
+    interval: str
+    frequency: int
+    reduce_on_plateau: bool
+    monitor: Optional[str]
+    strict: bool
+    opt_idx: Optional[int]
