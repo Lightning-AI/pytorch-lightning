@@ -39,13 +39,13 @@ from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingE
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
     DDPSpawnPlugin,
+    NativeMixedPrecisionPlugin,
     ParallelPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
     TrainingTypePlugin,
-    ApexMixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
@@ -75,13 +75,13 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
+    AMPType,
     device_parser,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
-    AMPType,
 )
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
