@@ -1,5 +1,6 @@
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -256,14 +257,14 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
-
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
     class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
