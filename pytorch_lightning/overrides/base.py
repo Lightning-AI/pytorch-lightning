@@ -15,11 +15,11 @@ from typing import Any, Union
 
 import torch
 import torch.nn as nn
-from pytorch_lightning.core.lightning import LightningModule
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 
