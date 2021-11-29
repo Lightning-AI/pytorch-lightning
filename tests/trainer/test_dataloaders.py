@@ -505,7 +505,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
             assert mocked.call_count == limit_test_batches * len(trainer.test_dataloaders)
 
 
-@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1, "temp"])
+@pytest.mark.parametrize("fast_dev_run", [True, 1, 3, -1])
 def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run."""
     model = EvalModelTemplate()
@@ -518,10 +518,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
 
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
 
-    if fast_dev_run == "temp":
-        with pytest.raises(MisconfigurationException, match="either a bool or an int"):
-            Trainer(**trainer_options)
-    elif fast_dev_run == -1:
+    if fast_dev_run == -1:
         with pytest.raises(MisconfigurationException, match="should be >= 0"):
             Trainer(**trainer_options)
     else:
@@ -1130,7 +1127,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         val_check_interval=0.3,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
     )
 
@@ -1248,7 +1245,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         limit_train_batches=0.3,
         limit_val_batches=0.3,
         num_sanity_val_steps=0,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
         callbacks=[checkpoint_callback],
     )
@@ -1275,7 +1272,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # the val dataloader on the first epoch because this only tracks the training epoch
         # meaning multiple passes through the validation data within a single training epoch
         # would not have the dataloader reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_n_epochs=True
+        # This breaks the assumption behind reload_dataloaders_every_n_epochs=1
         call.val_dataloader(),
         call.train_dataloader(),
         call.val_dataloader(),

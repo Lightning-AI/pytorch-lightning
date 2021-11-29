@@ -18,9 +18,10 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import DeviceType, memory
+from pytorch_lightning.utilities import _AcceleratorType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
@@ -81,7 +82,7 @@ class LoggerConnector:
             # default logger
             self.trainer.logger = (
                 TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=self.trainer.slurm_job_id, name="lightning_logs"
+                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
                 )
                 if logger
                 else None
@@ -214,7 +215,6 @@ class LoggerConnector:
 
     def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
         self._split_idx = split_idx
-        self.on_new_batch(split_batch)
 
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -257,28 +257,23 @@ class LoggerConnector:
     Utilities and properties
     """
 
-    def on_new_batch(self, batch: Any) -> int:
-        # when the user requests `dataloader_iter`, we can't track the batch_size
-        # and this is left to user responsibility.
-        if not isinstance(batch, pl.utilities.fetching.StepFuncDataLoaderIter):
-            assert self.trainer._results is not None
-            return self.trainer._results.extract_batch_size(batch)
-        return 1
-
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self, batch_idx: int, batch: Any) -> int:
+    def on_batch_start(self, batch_idx: int, batch: Any) -> None:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
-        return self.on_new_batch(batch)
+
+        assert self.trainer._results is not None
+        # attach reference to the new batch and remove the cached batch_size
+        self.trainer._results.batch = batch
+        self.trainer._results.batch_size = None
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
         self._split_idx = None
         assert self.trainer._results is not None
-        self.trainer._results.batch_size = 1
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
@@ -294,6 +289,11 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
+
+        assert self.trainer._results is not None
+        # drop the reference to current batch and batch_size
+        self.trainer._results.batch = None
+        self.trainer._results.batch_size = None
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
@@ -329,7 +329,7 @@ class LoggerConnector:
         .. deprecated:: v1.5
             Will be removed in v1.7.
         """
-        if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
+        if self.trainer._device_type == _AcceleratorType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)
         return self._gpus_metrics

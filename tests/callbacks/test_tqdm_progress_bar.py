@@ -274,7 +274,7 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
     assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
-    assert trainer.progress_bar_callback.refresh_rate == 1  # FIXME: should be 20
+    assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
     assert trainer.progress_bar_callback.refresh_rate == 19
@@ -512,7 +512,7 @@ def test_tqdm_progress_bar_can_be_pickled():
     pickle.dumps(bar)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     ["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"],
     [(8, 4, 2, 1, 0.2), (8, 4, 2, 1, 0.5)],

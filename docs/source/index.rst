@@ -67,6 +67,7 @@ PyTorch Lightning
    common/optimizers
    advanced/profiler
    advanced/plugins_registry
+   common/remote_fs
    advanced/sequences
    common/single_gpu
    advanced/training_tricks
@@ -84,7 +85,6 @@ PyTorch Lightning
    extensions/callbacks
    extensions/datamodules
    extensions/logging
-   extensions/metrics
    extensions/plugins
    extensions/loops
 

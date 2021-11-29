@@ -167,7 +167,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_transfer_batch_hook_ddp(tmpdir):
     """Test custom data are properly moved to the right device using ddp."""
 
@@ -426,7 +426,7 @@ class HookedModel(BoringModel):
         return out
 
 
-@RunIf(deepspeed=True, min_gpus=1, special=True)
+@RunIf(deepspeed=True, min_gpus=1, standalone=True)
 @pytest.mark.parametrize("automatic_optimization", (True, False))
 def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization):
     _run_trainer_model_hook_system_fit(
@@ -866,7 +866,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_predict_batches=batches,
         enable_progress_bar=False,
         enable_model_summary=False,
-        reload_dataloaders_every_n_epochs=True,
+        reload_dataloaders_every_n_epochs=1,
     )
 
     called = []

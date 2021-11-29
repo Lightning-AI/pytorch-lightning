@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import inspect
 import os
+from contextlib import contextmanager
 from functools import partial
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Union
+from itertools import chain
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
@@ -24,8 +27,8 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -36,17 +39,18 @@ warning_cache = WarningCache()
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, torch.Tensor):
-        yield batch.size(0)
-    elif isinstance(batch, str):
-        yield len(batch)
-    elif isinstance(batch, (Iterable, Mapping)):
+        if batch.ndim == 0:
+            yield 1
+        else:
+            yield batch.size(0)
+    elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
 
         for sample in batch:
             yield from _extract_batch_size(sample)
     else:
-        yield 1
+        yield None
 
 
 def extract_batch_size(batch: BType) -> int:
@@ -55,16 +59,26 @@ def extract_batch_size(batch: BType) -> int:
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
     """
+    error_msg = (
+        "We could not infer the batch_size from the batch. Either simplify its structure"
+        " or provide the batch_size as `self.log(..., batch_size=batch_size)`."
+    )
     batch_size = None
-    for bs in _extract_batch_size(batch):
-        if batch_size is None:
-            batch_size = bs
-        elif batch_size != bs:
-            warning_cache.warn(
-                "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
-                f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
-            )
-            break
+    try:
+        for bs in _extract_batch_size(batch):
+            if batch_size is None:
+                batch_size = bs
+            elif batch_size != bs:
+                warning_cache.warn(
+                    "Trying to infer the `batch_size` from an ambiguous collection. The batch size we"
+                    f" found is {batch_size}. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`."
+                )
+                break
+    except RecursionError:
+        raise RecursionError(error_msg)
+
+    if batch_size is None:
+        raise MisconfigurationException(error_msg)
 
     return batch_size
 
@@ -166,7 +180,25 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
-    dataloader = dl_cls(**dl_kwargs)
+    try:
+        dataloader = dl_cls(**dl_kwargs)
+    except TypeError as e:
+        # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
+        # `__init__` arguments map to one `DataLoader.__init__` argument
+        import re
+
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
+        if not match:
+            # an unexpected `TypeError`, continue failure
+            raise
+        argument = match.groups()[0]
+        message = (
+            f"The {dl_cls.__name__} `DataLoader` implementation has an error where more than one `__init__` argument"
+            f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
+            f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
+            f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
+        )
+        raise MisconfigurationException(message) from e
     return dataloader
 
 
@@ -235,17 +267,8 @@ def _get_dataloader_init_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
 
-    if _fault_tolerant_training():
-        dataset = dl_kwargs["dataset"]
-        if isinstance(dataset, IterableDataset):
-            # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-            dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dl_kwargs["dataset"])
-        elif get_len(dataset) != float("inf"):
-            dl_kwargs["dataset"] = CaptureMapDataset(dataset=dl_kwargs["dataset"])
-        else:
-            raise MisconfigurationException(
-                "This shouldn't happen, please open an issue on Lightning Github repository."
-            )
+    if _FaultTolerantMode.detect_current_mode().is_automatic:
+        dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
 
     return dl_kwargs
 
@@ -260,6 +283,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
     """
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
     # checking the batch sampler type is different than PyTorch default.
@@ -272,7 +296,7 @@ def _dataloader_init_kwargs_resolve_sampler(
         if is_predicting:
             batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if _fault_tolerant_training():
+        if fault_tolerant_mode.is_automatic:
             fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
             fast_forward_sampler.setup(dataloader_batch_size=1)
 
@@ -284,7 +308,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             "drop_last": False,
         }
 
-    if _fault_tolerant_training():
+    if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
         fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
@@ -294,3 +318,59 @@ def _dataloader_init_kwargs_resolve_sampler(
 def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
+
+
+def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
+    :class:`~torch.utils.data.DataLoader`."""
+
+    @functools.wraps(init)
+    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+        params = dict(inspect.signature(obj.__init__).parameters)
+        params.pop("args", None)
+        params.pop("kwargs", None)
+        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+            setattr(obj, arg_name, arg_value)
+        init(obj, *args, **kwargs)
+
+    return wrapper
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
+    subclasses = set()
+
+    def recurse(cl: Type[Any]) -> None:
+        for subclass in cl.__subclasses__():
+            subclasses.add(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+    return subclasses
+
+
+@contextmanager
+def _replace_dataloader_init_method() -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of
+    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
+    subclasses = _get_all_subclasses(DataLoader)
+    for subclass in subclasses:
+        subclass._old_init = subclass.__init__
+        subclass.__init__ = _wrap_init(subclass.__init__)
+    yield
+    for subclass in subclasses:
+        subclass.__init__ = subclass._old_init
+        del subclass._old_init
+
+
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> Dict:
+    dataset = dl_kwargs["dataset"]
+    if isinstance(dataset, IterableDataset):
+        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
+        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dataset)
+    elif get_len(dataset) != float("inf"):
+        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dataset)
+    else:
+        raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
+    return dl_kwargs

@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -177,9 +177,9 @@ class TrainingTypePlugin(ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model)
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
@@ -241,7 +241,7 @@ class TrainingTypePlugin(ABC):
     def test_step_end(self, output):
         return output
 
-    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Wraps the dataloader if necessary.
 
         Args:

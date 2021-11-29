@@ -101,13 +101,13 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model)
+        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass

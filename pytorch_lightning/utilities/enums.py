@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
+import os
 from enum import Enum, EnumMeta
 from typing import Any, List, Optional, Union
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
@@ -141,23 +143,24 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
         )
 
 
-class DeviceType(LightningEnum):
-    """Define Device type by its nature - acceleatrors.
+class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
+    """Define Device type by its nature - accelerators.
 
-    >>> DeviceType.CPU == DeviceType.from_str('cpu')
-    True
-    >>> # you can match the type with string
-    >>> DeviceType.GPU == 'GPU'
-    True
-    >>> # which is case invariant
-    >>> DeviceType.TPU in ('tpu', 'CPU')
-    True
+    Deprecated since v1.6.0 and will be removed in v1.8.0.
+
+    Use `_AcceleratorType` instead.
     """
 
     CPU = "CPU"
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+
+    def deprecate(self) -> None:
+        rank_zero_deprecation(
+            "`DeviceType` Enum has been deprecated in v1.6 and will be removed in v1.8."
+            " Use the string value `{self.value!r}` instead."
+        )
 
 
 class GradClipAlgorithmType(LightningEnum):
@@ -256,3 +259,56 @@ class _StrategyType(LightningEnum):
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
         return self in _StrategyType.interactive_compatible_types()
+
+
+class _AcceleratorType(LightningEnum):
+    """Define Accelerator type by its nature.
+
+    >>> _AcceleratorType.CPU == _AcceleratorType.from_str('cpu')
+    True
+    >>> # you can match the type with string
+    >>> _AcceleratorType.GPU == 'GPU'
+    True
+    >>> # which is case invariant
+    >>> _AcceleratorType.TPU in ('tpu', 'CPU')
+    True
+    """
+
+    CPU = "CPU"
+    GPU = "GPU"
+    IPU = "IPU"
+    TPU = "TPU"
+
+
+class _FaultTolerantMode(LightningEnum):
+
+    DISABLED = "disabled"
+    AUTOMATIC = "automatic"
+    MANUAL = "manual"
+
+    @property
+    def is_enabled(self) -> bool:
+        return self is not _FaultTolerantMode.DISABLED
+
+    @property
+    def is_automatic(self) -> bool:
+        return self is _FaultTolerantMode.AUTOMATIC
+
+    @property
+    def is_manual(self) -> bool:
+        return self is _FaultTolerantMode.MANUAL
+
+    @classmethod
+    def detect_current_mode(cls) -> "_FaultTolerantMode":
+        """This classmethod detects if `Fault Tolerant` is activated and maps its value to `_FaultTolerantMode`."""
+        env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()
+        # the int values are kept for backwards compatibility, but long-term we want to keep only the strings
+        if env_value in ("0", "disabled"):
+            return _FaultTolerantMode.DISABLED
+        elif env_value in ("1", "automatic"):
+            return _FaultTolerantMode.AUTOMATIC
+        elif env_value in ("2", "manual"):
+            return _FaultTolerantMode.MANUAL
+        raise MisconfigurationException(
+            "The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either 'disabled', 'automatic', or 'manual'."
+        )

@@ -39,6 +39,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingE
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -53,7 +54,6 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import Accelerat
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
@@ -63,11 +63,11 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerSta
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _AcceleratorType,
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
     device_parser,
-    DeviceType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -75,6 +75,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.argparse import (
+    _defaults_from_env_vars,
     add_argparse_args,
     from_argparse_args,
     parse_argparser,
@@ -95,6 +96,7 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
 )
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -283,7 +285,8 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
+                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
+                    ``LightningModule`` directly instead.
 
             process_position: Orders the progress bar when running multiple models on same machine.
 
@@ -584,29 +587,24 @@ class Trainer(
         overfit_batches,
         fast_dev_run,
     ):
-        if not isinstance(fast_dev_run, (bool, int)):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be either a bool or an int >= 0"
-            )
-
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
 
         self.fast_dev_run = fast_dev_run
-        fast_dev_run = int(fast_dev_run)
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
 
         if fast_dev_run:
-            limit_train_batches = fast_dev_run
-            limit_val_batches = fast_dev_run
-            limit_test_batches = fast_dev_run
-            limit_predict_batches = fast_dev_run
-            self.fit_loop.max_steps = fast_dev_run
+            num_batches = int(fast_dev_run)
+            limit_train_batches = num_batches
+            limit_val_batches = num_batches
+            limit_test_batches = num_batches
+            limit_predict_batches = num_batches
+            self.fit_loop.max_steps = num_batches
             self.num_sanity_val_steps = 0
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
@@ -615,7 +613,7 @@ class Trainer(
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {fast_dev_run} batch(es)."
+                f" val, test and prediction loop using {num_batches} batch(es)."
             )
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
@@ -624,9 +622,9 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self.determine_data_use_amount(self.overfit_batches)
+        self._determine_data_use_amount(self.overfit_batches)
 
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
+    def _determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
@@ -1522,32 +1520,39 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}")
+        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
+        num_tpu_cores = (
+            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+        )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
+                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
+        if (
+            _IPU_AVAILABLE
+            and self._device_type != _AcceleratorType.IPU
+            and not isinstance(self.accelerator, IPUAccelerator)
+        ):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self):
+    def _on_exception(self) -> None:
         if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
@@ -1598,7 +1603,7 @@ class Trainer(
         return self._accelerator_connector._distrib_type
 
     @property
-    def _device_type(self) -> DeviceType:
+    def _device_type(self) -> _AcceleratorType:
         return self._accelerator_connector._device_type
 
     @property
@@ -1730,18 +1735,8 @@ class Trainer(
 
     @property
     def slurm_job_id(self) -> Optional[int]:
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id:
-            try:
-                job_id = int(job_id)
-            except ValueError:
-                job_id = None
-
-        # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
-        if in_slurm_interactive_mode:
-            job_id = None
-        return job_id
+        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
+        return SLURMEnvironment.job_id()
 
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
@@ -2107,10 +2102,13 @@ class Trainer(
             return active_loop._results
 
     def _exit_gracefully_on_signal(self) -> None:
-        if _fault_tolerant_training() and self._terminate_gracefully:
-            caller = inspect.stack()[1]
-            class_name = caller[0].f_locals["self"].__class__.__name__
-            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
+            return
+        raise ExitGracefullyException(0)
+
+    def _should_terminate_gracefully(self) -> bool:
+        value = torch.tensor(int(self._terminate_gracefully), device=self.training_type_plugin.root_device)
+        return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
 
     @property
     def weights_summary(self) -> Optional[str]:
