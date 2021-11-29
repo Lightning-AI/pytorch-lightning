@@ -88,9 +88,9 @@ class YieldLoop(OptimizerLoop):
         training_step_output = next(generator)
         self.trainer.training_type_plugin.post_training_step()
 
-        training_step_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-        training_step_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
-
+        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+        ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
+        training_step_output = ttp_output if model_output is None else model_output
         # The closure result takes care of properly detaching the loss for logging and peforms
         # some additional checks that the output format is correct.
         result = ClosureResult.from_training_step_output(training_step_output, self.trainer.accumulate_grad_batches)
