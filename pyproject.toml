@@ -78,8 +78,6 @@ module = [
     "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.loops.fit_loop",
     "pytorch_lightning.loops.utilities",
-    "pytorch_lightning.overrides.base",
-    "pytorch_lightning.overrides.data_parallel",
     "pytorch_lightning.overrides.distributed",
     "pytorch_lightning.overrides.fairscale",
     "pytorch_lightning.plugins.environments.lightning_environment",
