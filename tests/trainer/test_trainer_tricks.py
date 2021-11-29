@@ -113,10 +113,6 @@ def test_overfit_batch_limits(tmpdir):
     for split in (RunningStage.VALIDATING, RunningStage.TESTING):
 
         # ------------------------------------------------------
-        # test overfit_batches action
-        # ------------------------------------------------------
-
-        # ------------------------------------------------------
         # test overfit_batches as percent
         # ------------------------------------------------------
         trainer = Trainer(overfit_batches=0.11)
