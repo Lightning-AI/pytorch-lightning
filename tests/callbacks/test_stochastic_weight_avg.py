@@ -325,7 +325,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
         strategy=strategy,
     )
 
-    exception_type = torch.multiprocessing.ProcessRaisedException if ddp else RuntimeError
+    exception_type = Exception if ddp else RuntimeError
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward), pytest.raises(exception_type):
         trainer.fit(model)
 
