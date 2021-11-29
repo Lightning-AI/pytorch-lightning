@@ -127,8 +127,8 @@ Now we add the training_step to the previously defined class which has all our t
 .. testcode::
 
     class LitMNIST(LightningModule):
-        ... # code previously written
-        
+        ...  # code previously written
+
         def training_step(self, batch, batch_idx):
             x, y = batch
             logits = self(x)
