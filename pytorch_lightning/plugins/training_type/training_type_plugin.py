@@ -180,6 +180,23 @@ class TrainingTypePlugin(ABC):
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device.
+
+        The returned batch is of the same type as the input batch, just
+        having all tensors on the correct device.
+
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        model = self.lightning_module
+        device = device or self.root_device
+        if model is not None:
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        return move_data_to_device(batch, device)
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
@@ -267,9 +284,9 @@ class TrainingTypePlugin(ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model)
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:

@@ -143,6 +143,15 @@ def test_lite_optimizer_wraps():
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
+def test_lite_optimizer_state_dict():
+    """Test that the LiteOptimizer calls into the accelerator/strategy to collect the state."""
+    optimizer = Mock()
+    accelerator = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
+    lite_optimizer.state_dict()
+    accelerator.optimizer_state.assert_called_with(optimizer)
+
+
 def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
