@@ -473,7 +473,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
-            # Lighting does not always guarantee.
+            # Lightning does not always guarantee.
             self.experiment[key].log(val)
 
     @rank_zero_only

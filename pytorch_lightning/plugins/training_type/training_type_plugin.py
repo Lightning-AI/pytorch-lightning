@@ -26,6 +26,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
@@ -89,6 +90,23 @@ class TrainingTypePlugin(ABC):
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device.
+
+        The returned batch is of the same type as the input batch, just
+        having all tensors on the correct device.
+
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        model = self.lightning_module
+        device = device or self.root_device
+        if model is not None:
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        return move_data_to_device(batch, device)
 
     @property
     @abstractmethod
@@ -177,9 +195,9 @@ class TrainingTypePlugin(ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model)
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
