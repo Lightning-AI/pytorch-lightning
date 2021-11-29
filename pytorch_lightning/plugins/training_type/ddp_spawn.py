@@ -33,7 +33,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -422,6 +422,9 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     @staticmethod
     def _clean_logger(trainer: "pl.Trainer") -> None:
+        if _TORCH_GREATER_EQUAL_1_9:
+            # only seen this hang with torch<=1.8
+            return
         loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
         for logger in loggers:
             if logger._experiment is not None:
