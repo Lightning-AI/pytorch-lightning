@@ -42,7 +42,8 @@ from tests.helpers.runif import RunIf
 )
 def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """Test that the LightningWrapper redirects .forward() to the LightningModule methods."""
-    pl_module = MagicMock()
+    pl_module = Mock(spec=LightningModule)
+    pl_module.trainer = Mock()
     wrapped_module = wrapper_class(pl_module)
 
     batch = torch.rand(5)
