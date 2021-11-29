@@ -78,7 +78,6 @@ module = [
     "pytorch_lightning.loops.fit_loop",
     "pytorch_lightning.loops.utilities",
     "pytorch_lightning.overrides.distributed",
-    "pytorch_lightning.overrides.fairscale",
     "pytorch_lightning.plugins.environments.lightning_environment",
     "pytorch_lightning.plugins.environments.lsf_environment",
     "pytorch_lightning.plugins.environments.slurm_environment",
