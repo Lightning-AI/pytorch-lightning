@@ -16,18 +16,18 @@
 import collections
 import itertools
 from re import escape
+from unittest import mock
 
 import numpy as np
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
+from torchmetrics import Accuracy, MeanAbsoluteError
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -748,26 +748,29 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
-    batch_size = BoringModel().train_dataloader().batch_size + 1
+@mock.patch("pytorch_lightning.utilities.data.extract_batch_size")
+def test_no_batch_size_extraction_with_specifying_explictly(mock_method, tmpdir):
+    batch_size = 10
     fast_dev_run = 2
     log_val = 7
 
     class CustomBoringModel(BoringModel):
-        def on_before_batch_transfer(self, batch, *args, **kwargs):
-            # This is an ambiguous batch which have multiple potential batch sizes
-            if self.trainer.training:
-                batch = {"batch1": torch.randn(batch_size, 10), "batch2": batch}
-            return batch
+        def __init__(self):
+            super().__init__()
+            self.train_mae = MeanAbsoluteError()
 
         def training_step(self, batch, batch_idx):
             self.log("step_log_val", log_val, on_epoch=False)
             self.log("epoch_log_val", log_val, batch_size=batch_size, on_step=False, on_epoch=True)
             self.log("epoch_sum_log_val", log_val, on_epoch=True, reduce_fx="sum")
-            return super().training_step(batch["batch2"], batch_idx)
+
+            self.train_mae(batch, torch.ones_like(batch))
+            self.log("train_mae", self.train_mae)
+            return super().training_step(batch, batch_idx)
 
         def on_train_epoch_end(self, *args, **kwargs):
             results = self.trainer._results
+            assert isinstance(results["training_step.train_mae"].value, MeanAbsoluteError)
             assert results["training_step.step_log_val"].value == log_val
             assert results["training_step.step_log_val"].cumulated_batch_size == 0
             assert results["training_step.epoch_log_val"].value == log_val * batch_size * fast_dev_run
@@ -776,6 +779,5 @@ def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
 
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
-
-    with no_warning_call(match="Trying to infer the `batch_size`"):
-        trainer.fit(model)
+    trainer.fit(model)
+    mock_method.assert_not_called()
