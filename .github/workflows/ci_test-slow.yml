@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements.txt ${{ matrix.pytorch_version }}
+        python ./requirements/adjust_versions.py requirements.txt ${{ matrix.pytorch-version }}
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt
         pip list
