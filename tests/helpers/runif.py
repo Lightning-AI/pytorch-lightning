@@ -94,7 +94,7 @@ class RunIf:
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
-            standalone: Mark the test as slow, our CI will run it in a separate job.
+            slow: Mark the test as slow, our CI will run it in a separate job.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
