@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch.nn as nn
+
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
