@@ -346,11 +346,10 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
         accumulate_grad_batches=2,
         num_processes=num_processes,
         strategy=strategy,
-        resume_from_checkpoint=checkpoint_path,
     )
 
     with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path=checkpoint_path.as_posix())
 
 
 @pytest.mark.parametrize("crash_after_epoch", [2, 4])
