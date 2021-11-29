@@ -113,7 +113,7 @@ Overriding the default Loops
 ----------------------------
 
 The fastest way to get started with loops, is to override functionality of an existing loop.
-Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for fitting (training and validating),
+Lightning has 4 main loops which relies on : :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for fitting (training and validating),
 :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for validating or testing,
 :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` for predicting.
 
@@ -221,7 +221,7 @@ Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lightning just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base of all loops in the same way as the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base of all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties
