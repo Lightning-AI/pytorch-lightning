@@ -162,8 +162,10 @@ class LoggerConnector:
         on_step = not self._epoch_end_reached
         num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
-            callback_metrics = self.trainer._results.metrics(on_step, dataloader_idx=dl_idx)["callback"]
+        for dl_idx in range(num_dataloaders):
+            callback_metrics = self.trainer._results.metrics(
+                on_step, dataloader_idx=dl_idx if num_dataloaders > 1 else None
+            )["callback"]
 
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
@@ -274,7 +276,7 @@ class LoggerConnector:
         assert self._epoch_end_reached
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
-        self._callback_metrics.update(metrics["callback"].items())
+        self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
         self._current_fx = None
 
@@ -282,7 +284,7 @@ class LoggerConnector:
         assert not self._epoch_end_reached
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
-        self._callback_metrics.update(metrics["callback"].items())
+        self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
 
         assert self.trainer._results is not None

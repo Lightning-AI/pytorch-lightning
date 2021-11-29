@@ -451,7 +451,7 @@ class ResultCollection(dict):
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
-        if add_dataloader_idx:
+        if add_dataloader_idx and dataloader_idx is not None:
             key += f".{dataloader_idx}"
             fx += f".{dataloader_idx}"
 
@@ -531,8 +531,8 @@ class ResultCollection(dict):
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_datalaoder_idx = result_metric.meta.add_dataloader_idx
-        if add_datalaoder_idx:
-            dl_idx = result_metric.meta.dataloader_idx
+        dl_idx = result_metric.meta.dataloader_idx
+        if add_datalaoder_idx and dl_idx is not None:
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
             forked_name += dataloader_suffix

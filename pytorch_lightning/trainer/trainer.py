@@ -1354,7 +1354,7 @@ class Trainer(
                 " The best model of the previous `fit` call will be used."
                 f" You can pass `{fn}(ckpt_path='best')` to use and best model"
                 " checkpoint and avoid this warning or"
-                " `ckpt_path=trainer.model_checkpoint.last_model_path` to use the last model."
+                " `ckpt_path=trainer.checkpoint_callback.last_model_path` to use the last model."
             )
             ckpt_path = "best"
 
