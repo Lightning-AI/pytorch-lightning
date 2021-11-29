@@ -93,9 +93,9 @@ from pytorch_lightning.utilities.types import (
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
+    LR_SCHEDULER_CONFIG,
     LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
-    LR_SCHEDULER_CONFIG,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 

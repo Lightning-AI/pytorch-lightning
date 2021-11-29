@@ -23,13 +23,13 @@ from typing import (
     Iterator,
     List,
     Mapping,
+    Optional,
+    Protocol,
+    runtime_checkable,
     Sequence,
     Type,
-    Union,
     TypedDict,
-    Optional,
-    runtime_checkable,
-    Protocol,
+    Union,
 )
 
 import torch

@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
-from pytorch_lightning.utilities.types import STEP_OUTPUT, LR_SCHEDULER_CONFIG
+from pytorch_lightning.utilities.types import LR_SCHEDULER_CONFIG, STEP_OUTPUT
 
 
 class Accelerator:
