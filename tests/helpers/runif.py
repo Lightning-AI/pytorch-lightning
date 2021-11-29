@@ -71,6 +71,7 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         skip_49370: bool = False,
+        slow: bool = False,
         **kwargs,
     ):
         """
@@ -93,6 +94,7 @@ class RunIf:
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
+            standalone: Mark the test as slow, our CI will run it in a separate job.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -177,6 +179,13 @@ class RunIf:
             old_torch = Version(torch_version) < Version("1.8")
             conditions.append(ge_3_9 and old_torch)
             reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
+
+        if slow:
+            env_flag = os.getenv("PL_RUN_SLOW_TESTS", "0")
+            conditions.append(env_flag != "1")
+            reasons.append("Slow test")
+            # used in tests/conftest.py::pytest_collection_modifyitems
+            kwargs["slow"] = True
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
