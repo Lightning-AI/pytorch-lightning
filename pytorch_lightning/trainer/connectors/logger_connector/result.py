@@ -530,9 +530,9 @@ class ResultCollection(dict):
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
-        add_datalaoder_idx = result_metric.meta.add_dataloader_idx
+        add_dataloader_idx = result_metric.meta.add_dataloader_idx
         dl_idx = result_metric.meta.dataloader_idx
-        if add_datalaoder_idx and dl_idx is not None:
+        if add_dataloader_idx and dl_idx is not None:
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
             forked_name += dataloader_suffix

@@ -700,22 +700,28 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
 
 def test_logging_results_with_no_dataloader_idx(tmpdir):
     num_dataloaders = 2
-    log_key_common = "test_log_common"
+    log_common_same_val = {"test_log_common": 789}
+    log_common_diff_val = "test_log_common_diff_value"
     log_key_no_dl_idx = "test_log_no_dl_idx_{}"
-    log_key_dl0 = "test_log_a_class"
-    log_key_dl1 = "test_log_b_class"
+    log_key_dl0 = {"test_log_a_class": 123}
+    log_key_dl1 = {"test_log_b_class": 456}
 
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
             logits = self.layer(batch)
             loss = torch.nn.functional.mse_loss(logits, torch.randn(*logits.shape))
-            self.log(log_key_common, loss)
-            self.log(log_key_no_dl_idx.format(dataloader_idx), loss, add_dataloader_idx=False)
+            self.log_dict(log_common_same_val)
+            self.log(log_common_diff_val, dataloader_idx + 1)
+            self.log(
+                log_key_no_dl_idx.format(dataloader_idx),
+                (batch_idx + 1) * (dataloader_idx + 1),
+                add_dataloader_idx=False,
+            )
 
             if dataloader_idx == 0:
-                self.log(log_key_dl0, loss, add_dataloader_idx=False)
+                self.log_dict(log_key_dl0, add_dataloader_idx=False)
             else:
-                self.log(log_key_dl1, loss, add_dataloader_idx=False)
+                self.log_dict(log_key_dl1, add_dataloader_idx=False)
 
             return {"y": loss}
 
@@ -724,13 +730,21 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
     model = CustomBoringModel()
     model.test_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    fast_dev_run = 5
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
     results = trainer.test(model)
-
+    accumulated_value = fast_dev_run * (fast_dev_run + 1) / (2 * fast_dev_run)
+    breakpoint()
     assert len(results) == num_dataloaders
-    for dl_idx in range(num_dataloaders):
-        assert results[dl_idx].keys() == {
-            f"{log_key_common}/dataloader_idx_{dl_idx}",
-            log_key_no_dl_idx.format(dl_idx),
-            log_key_dl0 if dl_idx == 0 else log_key_dl1,
-        }
+    results[0] = {
+        "test_log_common/dataloader_idx_0": 789,
+        "test_log_common_diff_value/dataloader_idx_0": 1,
+        "test_log_no_dl_class": accumulated_value * 1,
+        "test_log_a_class": 123,
+    }
+    results[0] = {
+        "test_log_common/datalaoder_idx_1": 789,
+        "test_log_common_diff_value/dataloader_idx_1": 2,
+        "test_log_no_dl_class": accumulated_value * 2,
+        "test_log_a_class": 456,
+    }
