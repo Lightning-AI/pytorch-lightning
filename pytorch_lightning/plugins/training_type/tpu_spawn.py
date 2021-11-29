@@ -27,6 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
@@ -56,11 +57,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -167,7 +171,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         trainer.accelerator.setup_optimizers(trainer)
-        trainer.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
 
@@ -254,10 +258,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         return output
 
-    def _close_logger(self, trainer) -> None:
-        if trainer.logger is not None:
-            trainer.logger.finalize("success")
-
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
             "nprocs": len(self.parallel_devices),
@@ -293,12 +293,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._close_logger(trainer)
         return super().start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self._close_logger(trainer)
-        return super().start_evaluating(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

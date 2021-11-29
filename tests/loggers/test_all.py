@@ -76,7 +76,9 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+        match="TestTubeLogger is deprecated since v1.5"
+    ):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
@@ -176,7 +178,9 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     ):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+        match="TestTubeLogger is deprecated since v1.5"
+    ):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
     with mock.patch("pytorch_lightning.loggers.wandb.wandb"):
@@ -247,7 +251,11 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+        if logger_class is TestTubeLogger:
+            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
+                _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+        else:
+            _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
@@ -321,13 +329,17 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
+@RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("logger_class", [CometLogger, CSVLogger, MLFlowLogger, TensorBoardLogger, TestTubeLogger])
-@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+        if logger_class is TestTubeLogger:
+            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
+                _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+        else:
+            _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
@@ -385,7 +397,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # TestTube
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+        match="TestTubeLogger is deprecated since v1.5"
+    ):
         logger = _instantiate_logger(TestTubeLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)

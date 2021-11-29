@@ -25,10 +25,12 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
@@ -65,6 +67,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -74,6 +77,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self._num_nodes = 1
         self.sync_batchnorm = False
@@ -144,14 +148,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
 
     def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
@@ -412,3 +419,16 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    @staticmethod
+    def _clean_logger(trainer: "pl.Trainer") -> None:
+        loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+        for logger in loggers:
+            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
+                rank_zero_warn(
+                    "When using `ddp_spawn`, the `TensorBoardLogger` experiment should be `None`. Setting it to `None`."
+                )
+                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
+                # we want to make sure these are closed before we spawn our own threads.
+                # assuming nothing else references the experiment object, python should instantly `__del__` it.
+                logger._experiment = None

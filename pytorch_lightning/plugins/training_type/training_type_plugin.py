@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -25,6 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
 
@@ -33,15 +34,22 @@ class TrainingTypePlugin(ABC):
     """Base class for all training type plugins that change the behaviour of the training, validation and test-
     loop."""
 
-    def __init__(self, checkpoint_io: Optional[CheckpointIO] = None) -> None:
+    def __init__(
+        self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+    ) -> None:
         self._model: Optional[Module] = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
+        self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
         return self._checkpoint_io
+
+    @property
+    def precision_plugin(self) -> PrecisionPlugin:
+        return self._precision_plugin
 
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
@@ -169,9 +177,9 @@ class TrainingTypePlugin(ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model)
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
@@ -233,7 +241,7 @@ class TrainingTypePlugin(ABC):
     def test_step_end(self, output):
         return output
 
-    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Wraps the dataloader if necessary.
 
         Args:

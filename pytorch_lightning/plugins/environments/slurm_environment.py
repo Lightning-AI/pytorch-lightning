@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -22,11 +23,35 @@ log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
-    """Cluster environment for training on a cluster managed by SLURM."""
+    """Cluster environment for training on a cluster managed by SLURM.
+
+    Args:
+        auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
+            rescheduled gets determined by the owner of this plugin.
+    """
+
+    def __init__(self, auto_requeue: bool = True) -> None:
+        super().__init__()
+        self.auto_requeue = auto_requeue
 
     @property
     def creates_processes_externally(self) -> bool:
         return True
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id:
+            try:
+                job_id = int(job_id)
+            except ValueError:
+                job_id = None
+
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
+        if in_slurm_interactive_mode:
+            job_id = None
+        return job_id
 
     @property
     def main_address(self) -> str:
@@ -69,6 +94,11 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         return int(default_port)
+
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched on a SLURM cluster."""
+        return "SLURM_NTASKS" in os.environ
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])

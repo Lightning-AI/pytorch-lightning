@@ -190,7 +190,7 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True, special=True)
+@RunIf(min_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
     class CustomBoringModel(BoringModel):
@@ -266,7 +266,7 @@ def test_precision_selection_raises(monkeypatch):
     with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):
-        Trainer(amp_backend="apex", precision=16, gpus=1, accelerator="ddp_fully_sharded")
+        Trainer(amp_backend="apex", precision=16, gpus=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 

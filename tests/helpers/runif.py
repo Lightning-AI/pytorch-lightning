@@ -65,11 +65,12 @@ class RunIf:
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
-        special: bool = False,
+        standalone: bool = False,
         fairscale: bool = False,
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
+        skip_49370: bool = False,
         **kwargs,
     ):
         """
@@ -86,11 +87,12 @@ class RunIf:
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically for some limited torch functionality)
-            special: running in special mode, outside pytest suit
+            standalone: Mark the test as standalone, our CI will run it in a separate process.
             fairscale: if `fairscale` module is required to run the test
             fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
+            skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -144,10 +146,12 @@ class RunIf:
             conditions.append(not _HOROVOD_NCCL_AVAILABLE)
             reasons.append("Horovod with NCCL")
 
-        if special:
-            env_flag = os.getenv("PL_RUNNING_SPECIAL_TESTS", "0")
+        if standalone:
+            env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
             conditions.append(env_flag != "1")
-            reasons.append("Special execution")
+            reasons.append("Standalone execution")
+            # used in tests/conftest.py::pytest_collection_modifyitems
+            kwargs["standalone"] = True
 
         if fairscale:
             conditions.append(not _FAIRSCALE_AVAILABLE)
@@ -164,6 +168,15 @@ class RunIf:
         if rich:
             conditions.append(not _RICH_AVAILABLE)
             reasons.append("Rich")
+
+        if skip_49370:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            ge_3_9 = Version(py_version) >= Version("3.9")
+            torch_version = get_distribution("torch").version
+            old_torch = Version(torch_version) < Version("1.8")
+            conditions.append(ge_3_9 and old_torch)
+            reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

@@ -68,14 +68,14 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
-        bash tests/special_tests.sh
+        bash tests/standalone_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Testing: special'
+      displayName: 'Testing: standalone'
 
     - bash: |
         python -m coverage report
@@ -113,5 +113,5 @@ jobs:
       displayName: 'Testing: examples'
 
     - bash: |
-        python -m pytest benchmarks -v --maxfail=2 --durations=0
+        python -m pytest tests/benchmarks -v --maxfail=2 --durations=0
       displayName: 'Testing: benchmarks'
