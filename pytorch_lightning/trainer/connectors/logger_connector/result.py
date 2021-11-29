@@ -342,6 +342,10 @@ class ResultMetricCollection(dict):
     def meta(self) -> _Metadata:
         return next(iter(self.values())).meta
 
+    @property
+    def has_tensor(self) -> bool:
+        return any(v.is_tensor for v in self.values())
+
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
             return item.__getstate__(drop_value=drop_value)
@@ -409,11 +413,7 @@ class ResultCollection(dict):
             return batch_size
 
         batch_size = 1
-        is_tensor = (
-            value.is_tensor
-            if isinstance(value, ResultMetric)
-            else any(isinstance(val, ResultMetric) for val in value.values())
-        )
+        is_tensor = value.is_tensor if isinstance(value, ResultMetric) else value.has_tensor
         if self.batch is not None and is_tensor and meta.on_epoch and meta.is_mean_reduction:
             batch_size = extract_batch_size(self.batch)
             self.batch_size = batch_size
