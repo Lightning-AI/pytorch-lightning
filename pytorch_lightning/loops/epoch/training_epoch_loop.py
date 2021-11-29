@@ -285,8 +285,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
             # run lightning module hook training_epoch_end
             # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
-            epoch_end_outputs = model.training_epoch_end(epoch_end_outputs)
+            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
             if epoch_end_outputs is not None:
                 raise MisconfigurationException(
                     "`training_epoch_end` expects a return of None. "
