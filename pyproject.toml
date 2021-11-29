@@ -36,7 +36,7 @@ disable_error_code = "attr-defined"
 # style choices
 warn_no_return = "False"
 
-# Changes mypy default to ignore all errors
+# Ignore mypy errors for these files
 # TODO: the goal is for this to be empty
 [[tool.mypy.overrides]]
 # the list can be generated with:
@@ -60,11 +60,8 @@ module = [
     "pytorch_lightning.core.decorators",
     "pytorch_lightning.core.lightning",
     "pytorch_lightning.core.mixins.device_dtype_mixin",
-    "pytorch_lightning.core.mixins.hparams_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.distributed.dist",
-    "pytorch_lightning.lite.lite",
-    "pytorch_lightning.lite.wrappers",
     "pytorch_lightning.loggers.base",
     "pytorch_lightning.loggers.comet",
     "pytorch_lightning.loggers.csv_logs",
@@ -75,26 +72,16 @@ module = [
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.base",
     "pytorch_lightning.loops.batch.training_batch_loop",
-    "pytorch_lightning.loops.dataloader.dataloader_loop",
-    "pytorch_lightning.loops.dataloader.evaluation_loop",
-    "pytorch_lightning.loops.dataloader.prediction_loop",
     "pytorch_lightning.loops.epoch.evaluation_epoch_loop",
     "pytorch_lightning.loops.epoch.prediction_epoch_loop",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.loops.fit_loop",
-    "pytorch_lightning.loops.optimization.optimizer_loop",
     "pytorch_lightning.loops.utilities",
-    "pytorch_lightning.overrides.base",
-    "pytorch_lightning.overrides.data_parallel",
     "pytorch_lightning.overrides.distributed",
-    "pytorch_lightning.overrides.fairscale",
     "pytorch_lightning.plugins.environments.lightning_environment",
     "pytorch_lightning.plugins.environments.lsf_environment",
     "pytorch_lightning.plugins.environments.slurm_environment",
     "pytorch_lightning.plugins.environments.torchelastic_environment",
-    "pytorch_lightning.plugins.precision.deepspeed",
-    "pytorch_lightning.plugins.precision.native_amp",
-    "pytorch_lightning.plugins.precision.precision_plugin",
     "pytorch_lightning.plugins.training_type.ddp",
     "pytorch_lightning.plugins.training_type.ddp2",
     "pytorch_lightning.plugins.training_type.ddp_spawn",
@@ -120,7 +107,6 @@ module = [
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.checkpoint_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
-    "pytorch_lightning.trainer.connectors.logger_connector.result",
     "pytorch_lightning.trainer.data_loading",
     "pytorch_lightning.trainer.optimizers",
     "pytorch_lightning.trainer.supporters",

@@ -42,29 +42,26 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = BatchProgress()
 
+        self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[DataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = None
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
-
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._dl_max_batches = None
         self._num_dataloaders = None
         self._data_fetcher = None
-        self.outputs = []
+        self._outputs = []
 
         if not self.restarting:
             self.batch_progress.reset_on_run()
@@ -139,7 +136,7 @@ class EvaluationEpochLoop(Loop):
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
-            self.outputs.append(output)
+            self._outputs.append(output)
 
         if self.trainer.move_metrics_to_cpu:
             # the evaluation step output is not moved as they are not considered "metrics"
@@ -152,9 +149,7 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
-        outputs = self.outputs
-        # free memory
-        self.outputs = []
+        outputs, self._outputs = self._outputs, []  # free memory
         self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
@@ -192,7 +187,7 @@ class EvaluationEpochLoop(Loop):
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
             _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
