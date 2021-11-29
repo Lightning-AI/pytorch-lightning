@@ -18,7 +18,7 @@ Timer
 import logging
 import time
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, cast, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
