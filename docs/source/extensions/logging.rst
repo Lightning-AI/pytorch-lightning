@@ -43,18 +43,16 @@ By default, Lightning uses ``TensorBoard`` logger under the hood, and stores the
 
     from pytorch_lightning import Trainer
 
-    # Automatically logs to a directory (by default lightning_logs/)
+    # Automatically logs to a directory (by default ``lightning_logs/``)
     trainer = Trainer()
 
 To see your logs:
 
 .. code-block:: bash
 
-    # Install tensorboard
-    pip install tensorboard
     tensorboard --logdir=lightning_logs/
 
-To run tensorboard in a jupyter notebook environment, use the following in a jupyter cell:
+To visualize tensorboard in a jupyter notebook environment, run the following command in a jupyter cell:
 
 .. code-block:: bash
 
@@ -91,7 +89,7 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. note::
 
-    By default, all loggers log to ``os.getcwd()``. You can change the log path using
+    By default, all loggers log to ``os.getcwd()``. You can change the logging path using
     ``Trainer(default_root_dir="/your/path/to/save/checkpoints")`` without instantiating a logger.
 
 ----------
@@ -117,7 +115,7 @@ method to log from anywhere in a :doc:`lightning module <../common/lightning_mod
     def training_step(self, batch, batch_idx):
         self.log("performance", {"acc": acc, "recall": recall})
 
-Depending on where Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method is called, Lightning auto-determines
+Depending on where the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.log` parameters.
 
@@ -185,7 +183,7 @@ If your work requires to log in an unsupported method, please open an issue with
 
 Manual Logging Non-Scalar Artifacts
 ===================================
-If you want to log anything that is not a scalar, like histograms, text, images, etc. you may need to use the logger object directly.
+If you want to log anything that is not a scalar, like histograms, text, images, etc., you may need to use the logger object directly.
 
 .. code-block:: python
 
