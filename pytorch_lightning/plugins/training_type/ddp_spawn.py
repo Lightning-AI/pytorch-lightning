@@ -425,9 +425,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
         for logger in loggers:
             if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
-                rank_zero_warn(
-                    "When using `ddp_spawn`, the `TensorBoardLogger` experiment should be `None`. Setting it to `None`."
-                )
                 # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
                 # we want to make sure these are closed before we spawn our own threads.
                 # assuming nothing else references the experiment object, python should instantly `__del__` it.
