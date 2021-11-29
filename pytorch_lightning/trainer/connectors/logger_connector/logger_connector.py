@@ -162,6 +162,7 @@ class LoggerConnector:
         on_step = not self._epoch_end_reached
         num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
+        assert self.trainer._results is not None
         for dl_idx in range(num_dataloaders):
             callback_metrics = self.trainer._results.metrics(
                 on_step, dataloader_idx=dl_idx if num_dataloaders > 1 else None
