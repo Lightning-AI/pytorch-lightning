@@ -113,6 +113,7 @@ class _Metadata:
     on_epoch: bool = True
     reduce_fx: Callable = torch.mean
     enable_graph: bool = False
+    add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
@@ -463,6 +464,7 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
+            add_dataloader_idx=add_dataloader_idx,
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
         )
@@ -529,14 +531,14 @@ class ResultCollection(dict):
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_datalaoder_idx = result_metric.meta.add_dataloader_idx
-        if add_datalaoder_idx is not None:
+        if add_datalaoder_idx:
             dl_idx = result_metric.meta.dataloader_idx
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool) -> _METRICS:
+    def metrics(self, on_step: bool, dataloader_idx: Optional[int] = None) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
         for _, result_metric in self.valid_items():
@@ -566,9 +568,11 @@ class ResultCollection(dict):
                 metrics["log"][forked_name] = value
 
             # populate callback metrics. callback metrics don't take `_step` forked metrics
-            if self.training or result_metric.meta.on_epoch and not on_step:
-                metrics["callback"][name] = {"value": value, "dataloader_idx": result_metric.meta.dataloader_idx}
-                metrics["callback"][forked_name] = {"value": value, "dataloader_idx": result_metric.meta.dataloader_idx}
+            if (self.training or result_metric.meta.on_epoch and not on_step) and (
+                dataloader_idx is None or result_metric.meta.dataloader_idx == dataloader_idx
+            ):
+                metrics["callback"][name] = value
+                metrics["callback"][forked_name] = value
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
