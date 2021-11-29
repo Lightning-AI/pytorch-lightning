@@ -19,7 +19,6 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 
@@ -116,6 +115,6 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
         model = unwrap_lightning_module(model.module)
     if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
         model = unwrap_lightning_module(model.module)
-    if not isinstance(model, LightningModule):
+    if not isinstance(model, pl.LightningModule):
         raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
     return model
