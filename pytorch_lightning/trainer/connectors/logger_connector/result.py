@@ -338,12 +338,9 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args: Any) -> None:
-        super().__init__(*args)
-
     @property
     def meta(self) -> _Metadata:
-        return list(self.values())[0].meta
+        return next(iter(self.values())).meta
 
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
