@@ -1782,10 +1782,11 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
-        model_ref = self.lightning_module
-        val_dataloader_defined = self._data_connector._val_dataloader_source.is_defined()
-        val_step_overridden = is_overridden("validation_step", model_ref)
-        return val_dataloader_defined and val_step_overridden and self.limit_val_batches > 0
+        return (
+            self._data_connector._val_dataloader_source.is_defined()
+            and is_overridden("validation_step", self.lightning_module)
+            and self.limit_val_batches > 0
+        )
 
     @property
     def default_root_dir(self) -> str:
