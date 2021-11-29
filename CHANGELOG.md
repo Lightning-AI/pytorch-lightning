@@ -193,6 +193,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a consolidation error in Lite when attempting to save the state dict of a sharded optimizer ([#10746](https://github.com/PyTorchLightning/pytorch-lightning/pull/10746))
 
 
+-  Disable batch_size extraction for torchmetric instances ([#10815](https://github.com/PyTorchLightning/pytorch-lightning/pull/10815))
+
+
 -
 
 
