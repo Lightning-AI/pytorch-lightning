@@ -42,9 +42,9 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = BatchProgress()
 
+        self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches = 0
         self._num_dataloaders = 0
         self._dataloader_iter: Optional[Iterator] = None
@@ -61,7 +61,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = 0
         self._num_dataloaders = 0
         self._data_fetcher = None
-        self.outputs = []
+        self._outputs = []
 
         if not self.restarting:
             self.batch_progress.reset_on_run()
@@ -137,7 +137,7 @@ class EvaluationEpochLoop(Loop):
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
-            self.outputs.append(output)
+            self._outputs.append(output)
 
         if self.trainer.move_metrics_to_cpu:
             # the evaluation step output is not moved as they are not considered "metrics"
@@ -150,9 +150,7 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
-        outputs = self.outputs
-        # free memory
-        self.outputs = []
+        outputs, self._outputs = self._outputs, []  # free memory
         self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
