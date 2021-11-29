@@ -135,11 +135,12 @@ Now we add the training_step to the previously defined class which has all our t
             loss = F.nll_loss(logits, y)
             return loss
 
+
 Optimizer
 ---------
 
-Next, we choose which optimizer to use for training our model.
-In PyTorch, the optimizer is created as follows:
+Next we choose what optimizer to use for training our system.
+In PyTorch, we do it as follows:
 
 .. code-block:: python
 
@@ -148,7 +149,7 @@ In PyTorch, the optimizer is created as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
+In Lightning we do the same but organize it under the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` method.
 
 .. testcode::
 
@@ -164,7 +165,8 @@ If you have multiple optimizers, you can configure them as follows:
 
     class LitMNIST(LightningModule):
         def configure_optimizers(self):
-            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
+            return Adam(self.generator.parameters(), lr=1e-3), Adam(self.discriminator.parameters(), lr=1e-3)
+
 
 Data
 ----
@@ -347,6 +349,10 @@ An alternative to using a DataModule is to defer initialization of the models mo
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> e79ddd053 (Update introduction_guide.rst)
 Training step
 -------------
 
