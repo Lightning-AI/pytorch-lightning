@@ -177,9 +177,9 @@ class TrainingTypePlugin(ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model)
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
