@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import _AcceleratorType, rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -126,7 +127,7 @@ class GPUStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use GPUStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != _AcceleratorType.GPU:
+        if not isinstance(trainer.accelerator, GPUAccelerator):
             raise MisconfigurationException(
                 "You are using GPUStatsMonitor but are not running on GPU"
                 f" since gpus attribute in Trainer is set to {trainer.gpus}."

@@ -17,6 +17,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
@@ -329,7 +330,7 @@ class LoggerConnector:
         .. deprecated:: v1.5
             Will be removed in v1.7.
         """
-        if self.trainer._device_type == _AcceleratorType.GPU and self.log_gpu_memory:
+        if isinstance(self.trainer.accelerator, GPUAccelerator) and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)
         return self._gpus_metrics

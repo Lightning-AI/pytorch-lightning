@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
@@ -377,7 +378,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=(self.trainer._device_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
+            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
             using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
