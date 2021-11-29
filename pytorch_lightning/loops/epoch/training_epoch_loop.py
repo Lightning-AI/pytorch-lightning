@@ -154,7 +154,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         if not data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
