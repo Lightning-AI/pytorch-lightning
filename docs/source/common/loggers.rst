@@ -180,42 +180,6 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
 
 ----------------
 
-Test Tube
-=========
-
-`Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
-`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
-To use :class:`~pytorch_lightning.loggers.TestTubeLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install test_tube
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TestTubeLogger
-
-    logger = TestTubeLogger("tb_logs", name="my_model")
-    trainer = Trainer(logger=logger)
-
-The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
-
-----------------
-
 Weights and Biases
 ==================
 
@@ -265,10 +229,10 @@ Lightning supports the use of multiple loggers, just pass a list to the
 
 .. code-block:: python
 
-    from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+    from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-    logger1 = TensorBoardLogger("tb_logs", name="my_model")
-    logger2 = TestTubeLogger("tb_logs", name="my_model")
+    logger1 = TensorBoardLogger(save_dir="tb_logs", name="my_model")
+    logger2 = WandbLogger(save_dir="tb_logs", name="my_model")
     trainer = Trainer(logger=[logger1, logger2])
 
 The loggers are available as a list anywhere except ``__init__`` in your

@@ -31,7 +31,6 @@ The following are loggers we support:
     MLFlowLogger
     NeptuneLogger
     TensorBoardLogger
-    TestTubeLogger
     WandbLogger
 
 
@@ -366,7 +365,7 @@ When Lightning creates a checkpoint, it stores a key ``"hyper_parameters"`` with
     hyperparams = lightning_checkpoint["hyper_parameters"]
 
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
-when using the ``TestTubeLogger`` or the ``TensorBoardLogger``, all hyperparams will show
+when using the ``TensorBoardLogger``, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
 .. note::
