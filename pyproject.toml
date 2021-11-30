@@ -70,7 +70,6 @@ module = [
     "pytorch_lightning.loggers.test_tube",
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
-    "pytorch_lightning.overrides.distributed",
     "pytorch_lightning.plugins.environments.lightning_environment",
     "pytorch_lightning.plugins.environments.lsf_environment",
     "pytorch_lightning.plugins.environments.slurm_environment",
