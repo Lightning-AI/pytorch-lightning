@@ -38,7 +38,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.loops.utilities import _parse_max_epochs_and_steps
+from pytorch_lightning.loops.utilities import _parse_loop_limits
 from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
@@ -445,8 +445,8 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        min_epochs, max_epochs = _parse_max_epochs_and_steps(
-            self.max_steps, self.max_epochs, max_time, self.min_steps, self.min_epochs
+        min_epochs, max_epochs = _parse_loop_limits(
+            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, max_time
         )
 
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)

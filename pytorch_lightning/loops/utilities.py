@@ -65,15 +65,22 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
 
 
 def _parse_loop_limits(
-    min_steps: int, max_steps: int, min_epochs: int, max_epochs: int, max_time: Union[str, timedelta, Dict[str, int]]
-) -> Tuple[int, int]:
-    if max_epochs is None and max_steps == -1 and max_time is None:
-        rank_zero_warn(
-            "`max_epochs` was not set. Setting it to 1000 epochs.",
-            UserWarning,
-        )
+    min_steps: Optional[int],
+    max_steps: int,
+    min_epochs: Optional[int],
+    max_epochs: int,
+    max_time: Optional[Union[str, timedelta, Dict[str, int]]],
+) -> Tuple[Optional[int], int]:
+    if max_epochs is None:
+        if max_steps == -1 and max_time is None:
+            rank_zero_warn(
+                "`max_epochs` was not set. Setting it to 1000 epochs.",
+                UserWarning,
+            )
+            max_epochs = 1000
+        else:
+            max_epochs = -1
     min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
-    max_epochs = max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
     return min_epochs, max_epochs
 
 
