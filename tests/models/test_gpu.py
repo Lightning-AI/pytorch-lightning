@@ -311,6 +311,7 @@ def test_single_gpu_batch_parse():
     # torchtext.data.Batch
     if not _TORCHTEXT_LEGACY:
         return
+
     samples = [
         {"text": "PyTorch Lightning is awesome!", "label": 0},
         {"text": "Please make it work with torchtext", "label": 1},
@@ -328,7 +329,9 @@ def test_single_gpu_batch_parse():
     label_field.build_vocab(dataset)
 
     batch = Batch(data=examples, dataset=dataset)
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+
+    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+        batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
 
     assert batch.text.type() == "torch.cuda.LongTensor"
     assert batch.label.type() == "torch.cuda.LongTensor"
