@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
-import os
 from unittest import mock
 
 import pytest
@@ -26,7 +25,6 @@ from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
-    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
