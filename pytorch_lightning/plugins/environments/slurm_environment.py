@@ -91,23 +91,18 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @staticmethod
     def job_id() -> Optional[int]:
-
         # in interactive mode, don't make logs use the same job id
         in_slurm_interactive_mode = SLURMEnvironment.job_name() == "bash"
         if in_slurm_interactive_mode:
             return None
 
         job_id = os.environ.get("SLURM_JOB_ID")
-
         if job_id is None:
             return None
-
         try:
-            job_id = int(job_id)
+            return int(job_id)
         except ValueError:
-            job_id = None
-
-        return job_id
+            return None
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])
