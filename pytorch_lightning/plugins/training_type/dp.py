@@ -16,6 +16,7 @@ from typing import Any, List, Optional
 import torch
 from torch.nn import DataParallel, Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -61,10 +62,11 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
         self._model = self._setup_model(LightningParallelModule(self._model))
+        super().setup(trainer)
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
