@@ -134,19 +134,19 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
+        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
         return results
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
+        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         return results
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
+        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         return results
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -254,11 +254,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         rank_zero_warn("cleaning up ddp environment...")
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
         if self.local_rank != 0:
             return
@@ -273,7 +273,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         return best_model_path, last_path, results, extra
 
-    def __recover_child_process_weights(
+    def __recover_results_in_main_process(
         self, best_path: Optional[str], last_path: Optional[str], extra: "_ExtraQueue", trainer
     ) -> None:
         # transfer back the best path to the trainer
