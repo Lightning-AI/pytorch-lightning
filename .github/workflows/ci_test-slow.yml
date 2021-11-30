@@ -50,9 +50,9 @@ jobs:
         pip list
       shell: bash
 
-    - name: Test Package
+    - name: Tests
       run: |
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        coverage run --source pytorch_lightning -m pytest tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
 
