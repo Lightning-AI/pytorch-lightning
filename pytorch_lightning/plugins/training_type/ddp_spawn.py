@@ -103,16 +103,6 @@ class DDPSpawnPlugin(ParallelPlugin):
     def local_rank(self) -> int:
         return self._local_rank
 
-    # TODO: this should no longer be needed
-    # def __getstate__(self):
-    #     """Makes this plugin pickleable without destroying the queue in the current process."""
-    #     state = self.__dict__.copy()
-    #     state["mp_queue"] = None
-    #     return state
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
