@@ -229,7 +229,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
-                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+                # adds the `callback_metrics` to the queue
+                # TODO: Remove the if in v1.7
+                if is_overridden("add_to_queue", self.lightning_module):
+                    self.lightning_module.add_to_queue(self.mp_queue)
+                else:
+                    self.add_to_queue(trainer, self.mp_queue)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
