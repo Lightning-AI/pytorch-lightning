@@ -122,7 +122,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.create_mp_queue()
+        self.start_method = "fork"
         if not self.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -137,11 +137,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _setup_model(self, model: Module) -> Module:
         return model
-
-    def create_mp_queue(self):
-        self.start_method = "fork"
-        smp = mp.get_context(self.start_method)
-        self.mp_queue = smp.SimpleQueue()
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
@@ -168,9 +163,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
-
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
@@ -188,7 +181,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.__collect_rank_zero_results(trainer, results)
+        outputs = self.__collect_rank_zero_results(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -199,6 +192,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
+        return outputs
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
