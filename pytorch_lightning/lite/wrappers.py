@@ -51,7 +51,7 @@ class _LiteOptimizer:
         return self._optimizer
 
     def state_dict(self) -> Dict[str, Tensor]:
-        return self._accelerator.optimizer_state(self.optimizer)
+        return self._strategy.optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
