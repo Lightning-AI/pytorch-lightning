@@ -148,9 +148,6 @@ class Progress(BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
-    def reset_on_epoch(self) -> None:
-        self.current.reset()
-
     def reset_on_run(self) -> None:
         self.current.reset()
 

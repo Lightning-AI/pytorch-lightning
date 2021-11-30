@@ -213,7 +213,7 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
+    def on_train_split_start(self, split_idx: int) -> None:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
