@@ -24,9 +24,9 @@ from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -123,7 +123,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
         if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.accelerator.backward.call_count == (
+            assert trainer.training_type_plugin.backward.call_count == (
                 (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches
             )
 
@@ -156,7 +156,7 @@ def train_with_swa(
         num_processes=num_processes,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
         trainer.fit(model)
 
     # check the model is the expected
@@ -326,7 +326,10 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     )
 
     exception_type = Exception if ddp else RuntimeError
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward), pytest.raises(exception_type):
+    with (
+        mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward),
+        pytest.raises(exception_type),
+    ):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
@@ -348,7 +351,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
         strategy=strategy,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
         trainer.fit(model, ckpt_path=checkpoint_path.as_posix())
 
 

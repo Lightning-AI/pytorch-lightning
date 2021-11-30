@@ -13,12 +13,13 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -26,8 +27,12 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
+
+TBroadcast = TypeVar("TBroadcast")
 
 
 class TrainingTypePlugin(ABC):
@@ -42,6 +47,9 @@ class TrainingTypePlugin(ABC):
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
+        self.optimizers: List[Optimizer] = []
+        self.lr_schedulers: List[_LRScheduler] = []
+        self.optimizer_frequencies: List[int] = []
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -66,8 +74,92 @@ class TrainingTypePlugin(ABC):
         environment before setup is complete.
         """
 
-    def setup(self) -> None:
-        """Called by the accelerator to finish setup."""
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        """Creates optimizers and schedulers.
+
+        Args:
+            trainer: the Trainer, these optimizers should be connected to
+        """
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return
+        optimizers, lr_schedulers, optimizer_frequencies = self.init_optimizers(
+            trainer=trainer, model=self.lightning_module
+        )
+        self.optimizers = optimizers
+        self.lr_schedulers = lr_schedulers
+        self.optimizer_frequencies = optimizer_frequencies
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        """Setup plugins for the trainer fit and creates optimizers.
+
+        Args:
+            trainer: the trainer instance
+        """
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+
+    def setup_precision_plugin(self) -> None:
+        """Attaches the precision plugin to the accelerator."""
+        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        self.model = model
+        self.optimizers = optimizers
+        self.lr_schedulers = schedulers
+
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
+        """Moves the state of the optimizers to the GPU if needed."""
+        device = device or self.root_device
+        for opt in self.optimizers:
+            for p, v in opt.state.items():
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
+
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        """Returns state of an optimizer.
+
+        Allows for syncing/collating optimizer state from processes in custom plugins.
+        """
+        return optimizer.state_dict()
+
+    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
+        """Forwards backward-calls to the precision plugin.
+
+        Args:
+            closure_loss: a tensor holding the loss value to backpropagate
+        """
+        self.pre_backward(closure_loss)
+        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
+
+        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+
+        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        self.post_backward(closure_loss)
+
+        return closure_loss
+
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> None:
+        """performs the actual optimizer step.
+
+        Args:
+            optimizer: the optimizer performing the step
+            opt_idx: index of the current optimizer
+            closure: closure calculating the loss value
+            model: reference to the model, optionally defining optimizer step related hooks
+            **kwargs: Any extra arguments to ``optimizer.step``
+        """
+        model = model or self.lightning_module
+        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+
+    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
+        """Zeros all model parameter's gradients."""
+        model_ref = self.lightning_module
+        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -89,6 +181,23 @@ class TrainingTypePlugin(ABC):
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
         # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device.
+
+        The returned batch is of the same type as the input batch, just
+        having all tensors on the correct device.
+
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        model = self.lightning_module
+        device = device or self.root_device
+        if model is not None:
+            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
+        return move_data_to_device(batch, device)
 
     @property
     @abstractmethod
@@ -139,7 +248,7 @@ class TrainingTypePlugin(ABC):
         """
 
     @abstractmethod
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Broadcasts an object to all processes.
 
         Args:
@@ -202,7 +311,7 @@ class TrainingTypePlugin(ABC):
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]
-        for optimizer, opt_state in zip(self.lightning_module.trainer.accelerator.optimizers, optimizer_states):
+        for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
     def start_training(self, trainer: "pl.Trainer") -> None:

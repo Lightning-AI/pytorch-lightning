@@ -168,7 +168,7 @@ To load a model along with its weights, biases and hyperparameters use the follo
 
 .. code-block:: python
 
-    model = MyLightingModule.load_from_checkpoint(PATH)
+    model = MyLightningModule.load_from_checkpoint(PATH)
 
     print(model.learning_rate)
     # prints the learning_rate you used in this checkpoint

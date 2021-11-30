@@ -43,7 +43,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: Optional[int] = 0, max_steps: int = -1) -> None:
+    def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
         super().__init__()
         if max_steps is None:
             rank_zero_deprecation(
@@ -105,7 +105,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """
         return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
 
-    def connect(
+    def connect(  # type: ignore[override]
         self,
         batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
@@ -129,7 +129,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher, **kwargs: Any) -> None:
+    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         # hook
         self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
@@ -139,11 +139,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._reload_dataloader_state_dict(data_fetcher)
         self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
+    def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
-
-        Args:
-            dataloader_iter: the iterator over the dataloader producing the new batch
 
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
@@ -152,11 +149,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # skip training and run validation in `on_advance_end`
             return
 
+        assert self._dataloader_iter is not None
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
-        if not self.trainer._data_connector.train_data_fetcher.store_on_device:
+        if not data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
@@ -223,7 +221,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         self.trainer.logger_connector.update_train_step_metrics()
 
-    def on_advance_end(self):
+    def on_advance_end(self) -> None:
         """Runs validation and Checkpointing if necessary.
 
         Raises:
@@ -326,7 +324,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
 
-    def _run_validation(self):
+    def _run_validation(self) -> None:
         # reload dataloaders
         self.val_loop._reload_evaluation_dataloaders()
 
@@ -539,7 +537,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
+    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = None
