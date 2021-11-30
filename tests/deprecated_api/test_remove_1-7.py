@@ -505,19 +505,13 @@ def test_v1_7_0_cluster_environment_master_port(cls):
     "cls,method_name",
     [
         (KubeflowEnvironment, "is_using_kubeflow"),
-        (LSFEnvironment, "is_using_lsf"),
         (TorchElasticEnvironment, "is_using_torchelastic"),
     ],
 )
-@mock.patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
 def test_v1_7_0_cluster_environment_detection(cls, method_name):
     class MyClusterEnvironment(cls):
         @staticmethod
         def is_using_kubeflow():
-            pass
-
-        @staticmethod
-        def is_using_lsf():
             pass
 
         @staticmethod
