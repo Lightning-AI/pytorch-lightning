@@ -125,7 +125,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     @property
     def _is_single_process_single_device(self):
         return True
-        
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO: is this needed here? already getting set in spawn()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
@@ -173,8 +173,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
-            return_result: If ``True``, copies the output of the function from process 0 to the main process and
-                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
 
@@ -183,9 +181,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
-        return_queue = context.SimpleQueue() if return_result else None
+        return_queue = context.SimpleQueue()
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
-        return mp_queue.get()
+        return return_queue.get()
 
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
