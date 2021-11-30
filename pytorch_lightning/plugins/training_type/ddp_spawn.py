@@ -35,7 +35,6 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
@@ -290,7 +289,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             last_path = None
             if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(state_dict, last_path)
+                self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)
