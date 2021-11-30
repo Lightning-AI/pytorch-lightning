@@ -29,7 +29,6 @@ import cloudpickle
 import pytest
 import torch
 import yaml
-from omegaconf import Container, OmegaConf
 from torch import optim
 
 import pytorch_lightning as pl
@@ -39,8 +38,12 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import Container, OmegaConf
 
 
 def test_model_checkpoint_state_key():
@@ -1094,8 +1097,8 @@ def test_current_score_when_nan(tmpdir, mode: str):
     assert model_checkpoint.current_score == expected
 
 
-@pytest.mark.parametrize("hparams_type", [dict, Container])
-def test_hparams_type(tmpdir, hparams_type):
+@pytest.mark.parametrize("use_omegaconf", [False, pytest.param(True, marks=RunIf(omegaconf=True))])
+def test_hparams_type(tmpdir, use_omegaconf):
     class TestModel(BoringModel):
         def __init__(self, hparams):
             super().__init__()
@@ -1113,15 +1116,15 @@ def test_hparams_type(tmpdir, hparams_type):
         enable_model_summary=False,
     )
     hp = {"test_hp_0": 1, "test_hp_1": 2}
-    hp = OmegaConf.create(hp) if hparams_type == Container else Namespace(**hp)
+    hp = OmegaConf.create(hp) if use_omegaconf else Namespace(**hp)
     model = TestModel(hp)
     trainer.fit(model)
     ckpt = trainer.checkpoint_connector.dump_checkpoint()
-    if hparams_type == Container:
-        assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], hparams_type)
+    if use_omegaconf:
+        assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], Container)
     else:
         # make sure it's not AttributeDict
-        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) is hparams_type
+        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) is dict
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
