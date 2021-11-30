@@ -38,7 +38,15 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DDPSpawnPlugin,
+    NativeMixedPrecisionPlugin,
+    ParallelPlugin,
+    PLUGIN_INPUT,
+    PrecisionPlugin,
+    TrainingTypePlugin,
+)
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -67,6 +75,7 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
+    AMPType,
     device_parser,
     GradClipAlgorithmType,
     parsing,
@@ -1304,10 +1313,12 @@ class Trainer(
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
-        using_val_step = self._data_connector._val_dataloader_source.is_defined() and is_overridden(
-            "validation_step", ref_model
+        should_sanity_check = (
+            self.enable_validation
+            and self.num_sanity_val_steps > 0
+            # do not sanity check if restarting because it would mess up the loaded state
+            and not self._evaluation_loop.restarting
         )
-        should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1644,7 +1655,7 @@ class Trainer(
 
     @property
     def optimizers(self) -> List[Optimizer]:
-        return self.accelerator.optimizers
+        return self.training_type_plugin.optimizers
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
@@ -1653,35 +1664,39 @@ class Trainer(
         # the `lightning_optimizers` trainer property
         self._lightning_optimizers = None
 
-        self.accelerator.optimizers = new_optims
+        self.training_type_plugin.optimizers = new_optims
 
     @property
     def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
-        return self.accelerator.lr_schedulers
+        return self.training_type_plugin.lr_schedulers
 
     @lr_schedulers.setter
     def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
-        self.accelerator.lr_schedulers = new_schedulers
+        self.training_type_plugin.lr_schedulers = new_schedulers
 
     @property
     def optimizer_frequencies(self) -> list:
-        return self.accelerator.optimizer_frequencies
+        return self.training_type_plugin.optimizer_frequencies
 
     @optimizer_frequencies.setter
     def optimizer_frequencies(self, new_freqs: list) -> None:
-        self.accelerator.optimizer_frequencies = new_freqs
+        self.training_type_plugin.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
+    def amp_backend(self) -> Optional[AMPType]:
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            return AMPType.APEX
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            return AMPType.NATIVE
+        return None
 
     @property
     def precision(self) -> Union[str, int]:
         return self.training_type_plugin.precision_plugin.precision
 
     @property
-    def scaler(self):
-        return self.accelerator.scaler
+    def scaler(self) -> Optional[Any]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
@@ -1780,9 +1795,11 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
-        model_ref = self.lightning_module
-        val_loop_enabled = is_overridden("validation_step", model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled
+        return (
+            self._data_connector._val_dataloader_source.is_defined()
+            and is_overridden("validation_step", self.lightning_module)
+            and self.limit_val_batches > 0
+        )
 
     @property
     def default_root_dir(self) -> str:
@@ -2012,7 +2029,7 @@ class Trainer(
         """Attach a custom fit loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.fit`.
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`.
         """
         loop.trainer = self
         self._fit_loop = loop
@@ -2026,7 +2043,7 @@ class Trainer(
         """Attach a custom validation loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
         running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
         """
         loop.trainer = self

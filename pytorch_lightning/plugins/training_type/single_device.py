@@ -15,6 +15,7 @@ from typing import Any, Optional, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin, TBroadcast
@@ -69,8 +70,9 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+        super().setup(trainer)
 
     @property
     def is_global_zero(self) -> bool:
