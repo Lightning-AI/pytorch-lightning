@@ -116,7 +116,7 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     class TestLoop(EvaluationEpochLoop):
         def on_advance_end(self):
             # should be empty
-            assert not self.outputs
+            assert not self._outputs
             # sanity check
             nonlocal did_assert
             did_assert = True

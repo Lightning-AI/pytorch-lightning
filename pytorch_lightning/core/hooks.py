@@ -79,7 +79,7 @@ class ModelHooks:
         - training_start
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -323,10 +323,12 @@ class DataHooks:
         self.allow_zero_length_dataloader_with_multiple_devices: bool = False
 
     def prepare_data(self) -> None:
-        """Use this to download and prepare data.
+        """Use this to download and prepare data. Downloading and saving data with multiple processes (distributed
+        settings) will result in corrupted data. Lightning ensures this method is called only within a single
+        process, so you can safely add your downloading logic within.
 
-        .. warning:: DO NOT set state to the model (use `setup` instead)
-            since this is NOT called on every GPU in DDP/TPU
+        .. warning:: DO NOT set state to the model (use ``setup`` instead)
+            since this is NOT called on every device
 
         Example::
 
@@ -340,10 +342,12 @@ class DataHooks:
                 self.split = data_split
                 self.some_state = some_other_state()
 
-        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+        In DDP ``prepare_data`` can be called in two ways (using Trainer(prepare_data_per_node)):
 
         1. Once per node. This is the default and is only called on LOCAL_RANK=0.
         2. Once in total. Only called on GLOBAL_RANK=0.
+
+        See :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`.
 
         Example::
 
@@ -353,10 +357,6 @@ class DataHooks:
 
             # call on GLOBAL_RANK=0 (great for shared file systems)
             Trainer(prepare_data_per_node=False)
-
-        Note:
-            Setting ``prepare_data_per_node`` with the trainer flag is deprecated and will be removed in v1.7.0.
-            Please set ``prepare_data_per_node`` in LightningDataModule or LightningModule directly instead.
 
         This is called before requesting the dataloaders:
 
@@ -371,7 +371,7 @@ class DataHooks:
         """
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, and predict. This is a good hook when
+        """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
         you need to build models dynamically or adjust something about them. This hook is called on every process
         when using DDP.
 
@@ -397,7 +397,7 @@ class DataHooks:
         """
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Called at the end of fit (train + validate), validate, test, predict, or tune.
+        """Called at the end of fit (train + validate), validate, test, or predict.
 
         Args:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
