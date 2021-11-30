@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Optional, Tuple, Any
 
 import torch
 from torch.nn import Module
@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin, _ExtraQueue
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -114,7 +114,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> None:
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, _ExtraQueue]]:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
         if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
