@@ -230,9 +230,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
                 self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
 
-    def save(self, state_dict: Dict, path: _PATH) -> None:
-        xm.save(state_dict, path)
-
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
             return obj
