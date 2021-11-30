@@ -101,7 +101,8 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert self.num_samples >= 1 or self.total_size == 0
 
     def __iter__(self) -> Iterator[List[int]]:
-        assert isinstance(self.dataset, Sized)
+        if not isinstance(self.dataset, Sized):
+            raise TypeError("The given dataset must implement the `__len__` method.")
         if self.shuffle:
             # deterministically shuffle based on epoch
             g = torch.Generator()
