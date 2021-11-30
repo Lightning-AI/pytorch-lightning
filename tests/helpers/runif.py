@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -71,6 +72,7 @@ class RunIf:
         rich: bool = False,
         skip_49370: bool = False,
         skip_hanging_spawn: bool = False,
+        omegaconf: bool = False,
         **kwargs,
     ):
         """
@@ -94,6 +96,7 @@ class RunIf:
             rich: Require that willmcgugan/rich is installed.
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
+            omegaconf: Require that omry/omegaconf is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -187,6 +190,10 @@ class RunIf:
             old_torch = Version(torch_version) < Version("1.9")
             conditions.append(ge_3_8 and old_torch)
             reasons.append("Impacted by hanging DDP spawn")
+
+        if omegaconf:
+            conditions.append(not _OMEGACONF_AVAILABLE)
+            reasons.append("omegaconf")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
