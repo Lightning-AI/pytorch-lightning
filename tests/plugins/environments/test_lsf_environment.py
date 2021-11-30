@@ -28,7 +28,7 @@ def _make_rankfile(tmp_path):
 
 def test_missing_lsb_djob_rankfile():
     """Test an error when the LSB_DJOB_RANKFILE cannot be found."""
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": '', "LSB_JOBID": "1234"}):
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "", "LSB_JOBID": "1234"}):
         del os.environ["LSB_DJOB_RANKFILE"]
         with pytest.raises(ValueError, match="Could not find environment variable LSB_DJOB_RANKFILE"):
             LSFEnvironment()
@@ -36,7 +36,7 @@ def test_missing_lsb_djob_rankfile():
 
 def test_empty_lsb_djob_rankfile():
     """Test an error when the LSB_DJOB_RANKFILE is not populated."""
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": '', "LSB_JOBID": "1234"}):
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "", "LSB_JOBID": "1234"}):
         with pytest.raises(ValueError, match="Environment variable LSB_DJOB_RANKFILE is empty"):
             LSFEnvironment()
 
