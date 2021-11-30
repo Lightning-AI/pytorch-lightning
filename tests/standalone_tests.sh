@@ -47,14 +47,6 @@ for i in "${!parametrizations_arr[@]}"; do
     continue
   fi
 
-  # STANDALONE_PATTERN allows filtering the tests to run when debugging.
-  # use as `STANDALONE_PATTERN="foo_bar" ./standalone_tests.sh` to run only those
-  # test with `foo_bar` in their name
-  if [[ $parametrization != *STANDALONE_PATTERN* ]]; then
-    report+="Skipped\t$parametrization\n"
-    continue
-  fi
-
   # run the test
   echo "Running ${parametrization}"
   python ${defaults} "${parametrization}"
