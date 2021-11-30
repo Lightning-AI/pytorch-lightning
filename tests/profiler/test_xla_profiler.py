@@ -75,5 +75,5 @@ def test_xla_profiler_tpu_not_available_exception(*_):
 @RunIf(max_torch="1.8.0")
 @patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=True)
 def test_xla_profiler_torch_lesser_than_1_8_exception(*_):
-    with pytest.raises(MisconfigurationException, match="`XLAProfiler` is only supported with `torch-xla>=1.8`"):
+    with pytest.raises(MisconfigurationException, match="`XLAProfiler` is only supported with `torch-xla >= 1.8`"):
         _ = XLAProfiler()

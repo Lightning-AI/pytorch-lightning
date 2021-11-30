@@ -69,7 +69,7 @@ class XLAProfiler(BaseProfiler):
         if not _TPU_AVAILABLE:
             raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
         if not _TORCH_GREATER_EQUAL_1_8:
-            raise MisconfigurationException("`XLAProfiler` is only supported with `torch-xla>=1.8`")
+            raise MisconfigurationException("`XLAProfiler` is only supported with `torch-xla >= 1.8`")
         super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}
