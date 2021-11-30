@@ -16,13 +16,12 @@
 import collections
 import itertools
 from re import escape
-from unittest import mock
 
 import numpy as np
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError
+from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
@@ -746,68 +745,3 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-
-
-@mock.patch("pytorch_lightning.utilities.data.extract_batch_size", return_value=1)
-def test_batch_size_extraction_with_mixed_metrics(mock_method, tmpdir):
-    fast_dev_run = 2
-    log_val = 7
-
-    class CustomBoringModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.train_mse = MeanSquaredError()
-
-        def training_step(self, batch, batch_idx):
-            self.train_mse(batch, torch.ones_like(batch))
-            self.log("train_logs", {"mse": self.train_mse, "log_val": log_val}, on_step=False, on_epoch=True)
-            return super().training_step(batch, batch_idx)
-
-        def on_train_epoch_end(self, *args, **kwargs):
-            results = self.trainer._results["training_step.train_logs"]
-            assert isinstance(results["mse"].value, MeanSquaredError)
-            assert results["log_val"].value == log_val * fast_dev_run
-
-    model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
-    trainer.fit(model)
-    mock_method.assert_called()
-
-
-@mock.patch("pytorch_lightning.utilities.data.extract_batch_size")
-def test_no_batch_size_extraction_when_not_required(mock_method, tmpdir):
-    batch_size = 10
-    fast_dev_run = 2
-    log_val = 7
-
-    class CustomBoringModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.train_mae = MeanAbsoluteError()
-            self.train_mse = MeanSquaredError()
-
-        def training_step(self, batch, batch_idx):
-            self.log("step_log_val", log_val, on_epoch=False)
-            self.log("epoch_log_val", log_val, batch_size=batch_size, on_step=False, on_epoch=True)
-            self.log("epoch_sum_log_val", log_val, on_epoch=True, reduce_fx="sum")
-
-            self.train_mae(batch, torch.ones_like(batch))
-            self.train_mse(batch, torch.ones_like(batch))
-            self.log("train_mae", self.train_mae)
-            self.log("train_mse", {"mse": self.train_mse})
-            return super().training_step(batch, batch_idx)
-
-        def on_train_epoch_end(self, *args, **kwargs):
-            results = self.trainer._results
-            assert isinstance(results["training_step.train_mse"]["mse"].value, MeanSquaredError)
-            assert isinstance(results["training_step.train_mae"].value, MeanAbsoluteError)
-            assert results["training_step.step_log_val"].value == log_val
-            assert results["training_step.step_log_val"].cumulated_batch_size == 0
-            assert results["training_step.epoch_log_val"].value == log_val * batch_size * fast_dev_run
-            assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size * fast_dev_run
-            assert results["training_step.epoch_sum_log_val"].value == log_val * fast_dev_run
-
-    model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
-    trainer.fit(model)
-    mock_method.assert_not_called()
