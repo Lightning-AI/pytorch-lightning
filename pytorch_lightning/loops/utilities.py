@@ -72,6 +72,20 @@ def _parse_loop_limits(
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
     default_max_epochs: int = 1000,
 ) -> Tuple[Optional[int], int]:
+    """This utility compute the number minimum and maximum number of epochs " based on minimum and maximum number
+    of steps and maximum time.
+
+    Args:
+        min_steps: Minimum number of steps
+        max_steps: Maximum number of steps
+        min_epochs:  Minimum number of epochs
+        max_epochs:  Maximum number of epochs
+        max_time: Maximum number of time for the training.
+        default_max_epochs: Default value for the number of max_epochs.
+
+    Returns:
+        A list of tuples (opt_idx, optimizer) of currently active optimizers.
+    """
     if max_epochs is None:
         if max_steps == -1 and max_time is None:
             rank_zero_warn(
