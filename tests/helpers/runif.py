@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -72,6 +73,7 @@ class RunIf:
         rich: bool = False,
         skip_49370: bool = False,
         slow: bool = False,
+        omegaconf: bool = False,
         **kwargs,
     ):
         """
@@ -95,6 +97,7 @@ class RunIf:
             rich: if `rich` module is required to run the test
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             slow: Mark the test as slow, our CI will run it in a separate job.
+            omegaconf: Require that omry/omegaconf is installed.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -186,6 +189,10 @@ class RunIf:
             reasons.append("Slow test")
             # used in tests/conftest.py::pytest_collection_modifyitems
             kwargs["slow"] = True
+
+        if omegaconf:
+            conditions.append(not _OMEGACONF_AVAILABLE)
+            reasons.append("omegaconf")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

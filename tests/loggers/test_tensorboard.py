@@ -21,13 +21,16 @@ import numpy as np
 import pytest
 import torch
 import yaml
-from omegaconf import OmegaConf
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers.base import LoggerCollection
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.imports import _compare_version, _OMEGACONF_AVAILABLE
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
 
 
 @pytest.mark.skipif(
@@ -205,6 +208,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
     logger.log_hyperparams(hparams, metrics)
 
 
+@RunIf(omegaconf=True)
 def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
@@ -214,8 +218,6 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "bool": True,
         "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        # "namespace": Namespace(foo=Namespace(bar="buzz")),
-        # "layer": torch.nn.BatchNorm1d,
     }
     hparams = OmegaConf.create(hparams)
 
