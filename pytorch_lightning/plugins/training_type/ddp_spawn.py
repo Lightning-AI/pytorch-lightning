@@ -427,7 +427,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             return
         loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
         for logger in loggers:
-            if logger._experiment is not None:
+            if logger is None:
+                continue
+            experiment = getattr(logger, "_experiment", None)
+            if experiment is not None:
                 # make sure no experiment is open before we spawn our own threads.
                 # assuming nothing else references the experiment object, python should instantly `__del__` it.
                 logger._experiment = None
