@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Iterator, List, Optional, Sized, Union
+from typing import Any, Iterator, List, Optional, Sized, Union, cast
 
 import torch
 from torch import Tensor
+from torch._C._distributed_c10d import Reducer
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
@@ -70,10 +71,9 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         # because we need to figure out which parameters were used during
         # this forward pass, to ensure we short circuit reduction for any
         # unused parameters. Only if `find_unused_parameters` is set.
-        if model.find_unused_parameters:
-            model.reducer.prepare_for_backward(list(_find_tensors(output)))  # type: ignore
-        else:
-            model.reducer.prepare_for_backward([])  # type: ignore
+        args = list(_find_tensors(output)) if model.find_unused_parameters else []
+        reducer = cast(Reducer, model.reducer)
+        reducer.prepare_for_backward(args)
     else:
         model.require_forward_param_sync = False  # type: ignore[assignment]
 
