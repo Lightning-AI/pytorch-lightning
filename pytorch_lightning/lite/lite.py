@@ -112,7 +112,7 @@ class LightningLite(ABC):
 
         Use this to create tensors directly on the device if needed.
         """
-        return self._accelerator.root_device
+        return self._strategy.root_device
 
     @property
     def global_rank(self) -> int:

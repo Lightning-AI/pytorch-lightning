@@ -715,10 +715,10 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_train_batch_start(self, batch, batch_idx):
-            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
