@@ -429,6 +429,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         for logger in loggers:
             if logger is None:
                 continue
+            logger.finalize("success")
             experiment = getattr(logger, "_experiment", None)
             if experiment is not None:
                 # make sure no experiment is open before we spawn our own threads.
