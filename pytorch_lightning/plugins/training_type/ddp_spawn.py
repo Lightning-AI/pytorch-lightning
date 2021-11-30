@@ -216,7 +216,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.barrier()
 
         results = trainer.run_stage()
-        outputs = self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
+        outputs = self.__collect_rank_zero_results(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
@@ -259,7 +259,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def __transfer_distrib_spawn_state_on_fit_end(
+    def __collect_rank_zero_results(
         self, trainer: "pl.Trainer", results: Any
     ) -> Optional[Tuple[Optional[str], Optional[str], Any, List[Any]]]:
 

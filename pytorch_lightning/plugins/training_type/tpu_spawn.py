@@ -188,7 +188,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
+        self.__collect_rank_zero_results(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -207,7 +207,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> None:
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
