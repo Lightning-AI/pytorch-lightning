@@ -335,12 +335,13 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args: Any) -> None:
-        super().__init__(*args)
-
     @property
     def meta(self) -> _Metadata:
-        return list(self.values())[0].meta
+        return next(iter(self.values())).meta
+
+    @property
+    def has_tensor(self) -> bool:
+        return any(v.is_tensor for v in self.values())
 
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
@@ -400,7 +401,7 @@ class ResultCollection(dict):
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
 
-    def _extract_batch_size(self, batch_size: Optional[int], meta: _Metadata) -> int:
+    def _extract_batch_size(self, value: _METRIC_COLLECTION, batch_size: Optional[int], meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = self.batch_size
@@ -409,7 +410,8 @@ class ResultCollection(dict):
             return batch_size
 
         batch_size = 1
-        if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
+        is_tensor = value.is_tensor if isinstance(value, ResultMetric) else value.has_tensor
+        if self.batch is not None and is_tensor and meta.on_epoch and meta.is_mean_reduction:
             try:
                 batch_size = extract_batch_size(self.batch)
                 self.batch_size = batch_size
@@ -477,7 +479,7 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        batch_size = self._extract_batch_size(batch_size, meta)
+        batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
