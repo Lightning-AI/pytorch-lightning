@@ -23,9 +23,10 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
-if _TORCHTEXT_AVAILABLE:
+if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
@@ -257,8 +258,13 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
     def batch_to(data: Any) -> Any:
         # try to move torchtext data first
-        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
-
+        if _TORCHTEXT_LEGACY and isinstance(data, Batch):
+            # TODO: also remove the torchtext dependency with Lightning 1.8
+            rank_zero_deprecation(
+                "The `torchtext.legacy.Batch` object is deprecated and Lightning will remove support for it in v1.8."
+                " We recommend you to migrate away from Batch by following the TorchText README:"
+                " https://github.com/pytorch/text#bc-breaking-legacy"
+            )
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field, field_value in data.dataset.fields.items():
@@ -275,7 +281,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
         # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
         return data
 
-    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_LEGACY else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
