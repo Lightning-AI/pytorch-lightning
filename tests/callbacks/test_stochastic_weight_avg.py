@@ -357,8 +357,10 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
     swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=crash_after_epoch)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, min_torch="1.8")
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
+    # Requires PyTorch >= 1.8 to include this segfault fix:
+    # https://github.com/pytorch/pytorch/pull/50998
     swa_resume_training_from_checkpoint(tmpdir, ddp=True)
 
 
