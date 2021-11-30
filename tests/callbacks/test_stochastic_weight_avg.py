@@ -384,16 +384,6 @@ def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "fsdp", 1)
 
 
-@RunIf(fairscale=True)
-def test_misconfiguration_error_with_ddp_sharded(tmpdir):
-    _test_misconfiguration_error_with_sharded_model(tmpdir, "ddp_sharded")
-
-
-@RunIf(fairscale=True)
-def test_misconfiguration_error_with_ddp_spawn_sharded(tmpdir):
-    _test_misconfiguration_error_with_sharded_model(tmpdir, "ddp_sharded_spawn")
-
-
 @RunIf(deepspeed=True)
 def test_misconfiguration_error_with_deep_speed(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed")
