@@ -86,12 +86,12 @@ def test_ddp_spawn_extra_parameters(tmpdir):
 
 
 class TestDDPSpawnPlugin(DDPSpawnPlugin):
-    def add_to_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
-        queue.append("new_test_val")
+    def add_to_queue(self, trainer, queue) -> None:
+        queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
 
     def get_from_queue(self, trainer: Trainer, queue: List[Any]) -> None:
-        self.new_test_val = queue.pop(0)
+        self.new_test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 

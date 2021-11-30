@@ -366,7 +366,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
-    def add_to_queue(self, trainer: "pl.Trainer", queue: List[Any]) -> None:
+    def add_to_queue(self, trainer: "pl.Trainer", queue: "_SimpleQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -377,9 +377,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         callback_metrics: dict = apply_to_collection(
             trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
-        queue.append(callback_metrics)
+        queue.put(callback_metrics)
 
-    def get_from_queue(self, trainer: "pl.Trainer", queue: List[Any]) -> None:
+    def get_from_queue(self, trainer: "pl.Trainer", queue: "_SimpleQueue") -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -388,7 +388,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             queue: the instance of the queue from where to get the data.
         """
         # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.pop(0)
+        callback_metrics: dict = queue.get()
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     @classmethod
@@ -422,3 +422,16 @@ class DDPSpawnPlugin(ParallelPlugin):
                 # we want to make sure these are closed before we spawn our own threads.
                 # assuming nothing else references the experiment object, python should instantly `__del__` it.
                 logger._experiment = None
+
+
+class _SimpleQueue(list):
+    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` using the Python list interface."""
+
+    def get(self) -> Any:
+        return self.pop(0)
+
+    def put(self, item: Any) -> None:
+        self.append(item)
+
+    def empty(self) -> bool:
+        return len(self) == 0
