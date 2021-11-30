@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -31,6 +31,8 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
+
+TBroadcast = TypeVar("TBroadcast")
 
 
 class TrainingTypePlugin(ABC):
@@ -246,7 +248,7 @@ class TrainingTypePlugin(ABC):
         """
 
     @abstractmethod
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Broadcasts an object to all processes.
 
         Args:
