@@ -57,7 +57,7 @@ if _TORCHVISION_AVAILABLE:
 
 
 @mock.patch("argparse.ArgumentParser.parse_args")
-def test_default_args(mock_argparse, tmpdir):
+def test_default_args(mock_argparse):
     """Tests default argument parser for Trainer."""
     mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
@@ -868,7 +868,7 @@ class CustomCallback(Callback):
     pass
 
 
-def test_registries(tmpdir):
+def test_registries():
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
     assert "CustomAdam" in OPTIMIZER_REGISTRY.names
@@ -1358,9 +1358,27 @@ def test_lightning_cli_reinstantiate_trainer():
     assert cli.config_init["trainer"]["max_epochs"] is None
 
 
-def test_cli_configure_optimizers_warning(tmpdir):
+def test_cli_configure_optimizers_warning():
     match = "configure_optimizers` will be overridden by `LightningCLI"
     with mock.patch("sys.argv", ["any.py"]), no_warning_call(UserWarning, match=match):
         LightningCLI(BoringModel, run=False)
     with mock.patch("sys.argv", ["any.py", "--optimizer=Adam"]), pytest.warns(UserWarning, match=match):
         LightningCLI(BoringModel, run=False)
+
+
+def test_cli_help_message():
+    # full class path
+    cli_args = ["any.py", "--optimizer.help=torch.optim.Adam"]
+    classpath_help = StringIO()
+    with mock.patch("sys.argv", cli_args), redirect_stdout(classpath_help), pytest.raises(SystemExit):
+        LightningCLI(BoringModel, run=False)
+
+    cli_args = ["any.py", "--optimizer.help=Adam"]
+    shorthand_help = StringIO()
+    with mock.patch("sys.argv", cli_args), redirect_stdout(shorthand_help), pytest.raises(SystemExit):
+        LightningCLI(BoringModel, run=False)
+
+    # the help messages should match
+    assert shorthand_help.getvalue() == classpath_help.getvalue()
+    # make sure it's not empty
+    assert "Implements Adam" in shorthand_help.getvalue()
