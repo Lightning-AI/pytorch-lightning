@@ -312,36 +312,25 @@ class LightningModule(
 
             self.log('train_loss', loss)
 
-        The default behavior per hook is as follows:
-
-        .. csv-table:: ``*`` also applies to the test loop
-           :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
-           :widths: 20, 10, 10, 10, 10
-
-           "training_step", "T", "F", "F", "T"
-           "training_step_end", "T", "F", "F", "T"
-           "training_epoch_end", "F", "T", "F", "T"
-           "validation_step*", "F", "T", "F", "T"
-           "validation_step_end*", "F", "T", "F", "T"
-           "validation_epoch_end*", "F", "T", "F", "T"
+        The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
 
         Args:
-            name: key to log
+            name: key to log.
             value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
-            prog_bar: if True logs to the progress bar
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
+            prog_bar: if ``True`` logs to the progress bar.
+            logger: if ``True`` logs to the logger.
+            on_step: if ``True`` logs at this step.
+            on_epoch: if True logs epoch accumulated metrics.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+            enable_graph: if ``True``, will not auto detach the graph.
+            sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
                 communication overhead.
-            sync_dist_group: the ddp group to sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
+            sync_dist_group: the DDP group to sync across.
+            add_dataloader_idx: if ``True``, appends the index of the current dataloader to
+                the name (when using multiple dataloaders). If False, user needs to give unique names for
+                each dataloader to not mix the values.
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
-                but some data structures might need to explicitly provide it.
+                but for some data structures you might need to explicitly provide it.
             metric_attribute: To restore the metric state, Lightning requires the reference of the
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
