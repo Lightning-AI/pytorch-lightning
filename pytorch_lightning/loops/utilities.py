@@ -70,6 +70,7 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
+    default_max_epochs: int = 1000,
 ) -> Tuple[Optional[int], int]:
     if max_epochs is None:
         if max_steps == -1 and max_time is None:
@@ -77,7 +78,7 @@ def _parse_loop_limits(
                 "`max_epochs` was not set. Setting it to 1000 epochs.",
                 UserWarning,
             )
-            max_epochs = 1000
+            max_epochs = default_max_epochs
         else:
             max_epochs = -1
     min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
