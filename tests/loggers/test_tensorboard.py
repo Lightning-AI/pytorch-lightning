@@ -28,6 +28,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(
@@ -335,6 +336,7 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
     assert "Missing logger folder:" in caplog.text
 
 
+@RunIf(max_torch="1.9")
 @pytest.mark.parametrize("use_list", [False, True])
 def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
     tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
