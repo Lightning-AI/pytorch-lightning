@@ -282,7 +282,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.global_rank == 0 and self.mp_queue is not None:
+        if self.local_rank == 0 and self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
 
             # save the last weights
