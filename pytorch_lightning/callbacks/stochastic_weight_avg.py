@@ -308,12 +308,11 @@ class StochasticWeightAveraging(Callback):
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> dict:
-        checkpoint_data = {
+        return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "scheduler_step_count": None if self._swa_scheduler is None else self._swa_scheduler._step_count,
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
-        return checkpoint_data
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
