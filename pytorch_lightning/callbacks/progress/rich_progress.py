@@ -17,7 +17,8 @@ from datetime import timedelta
 from typing import Any, Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities import _RICH_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _module_available, _RICH_AVAILABLE, _RICH_GREATER_EQUAL_10_2_2
 
 Task, Style = None, None
 if _RICH_AVAILABLE:
@@ -227,10 +228,15 @@ class RichProgressBar(ProgressBarBase):
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
-        if not _RICH_AVAILABLE:
+        if not _module_available("rich"):
             raise ModuleNotFoundError(
                 "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
             )
+        if not _RICH_GREATER_EQUAL_10_2_2:
+            raise MisconfigurationException(
+                "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
+            )
+
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
