@@ -28,7 +28,9 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
     data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3, include_lengths=include_lengths)
     data_iter = iter(data_iterator)
     batch = next(data_iter)
-    batch_on_device = move_data_to_device(batch, device)
+
+    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+        batch_on_device = move_data_to_device(batch, device)
 
     if include_lengths:
         # tensor with data
