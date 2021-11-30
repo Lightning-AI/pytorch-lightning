@@ -28,9 +28,10 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -39,6 +40,7 @@ from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -108,7 +110,8 @@ class TrainerDataLoadingMixin(ABC):
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
                 f" (try {num_cpus} which is the number of cpus on this machine)"
-                " in the `DataLoader` init to improve performance."
+                " in the `DataLoader` init to improve performance.",
+                category=PossibleUserWarning,
             )
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
@@ -266,7 +269,8 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                " you want to see logs for the training epoch."
+                " you want to see logs for the training epoch.",
+                category=PossibleUserWarning,
             )
 
     def _reset_eval_dataloader(
@@ -430,10 +434,14 @@ class TrainerDataLoadingMixin(ABC):
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = source.dataloader()
+        with _replace_dataloader_init_method():
+            # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
+        _validate_fault_tolerant_automatic(dataloader, stage)
         return dataloader
 
     @staticmethod

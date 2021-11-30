@@ -17,6 +17,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -142,11 +143,22 @@ def test_lite_optimizer_wraps():
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
-def test_lite_optimizer_steps():
-    """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
+def test_lite_optimizer_state_dict():
+    """Test that the LiteOptimizer calls into the accelerator/strategy to collect the state."""
     optimizer = Mock()
     accelerator = Mock()
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
+    lite_optimizer.state_dict()
+    accelerator.optimizer_state.assert_called_with(optimizer)
+
+
+def test_lite_optimizer_steps():
+    """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
+    optimizer = Mock()
+    strategy = Mock()
+    accelerator = Accelerator(None, strategy)
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
     lite_optimizer.step()
-    accelerator.optimizer_step.assert_called_once()
-    accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=accelerator.model)
+    strategy = accelerator.training_type_plugin
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=accelerator.model)

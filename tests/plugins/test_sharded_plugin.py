@@ -1,5 +1,6 @@
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -175,7 +176,7 @@ def test_ddp_sharded_plugin_fit_ckpt_path_gpu_to_cpu(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True)
+@RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize("trainer_kwargs", (dict(num_processes=2), pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2))))
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
@@ -201,7 +202,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -209,7 +210,7 @@ def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
@@ -256,14 +257,14 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
-
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
     class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
@@ -277,12 +278,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     plugin = DDPShardedPlugin(**params)
     plugin.num_nodes = num_nodes
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs
 

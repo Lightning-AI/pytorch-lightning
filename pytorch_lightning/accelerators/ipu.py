@@ -15,24 +15,11 @@ from typing import Any, Dict, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
-
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        """
-        Raises:
-            MisconfigurationException:
-                If multiple optimizers are provided.
-        """
-        super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""

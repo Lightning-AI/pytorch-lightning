@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -25,17 +25,17 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import (
-    _LiteDataLoader,
-    _LiteModule,
-    _LiteOptimizer,
-    _replace_dataloader_init_method,
-)
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, _update_dataloader, has_iterable_dataset
+from pytorch_lightning.utilities.data import (
+    _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
+    _update_dataloader,
+    has_iterable_dataset,
+)
 from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -112,7 +112,7 @@ class LightningLite(ABC):
 
         Use this to create tensors directly on the device if needed.
         """
-        return self._accelerator.root_device
+        return self._strategy.root_device
 
     @property
     def global_rank(self) -> int:
@@ -201,7 +201,7 @@ class LightningLite(ABC):
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders
+        return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -283,6 +283,18 @@ class LightningLite(ABC):
         """
         with self._precision_plugin.forward_context():
             yield
+
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        ...
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        ...
+
+    @overload
+    def to_device(self, obj: Any) -> Any:
+        ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
@@ -448,11 +460,11 @@ class LightningLite(ABC):
             )
 
     @staticmethod
-    def _supported_device_types() -> Sequence[DeviceType]:
+    def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
-            DeviceType.CPU,
-            DeviceType.GPU,
-            DeviceType.TPU,
+            _AcceleratorType.CPU,
+            _AcceleratorType.GPU,
+            _AcceleratorType.TPU,
         )
 
     @staticmethod

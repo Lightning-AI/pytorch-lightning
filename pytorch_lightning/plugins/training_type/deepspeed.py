@@ -37,7 +37,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import log, rank_zero_info
-from pytorch_lightning.utilities.enums import _StrategyType, AMPType
+from pytorch_lightning.utilities.enums import _StrategyType, AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -445,7 +445,11 @@ class DeepSpeedPlugin(DDPPlugin):
 
         if self.zero_stage_3 and self.partition_module:
             # Ensure the entire model has been moved to the appropriate device
-            dtype = torch.float16 if self.precision_plugin.precision in (16, "mixed") else torch.float32
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
             deepspeed.zero.Init(
                 module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
             )
@@ -502,7 +506,11 @@ class DeepSpeedPlugin(DDPPlugin):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
-            dtype = torch.float16 if self.precision_plugin.precision in (16, "mixed") else torch.float32
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
             model_parallel_context = deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
             )
@@ -629,7 +637,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return batch_size
 
     def _format_precision_config(self) -> None:
-        if self.precision_plugin.precision in (16, "mixed"):
+        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
