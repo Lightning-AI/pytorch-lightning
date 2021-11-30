@@ -364,8 +364,7 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     swa_resume_training_from_checkpoint(tmpdir, ddp=True)
 
 
-@RunIf(min_gpus=1)
-def test_misconfiguration_error_with_sharded_model(tmpdir):
+def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy, gpus=None):
     model = SwaTestModel()
     swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
     trainer = Trainer(
@@ -373,8 +372,28 @@ def test_misconfiguration_error_with_sharded_model(tmpdir):
         enable_progress_bar=False,
         max_epochs=5,
         callbacks=[swa_callback],
-        strategy="ddp_fully_sharded",
-        gpus=1,
+        strategy=strategy,
+        gpus=gpus,
     )
     with pytest.raises(MisconfigurationException, match="SWA does not currently support sharded models"):
         trainer.fit(model)
+
+
+@RunIf(fairscale_fully_sharded=True, min_gpus=1)
+def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
+    _test_misconfiguration_error_with_sharded_model(tmpdir, "fsdp", 1)
+
+
+@RunIf(fairscale=True)
+def test_misconfiguration_error_with_ddp_sharded(tmpdir):
+    _test_misconfiguration_error_with_sharded_model(tmpdir, "ddp_sharded")
+
+
+@RunIf(fairscale=True)
+def test_misconfiguration_error_with_ddp_spawn_sharded(tmpdir):
+    _test_misconfiguration_error_with_sharded_model(tmpdir, "ddp_sharded_spawn")
+
+
+@RunIf(deepspeed=True)
+def test_misconfiguration_error_with_deep_speed(tmpdir):
+    _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed")
