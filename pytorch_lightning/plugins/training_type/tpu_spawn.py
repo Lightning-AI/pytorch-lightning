@@ -16,7 +16,7 @@ import os
 import re
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -28,7 +28,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin, _ExtraQueue
+from pytorch_lightning.plugins.training_type.ddp_spawn import _ExtraQueue, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
