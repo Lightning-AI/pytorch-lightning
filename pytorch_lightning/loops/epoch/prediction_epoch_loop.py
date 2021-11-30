@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
 from deprecate import void
@@ -18,13 +18,13 @@ class PredictionEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.return_predictions: bool = False
+        self.return_predictions = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
         self.batch_progress = Progress()
 
-        self._dl_max_batches: Optional[int] = None
-        self._num_dataloaders: Optional[int] = None
+        self._dl_max_batches = 0
+        self._num_dataloaders = 0
         self._warning_cache = WarningCache()
         self._all_batch_indices: List[int] = []
 
@@ -44,11 +44,11 @@ class PredictionEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loops internal state."""
-        self._all_batch_indices: List[int] = []
-        self.predictions: List[Any] = []
+        self._all_batch_indices = []
+        self.predictions = []
         self.batch_progress.reset_on_run()
 
-    def on_run_start(
+    def on_run_start(  # type: ignore[override]
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -70,7 +70,7 @@ class PredictionEpochLoop(Loop):
         self._num_dataloaders = num_dataloaders
         self.return_predictions = return_predictions
 
-    def advance(
+    def advance(  # type: ignore[override]
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -92,7 +92,7 @@ class PredictionEpochLoop(Loop):
             raise StopIteration
 
         with self.trainer.profiler.profile("predict_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+            batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
