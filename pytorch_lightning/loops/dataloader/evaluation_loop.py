@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -26,13 +26,13 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.outputs: List[EPOCH_OUTPUT] = []
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
-        self._max_batches: Optional[Union[int, Sequence[int]]] = None
+        self._outputs: List[EPOCH_OUTPUT] = []
+        self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
 
     @property
@@ -51,11 +51,12 @@ class EvaluationLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns the validation or test dataloaders."""
-        if self.trainer.testing:
-            return self.trainer.test_dataloaders
-        return self.trainer.val_dataloaders
+        dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
+        if dataloaders is None:
+            raise RuntimeError("Dataloaders should be available.")
+        return dataloaders
 
-    def connect(self, epoch_loop: EvaluationEpochLoop):
+    def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
 
@@ -74,7 +75,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
         # bookkeeping
-        self.outputs = []
+        self._outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
@@ -109,7 +110,7 @@ class EvaluationLoop(DataLoaderLoop):
         dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
-        self.outputs.append(dl_outputs)
+        self._outputs.append(dl_outputs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
@@ -117,14 +118,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
-        outputs = self.outputs
-
-        # free memory
-        self.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.num_dataloaders == 1:
-            outputs = outputs[0]
+        outputs, self._outputs = self._outputs, []  # free memory
 
         # lightning module method
         self._evaluation_epoch_end(outputs)
@@ -213,7 +207,7 @@ class EvaluationLoop(DataLoaderLoop):
         else:
             self.trainer.call_hook("on_validation_epoch_start", *args, **kwargs)
 
-    def _evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
@@ -224,15 +218,20 @@ class EvaluationLoop(DataLoaderLoop):
         # unset dataloader_idx in model
         model._current_dataloader_idx = None
 
+        # with a single dataloader don't pass a 2D list
+        output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
+            outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs
+        )
+
         if self.trainer.testing:
             if is_overridden("test_epoch_end", model):
                 model._current_fx_name = "test_epoch_end"
-                model.test_epoch_end(outputs)
+                model.test_epoch_end(output_or_outputs)
 
         else:
             if is_overridden("validation_epoch_end", model):
                 model._current_fx_name = "validation_epoch_end"
-                model.validation_epoch_end(outputs)
+                model.validation_epoch_end(output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""

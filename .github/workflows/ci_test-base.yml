@@ -1,6 +1,6 @@
 # this jobs runs `pytest` over the source directory. It does not install any extra dependencies.
 # this is useful to catch errors where an import has been added which is not part of the basic dependencies.
-name: CI basic testing
+name: Test
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -10,8 +10,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  doctest:
-
+  source:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,7 +19,7 @@ jobs:
         # this will install stable torch
         python-version: [3.9]
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    # lower timeout as this should run very quickly
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
@@ -60,7 +59,6 @@ jobs:
 
     - name: Test Package [only]
       run: |
-        # NOTE: run coverage on tests does not propagate failure status for Win, https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results

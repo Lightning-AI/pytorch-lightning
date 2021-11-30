@@ -22,9 +22,13 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
-from pytorch_lightning.utilities.auto_restart import MergedIteratorState, reload_dataloader_state_dict
+from pytorch_lightning.utilities.auto_restart import (
+    _collect_states_on_rank_zero_over_collection,
+    _reload_dataloader_state_dict,
+    MergedIteratorState,
+)
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
-from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
@@ -38,29 +42,26 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = BatchProgress()
 
+        self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches: Optional[int] = None
         self._num_dataloaders: Optional[int] = None
         self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[DataFetcher] = None
-        self._dataloader_state_dict: Dict[str, Any] = None
+        self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
-
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._dl_max_batches = None
         self._num_dataloaders = None
         self._data_fetcher = None
-        self.outputs = []
+        self._outputs = []
 
         if not self.restarting:
             self.batch_progress.reset_on_run()
@@ -109,7 +110,7 @@ class EvaluationEpochLoop(Loop):
 
         if not self.trainer._data_connector.evaluation_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("evaluation_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -134,10 +135,13 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
-        if self._should_track_batch_outputs_for_epoch_end():
-            output = recursive_detach(output, to_cpu=self.trainer.move_metrics_to_cpu)
-            if output is not None:
-                self.outputs.append(output)
+        if self._should_track_batch_outputs_for_epoch_end() and output is not None:
+            self._outputs.append(output)
+
+        if self.trainer.move_metrics_to_cpu:
+            # the evaluation step output is not moved as they are not considered "metrics"
+            assert self.trainer._results is not None
+            self.trainer._results.cpu()
 
         if not self.batch_progress.is_last_batch:
             # if fault tolerant is enabled and process has been notified, exit.
@@ -145,9 +149,7 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
-        outputs = self.outputs
-        # free memory
-        self.outputs = []
+        outputs, self._outputs = self._outputs, []  # free memory
         self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
@@ -171,17 +173,21 @@ class EvaluationEpochLoop(Loop):
         state_to_save = "state" if self._has_completed() else "previous_state"
         state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
         if state:
-            state_dict["dataloader_state_dict"] = asdict(state)
+            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
+        # dataset states are collected across all ranks
+        dataloader_state_dict = state_dict.get("dataloader_state_dict", None)
+        if not _fault_tolerant_training() or not dataloader_state_dict:
+            return
+        self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
         if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
+            self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches

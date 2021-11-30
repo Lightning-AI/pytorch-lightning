@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import ResultC
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -61,8 +62,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional["loops.EvaluationLoop"] = None
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
@@ -106,7 +107,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def connect(
         self,
-        batch_loop: TrainingBatchLoop = None,
+        batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
@@ -117,8 +118,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        assert self.batch_loop is not None
-        assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
@@ -157,23 +156,18 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         if not self.trainer._data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
-        # cache the batch size value to avoid extracting it again after the batch loop runs as the value will be
-        # different if tbptt is enabled
-        batch_size = self.trainer.logger_connector.on_batch_start(batch_idx, batch)
+        self.trainer.logger_connector.on_batch_start(batch_idx, batch)
 
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             batch_output = []
         else:
             # hook
-            response = self.trainer.call_hook("on_batch_start")
-            if response == -1:
-                self.batch_progress.increment_processed()
-                raise StopIteration
+            self.trainer.call_hook("on_batch_start")
 
             # TODO: Update this in v1.7 (deprecation: #9816)
             model_fx = self.trainer.lightning_module.on_train_batch_start
@@ -193,8 +187,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.batch_loop.run(batch, batch_idx)
-
-        self.trainer._results.batch_size = batch_size
 
         self.batch_progress.increment_processed()
 
@@ -324,8 +316,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            has_completed=self._has_completed()
+
+        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
+            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
         )
         return state_dict
 

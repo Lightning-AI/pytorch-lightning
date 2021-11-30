@@ -21,12 +21,16 @@ import numpy as np
 import pytest
 import torch
 import yaml
-from omegaconf import OmegaConf
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.utilities.imports import _compare_version, _OMEGACONF_AVAILABLE
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
 
 
 @pytest.mark.skipif(
@@ -204,6 +208,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
     logger.log_hyperparams(hparams, metrics)
 
 
+@RunIf(omegaconf=True)
 def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
@@ -213,8 +218,6 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "bool": True,
         "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        # "namespace": Namespace(foo=Namespace(bar="buzz")),
-        # "layer": torch.nn.BatchNorm1d,
     }
     hparams = OmegaConf.create(hparams)
 
@@ -332,3 +335,17 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
         assert logger.version == 0
 
     assert "Missing logger folder:" in caplog.text
+
+
+@pytest.mark.parametrize("use_list", [False, True])
+def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
+    tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
+    assert tensorboard_logger._experiment is None
+    tensorboard_logger.experiment  # this property access will create the experiment
+    assert tensorboard_logger._experiment is not None
+    logger = [tensorboard_logger] if use_list else tensorboard_logger
+    trainer = Trainer(strategy="ddp_spawn", devices=2, accelerator="auto", logger=logger)
+    trainer.training_type_plugin._clean_logger(trainer)
+    if use_list:
+        assert isinstance(trainer.logger, LoggerCollection)
+    assert tensorboard_logger._experiment is None

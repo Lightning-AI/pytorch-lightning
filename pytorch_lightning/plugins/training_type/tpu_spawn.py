@@ -27,11 +27,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -56,11 +57,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(parallel_devices=parallel_devices, checkpoint_io=checkpoint_io)
+        super().__init__(
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -117,8 +121,19 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         self.create_mp_queue()
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+
+    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
+        """Moves the state of the optimizers to the TPU if needed."""
+        # TODO: `self.root_device` would raise error if called outside the spawn process
+        # while training on 8 and more cores.
+        for opt in self.optimizers:
+            for p, v in opt.state.items():
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:
         return model
@@ -166,7 +181,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             set_shared_parameters(self.model.module, shared_params)
 
-        trainer.accelerator.setup_optimizers(trainer)
+        trainer.training_type_plugin.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
@@ -254,10 +269,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         return output
 
-    def _close_logger(self, trainer) -> None:
-        if trainer.logger is not None:
-            trainer.logger.finalize("success")
-
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
             "nprocs": len(self.parallel_devices),
@@ -293,12 +304,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._close_logger(trainer)
         return super().start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self._close_logger(trainer)
-        return super().start_evaluating(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

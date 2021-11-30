@@ -20,12 +20,11 @@ from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
-from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
@@ -33,6 +32,9 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
 
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
@@ -253,7 +255,10 @@ def test_full_loop(tmpdir):
 
 
 @RunIf(min_gpus=1)
-@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch(
+    "pytorch_lightning.plugins.training_type.training_type_plugin.TrainingTypePlugin.lightning_module",
+    new_callable=PropertyMock,
+)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device("cuda", 0)
 
@@ -306,7 +311,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     model.transfer_batch_to_device = dm.transfer_batch_to_device
     model.on_after_batch_transfer = dm.on_after_batch_transfer
 
-    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
     assert dm.transfer_batch_to_device_hook_rank == 1
@@ -437,25 +442,30 @@ def test_hyperparameters_saving():
     data = DataModuleWithHparams_1({"hello": "world"}, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"hello": "world"})
 
-    data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
-    assert data.hparams == OmegaConf.create({"hello": "world"})
+    if _OMEGACONF_AVAILABLE:
+        data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
+        assert data.hparams == OmegaConf.create({"hello": "world"})
 
 
 def test_define_as_dataclass():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, foo=None):
+            super().__init__()
+
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
     # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule1(LightningDataModule):
+    class BoringDataModule1(BoringDataModule):
         batch_size: int
-        dims: int = 2
+        foo: int = 2
 
         def __post_init__(self):
-            super().__init__(dims=self.dims)
+            super().__init__(foo=self.foo)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=64).foo == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -477,7 +487,8 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()
-        trainer = Trainer(prepare_data_per_node=False)
+        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
+            trainer = Trainer(prepare_data_per_node=False)
         trainer.model = model
         trainer.datamodule = dm
         trainer._data_connector.prepare_data()

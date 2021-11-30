@@ -17,6 +17,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests.helpers.runif import RunIf
@@ -63,6 +64,27 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     out = lite_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
+
+
+@pytest.mark.parametrize(
+    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_gpus=1))]
+)
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
+def test_lite_module_device_dtype_propagation(device, dtype):
+    """Test that the LiteModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
+
+    class DeviceModule(DeviceDtypeModuleMixin):
+        pass
+
+    device_module = DeviceModule()
+    lite_module = _LiteModule(device_module, Mock())
+    lite_module.to(device)
+    assert device_module.device == device
+    assert lite_module.device == device
+
+    lite_module.to(dtype)
+    assert device_module.dtype == dtype
+    assert lite_module.dtype == dtype
 
 
 def test_lite_dataloader_iterator():
@@ -120,11 +142,20 @@ def test_lite_optimizer_wraps():
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
+def test_lite_optimizer_state_dict():
+    """Test that the LiteOptimizer calls into the strategy to collect the state."""
+    optimizer = Mock()
+    strategy = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer.state_dict()
+    strategy.optimizer_state.assert_called_with(optimizer)
+
+
 def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
-    accelerator = Mock()
-    lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
+    strategy = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.step()
-    accelerator.optimizer_step.assert_called_once()
-    accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=accelerator.model)
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)

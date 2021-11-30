@@ -26,7 +26,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType
+from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -407,7 +407,7 @@ def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
-        sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)
+        sync = _Sync(TPUSpawnPlugin().reduce, should=True, _op=torch.distributed.ReduceOp.SUM)
         value = torch.tensor([1.0])
         value = (sync(value),)
         assert value.item() == 8
@@ -474,5 +474,5 @@ def test_device_type_when_training_plugin_tpu_passed(tmpdir):
 
     trainer = Trainer(strategy=TPUSpawnPlugin(), tpu_cores=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
-    assert trainer._device_type == DeviceType.TPU
+    assert trainer._device_type == _AcceleratorType.TPU
     assert isinstance(trainer.accelerator, TPUAccelerator)

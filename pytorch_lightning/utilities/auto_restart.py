@@ -11,23 +11,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, get_worker_info, Sampler
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader, IterableDataset
+from torch.utils.data import (
+    BatchSampler,
+    Dataset,
+    DistributedSampler,
+    get_worker_info,
+    RandomSampler,
+    Sampler,
+    SequentialSampler,
+)
+from torch.utils.data.dataloader import (
+    _BaseDataLoaderIter,
+    _MultiProcessingDataLoaderIter,
+    _SingleProcessDataLoaderIter,
+    DataLoader,
+    IterableDataset,
+)
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class FastForwardSampler(Sampler):
@@ -246,16 +261,7 @@ class CaptureMapDataset(Dataset):
 
     def load_state_dict(self, state_dict: Dict[int, Any], latest_worker_id: int, num_workers: int) -> None:
         # as workers aren't available, the ``state_dict``` is cached until workers are made available.
-        state_dict = deepcopy(state_dict)
-
-        if num_workers > 0:
-            # remap states to worker ids starting at 0
-            next_worker_id = latest_worker_id + 1
-            old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
-            state_dict = {
-                new_id: state_dict[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state_dict
-            }
-        self._cached_state_dict = state_dict
+        self._cached_state_dict = _rotate_worker_indices(deepcopy(state_dict), latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
@@ -305,9 +311,6 @@ class CaptureIterableDataset(IterableDataset):
         # access wrapped dataset attributes
         dataset_dict = self.dataset.__dict__
 
-        # create a tuple of sampler names
-        samplers_names = tuple(v.__class__.__name__ for k, v in dataset_dict.items() if isinstance(v, Sampler))
-
         # create a dictionary of generator present within the dataset attributes
         dataset_sampler_generators = {k: v for k, v in dataset_dict.items() if isinstance(v, (Generator, Iterator))}
 
@@ -318,31 +321,17 @@ class CaptureIterableDataset(IterableDataset):
             if isinstance(generator, Sampler):
                 continue
 
-            # used to handle a weird behaviour from PyTorch 1.6
-            # where the sampler is converted to a list_iterator
-            is_legacy = False
+            # wrap the generator into a `FastForwardSampler`
+            sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
-            if isinstance(generator, Generator):
-                # Generator name have the  the form `SamplerName.__iter__`
-                generator_name = generator.__qualname__.split(".")[0]
-            else:
-                # assume the retrieved iterator is coming from sampler.
-                is_legacy = True
+            # if `CaptureIterableDataset` was available, the sampler should reload its own state.
+            if self._state_dict is not None:
+                sampler.load_state_dict(self._state_dict[generator_attr_name])
+            # store the samplers
+            self.samplers[generator_attr_name] = sampler
 
-            # validate the base generator name matches a sampler name.
-            if is_legacy or any(sampler_name == generator_name for sampler_name in samplers_names):
-
-                # wrap the generator into a `FastForwardSampler`
-                sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
-
-                # if `CaptureIterableDataset` was available, the sampler should reload its own state.
-                if self._state_dict is not None:
-                    sampler.load_state_dict(self._state_dict[generator_attr_name])
-                # store the samplers
-                self.samplers[generator_attr_name] = sampler
-
-                # replace generator with the generator from the `FastForwardSampler`.
-                dataset_dict[generator_attr_name] = iter(sampler)
+            # replace generator with the generator from the `FastForwardSampler`.
+            dataset_dict[generator_attr_name] = iter(sampler)
 
         self.reset_on_epoch()
 
@@ -389,7 +378,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     # get current num workers
     num_workers = getattr(iter_dataloader, "_num_workers", 0)
     # as `state_dict` are workers dependent, Lightning doesn't support changing
-    # the `num_workers` for fault tolerant training
+    # the `num_workers` for Fault-tolerance
     if state_dict["num_workers"] != num_workers:
         raise MisconfigurationException(
             f"The provided `num_workers` {num_workers} doesn't match the one used "
@@ -413,54 +402,10 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     return iter_dataloader
 
 
-def _dataloader_to_state_dict(
-    dataloader: DataLoader, iterator: Iterator, num_batches_processed: int = None
-) -> List[Dict[str, Any]]:
-    """Convert a dataloader to its associated state dict."""
-    out = {}
-    if iterator is not None:
-        out.update(_find_current_worker(iterator))
-
-    if not isinstance(dataloader.dataset, CaptureIterableDataset):
-        fast_forward_sampler = _find_fast_forward_samplers(dataloader)
-        if fast_forward_sampler is not None:
-            out.update(fast_forward_sampler.state_dict(num_batches_processed=num_batches_processed))
-    return out
-
-
-def _dataloader_load_state_dict(dataloader: DataLoader, state_dict: List[Dict[str, Any]]) -> DataLoader:
-    """Reload ``DataLoader`` fast-forward sampler state dict."""
-    fast_forward_sampler = _find_fast_forward_samplers(dataloader)
-
-    if isinstance(fast_forward_sampler, Sampler):
-        state_dict = {k: v for k, v in state_dict.items() if k not in ("num_workers", "previous_worker")}
-        fast_forward_sampler.load_state_dict(state_dict)
-
-    return dataloader
-
-
-def _find_current_worker(iterator: Iterator) -> Dict[str, Optional[int]]:
-    """Find the current DataLoader Iterator worker if multiple workers were used."""
-    # get the current number of workers
-    num_workers = getattr(iterator, "_num_workers", 0)
-    if isinstance(iterator, _MultiProcessingDataLoaderIter):
-        # fetch next worker
-        next_worker = (next(iterator._worker_queue_idx_cycle)) % num_workers
-        # get the current worker from next one
-        previous_worker = (next_worker - 1) % num_workers
-        # reset back the `worker_queue_idx` to current one, so we can keep
-        # going without perturbation.
-        while next(iterator._worker_queue_idx_cycle) != previous_worker:
-            pass
-    else:
-        previous_worker = None
-
-    # return the captured metadata.
-    return {"num_workers": num_workers, "previous_worker": previous_worker}
-
-
-def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: Callable) -> Dict:
-    """A collate function that adds the state dict of a :class:`CaptureIterableDataset` or
+def _capture_metadata_collate(
+    samples: List, dataset: Dataset, collate_fn: Callable, fault_tolerant_mode: _FaultTolerantMode
+) -> Any:
+    """A collate_fn function that adds the state dict of a :class:`CaptureIterableDataset` or
     :class:`CaptureMapDataset` used in the worker processes. This function gets executed within the worker
     processes. The structure will be:
 
@@ -471,11 +416,72 @@ def _capture_metadata_collate(samples: List, dataset: Dataset, default_collate: 
             "__pl_restart_meta": {"sampler_name0": state_dict0, "sampler_name1": state_dict1},
         }
     """
-    data = default_collate(samples)
-    if not isinstance(dataset, (CaptureIterableDataset, CaptureMapDataset)):
-        return data
-    metadata = dataset.state_dict()
+    data = collate_fn(samples)
+    metadata = None
+    if fault_tolerant_mode.is_automatic:
+        metadata = dataset.state_dict()
+    else:
+        state_dict_fn = getattr(dataset, "state_dict", None)
+        info = get_worker_info()
+        worker_id = info.id if info else 0
+        if state_dict_fn is not None:
+            metadata = state_dict_fn()
+            if worker_id not in metadata:
+                if info and info.num_workers > 1:
+                    raise MisconfigurationException(
+                        f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
+                    )
+                metadata = {0: metadata}
+        if metadata is None:
+            metadata = {worker_id: {}}
+
     return {"data": data, AutoRestartBatchKeys.PL_RESTART_META: metadata}
+
+
+# TODO: Merge this code within stateful DataLoaderIter.
+def _next_data_wrapper(
+    fn: Callable,
+    it: Iterator,
+    dl: DataLoader,
+    num_batches_fetched: int,
+    data_fetcher: "pl.utilities.fetching.AbstractDataFetcher",
+) -> Callable:
+    @wraps(fn)
+    def wrapper() -> Any:
+        nonlocal num_batches_fetched
+
+        dataset = dl.dataset
+        combined_batch = fn()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+        num_batches_fetched += 1
+
+        if isinstance(dataset, CaptureIterableDataset):
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=iterator_state,
+                    num_batches_fetched=num_batches_fetched,
+                    worker_id=list(iterator_state.keys())[0],
+                    name=sampler_iter_name,
+                )
+                for sampler_iter_name, iterator_state in state.items()
+            ]
+        elif isinstance(dataset, CaptureMapDataset):
+            ff_sampler = _find_fast_forward_samplers(dl)
+            state = [
+                IteratorState(
+                    num_workers=dl.num_workers,
+                    sampler_state=ff_sampler.state_dict(num_batches_fetched),
+                    dataset_state=state,
+                    worker_id=list(state.keys())[0],
+                    num_batches_fetched=num_batches_fetched,
+                )
+            ]
+        data_fetcher._store_dataloader_iter_state(it, state)
+        return batch
+
+    return wrapper
 
 
 def patch_dataloader_iterator(
@@ -504,87 +510,331 @@ def patch_dataloader_iterator(
     will extract the current iteration as part of the metadata returned by a custom batch.
     """
 
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
+        return
+
     assert isinstance(dataloader.dataset, (CaptureMapDataset, CaptureIterableDataset))
-
-    def _next_data_wrapper(fn, it, dl, num_batches_fetched) -> Callable:
-        @wraps(fn)
-        def wrapper():
-            nonlocal num_batches_fetched
-            nonlocal it
-            nonlocal dl
-
-            dataset = dl.dataset
-            combined_batch = fn()
-
-            batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
-            num_batches_fetched += 1
-
-            if isinstance(dataset, CaptureIterableDataset):
-                state = [
-                    IteratorState(
-                        num_workers=dataloader.num_workers,
-                        sampler_state=iterator_state,
-                        num_batches_fetched=num_batches_fetched,
-                        worker_id=list(iterator_state.keys())[0],
-                        name=sampler_iter_name,
-                    )
-                    for sampler_iter_name, iterator_state in state.items()
-                ]
-            elif isinstance(dataset, CaptureMapDataset):
-                ff_sampler = _find_fast_forward_samplers(dl)
-                state = [
-                    IteratorState(
-                        num_workers=dataloader.num_workers,
-                        sampler_state=ff_sampler.state_dict(num_batches_fetched),
-                        dataset_state=state,
-                        worker_id=list(state.keys())[0],
-                        num_batches_fetched=num_batches_fetched,
-                    )
-                ]
-            data_fetcher._store_dataloader_iter_state(it, state)
-            return batch
-
-        return wrapper
-
-    iterator._next_data = _next_data_wrapper(iterator._next_data, iterator, dataloader, num_batches_fetched)
+    iterator._next_data = _next_data_wrapper(
+        iterator._next_data, iterator, dataloader, num_batches_fetched, data_fetcher
+    )
 
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+    collate_fn = dataloader.collate_fn
+    if not fault_tolerant_mode.is_enabled or (
+        isinstance(collate_fn, partial) and collate_fn.func is _capture_metadata_collate
+    ):
+        return
     dataloader.collate_fn = partial(
-        _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
+        _capture_metadata_collate,
+        dataset=dataloader.dataset,
+        collate_fn=collate_fn,
+        fault_tolerant_mode=fault_tolerant_mode,
     )
 
 
-def reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+def _reload_dataloader_state_dict_automatic_map_dataset(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    iterator_state = state_dict["state"][0]
+
+    if not isinstance(iterator_state, IteratorState):
+        iterator_state = IteratorState.from_state_dict(iterator_state)
+
+    # reload sampler state
+    ff_sampler = _find_fast_forward_samplers(dataloader)
+    ff_sampler.load_state_dict(iterator_state.sampler_state)
+
+    # reload dataset state
+    dataloader.dataset.load_state_dict(
+        iterator_state.dataset_state,
+        latest_worker_id=state_dict["latest_worker_id"],
+        num_workers=iterator_state.num_workers,
+    )
+
+
+def _reload_dataloader_state_dict_automatic_iterable_dataset(
+    dataset: CaptureIterableDataset, state_dict: Dict[str, Any]
+) -> None:
+    dataset.load_state_dict(
+        {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+    )
+
+
+def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    dataset = dataloader.dataset
+    if isinstance(dataset, CaptureMapDataset):
+        _reload_dataloader_state_dict_automatic_map_dataset(dataloader, state_dict)
+
+    elif isinstance(dataset, CaptureIterableDataset):
+        _reload_dataloader_state_dict_automatic_iterable_dataset(dataset, state_dict)
+
+    else:
+        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
+
+
+def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+    # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
+    # therefore, we need to reload the states manually.
+
+    latest_worker_id = state_dict["latest_worker_id"]
+    num_workers = state_dict["state"][latest_worker_id]["num_workers"]
+    sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
+    if sampler_state:
+        # `sampler_state` keys contain all the DataLoader attribute names
+        # which matched `_SupportsStateDict` API interface while collecting the `state_dict`.
+        for dataloader_attr_name in sampler_state:
+            obj = getattr(dataloader, dataloader_attr_name)
+            if not isinstance(obj, _SupportsStateDict):
+                raise MisconfigurationException(
+                    f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
+                )
+
+            obj.load_state_dict(sampler_state[dataloader_attr_name])
+
+    if not isinstance(dataloader.dataset, _SupportsStateDict):
+        return
+
+    dataset_state = {
+        worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
+        for worker_id in state_dict["state"].keys()
+    }
+
+    dataloader.dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
+
+
+def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     """Utility to reload state_dict within dataloader for fault tolerance."""
 
-    if not _fault_tolerant_training():
+    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
+
+    if not fault_tolerant_mode.is_enabled:
         return
+
+    if fault_tolerant_mode.is_automatic:
+        _reload_dataloader_state_dict_automatic(dataloader, state_dict)
+
+    elif fault_tolerant_mode.is_manual:
+        _reload_dataloader_state_dict_manual(dataloader, state_dict)
+
+    else:
+        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
+
+
+def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_workers: int) -> Dict[int, Any]:
+    """This function is used to rotate the worker indices based on the `latest_worker_id` the training failed
+    on."""
+    if num_workers == 0:
+        return state
+    if latest_worker_id > num_workers - 1:
+        raise MisconfigurationException("The `latest_worker_id` should be within [0, num_workers - 1].")
+    if len(state) != num_workers:
+        raise MisconfigurationException("The `state` should contain `num_workers - 1` values.")
+    next_worker_id = latest_worker_id + 1
+    old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
+    return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
+
+
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
+class _StatefulDataLoaderIter:
+    """This mixin is used to make PyTorch DataLoaderIter stateful."""
+
+    def __accumulate_state(self, sampler_state: Dict[str, Any]) -> None:
+        # store sampler state within a queue alongside its idx.
+        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
+        self._sampler_state.append((sampler_state, self._sampler_state_idx))
+
+    def _store_sampler_state(self) -> None:
+        """This function is used to extract the sampler states if any."""
+        sampler_state = {
+            k: v.state_dict()
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _SupportsStateDict) and k != "dataset"
+        }
+        self.__accumulate_state(sampler_state)
+
+    def _next_index(self) -> Any:
+        indexes = super()._next_index()
+        self._store_sampler_state()
+        return indexes
+
+    def _prepare_loader(self, loader):
+        _add_capture_metadata_collate(loader)
+        self._loader = loader
+        self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
+        self.num_batches_fetched = 0
+        self._sampler_state = []
+        self._sampler_state_idx = 0
+
+    def __del__(self) -> None:
+        if isinstance(self._loader.collate_fn, partial):
+            self._loader.collate_fn = self._loader.collate_fn.keywords["collate_fn"]
+
+    def _next_data(self) -> Any:
+        combined_batch = super()._next_data()
+
+        batch, state = combined_batch["data"], combined_batch[AutoRestartBatchKeys.PL_RESTART_META]
+
+        self.num_batches_fetched += 1
+
+        sampler_state, sampler_state_idx = self._sampler_state.pop(0)
+        # there is no workers within the samplers
+        worker_id = list(state.keys())[0]
+
+        state = [
+            IteratorState(
+                num_workers=self._loader.num_workers,
+                sampler_state=sampler_state,
+                dataset_state=state,
+                worker_id=worker_id,
+                num_batches_fetched=self.num_batches_fetched,
+            )
+        ]
+        # ensures there is an alignement between the sampler state and currently fetched batch
+        assert sampler_state_idx == self.num_batches_fetched
+        self._data_fetcher._store_dataloader_iter_state(self, state)
+        return batch
+
+
+class _SingleProcessDataLoaderIterStateful(_StatefulDataLoaderIter, _SingleProcessDataLoaderIter):
+    def __init__(self, loader: DataLoader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+
+
+class _MultiProcessingDataLoaderIterStateful(_StatefulDataLoaderIter, _MultiProcessingDataLoaderIter):
+    def __init__(self, loader: DataLoader):
+        self._prepare_loader(loader)
+        super().__init__(loader)
+
+
+def _get_iterator(self) -> "_BaseDataLoaderIter":
+    if not hasattr(self, "_lightning_fetcher"):
+        raise MisconfigurationException(
+            "A stateful iterator should be used only when a DataFetcher has been attached to the DataLoader."
+        )
+    if self.num_workers == 0:
+        return _SingleProcessDataLoaderIterStateful(self)
+    else:
+        if hasattr(self, "check_worker_number_rationality"):
+            self.check_worker_number_rationality()
+        return _MultiProcessingDataLoaderIterStateful(self)
+
+
+def _patch_dataloader_get_iterators() -> None:
+    """This function is used to replace the DataLoader iterator by their stateful version."""
+    if not _FaultTolerantMode.detect_current_mode().is_manual:
+        return
+    if not hasattr(DataLoader, "_ori_get_iterator"):
+        DataLoader._ori_get_iterator = DataLoader._get_iterator
+    DataLoader._get_iterator = _get_iterator
+
+
+def _teardown_dataloader_get_iterators() -> None:
+    """This function is used to restore the DataLoader `get_iterator` with its original one."""
+    # cleanup the get_iterator replacement in case of Fault-tolerance.
+    get_iterator = getattr(DataLoader, "_ori_get_iterator", None)
+    if get_iterator:
+        DataLoader._get_iterator = get_iterator
+        del DataLoader._ori_get_iterator
+
+
+def _validate_iterable_dataset(dataloader: DataLoader) -> None:
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
 
     dataset = dataloader.dataset
 
-    if isinstance(dataset, CaptureMapDataset):
-        iterator_state = state_dict["state"][0]
-
-        if not isinstance(iterator_state, IteratorState):
-            iterator_state = IteratorState.from_state_dict(iterator_state)
-
-        # reload sampler state
-        ff_sampler = _find_fast_forward_samplers(dataloader)
-        ff_sampler.load_state_dict(iterator_state.sampler_state)
-
-        # reload dataset state
-        dataset.load_state_dict(
-            iterator_state.dataset_state,
-            latest_worker_id=state_dict["latest_worker_id"],
-            num_workers=iterator_state.num_workers,
+    if getattr(dataset, "__next__", None) is None:
+        raise AttributeError(
+            "Fault-tolerance doesn't support an `IterableDataset` without `__next__` "
+            "method implemented. Hint: We recommend you to move your logic from `__iter__`"
+            " inside and rely on a sampler to perform the sample sampling."
         )
 
-    elif isinstance(dataset, CaptureIterableDataset):
-        dataset.load_state_dict(
-            {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
-        )
+    samplers = {k: v for k, v in dataset.__dict__.items() if isinstance(v, Sampler)}
 
+    if not samplers:
+        raise TypeError("Fault-tolerance doesn't support an IterableDataset without a sampler as attribute.")
+
+    sampler = [v for v in samplers.values() if type(v) in SUPPORTED_SAMPLERS]
+
+    if not sampler:
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
+
+    if len(sampler) > 1:
+        raise ValueError(f"A single sampler is supported within an Iterable Dataset. Found {sampler}.")
+
+    if type(sampler[0]) is DistributedSampler and sampler.shuffle:
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
+    elif type(sampler[0]) is not SequentialSampler:
+        raise TypeError("Only `SequentialSampler` is supported.")
+
+
+def _validate_map_dataset(dataloader: DataLoader) -> None:
+    SUPPORTED_SAMPLERS = (RandomSampler, SequentialSampler, DistributedSampler)
+
+    sampler = getattr(dataloader, "sampler", None)
+    if sampler is not None and type(sampler) not in SUPPORTED_SAMPLERS:
+        raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
+
+    batch_sampler = getattr(dataloader, "batch_sampler", None)
+    if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
+        raise TypeError("Fault-tolerance supports only a `BatchSampler`.")
+
+    if type(sampler) is DistributedSampler and sampler.shuffle:
+        raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
+    elif type(sampler) is RandomSampler:
+        raise TypeError("Only `SequentialSampler` is supported.")
+
+
+def _validate_fault_tolerant_automatic(dataloader: Iterable, stage: "pl.trainer.states.RunningStage") -> None:
+    """This function is used to validate that Fault-tolerance is possible with the user data."""
+    if not _FaultTolerantMode.detect_current_mode().is_automatic:
+        return
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
+
+    if isinstance(dataloader, CombinedLoader):
+        dataloaders = dataloader.loaders
     else:
-        raise MisconfigurationException("This shouldn't happen. Please, open an issue on PyTorch Lightning Github.")
+        dataloaders = dataloader
+
+    dl_loaders = []
+
+    def flatten_dataloader(dataloader: Union[DataLoader, CycleIterator, Iterable]) -> None:
+        nonlocal dl_loaders
+        if isinstance(dataloader, CycleIterator):
+            dataloader = dataloader.loader
+        dl_loaders.append(dataloader)
+
+    apply_to_collection(dataloaders, (DataLoader, CycleIterator), flatten_dataloader)
+
+    if len(dl_loaders) > 1 and stage == pl.trainer.states.RunningStage.TRAINING:
+        raise ValueError("Fault-tolerance supports only a single dataloader.")
+
+    for dataloader in dl_loaders:
+        validator_fn = (
+            _validate_iterable_dataset if isinstance(dataloader.dataset, IterableDataset) else _validate_map_dataset
+        )
+        validator_fn(dataloader)
+
+
+def _collect_states_on_rank_zero_over_collection(state_dict: Any, key: str = "state") -> Any:
+    """This utility collects the state across processes for a collection of state."""
+
+    def fn(state: Dict):
+        if key in state:
+            return _collect_states_on_rank_zero(state)
+        return {k: apply_to_collection(v, Dict, fn) for k, v in state.items()}
+
+    return apply_to_collection(state_dict, Dict, fn)

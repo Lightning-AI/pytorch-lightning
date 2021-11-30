@@ -23,8 +23,10 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
@@ -672,3 +674,52 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
+        (
+            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
+            {"acc/dataloader_idx_0": 123},
+        ),
+        (
+            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
+            {"acc/dataloader_idx_10": 321},
+        ),
+        (
+            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
+            {"top_3_acc/dataloader_idx_3": 321},
+        ),
+        # theoretical case, as `/dataloader_idx_3` would have been added
+        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
+    ],
+)
+def test_filter_metrics_for_dataloader(kwargs, expected):
+    """Logged metrics should only include metrics from the concerned dataloader."""
+    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
+    assert actual == expected
+
+
+@RunIf(min_gpus=1)
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, *args):
+            x = torch.tensor(2.0, requires_grad=True, device=self.device)
+            y = x * 2
+            assert x.requires_grad is True
+            assert y.grad_fn is None  # disabled by validation
+
+            self.log("foo", y)
+            return y
+
+        def validation_epoch_end(self, outputs):
+            # the step outputs were not moved
+            assert all(o.device == self.device for o in outputs), outputs
+            # but the logging results were
+            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer.validate(model, verbose=False)
