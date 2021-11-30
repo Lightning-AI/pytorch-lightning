@@ -18,7 +18,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast, TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
@@ -81,7 +81,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def barrier(self, *args, **kwargs) -> None:
         pass
 
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+    def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
     def teardown(self) -> None:

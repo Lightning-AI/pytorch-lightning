@@ -24,7 +24,6 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -353,5 +352,5 @@ class IPUPlugin(ParallelPlugin):
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         return tensor
 
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+    def broadcast(self, obj: object, src: int = 0) -> object:
         return obj

@@ -29,7 +29,6 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
@@ -234,7 +233,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+    def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
             return obj
         buffer = io.BytesIO()
