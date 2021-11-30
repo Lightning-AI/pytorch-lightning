@@ -46,6 +46,8 @@ class _LiteOptimizer:
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._accelerator = accelerator
+        # TODO (@awaelchli) refactor to take Strategy as param
+        self._strategy = self._accelerator.training_type_plugin
 
     @property
     def optimizer(self) -> Optimizer:
@@ -56,11 +58,11 @@ class _LiteOptimizer:
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
-        self._accelerator.optimizer_step(
+        self._strategy.optimizer_step(
             self.optimizer,
             opt_idx=0,
             closure=closure,
-            model=self._accelerator.model,
+            model=self._strategy.model,
         )
 
 
