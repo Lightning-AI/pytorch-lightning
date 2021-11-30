@@ -83,18 +83,18 @@ class FitLoop(Loop):
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> int:
+    def split_idx(self) -> Optional[int]:
         """Returns the index of the current batch split (within the current batch) for bptt."""
         return self.epoch_loop.batch_loop.split_idx
 
     @property
-    def min_steps(self) -> int:
+    def min_steps(self) -> Optional[int]:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum numnber of steps to run."""
         return self.epoch_loop.min_steps
 
     @min_steps.setter
-    def min_steps(self, value: int) -> None:
+    def min_steps(self, value: Optional[int]) -> None:
         """Sets the minimum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.min_steps = value
@@ -178,7 +178,7 @@ class FitLoop(Loop):
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
 
-    def connect(self, epoch_loop: TrainingEpochLoop):
+    def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
         """Connects a training epoch loop to this fit loop."""
         self.epoch_loop = epoch_loop
 
@@ -187,7 +187,7 @@ class FitLoop(Loop):
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
-    def on_run_start(self) -> None:
+    def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
@@ -195,7 +195,7 @@ class FitLoop(Loop):
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
-    def on_advance_start(self) -> None:
+    def on_advance_start(self) -> None:  # type: ignore[override]
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
         ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
@@ -215,13 +215,11 @@ class FitLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss = TensorRunningAccum(
-            window_length=self.trainer.accumulate_grad_batches
-        )
+        self.epoch_loop.batch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 
-    def advance(self) -> None:
+    def advance(self) -> None:  # type: ignore[override]
         """Runs one whole epoch."""
         dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
