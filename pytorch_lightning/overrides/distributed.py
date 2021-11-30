@@ -16,7 +16,6 @@ from typing import Any, cast, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
-from torch._C._distributed_c10d import Reducer
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
@@ -72,6 +71,8 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         # this forward pass, to ensure we short circuit reduction for any
         # unused parameters. Only if `find_unused_parameters` is set.
         args = list(_find_tensors(output)) if model.find_unused_parameters else []
+        from torch._C._distributed_c10d import Reducer
+
         reducer = cast(Reducer, model.reducer)
         reducer.prepare_for_backward(args)
     else:
