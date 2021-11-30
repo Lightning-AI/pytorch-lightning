@@ -310,7 +310,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # load last weights
         if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
+            ckpt = self.checkpoint_io.load_checkpoint(last_path, map_location=(lambda storage, loc: storage))
             self.lightning_module.load_state_dict(ckpt)
 
     def barrier(self, *args, **kwargs) -> None:
