@@ -86,7 +86,7 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
