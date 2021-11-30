@@ -287,19 +287,6 @@ class TrainingTypePlugin(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return unwrap_lightning_module(self._model) if self._model is not None else None
 
-    @property
-    def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        """Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run.
-
-        The result is
-        cached instead of returned directly, because some plugins require transmitting the results from one
-        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the main process through a
-        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
-        """
-        # TODO: deprecate this
-        return None
-
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)

@@ -1162,7 +1162,6 @@ class Trainer(
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         results = self._dispatch()
 
-        # TODO: needed?
         self._post_dispatch()
 
         # ----------------------------
