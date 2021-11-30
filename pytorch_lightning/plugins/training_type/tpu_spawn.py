@@ -13,6 +13,7 @@
 # limitations under the License.
 import io
 import os
+import re
 import time
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -29,7 +30,8 @@ from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import _ExtraQueue, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
@@ -199,28 +201,35 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+    def __collect_rank_zero_results(
+        self, trainer: "pl.Trainer", results: Any
+    ) -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.mp_queue is not None:
-            rank_zero_warn("cleaning up tpu spawn environment...")
+        rank_zero_warn("cleaning up tpu spawn environment...")
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
-            if self.local_rank == 0:
-                # todo, pass complete checkpoint as state dictionary
-                self.mp_queue.put(best_model_path)
-                self.mp_queue.put(last_path)
-                self.mp_queue.put(results)
-                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+        if self.local_rank != 0:
+            return
+
+        # adds the `callback_metrics` to the queue
+        extra = _ExtraQueue()
+        if is_overridden("add_to_queue", self.lightning_module):
+            # TODO: Remove the if in v1.7
+            self.lightning_module.add_to_queue(extra)
+        else:
+            self.add_to_queue(trainer, extra)
+
+        return best_model_path, last_path, results, extra
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
