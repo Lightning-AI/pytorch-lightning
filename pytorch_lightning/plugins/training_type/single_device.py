@@ -18,7 +18,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin, TBroadcast
+from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast, TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
