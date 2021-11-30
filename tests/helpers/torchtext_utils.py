@@ -13,11 +13,12 @@
 # limitations under the License.
 import random
 import string
+
 from tests.helpers.imports import Dataset, Example, Field, Iterator
 
 
 def _generate_random_string(length: int = 10):
-    return ''.join(random.choices(string.ascii_letters, k=length))
+    return "".join(random.choices(string.ascii_letters, k=length))
 
 
 def get_dummy_torchtext_data_iterator(num_samples: int, batch_size: int, include_lengths: bool = False):
@@ -29,8 +30,13 @@ def get_dummy_torchtext_data_iterator(num_samples: int, batch_size: int, include
         include_lengths=include_lengths,
     )  # nosec
 
-    dataset = Dataset([Example.fromdict({"text": _generate_random_string()}, {
-                      "text": ("text", text_field)}) for _ in range(num_samples)], {"text": text_field})
+    dataset = Dataset(
+        [
+            Example.fromdict({"text": _generate_random_string()}, {"text": ("text", text_field)})
+            for _ in range(num_samples)
+        ],
+        {"text": text_field},
+    )
     text_field.build_vocab(dataset)
 
     iterator = Iterator(

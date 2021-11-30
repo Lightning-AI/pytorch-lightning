@@ -259,7 +259,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     def batch_to(data: Any) -> Any:
         # try to move torchtext data first
         if _TORCHTEXT_LEGACY and isinstance(data, Batch):
-             # TODO: also remove the torchtext dependency with Lightning 1.8
+            # TODO: also remove the torchtext dependency with Lightning 1.8
             rank_zero_deprecation(
                 "The torchtext.legacy.Batch object is deprecated and Lightning will remove support for it in v1.8."
                 " We recommend you to migrate away from Batch by following the TorchText README: https://github.com/pytorch/text#bc-breaking-legacy"
