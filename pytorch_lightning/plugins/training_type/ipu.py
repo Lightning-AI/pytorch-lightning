@@ -111,7 +111,7 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
         self._handle_gradient_accumulation_steps()
 
@@ -120,6 +120,16 @@ class IPUPlugin(ParallelPlugin):
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
         pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
+
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
+        if len(self.optimizers) > 1:
+            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     def pre_dispatch(self) -> None:
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
@@ -315,7 +325,7 @@ class IPUPlugin(ParallelPlugin):
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
-        optimizer = self.lightning_module.trainer.optimizers[0]
+        optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property

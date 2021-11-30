@@ -142,11 +142,20 @@ def test_lite_optimizer_wraps():
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
+def test_lite_optimizer_state_dict():
+    """Test that the LiteOptimizer calls into the strategy to collect the state."""
+    optimizer = Mock()
+    strategy = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer.state_dict()
+    strategy.optimizer_state.assert_called_with(optimizer)
+
+
 def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
-    accelerator = Mock()
-    lite_optimizer = _LiteOptimizer(optimizer=optimizer, accelerator=accelerator)
+    strategy = Mock()
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.step()
-    accelerator.optimizer_step.assert_called_once()
-    accelerator.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=accelerator.model)
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)

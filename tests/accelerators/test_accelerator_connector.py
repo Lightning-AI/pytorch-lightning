@@ -43,7 +43,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import _StrategyType, DeviceType
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -337,7 +337,7 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True)
+@RunIf(skip_windows=True, standalone=True)
 def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
     _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPPlugin)
@@ -729,7 +729,7 @@ def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.training_type_plugin, plugin)
-    assert trainer._device_type == DeviceType.GPU
+    assert trainer._device_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 

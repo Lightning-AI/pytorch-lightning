@@ -342,10 +342,6 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
-        # set the default depending on the fx_name
-        on_step = self.__auto_choose_log_on_step(on_step)
-        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
-
         if self.trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
@@ -364,7 +360,10 @@ class LightningModule(
             raise MisconfigurationException(
                 "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
             )
-        _FxValidator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+
+        on_step, on_epoch = _FxValidator.check_logging_and_get_default_levels(
+            self._current_fx_name, on_step=on_step, on_epoch=on_epoch
+        )
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
@@ -518,18 +517,6 @@ class LightningModule(
                 self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-
-    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
-        if on_step is None:
-            on_step = False
-            on_step |= self._current_fx_name in ("training_step", "training_step_end")
-        return on_step
-
-    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
-        if on_epoch is None:
-            on_epoch = True
-            on_epoch &= self._current_fx_name not in ("training_step", "training_step_end")
-        return on_epoch
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -867,7 +854,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         """Called at the end of the validation epoch with the outputs of all validation steps.
 
         .. code-block:: python
@@ -1045,7 +1032,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         """Called at the end of a test epoch with the output of all test steps.
 
         .. code-block:: python
@@ -1349,7 +1336,7 @@ class LightningModule(
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
         self._verify_is_manual_optimization("manual_backward")
-        self.trainer.accelerator.backward(loss, None, None, *args, **kwargs)
+        self.trainer.training_type_plugin.backward(loss, None, None, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs

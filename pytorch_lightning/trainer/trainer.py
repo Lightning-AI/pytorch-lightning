@@ -38,7 +38,15 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DDPSpawnPlugin,
+    NativeMixedPrecisionPlugin,
+    ParallelPlugin,
+    PLUGIN_INPUT,
+    PrecisionPlugin,
+    TrainingTypePlugin,
+)
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -63,11 +71,12 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerSta
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _AcceleratorType,
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
+    AMPType,
     device_parser,
-    DeviceType,
     GradClipAlgorithmType,
     parsing,
     rank_zero_deprecation,
@@ -96,6 +105,7 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
 )
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -1303,10 +1313,12 @@ class Trainer(
             return self.predict_loop.run()
 
     def _run_sanity_check(self, ref_model):
-        using_val_step = self._data_connector._val_dataloader_source.is_defined() and is_overridden(
-            "validation_step", ref_model
+        should_sanity_check = (
+            self.enable_validation
+            and self.num_sanity_val_steps > 0
+            # do not sanity check if restarting because it would mess up the loaded state
+            and not self._evaluation_loop.restarting
         )
-        should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1519,32 +1531,39 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}")
+        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
 
-        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None and self._device_type == DeviceType.TPU else 0
+        num_tpu_cores = (
+            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+        )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`."
+                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if _IPU_AVAILABLE and self._device_type != DeviceType.IPU and not isinstance(self.accelerator, IPUAccelerator):
+        if (
+            _IPU_AVAILABLE
+            and self._device_type != _AcceleratorType.IPU
+            and not isinstance(self.accelerator, IPUAccelerator)
+        ):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self):
+    def _on_exception(self) -> None:
         if not _fault_tolerant_training():
             return
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
@@ -1595,7 +1614,7 @@ class Trainer(
         return self._accelerator_connector._distrib_type
 
     @property
-    def _device_type(self) -> DeviceType:
+    def _device_type(self) -> _AcceleratorType:
         return self._accelerator_connector._device_type
 
     @property
@@ -1636,7 +1655,7 @@ class Trainer(
 
     @property
     def optimizers(self) -> List[Optimizer]:
-        return self.accelerator.optimizers
+        return self.training_type_plugin.optimizers
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
@@ -1645,35 +1664,39 @@ class Trainer(
         # the `lightning_optimizers` trainer property
         self._lightning_optimizers = None
 
-        self.accelerator.optimizers = new_optims
+        self.training_type_plugin.optimizers = new_optims
 
     @property
     def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
-        return self.accelerator.lr_schedulers
+        return self.training_type_plugin.lr_schedulers
 
     @lr_schedulers.setter
     def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
-        self.accelerator.lr_schedulers = new_schedulers
+        self.training_type_plugin.lr_schedulers = new_schedulers
 
     @property
     def optimizer_frequencies(self) -> list:
-        return self.accelerator.optimizer_frequencies
+        return self.training_type_plugin.optimizer_frequencies
 
     @optimizer_frequencies.setter
     def optimizer_frequencies(self, new_freqs: list) -> None:
-        self.accelerator.optimizer_frequencies = new_freqs
+        self.training_type_plugin.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
+    def amp_backend(self) -> Optional[AMPType]:
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            return AMPType.APEX
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            return AMPType.NATIVE
+        return None
 
     @property
     def precision(self) -> Union[str, int]:
         return self.training_type_plugin.precision_plugin.precision
 
     @property
-    def scaler(self):
-        return self.accelerator.scaler
+    def scaler(self) -> Optional[Any]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
@@ -1772,9 +1795,11 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
-        model_ref = self.lightning_module
-        val_loop_enabled = is_overridden("validation_step", model_ref) and self.limit_val_batches > 0
-        return val_loop_enabled
+        return (
+            self._data_connector._val_dataloader_source.is_defined()
+            and is_overridden("validation_step", self.lightning_module)
+            and self.limit_val_batches > 0
+        )
 
     @property
     def default_root_dir(self) -> str:
@@ -2004,7 +2029,7 @@ class Trainer(
         """Attach a custom fit loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.fit`.
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`.
         """
         loop.trainer = self
         self._fit_loop = loop
@@ -2018,7 +2043,7 @@ class Trainer(
         """Attach a custom validation loop to this Trainer.
 
         It will run with
-        :meth:`~pytorch_lighting.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
         running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
         """
         loop.trainer = self
@@ -2094,10 +2119,13 @@ class Trainer(
             return active_loop._results
 
     def _exit_gracefully_on_signal(self) -> None:
-        if _fault_tolerant_training() and self._terminate_gracefully:
-            caller = inspect.stack()[1]
-            class_name = caller[0].f_locals["self"].__class__.__name__
-            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
+        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
+            return
+        raise ExitGracefullyException(0)
+
+    def _should_terminate_gracefully(self) -> bool:
+        value = torch.tensor(int(self._terminate_gracefully), device=self.training_type_plugin.root_device)
+        return self.training_type_plugin.reduce(value, reduce_op="sum") > 0
 
     @property
     def weights_summary(self) -> Optional[str]:

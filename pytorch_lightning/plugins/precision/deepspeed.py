@@ -49,7 +49,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: DeepSpeedEngine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional["DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
+        if model is None:
+            raise ValueError("Please provide the model as input to `backward`.")
         model.backward(tensor, *args, **kwargs)
 
     def optimizer_step(

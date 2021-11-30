@@ -14,7 +14,6 @@
 """General utilities."""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -59,7 +58,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
             pkg_version = Version(pkg.__version__)
         else:
             # try pkg_resources to infer version
-            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
+            pkg_version = Version(pkg_resources.get_distribution(package).version)
     except TypeError:
         # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
@@ -94,6 +93,7 @@ _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
+_TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
 
@@ -111,4 +111,6 @@ else:
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return bool(int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0)))
+    from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+    return _FaultTolerantMode.detect_current_mode().is_enabled

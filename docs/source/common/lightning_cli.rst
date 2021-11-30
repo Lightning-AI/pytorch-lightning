@@ -290,7 +290,7 @@ Groups of options can also be given as independent config files:
 When running experiments in clusters it could be desired to use a config which needs to be accessed from a remote
 location. :class:`~pytorch_lightning.utilities.cli.LightningCLI` comes with `fsspec
 <https://filesystem-spec.readthedocs.io/en/stable/>`_ support which allows reading and writing from many types of remote
-file systems. One example is if you have installed the `gcsfs <https://gcsfs.readthedocs.io/en/stable/>`_ then a config
+file systems. One example is if you have installed `s3fs <https://s3fs.readthedocs.io/en/latest/>`_ then a config
 could be stored in an S3 bucket and accessed as:
 
 .. code-block:: bash
