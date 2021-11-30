@@ -207,9 +207,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def save(self, state_dict: Dict, path: _PATH) -> None:
-        xm.save(state_dict, path)
-
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
             return obj
