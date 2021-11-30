@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -25,17 +25,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import (
-    _LiteDataLoader,
-    _LiteModule,
-    _LiteOptimizer,
-    _replace_dataloader_init_method,
-)
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, _update_dataloader, has_iterable_dataset
+from pytorch_lightning.utilities.data import (
+    _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
+    _update_dataloader,
+    has_iterable_dataset,
+)
 from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -112,7 +113,7 @@ class LightningLite(ABC):
 
         Use this to create tensors directly on the device if needed.
         """
-        return self._accelerator.root_device
+        return self._strategy.root_device
 
     @property
     def global_rank(self) -> int:
@@ -171,7 +172,7 @@ class LightningLite(ABC):
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin)
-        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
             # join both types in a list for API convenience
@@ -201,7 +202,7 @@ class LightningLite(ABC):
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders
+        return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -284,6 +285,18 @@ class LightningLite(ABC):
         with self._precision_plugin.forward_context():
             yield
 
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        ...
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        ...
+
+    @overload
+    def to_device(self, obj: Any) -> Any:
+        ...
+
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
         on that device.
@@ -347,7 +360,7 @@ class LightningLite(ABC):
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
@@ -385,7 +398,6 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._set_plugin_specific_precision_variables()
         self._accelerator.setup_environment()
 
         # apply sharded context to prevent OOM
@@ -399,11 +411,6 @@ class LightningLite(ABC):
     def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
-
-    def _set_plugin_specific_precision_variables(self) -> None:
-        # todo: these are hacks as plugins rely on access to the precision plugin
-        if isinstance(self._strategy, DeepSpeedPlugin):
-            self._set_deepspeed_precision_variables()
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         if isinstance(self._strategy, TPUSpawnPlugin):
@@ -422,13 +429,6 @@ class LightningLite(ABC):
         else:
             model = self.to_device(model)
         return model
-
-    def _set_deepspeed_precision_variables(self) -> None:
-        # TODO: Refactor this once precision pluging is part of the strategy.
-        amp_type = self._accelerator_connector.amp_type
-        amp_level = self._accelerator_connector.amp_level
-        precision = self._accelerator_connector.precision
-        self._strategy._amp_level, self._strategy._amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
@@ -461,11 +461,11 @@ class LightningLite(ABC):
             )
 
     @staticmethod
-    def _supported_device_types() -> Sequence[DeviceType]:
+    def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
-            DeviceType.CPU,
-            DeviceType.GPU,
-            DeviceType.TPU,
+            _AcceleratorType.CPU,
+            _AcceleratorType.GPU,
+            _AcceleratorType.TPU,
         )
 
     @staticmethod

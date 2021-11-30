@@ -112,7 +112,10 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 
 @RunIf(min_gpus=1)
-@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch(
+    "pytorch_lightning.plugins.training_type.training_type_plugin.TrainingTypePlugin.lightning_module",
+    new_callable=PropertyMock,
+)
 def test_apply_batch_transfer_handler(model_getter_mock):
     expected_device = torch.device("cuda", 0)
 
@@ -157,7 +160,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model
-    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
 
     assert model.on_before_batch_transfer_hook_rank == 0
     assert model.transfer_batch_to_device_hook_rank == 1
@@ -167,7 +170,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_transfer_batch_hook_ddp(tmpdir):
     """Test custom data are properly moved to the right device using ddp."""
 
@@ -426,7 +429,7 @@ class HookedModel(BoringModel):
         return out
 
 
-@RunIf(deepspeed=True, min_gpus=1, special=True)
+@RunIf(deepspeed=True, min_gpus=1, standalone=True)
 @pytest.mark.parametrize("automatic_optimization", (True, False))
 def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization):
     _run_trainer_model_hook_system_fit(
@@ -594,11 +597,13 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
+
+    # already performed 1 step, resume and do 2 more
     train_batches = 2
+    steps_after_reload = 1 + train_batches
     trainer = Trainer(
         default_root_dir=tmpdir,
-        # already performed 1 step, now resuming to do an additional 2
-        max_steps=(1 + train_batches),
+        max_steps=steps_after_reload,
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -609,16 +614,19 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
+
     trainer.fit(model, ckpt_path=best_model_path)
-    saved_ckpt = {
+    loaded_ckpt = {
         "callbacks": ANY,
-        "epoch": 2,  # TODO: wrong saved epoch
-        "global_step": (1 + train_batches),
+        "epoch": 1,  # TODO: wrong saved epoch, should be 0
+        "global_step": 1,
         "lr_schedulers": ANY,
         "optimizer_states": ANY,
         "pytorch-lightning_version": __version__,
         "state_dict": ANY,
     }
+    # TODO: wrong saved epoch, should be 0
+    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 2}
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -627,20 +635,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
-        dict(
-            name="on_load_checkpoint",
-            args=(
-                {
-                    "callbacks": ANY,
-                    "epoch": 1,
-                    "global_step": 1,
-                    "lr_schedulers": ANY,
-                    "optimizer_states": ANY,
-                    "pytorch-lightning_version": __version__,
-                    "state_dict": ANY,
-                },
-            ),
-        ),
+        dict(name="on_load_checkpoint", args=(loaded_ckpt,)),
         dict(name="Callback.on_load_checkpoint", args=(trainer, model, {"foo": True})),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
@@ -878,20 +873,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="val_dataloader"),
         dict(name="train_dataloader"),
         dict(name="val_dataloader"),
-        dict(
-            name="on_save_checkpoint",
-            args=(
-                {
-                    "callbacks": ANY,
-                    "epoch": 1,
-                    "global_step": 2,
-                    "lr_schedulers": ANY,
-                    "optimizer_states": ANY,
-                    "pytorch-lightning_version": __version__,
-                    "state_dict": ANY,
-                },
-            ),
-        ),
+        dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]
     assert called == expected

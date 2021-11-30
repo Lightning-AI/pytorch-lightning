@@ -211,8 +211,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.add_state("value", torch.tensor(0.0), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
+        # this is defined here only because upstream is missing the type annotation
+        self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
         if self.is_tensor:
             if not torch.is_floating_point(value):
                 dtype = torch.get_default_dtype()
@@ -225,16 +227,17 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
             if self.meta.on_step:
                 self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
-
-            # performance: no need to accumulate on values only logged on_step
-            if not self.meta.on_epoch:
-                self.value = self._forward_cache
-                return
+                # performance: no need to accumulate on values only logged on_step
+                if not self.meta.on_epoch:
+                    self.value = self._forward_cache
+                    return
 
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
-                self.cumulated_batch_size += batch_size
+                # `Metric.add_state` does not work well with mypy, mypy doesn't know this is a `Tensor`
+                # we could add an assertion, but this is a hot code path
+                self.cumulated_batch_size += batch_size  # type: ignore[operator]
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
@@ -280,8 +283,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
 
             # return cached value
-            if self._computed is not None:  # type: ignore
-                return self._computed  # type: ignore
+            if self._computed is not None:
+                return self._computed
             self._computed = compute(*args, **kwargs)
             return self._computed
 
