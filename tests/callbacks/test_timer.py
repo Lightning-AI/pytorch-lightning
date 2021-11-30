@@ -168,15 +168,12 @@ def test_timer_resume_training(tmpdir):
     assert trainer.current_epoch < 99
     saved_global_step = trainer.global_step
 
-    # resume training (with depleted timer
+    # resume training (with depleted timer)
     timer = Timer(duration=timedelta(milliseconds=200))
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[timer, checkpoint_callback],
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=timer)
     trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
-    assert trainer.global_step == saved_global_step + 1
+    assert trainer.global_step == saved_global_step
 
 
 @RunIf(skip_windows=True)

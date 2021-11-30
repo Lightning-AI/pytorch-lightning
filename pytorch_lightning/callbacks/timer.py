@@ -142,6 +142,13 @@ class Timer(Callback):
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._end_time[RunningStage.TESTING] = time.monotonic()
 
+    def on_fit_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        # this checks the time after the state is reloaded, regardless of the interval.
+        # this is necessary in case we load a state whose timer is already depleted
+        if self._duration is None:
+            return
+        self._check_time_remaining(trainer)
+
     def on_train_batch_end(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
