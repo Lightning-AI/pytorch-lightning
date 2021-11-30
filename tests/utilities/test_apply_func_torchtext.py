@@ -16,7 +16,6 @@ import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from tests.helpers.imports import Dataset, Example, Field, Iterator
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
