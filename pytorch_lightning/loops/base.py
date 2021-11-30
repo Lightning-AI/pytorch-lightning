@@ -290,5 +290,6 @@ class Loop(ABC, Generic[T]):
 
                 if not self.trainer.is_global_zero:
                     v.reset(metrics=False)
+
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
         self.restarting = True
