@@ -28,7 +28,7 @@ def _make_rankfile(tmp_path):
 
 def test_missing_lsb_djob_rankfile():
     """Test an error when the LSB_DJOB_RANKFILE cannot be found."""
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": None, "LSB_JOBID": "1234"}):
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": '', "LSB_JOBID": "1234"}):
         del os.environ["LSB_DJOB_RANKFILE"]
         with pytest.raises(ValueError, match="Could not find environment variable LSB_DJOB_RANKFILE"):
             LSFEnvironment()
@@ -36,53 +36,68 @@ def test_missing_lsb_djob_rankfile():
 
 def test_empty_lsb_djob_rankfile():
     """Test an error when the LSB_DJOB_RANKFILE is not populated."""
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": None, "LSB_JOBID": "1234"}):
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": '', "LSB_JOBID": "1234"}):
         with pytest.raises(ValueError, match="Environment variable LSB_DJOB_RANKFILE is empty"):
             LSFEnvironment()
 
 
-def test_missing_lsb_job_id():
+def test_missing_lsb_job_id(tmp_path):
     """Test an error when the job id cannot be found."""
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(), "LSB_JOBID": "1234"}):
+    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(tmp_path), "LSB_JOBID": "1234"}):
         del os.environ["LSB_JOBID"]
-        with pytest.raises(ValueError, match="Could not find job id in environment variable LSB_JOBID"):
+        with pytest.raises(ValueError, match="Could not find job id -- expected in environment variable LSB_JOBID"):
             LSFEnvironment()
 
 
 def test_manual_main_port_and_address(tmp_path):
     """Test a user can set the port manually through the MASTER_PORT env variable."""
-    with patch.dict(os.environ, {"MASTER_PORT": "4321", "LSB_JOBID": "1234", "LSB_DJOB_RANKFILE": _make_rankfile()}):
-        env = LSFEnvironment()
-        assert env.main_port == 4321
-
-
-def test_attributes_from_environment_variables():
-    """Test that the LSF environment takes the attributes from the environment variables."""
-
     environ = {
-        "LSB_DJOB_RANKFILE": _make_rankfile(),
+        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
         "LSB_JOBID": "1234",
         "JSM_NAMESPACE_SIZE": "4",
         "JSM_NAMESPACE_RANK": "3",
         "JSM_NAMESPACE_LOCAL_RANK": "1",
     }
     with patch.dict(os.environ, environ):
-        env = LSFEnvironment()
-        assert env.creates_processes_externally
-        assert env.main_address == "10.10.10.0"
-        assert env.main_port == 10234
-        assert env.world_size() == 4
-        assert env.global_rank() == 3
-        assert env.local_rank() == 1
-        env.set_global_rank(100)
-        assert env.global_rank() == 3
-        env.set_world_size(100)
-        assert env.world_size() == 4
-        assert LSFEnvironment.detect()
+        with patch("socket.gethostname", return_value="10.10.10.2"):
+            env = LSFEnvironment()
+            assert env.main_port == 10234
 
 
-def test_node_rank():
-    with patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(), "LSB_JOBID": "1234"}):
+def test_attributes_from_environment_variables(tmp_path):
+    """Test that the LSF environment takes the attributes from the environment variables."""
+    environ = {
+        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "4",
+        "JSM_NAMESPACE_RANK": "3",
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+    }
+    with patch.dict(os.environ, environ):
+        with patch("socket.gethostname", return_value="10.10.10.2"):
+            env = LSFEnvironment()
+            assert env.creates_processes_externally
+            assert env.main_address == "10.10.10.0"
+            assert env.main_port == 10234
+            assert env.world_size() == 4
+            assert env.global_rank() == 3
+            assert env.local_rank() == 1
+            env.set_global_rank(100)
+            assert env.global_rank() == 3
+            env.set_world_size(100)
+            assert env.world_size() == 4
+            assert LSFEnvironment.detect()
+
+
+def test_node_rank(tmp_path):
+    environ = {
+        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "4",
+        "JSM_NAMESPACE_RANK": "3",
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+    }
+    with patch.dict(os.environ, environ):
         with patch("socket.gethostname", return_value="10.10.10.2"):
             env = LSFEnvironment()
             assert env.node_rank() == 2

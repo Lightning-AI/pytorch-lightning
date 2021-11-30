@@ -37,23 +37,26 @@ class LSFEnvironment(ClusterEnvironment):
 
     JSM_NAMESPACE_SIZE
       The world size for the task. This environment variable is set by jsrun
+
+    JSM_NAMESPACE_RANK
+      The global rank for the task. This environment variable is set by jsrun
     """
 
     def __init__(self):
-        self._master_address = self._get_master_address()
-        self._master_port = self._get_master_port()
+        self._main_address = self._get_main_address()
+        self._main_port = self._get_main_port()
         self._local_rank = self._get_local_rank()
         self._global_rank = self._get_global_rank()
         self._world_size = self._get_world_size()
         self._node_rank = self._get_node_rank()
 
         # set environment variables needed for initializing torch distributed process group
-        os.environ["MASTER_ADDR"] = str(self._master_address)
+        os.environ["MASTER_ADDR"] = str(self._main_address)
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        os.environ["MASTER_PORT"] = str(self._master_port)
+        os.environ["MASTER_PORT"] = str(self._main_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        tmp = ('master_address', 'master_port', 'world_size',
+        tmp = ('main_address', 'main_port', 'world_size',
                'local_rank', 'node_rank', 'global_rank')
         self._rep = ",".join('%s=%s' % (s, getattr(self, "_"+s)) for s in tmp)
 
@@ -63,18 +66,18 @@ class LSFEnvironment(ClusterEnvironment):
             rankfile = os.environ[var]
         except KeyError:
             raise ValueError("Could not find environment variable LSB_DJOB_RANKFILE")
-        if rankfile is None:
+        if not rankfile:
             raise ValueError("Environment variable LSB_DJOB_RANKFILE is empty")
         with open(rankfile, 'r') as f:
             ret = [line.strip() for line in f]
         return ret
 
-    def _get_master_address(self):
+    def _get_main_address(self):
         """A helper for getting the master address"""
         hosts = self._read_hosts()
         return hosts[1]
 
-    def _get_master_port(self):
+    def _get_main_port(self):
         """A helper for getting the master port
 
         Use the LSF job ID so all ranks can compute the master port
@@ -146,25 +149,39 @@ class LSFEnvironment(ClusterEnvironment):
     def __str__(self):
         return self._rep
 
-    def creates_children(self):
+    @staticmethod
+    def detect():
+        """Detect if running in an LSF environment"""
+        env_vars = [
+            "LSB_JOBID",
+            "LSB_DJOB_RANKFILE",
+            "JSM_NAMESPACE_LOCAL_RANK",
+            "JSM_NAMESPACE_SIZE"
+        ]
+        flags = [v in os.environ for v in env_vars]
+        return any(flags)
+
+    def creates_processes_externally(self):
         """
         LSF creates subprocesses -- i.e. PyTorch Lightning does not need to
         spawn them
         """
         return True
 
-    def master_address(self):
+    @property
+    def main_address(self):
         """
         Master address is read from an OpenMPI host rank file in the environment
         variable *LSB_DJOB_RANKFILE*
         """
-        return self._master_address
+        return self._main_address
 
-    def master_port(self):
+    @property
+    def main_port(self):
         """
         Master port is calculated from the LSF job ID
         """
-        return self._master_port
+        return self._main_port
 
     def world_size(self):
         """
