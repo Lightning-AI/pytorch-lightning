@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
+    _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -71,6 +72,7 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         skip_49370: bool = False,
+        omegaconf: bool = False,
         **kwargs,
     ):
         """
@@ -93,6 +95,7 @@ class RunIf:
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
+            omegaconf: Require that omry/omegaconf is installed.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -177,6 +180,10 @@ class RunIf:
             old_torch = Version(torch_version) < Version("1.8")
             conditions.append(ge_3_9 and old_torch)
             reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
+
+        if omegaconf:
+            conditions.append(not _OMEGACONF_AVAILABLE)
+            reasons.append("omegaconf")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
