@@ -37,9 +37,11 @@ class GPUAccelerator(Accelerator):
                 If the selected device is not GPU.
         """
         super().setup_environment()
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
-        torch.cuda.set_device(self.root_device)
+        if "cuda" not in str(self.training_type_plugin.root_device):
+            raise MisconfigurationException(
+                f"Device should be GPU, got {self.training_type_plugin.root_device} instead"
+            )
+        torch.cuda.set_device(self.training_type_plugin.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.set_nvidia_flags(trainer.local_rank)
@@ -73,14 +75,19 @@ class GPUAccelerator(Accelerator):
         """
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
-        return _get_nvidia_gpu_stats(device)
+        return get_nvidia_gpu_stats(device)
 
     def teardown(self) -> None:
         super().teardown()
-        self._move_optimizer_state(torch.device("cpu"))
+        self.training_type_plugin._move_optimizer_state(torch.device("cpu"))
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return torch.cuda.device_count()
 
 
-def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:
@@ -93,6 +100,10 @@ def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
         FileNotFoundError:
             If nvidia-smi installation not found
     """
+    nvidia_smi_path = shutil.which("nvidia-smi")
+    if nvidia_smi_path is None:
+        raise FileNotFoundError("nvidia-smi: command not found")
+
     gpu_stat_metrics = [
         ("utilization.gpu", "%"),
         ("memory.used", "MB"),
@@ -106,9 +117,6 @@ def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     gpu_query = ",".join(gpu_stat_keys)
 
     gpu_id = _get_gpu_id(device.index)
-    nvidia_smi_path = shutil.which("nvidia-smi")
-    if nvidia_smi_path is None:
-        raise FileNotFoundError("nvidia-smi: command not found")
     result = subprocess.run(
         [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
         encoding="utf-8",
@@ -125,10 +133,7 @@ def _get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
 
     s = result.stdout.strip()
     stats = [_to_float(x) for x in s.split(", ")]
-
-    gpu_stats = {}
-    for i, (x, unit) in enumerate(gpu_stat_metrics):
-        gpu_stats[f"{x} ({unit})"] = stats[i]
+    gpu_stats = {f"{x} ({unit})": stat for (x, unit), stat in zip(gpu_stat_metrics, stats)}
     return gpu_stats
 
 

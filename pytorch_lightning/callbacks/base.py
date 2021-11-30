@@ -102,7 +102,7 @@ class Callback(abc.ABC):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch begins."""
         pass
@@ -114,7 +114,7 @@ class Callback(abc.ABC):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch ends."""
         pass
@@ -169,6 +169,10 @@ class Callback(abc.ABC):
         """Called when the training batch begins."""
         pass
 
+    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """Called when the training batch ends."""
+        pass
+
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
@@ -221,10 +225,6 @@ class Callback(abc.ABC):
         dataloader_idx: int,
     ) -> None:
         """Called when the predict batch ends."""
-        pass
-
-    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch ends."""
         pass
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

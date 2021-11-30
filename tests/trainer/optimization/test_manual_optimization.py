@@ -22,7 +22,7 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -128,7 +128,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         )
         scaler_step = scaler_step_patch.start()
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
 
@@ -162,7 +162,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
         enable_model_summary=False,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
 
@@ -189,7 +189,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
         enable_model_summary=False,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
@@ -212,7 +212,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         gpus=1,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
 
@@ -252,7 +252,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, outputs, batch, batch_idx):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -329,7 +329,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         def has_gradient(self):
             return self.layer.weight.grad is not None
 
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_train_batch_start(self, batch, batch_idx):
             self.called["on_train_batch_start"] += 1
             self.weight_before = self.layer.weight.clone()
 
@@ -351,7 +351,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
             return loss.detach() if self.detach else loss
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, outputs, batch, batch_idx):
             self.called["on_train_batch_end"] += 1
             after_before = self.layer.weight.clone()
             if self.should_update and self.should_have_updated:
@@ -393,17 +393,7 @@ def test_multiple_optimizers_step(tmpdir):
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
-
-        called = False
-
-        def on_before_optimizer_step(self, *args):
-            self.called = True
-            norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
-            if not (torch.isinf(norm) or torch.isnan(norm)):
-                assert norm.item() < 100, norm.item()
-
         def training_step(self, batch, batch_idx):
-            # manual
             opt_a, opt_b = self.optimizers()
             x = batch[0]
 
@@ -436,6 +426,33 @@ def test_multiple_optimizers_step(tmpdir):
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
 
+        # sister test: tests/plugins/test_amp_plugins.py::test_amp_gradient_unscale
+        def on_after_backward(self) -> None:
+            # check grads are scaled
+            scale = self.trainer.precision_plugin.scaler.get_scale()
+            assert scale != 1.0  # the return value if not enabled
+            grads = [p.grad for p in self.parameters()]
+            inv_scale = 1 / scale
+            self.original_grads = [p * inv_scale for p in grads]
+
+        def check_grads_unscaled(self, optimizer=None):
+            if optimizer is not None:
+                scaler = self.trainer.precision_plugin.scaler
+                state = scaler._per_optimizer_states[id(optimizer)]
+                assert state["stage"].name == "UNSCALED"
+
+            grads = [p.grad for p in self.parameters()]
+            assert len(grads) == len(self.original_grads)
+            for actual, expected in zip(grads, self.original_grads):
+                torch.testing.assert_allclose(actual, expected)
+
+        def on_before_optimizer_step(self, optimizer, *_):
+            self.check_grads_unscaled(optimizer)
+
+        def log_grad_norm(self, grad_norm_dict):
+            self.check_grads_unscaled()
+            assert len(grad_norm_dict)
+
     model = TestModel()
     model.val_dataloader = None
 
@@ -450,12 +467,12 @@ def test_multiple_optimizers_step(tmpdir):
         precision=16,
         amp_backend="native",
         gpus=1,
+        track_grad_norm=2,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
-    assert model.called
 
 
 def test_step_with_optimizer_closure(tmpdir):
@@ -523,7 +540,7 @@ def test_step_with_optimizer_closure(tmpdir):
         log_every_n_steps=1,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 2
     assert trainer.progress_bar_metrics["train_loss_step"] == model._losses[-1]
@@ -579,7 +596,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
         log_every_n_steps=1,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward) as bwd_mock:
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 2
 
@@ -592,6 +609,9 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
+
+        def on_train_start(self) -> None:
+            step_mock.reset_mock()
 
         def training_step(self, batch, batch_idx):
             # manual
@@ -628,8 +648,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY) for _ in range(2)]
-    step_mock.assert_has_calls(expected_calls)
+    assert step_mock.mock_calls == [call(closure=ANY) for _ in range(limit_train_batches)]
 
 
 @patch("torch.optim.Adam.step")
@@ -641,6 +660,10 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
+
+        def on_train_start(self) -> None:
+            mock_sgd_step.reset_mock()
+            mock_adam_step.reset_mock()
 
         def training_step(self, batch, batch_idx):
 
@@ -699,10 +722,8 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY, optim="sgd") for s in range(4)]
-    mock_sgd_step.assert_has_calls(expected_calls)
-    expected_calls = [call(closure=ANY) for s in range(2)]
-    mock_adam_step.assert_has_calls(expected_calls)
+    assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for _ in range(4)]
+    assert mock_adam_step.mock_calls == [call(closure=ANY) for _ in range(2)]
 
 
 class TesManualOptimizationDDPModel(BoringModel):
@@ -819,7 +840,7 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
@@ -889,7 +910,7 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
 

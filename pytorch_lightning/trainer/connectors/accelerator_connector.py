@@ -61,10 +61,10 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import (
+    _AcceleratorType,
+    _StrategyType,
     AMPType,
     device_parser,
-    DeviceType,
-    DistributedType,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
@@ -72,10 +72,8 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
-    _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
 )
@@ -108,7 +106,7 @@ class AcceleratorConnector:
         plugins,
     ):
         # initialization
-        self._device_type = DeviceType.CPU
+        self._device_type = _AcceleratorType.CPU
         self._distrib_type = None
         self._accelerator_type = None
 
@@ -136,7 +134,6 @@ class AcceleratorConnector:
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
-        self.is_slurm_managing_tasks = False
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
@@ -165,9 +162,12 @@ class AcceleratorConnector:
             self._set_training_type_plugin()
         else:
             self.set_distributed_mode()
-        self.configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self._set_distrib_type_if_training_type_plugin_passed()
+
+        self._cluster_environment = self.select_cluster_environment()
+
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
 
@@ -176,11 +176,6 @@ class AcceleratorConnector:
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
-
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.global_rank = 0
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -192,10 +187,8 @@ class AcceleratorConnector:
         self.deterministic = deterministic
         if _TORCH_GREATER_EQUAL_1_8:
             torch.use_deterministic_algorithms(deterministic)
-        elif _TORCH_GREATER_EQUAL_1_7:
+        else:
             torch.set_deterministic(deterministic)
-        else:  # the minimum version Lightning supports is PyTorch 1.6
-            torch._set_deterministic(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
@@ -206,32 +199,32 @@ class AcceleratorConnector:
     def select_accelerator_type(self) -> None:
         if self.distributed_backend == "auto":
             if self.has_tpu:
-                self._accelerator_type = DeviceType.TPU
+                self._accelerator_type = _AcceleratorType.TPU
             elif self.has_ipu:
-                self._accelerator_type = DeviceType.IPU
+                self._accelerator_type = _AcceleratorType.IPU
             elif self.has_gpu:
-                self._accelerator_type = DeviceType.GPU
+                self._accelerator_type = _AcceleratorType.GPU
             else:
                 self._set_devices_to_cpu_num_processes()
-                self._accelerator_type = DeviceType.CPU
-        elif self.distributed_backend == DeviceType.TPU:
+                self._accelerator_type = _AcceleratorType.CPU
+        elif self.distributed_backend == _AcceleratorType.TPU:
             if not self.has_tpu:
                 msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}.")
-            self._accelerator_type = DeviceType.TPU
-        elif self.distributed_backend == DeviceType.IPU:
+            self._accelerator_type = _AcceleratorType.TPU
+        elif self.distributed_backend == _AcceleratorType.IPU:
             if not self.has_ipu:
                 msg = "IPUs are not available" if not _IPU_AVAILABLE else "you didn't pass `ipus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='ipu'`, but {msg}.")
-            self._accelerator_type = DeviceType.IPU
-        elif self.distributed_backend == DeviceType.GPU:
+            self._accelerator_type = _AcceleratorType.IPU
+        elif self.distributed_backend == _AcceleratorType.GPU:
             if not self.has_gpu:
                 msg = "you didn't pass `gpus` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
-            self._accelerator_type = DeviceType.GPU
-        elif self.distributed_backend == DeviceType.CPU:
+            self._accelerator_type = _AcceleratorType.GPU
+        elif self.distributed_backend == _AcceleratorType.CPU:
             self._set_devices_to_cpu_num_processes()
-            self._accelerator_type = DeviceType.CPU
+            self._accelerator_type = _AcceleratorType.CPU
 
         if self.distributed_backend in self.accelerator_types:
             self.distributed_backend = None
@@ -257,33 +250,34 @@ class AcceleratorConnector:
         if self.devices is None:
             return
         devices_warning = f"The flag `devices={self.devices}` will be ignored, as you have set"
-        if self.distributed_backend in ("auto", DeviceType.TPU):
+        if self.distributed_backend in ("auto", _AcceleratorType.TPU):
             if self.tpu_cores is not None:
                 rank_zero_warn(f"{devices_warning} `tpu_cores={self.tpu_cores}`")
-        elif self.distributed_backend in ("auto", DeviceType.IPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.IPU):
             if self.ipus is not None:
                 rank_zero_warn(f"{devices_warning} `ipus={self.ipus}`")
-        elif self.distributed_backend in ("auto", DeviceType.GPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.GPU):
             if self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
-        elif self.distributed_backend in ("auto", DeviceType.CPU):
+        elif self.distributed_backend in ("auto", _AcceleratorType.CPU):
             if self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
 
     def _set_devices_if_none(self) -> None:
         if self.devices is not None:
             return
-        if self._accelerator_type == DeviceType.TPU:
+        if self._accelerator_type == _AcceleratorType.TPU:
             self.devices = self.tpu_cores
-        elif self._accelerator_type == DeviceType.IPU:
+        elif self._accelerator_type == _AcceleratorType.IPU:
             self.devices = self.ipus
-        elif self._accelerator_type == DeviceType.GPU:
+        elif self._accelerator_type == _AcceleratorType.GPU:
             self.devices = self.gpus
-        elif self._accelerator_type == DeviceType.CPU:
+        elif self._accelerator_type == _AcceleratorType.CPU:
             self.devices = self.num_processes
 
     def _handle_accelerator_and_strategy(self) -> None:
-        if self.distributed_backend is not None and self.distributed_backend in list(DistributedType):
+        deprecated_types = [t for t in _StrategyType if t not in (_StrategyType.TPU_SPAWN, _StrategyType.DDP_CPU)]
+        if self.distributed_backend is not None and self.distributed_backend in deprecated_types:
             rank_zero_deprecation(
                 f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
@@ -294,6 +288,16 @@ class AcceleratorConnector:
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
                     f" HINT: Use just `Trainer(strategy={self.strategy!r})` instead."
                 )
+        if self.strategy == _StrategyType.TPU_SPAWN:
+            raise MisconfigurationException(
+                "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
+            )
+        if self.strategy == _StrategyType.DDP_CPU:
+            raise MisconfigurationException(
+                "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
+                " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+            )
 
     def _set_training_type_plugin(self) -> None:
         if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
@@ -378,11 +382,11 @@ class AcceleratorConnector:
         self._training_type_plugin = training_type
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
-        self._cluster_environment = cluster_environment or self.select_cluster_environment()
+        self._cluster_environment = cluster_environment
 
     @property
     def accelerator_types(self) -> List[str]:
-        return ["auto"] + list(DeviceType)
+        return ["auto"] + list(_AcceleratorType)
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -401,6 +405,9 @@ class AcceleratorConnector:
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
+        precision_plugin = self.precision_plugin
+        if precision_plugin is not None:
+            self._training_type_plugin._precision_plugin = precision_plugin
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
@@ -417,7 +424,7 @@ class AcceleratorConnector:
 
     @property
     def use_cpu(self) -> bool:
-        return self._accelerator_type == DeviceType.CPU
+        return self._accelerator_type == _AcceleratorType.CPU
 
     @property
     def has_gpu(self) -> bool:
@@ -426,11 +433,11 @@ class AcceleratorConnector:
         gpus = self.parallel_device_ids
         if gpus is not None and len(gpus) > 0:
             return True
-        return self._map_devices_to_accelerator(DeviceType.GPU)
+        return self._map_devices_to_accelerator(_AcceleratorType.GPU)
 
     @property
     def use_gpu(self) -> bool:
-        return self._accelerator_type == DeviceType.GPU and self.has_gpu
+        return self._accelerator_type == _AcceleratorType.GPU and self.has_gpu
 
     @property
     def has_tpu(self) -> bool:
@@ -438,11 +445,11 @@ class AcceleratorConnector:
         # `tpu_cores` to Trainer for training.
         if self.tpu_cores is not None:
             return True
-        return self._map_devices_to_accelerator(DeviceType.TPU)
+        return self._map_devices_to_accelerator(_AcceleratorType.TPU)
 
     @property
     def use_tpu(self) -> bool:
-        return self._accelerator_type == DeviceType.TPU and self.has_tpu
+        return self._accelerator_type == _AcceleratorType.TPU and self.has_tpu
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -456,30 +463,38 @@ class AcceleratorConnector:
         # `ipus` to Trainer for training.
         if self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin):
             return True
-        return self._map_devices_to_accelerator(DeviceType.IPU)
+        return self._map_devices_to_accelerator(_AcceleratorType.IPU)
 
     @property
     def use_ipu(self) -> bool:
-        return self._accelerator_type == DeviceType.IPU and self.has_ipu
+        return self._accelerator_type == _AcceleratorType.IPU and self.has_ipu
 
     def _set_devices_to_cpu_num_processes(self) -> None:
         if self.num_processes == 1:
-            self._map_devices_to_accelerator(DeviceType.CPU)
+            self._map_devices_to_accelerator(_AcceleratorType.CPU)
 
     def _map_devices_to_accelerator(self, accelerator: str) -> bool:
         if self.devices is None:
             return False
-        if accelerator == DeviceType.TPU and _TPU_AVAILABLE:
+        if accelerator == _AcceleratorType.TPU and _TPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = TPUAccelerator.auto_device_count()
             self.tpu_cores = device_parser.parse_tpu_cores(self.devices)
             return True
-        if accelerator == DeviceType.IPU and _IPU_AVAILABLE:
+        if accelerator == _AcceleratorType.IPU and _IPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = IPUAccelerator.auto_device_count()
             self.ipus = self.devices
             return True
-        if accelerator == DeviceType.GPU and torch.cuda.is_available():
+        if accelerator == _AcceleratorType.GPU and torch.cuda.is_available():
+            if self.devices == "auto":
+                self.devices = GPUAccelerator.auto_device_count()
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
             return True
-        if accelerator == DeviceType.CPU:
+        if accelerator == _AcceleratorType.CPU:
+            if self.devices == "auto":
+                self.devices = CPUAccelerator.auto_device_count()
             if not isinstance(self.devices, int):
                 raise MisconfigurationException(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
@@ -491,39 +506,39 @@ class AcceleratorConnector:
 
     @property
     def use_dp(self) -> bool:
-        return self._distrib_type == DistributedType.DP
+        return self._distrib_type == _StrategyType.DP
 
     @property
     def use_ddp(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN,
-            DistributedType.DDP_FULLY_SHARDED,
-            DistributedType.DEEPSPEED,
-            DistributedType.TPU_SPAWN,
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP_SHARDED,
+            _StrategyType.DDP_SHARDED_SPAWN,
+            _StrategyType.DDP_FULLY_SHARDED,
+            _StrategyType.DEEPSPEED,
+            _StrategyType.TPU_SPAWN,
         )
 
     @property
     def use_ddp2(self) -> bool:
-        return self._distrib_type == DistributedType.DDP2
+        return self._distrib_type == _StrategyType.DDP2
 
     @property
     def use_horovod(self) -> bool:
-        return self._distrib_type == DistributedType.HOROVOD
+        return self._distrib_type == _StrategyType.HOROVOD
 
     @property
     def use_deepspeed(self) -> bool:
-        return self._distrib_type == DistributedType.DEEPSPEED
+        return self._distrib_type == _StrategyType.DEEPSPEED
 
     @property
     def _is_sharded_training_type(self) -> bool:
-        return isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
+        return isinstance(self._training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
-        return isinstance(self.training_type_plugin, DDPFullyShardedPlugin)
+        return isinstance(self._training_type_plugin, DDPFullyShardedPlugin)
 
     @property
     def is_distributed(self) -> bool:
@@ -569,14 +584,14 @@ class AcceleratorConnector:
     @property
     def root_gpu(self) -> Optional[int]:
         return (
-            self.accelerator.root_device.index
+            self.training_type_plugin.root_device.index
             if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
             else None
         )
 
     @staticmethod
     def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
-        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(DistributedType)):
+        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(_StrategyType)):
             return True
         return isinstance(plugin, TrainingTypePlugin)
 
@@ -621,38 +636,60 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
-            return DeepSpeedPrecisionPlugin(self.precision)
+        if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+            return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)
 
         if self.precision == 32:
             return PrecisionPlugin()
         if self.precision == 64:
             return DoublePrecisionPlugin()
-        if self.precision in (16, "bf16"):
-            if self.amp_type == AMPType.NATIVE:
-                log.info(f"Using native {self.precision} bit Automatic Mixed Precision")
-                if self._is_sharded_training_type:
-                    return ShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
-                if self._is_fully_sharded_training_type:
-                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
 
-                return NativeMixedPrecisionPlugin(self.precision, use_cpu=self.use_cpu)
+        # maybe convert the precision value
+        if self.precision == 16 and self.use_cpu:
+            if self.amp_type == AMPType.APEX:
+                # apex was explicitly passed, not a good idea to silently switch to native AMP
+                raise MisconfigurationException(
+                    "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
+                    " but apex AMP not supported on CPU."
+                )
+            # this automatic switch is to ease transition between accelerator environments
+            rank_zero_warn(
+                "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                " Using `precision='bf16'` instead."
+            )
+            self.precision = "bf16"
+
+        if self.precision in (16, "bf16"):
+            if self.precision == "bf16" and self.amp_type != AMPType.NATIVE:
+                raise MisconfigurationException(
+                    f"You passed `Trainer(amp_type={self.amp_type.value!r}, precision='bf16')` but it's not supported."
+                    " Try using `amp_type='native'` instead."
+                )
+
+            rank_zero_info(
+                f"Using 16bit {self.amp_type.value} Automatic Mixed Precision (AMP)"
+                if self.precision == 16
+                else "Using bfloat16 Automatic Mixed Precision (AMP)"
+            )
+
+            if self.amp_type == AMPType.NATIVE:
+                device = "cpu" if self.use_cpu else "cuda"
+
+                if self._is_sharded_training_type:
+                    return ShardedNativeMixedPrecisionPlugin(self.precision, device)
+                if self._is_fully_sharded_training_type:
+                    return FullyShardedNativeMixedPrecisionPlugin(self.precision, device)
+                return NativeMixedPrecisionPlugin(self.precision, device)
 
             if self.amp_type == AMPType.APEX:
-                if not _APEX_AVAILABLE:
-                    raise MisconfigurationException(
-                        "You have asked for Apex AMP but you have not installed it yet."
-                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-                    )
                 if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP, please using native AMP for 16-bit precision."
+                        "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                     )
-                log.info("Using APEX 16bit precision.")
-
                 self.amp_level = self.amp_level or "O2"
-
                 return ApexMixedPrecisionPlugin(self.amp_level)
+
+        raise RuntimeError("No precision set")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if (
@@ -667,18 +704,18 @@ class AcceleratorConnector:
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
-            use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
-            use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
-            use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
+            use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.detect()
+            use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.detect()
+            use_ddp_spawn = self._distrib_type == _StrategyType.DDP_SPAWN
             use_ddp_cpu_spawn = use_ddp_spawn and self.use_cpu
-            use_tpu_spawn = self.use_tpu and self._distrib_type == DistributedType.TPU_SPAWN
-            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
-            use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
-            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
-            use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
-            use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
-            use_ddp_fully_sharded = self._distrib_type == DistributedType.DDP_FULLY_SHARDED
+            use_tpu_spawn = self.use_tpu and self._distrib_type == _StrategyType.TPU_SPAWN
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.detect()
+            use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.detect()
+            use_ddp_cpu_slurm = use_ddp_cpu_spawn and self._is_slurm_managing_tasks()
+            use_ddp_sharded = self._distrib_type == _StrategyType.DDP_SHARDED
+            use_ddp_sharded_spawn = self._distrib_type == _StrategyType.DDP_SHARDED_SPAWN
+            use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
 
             if use_tpu_spawn:
                 ddp_plugin_cls = TPUSpawnPlugin
@@ -759,29 +796,25 @@ class AcceleratorConnector:
             acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
-        # as precision_plugin is dependent on training_type_plugin, make sure
-        # that we first select training_type_plugin, then precision_plugin
-        accelerator = acc_cls(training_type_plugin=self.training_type_plugin, precision_plugin=self.precision_plugin)
+
+        accelerator = acc_cls(precision_plugin=None, training_type_plugin=self.training_type_plugin)
         # transfer ownership of the plugins to the accelerator
         self._training_type_plugin = proxy(self.training_type_plugin)
-        self._precision_plugin = proxy(self.precision_plugin)
 
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:
             return self._cluster_environment
-        if self.is_slurm_managing_tasks:
-            env = SLURMEnvironment()
-        elif TorchElasticEnvironment.is_using_torchelastic():
-            env = TorchElasticEnvironment()
-        elif KubeflowEnvironment.is_using_kubeflow():
-            env = KubeflowEnvironment()
-        elif LSFEnvironment.is_using_lsf():
-            env = LSFEnvironment()
-        else:
-            env = LightningEnvironment()
-        return env
+        if self._is_slurm_managing_tasks():
+            rank_zero_info("Multiprocessing is handled by SLURM.")
+            return SLURMEnvironment()
+
+        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+            if env_type.detect():
+                return env_type()
+
+        return LightningEnvironment()
 
     def set_distributed_mode(self, strategy: Optional[str] = None):
 
@@ -796,34 +829,34 @@ class AcceleratorConnector:
         if isinstance(self.distributed_backend, Accelerator):
             return
 
-        is_cpu_accelerator_type = self._accelerator_type and self._accelerator_type == DeviceType.CPU
+        is_cpu_accelerator_type = self._accelerator_type and self._accelerator_type == _AcceleratorType.CPU
         _use_cpu = is_cpu_accelerator_type or self.distributed_backend and "cpu" in self.distributed_backend
 
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
             elif self.num_gpus == 0 and self.num_nodes > 1:
-                self._distrib_type = DistributedType.DDP
+                self._distrib_type = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_processes > 1:
-                self.distributed_backend = DistributedType.DDP_SPAWN
+                self.distributed_backend = _StrategyType.DDP_SPAWN
             elif self.num_gpus > 1 and not _use_cpu:
                 rank_zero_warn(
                     "You requested multiple GPUs but did not specify a backend, e.g."
                     ' `Trainer(strategy="dp"|"ddp"|"ddp2")`. Setting `strategy="ddp_spawn"` for you.'
                 )
-                self.distributed_backend = DistributedType.DDP_SPAWN
+                self.distributed_backend = _StrategyType.DDP_SPAWN
 
         # special case with DDP on CPUs
-        if self.distributed_backend == DistributedType.DDP_CPU:
+        if self.distributed_backend == _StrategyType.DDP_CPU:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
             if self.num_processes == 1 and self.num_nodes > 1:
-                self._distrib_type = DistributedType.DDP
+                self._distrib_type = _StrategyType.DDP
             else:
-                self._distrib_type = DistributedType.DDP_SPAWN
+                self._distrib_type = _StrategyType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
@@ -834,27 +867,27 @@ class AcceleratorConnector:
                 self.num_processes = os.cpu_count()
         # special case with TPUs
         elif self.has_tpu and not _use_cpu:
-            self._device_type = DeviceType.TPU
+            self._device_type = _AcceleratorType.TPU
             if isinstance(self.tpu_cores, int):
-                self._distrib_type = DistributedType.TPU_SPAWN
+                self._distrib_type = _StrategyType.TPU_SPAWN
         elif self.has_ipu and not _use_cpu:
-            self._device_type = DeviceType.IPU
+            self._device_type = _AcceleratorType.IPU
         elif self.distributed_backend and self._distrib_type is None:
-            self._distrib_type = DistributedType(self.distributed_backend)
+            self._distrib_type = _StrategyType(self.distributed_backend)
 
         if self.num_gpus > 0 and not _use_cpu:
-            self._device_type = DeviceType.GPU
+            self._device_type = _AcceleratorType.GPU
 
-        _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
+        _gpu_distrib_types = (_StrategyType.DP, _StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2)
         # DP and DDP2 cannot run without GPU
         if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
 
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
-                if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
+                if self._distrib_type in (_StrategyType.DP, _StrategyType.DDP2):
                     rank_zero_warn(
                         f"{self._distrib_type.value!r} is not supported on CPUs, hence setting `strategy='ddp'`."
                     )
-                    self._distrib_type = DistributedType.DDP
+                    self._distrib_type = _StrategyType.DDP
             else:
                 rank_zero_warn("You are running on single node with no parallelization, so distributed has no effect.")
                 self._distrib_type = None
@@ -863,29 +896,29 @@ class AcceleratorConnector:
         self.check_interactive_compatibility()
 
         # for DDP overwrite nb processes by requested GPUs
-        if self._device_type == DeviceType.GPU and self._distrib_type in (
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
+        if self._device_type == _AcceleratorType.GPU and self._distrib_type in (
+            _StrategyType.DDP,
+            _StrategyType.DDP_SPAWN,
         ):
             self.num_processes = self.num_gpus
 
-        if self._device_type == DeviceType.GPU and self._distrib_type == DistributedType.DDP2:
+        if self._device_type == _AcceleratorType.GPU and self._distrib_type == _StrategyType.DDP2:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
-        if self.distributed_backend == DistributedType.HOROVOD:
+        if self.distributed_backend == _StrategyType.HOROVOD:
             self._set_horovod_backend()
 
         using_valid_distributed = self.use_ddp or self.use_ddp2
         if self.num_nodes > 1 and not using_valid_distributed:
-            # throw error to force user to choose a supported distributed type such as ddp or ddp2
+            # throw error to force user to choose a supported strategy type such as ddp or ddp2
             raise MisconfigurationException(
                 "Your chosen strategy does not support `num_nodes > 1`. Please set `strategy=('ddp'|'ddp2')`."
             )
 
     def _set_horovod_backend(self):
         self.check_horovod()
-        self._distrib_type = DistributedType.HOROVOD
+        self._distrib_type = _StrategyType.HOROVOD
 
         # Initialize Horovod to get rank / size info
         hvd.init()
@@ -905,7 +938,7 @@ class AcceleratorConnector:
                 f"`Trainer(strategy={self._distrib_type.value!r})` or"
                 f" `Trainer(accelerator={self._distrib_type.value!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(DistributedType.interactive_compatible_types())}."
+                f" {', '.join(_StrategyType.interactive_compatible_types())}."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
@@ -932,8 +965,8 @@ class AcceleratorConnector:
     def update_device_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
-        if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != DeviceType.IPU:
-            self._device_type = DeviceType.IPU
+        if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != _AcceleratorType.IPU:
+            self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
         if isinstance(self.strategy, TrainingTypePlugin) or any(
@@ -941,51 +974,45 @@ class AcceleratorConnector:
         ):
             if self._accelerator_type is not None:
                 if self.use_ipu:
-                    self._device_type = DeviceType.IPU
+                    self._device_type = _AcceleratorType.IPU
                 elif self.use_tpu:
-                    self._device_type = DeviceType.TPU
+                    self._device_type = _AcceleratorType.TPU
                 elif self.use_gpu:
-                    self._device_type = DeviceType.GPU
+                    self._device_type = _AcceleratorType.GPU
             else:
                 if self.has_ipu:
-                    self._device_type = DeviceType.IPU
+                    self._device_type = _AcceleratorType.IPU
                 elif self.has_tpu:
-                    self._device_type = DeviceType.TPU
+                    self._device_type = _AcceleratorType.TPU
                 elif self.has_gpu:
-                    self._device_type = DeviceType.GPU
+                    self._device_type = _AcceleratorType.GPU
 
-    def configure_slurm_ddp(self):
-        # extract SLURM flag vars
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        if self.use_ddp or self.use_ddp2:
-            num_requested_gpus = self.num_gpus * self.num_nodes
-            num_slurm_tasks = 0
-            try:
-                num_slurm_tasks = int(os.environ["SLURM_NTASKS"])
-                self.is_slurm_managing_tasks = num_slurm_tasks == num_requested_gpus
+    def _set_distrib_type_if_training_type_plugin_passed(self):
+        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
+        # called and `_distrib_type` is not set.
+        if self._distrib_type is not None:
+            return
+        if self._training_type_plugin is not None:
+            self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
 
-                # enable slurm cpu
-                if num_requested_gpus == 0:
-                    self.is_slurm_managing_tasks = num_slurm_tasks == self.num_processes
+    def _is_slurm_managing_tasks(self) -> bool:
+        """Returns whether we let SLURM manage the processes or not.
 
-                # in interactive mode we don't manage tasks
-                job_name = os.environ["SLURM_JOB_NAME"]
-                if job_name == "bash":
-                    self.is_slurm_managing_tasks = False
+        Returns ``True`` if and only if these conditions match:
 
-            except Exception:
-                # likely not on slurm, so set the slurm managed flag to false
-                self.is_slurm_managing_tasks = False
+            - A SLURM cluster is detected
+            - A distributed plugin is being used
+            - The process is not launching in interactive mode
+            - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
+        """
+        if (
+            (not self.use_ddp and not self.use_ddp2)
+            or not SLURMEnvironment.detect()
+            or os.environ.get("SLURM_JOB_NAME") == "bash"  # in interactive mode we don't manage tasks
+        ):
+            return False
 
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ["FAKE_SLURM_MANAGING_TASKS"])
-            if should_fake:
-                self.is_slurm_managing_tasks = True
-        except Exception:
-            pass
-
-        # notify user the that slurm is managing tasks
-        if self.is_slurm_managing_tasks:
-            rank_zero_info("Multi-processing is handled by Slurm.")
+        total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
+        num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
+        return num_slurm_tasks == total_requested_devices

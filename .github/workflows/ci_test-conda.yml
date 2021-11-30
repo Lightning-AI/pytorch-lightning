@@ -1,9 +1,9 @@
-name: PyTorch & Conda
+name: Test
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [ master, "release/*" ]
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -14,12 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [ubuntu-20.04]
-        python-version: ["3.7"]
-        pytorch-version: ["1.6", "1.7", "1.8", "1.9", "1.10"]
+        python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
+        pytorch-version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 35
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v2
 
@@ -31,6 +29,8 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
+        # set a per-test timeout of 2.5 minutes to fail sooner. this aids with hanging tests
+        pip install pytest-timeout
         pip list
 
     - name: Pull checkpoints from S3
@@ -43,8 +43,7 @@ jobs:
 
     - name: Tests
       run: |
-        # NOTE: run coverage on tests does not propagate failure status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
     - name: Upload pytest results

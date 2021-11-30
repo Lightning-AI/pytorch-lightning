@@ -20,15 +20,17 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -41,20 +43,27 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         max_steps: The maximum number of steps (batches) to process
     """
 
-    def __init__(self, min_steps: int, max_steps: int):
+    def __init__(self, min_steps: Optional[int] = 0, max_steps: int = -1) -> None:
         super().__init__()
-        self.min_steps: int = min_steps
-
-        if max_steps and max_steps < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {max_steps}.")
-        self.max_steps: int = max_steps
+        if max_steps is None:
+            rank_zero_deprecation(
+                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
+                " Use `max_steps = -1` instead."
+            )
+            max_steps = -1
+        elif max_steps < -1:
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
+            )
+        self.min_steps = min_steps
+        self.max_steps = max_steps
 
         self.global_step: int = 0
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop: Optional[TrainingBatchLoop] = None
-        self.val_loop: Optional["loops.EvaluationLoop"] = None
+        self.batch_loop = TrainingBatchLoop()
+        self.val_loop = loops.EvaluationLoop()
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
@@ -79,7 +88,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def _is_training_done(self) -> bool:
-        max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
+        max_steps_reached = _is_max_limit_reached(self.global_step, self.max_steps)
         return max_steps_reached or self._num_ready_batches_reached()
 
     @property
@@ -98,7 +107,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def connect(
         self,
-        batch_loop: TrainingBatchLoop = None,
+        batch_loop: Optional[TrainingBatchLoop] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
@@ -109,8 +118,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        assert self.batch_loop is not None
-        assert self.batch_loop.optimizer_loop is not None
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
@@ -147,25 +154,20 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
-        if not self.trainer.data_connector.train_data_fetcher.store_on_device:
+        if not self.trainer._data_connector.train_data_fetcher.store_on_device:
             with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch)
 
         self.batch_progress.increment_ready()
 
-        # cache the batch size value to avoid extracting it again after the batch loop runs as the value will be
-        # different if tbptt is enabled
-        batch_size = self.trainer.logger_connector.on_batch_start(batch_idx, batch)
+        self.trainer.logger_connector.on_batch_start(batch_idx, batch)
 
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             batch_output = []
         else:
             # hook
-            response = self.trainer.call_hook("on_batch_start")
-            if response == -1:
-                self.batch_progress.increment_processed()
-                raise StopIteration
+            self.trainer.call_hook("on_batch_start")
 
             # TODO: Update this in v1.7 (deprecation: #9816)
             model_fx = self.trainer.lightning_module.on_train_batch_start
@@ -185,8 +187,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.batch_loop.run(batch, batch_idx)
-
-        self.trainer._results.batch_size = batch_size
 
         self.batch_progress.increment_processed()
 
@@ -298,8 +298,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
-        self._dataloader_iter = None
-
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()
 
@@ -318,8 +316,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             or self.batch_progress.current.ready == 0  # did not start
         ):
             return state_dict
-        state_dict["dataloader_state_dict"] = self.trainer.train_dataloader.state_dict(
-            has_completed=self._has_completed()
+
+        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
+            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
         )
         return state_dict
 
@@ -436,11 +435,77 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         active_optimizers = _get_active_optimizers(
             self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
         )
-        self.trainer.optimizer_connector.update_learning_rates(
+        self._update_learning_rates(
             interval=interval,
             update_plateau_schedulers=update_plateau_schedulers,
             opt_indices=[opt_idx for opt_idx, _ in active_optimizers],
         )
+
+    def _update_learning_rates(
+        self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
+    ) -> None:
+        """Update learning rates.
+
+        Args:
+            interval: either 'epoch' or 'step'.
+            update_plateau_schedulers: control whether ``ReduceLROnPlateau`` or non-plateau schedulers get updated.
+                This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
+                commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
+                so they have to be updated separately.
+            opt_indices: indices of the optimizers to update.
+        """
+        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
+            return
+
+        if opt_indices is None:
+            opt_indices = []
+
+        for lr_scheduler in self.trainer.lr_schedulers:
+            if isinstance(lr_scheduler["opt_idx"], int) and lr_scheduler["opt_idx"] not in opt_indices:
+                continue
+
+            if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
+                continue
+
+            current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch
+            current_idx += 1  # account for both batch and epoch starts from 0
+            # Take step if call to update_learning_rates matches the interval key and
+            # the current step modulo the schedulers frequency is zero
+            if lr_scheduler["interval"] == interval and current_idx % lr_scheduler["frequency"] == 0:
+                monitor_val = None
+                if lr_scheduler["reduce_on_plateau"]:
+                    # If instance of ReduceLROnPlateau, we need a monitor
+                    monitor_key = lr_scheduler["monitor"]
+                    monitor_val = self._get_monitor_value(monitor_key)
+                    if monitor_val is None:
+                        if lr_scheduler.get("strict", True):
+                            avail_metrics = list(self.trainer.callback_metrics)
+                            raise MisconfigurationException(
+                                f"ReduceLROnPlateau conditioned on metric {monitor_key}"
+                                f" which is not available. Available metrics are: {avail_metrics}."
+                                " Condition can be set using `monitor` key in lr scheduler dict"
+                            )
+                        rank_zero_warn(
+                            f"ReduceLROnPlateau conditioned on metric {monitor_key}"
+                            " which is not available but strict is set to `False`."
+                            " Skipping learning rate update.",
+                            RuntimeWarning,
+                        )
+                        continue
+
+                self.scheduler_progress.increment_ready()
+
+                # update LR
+                if lr_scheduler["reduce_on_plateau"]:
+                    lr_scheduler["scheduler"].step(monitor_val)
+                else:
+                    lr_scheduler["scheduler"].step()
+
+                self.scheduler_progress.increment_completed()
+
+    def _get_monitor_value(self, key: str) -> Any:
+        # this is a separate method to aid in testing
+        return self.trainer.callback_metrics.get(key)
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""

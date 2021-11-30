@@ -21,7 +21,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 class HPCHookdedModel(BoringModel):
@@ -64,7 +63,6 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 
     connector = trainer.checkpoint_connector
 
-    assert not trainer.resume_from_checkpoint
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
 
@@ -76,12 +74,13 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, resume_from_checkpoint=ckpt_path)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
     connector = trainer.checkpoint_connector
-    connector.resume_start()
+    connector.resume_start(ckpt_path)
     assert connector.resume_checkpoint_path == ckpt_path
     assert connector._loaded_checkpoint
     assert isinstance(connector._loaded_checkpoint, dict)
+    trainer.state.fn = TrainerFn.FITTING
     connector.resume_end()
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
@@ -110,8 +109,8 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 2: explicit resume path provided, restore hpc anyway
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3, resume_from_checkpoint="not existing")
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer.fit(model, ckpt_path="not existing")
 
     for param in model.parameters():
         assert param.abs().sum() > 0
@@ -133,7 +132,6 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
@@ -150,7 +148,7 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
-    trainer_args["resume_from_checkpoint"] = str(tmpdir / "last.ckpt")
+    ckpt_path = str(tmpdir / "last.ckpt")
 
     trainer = Trainer(**trainer_args)
     for fn in TrainerFn:
@@ -161,7 +159,7 @@ def test_loops_restore(tmpdir):
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer.state.fn = fn
-            trainer.checkpoint_connector.resume_start()
+            trainer.checkpoint_connector.resume_start(ckpt_path)
             trainer.checkpoint_connector.restore_loops()
 
             trainer_loop = getattr(trainer, f"{fn}_loop")

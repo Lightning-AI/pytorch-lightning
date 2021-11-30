@@ -26,7 +26,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _TPU_AVAILABLE, DeviceType
+from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -190,7 +190,7 @@ def test_model_tpu_early_stop(tmpdir):
         tpu_cores=8,
     )
     trainer.fit(model)
-    trainer.test(test_dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
+    trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
 @RunIf(tpu=True)
@@ -240,7 +240,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -251,7 +251,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected."""
-    assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
+    assert Trainer(tpu_cores=tpu_cores)._accelerator_connector.tpu_id == expected_tpu_id
 
 
 def test_tpu_misconfiguration():
@@ -278,7 +278,7 @@ def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
-    """Checks if an object from the master process is broadcasted to other processes correctly."""
+    """Checks if an object from the main process is broadcasted to other processes correctly."""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
@@ -315,7 +315,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
-        assert trainer.accelerator_connector.tpu_id == expected_tpu_id
+        assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
@@ -407,7 +407,7 @@ def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
-        sync = _Sync(TPUSpawnPlugin().reduce, should=True, op=torch.distributed.ReduceOp.SUM)
+        sync = _Sync(TPUSpawnPlugin().reduce, should=True, _op=torch.distributed.ReduceOp.SUM)
         value = torch.tensor([1.0])
         value = (sync(value),)
         assert value.item() == 8
@@ -435,7 +435,7 @@ def test_tpu_debug_mode(tmpdir):
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        plugins=TPUSpawnPlugin(debug=True),
+        strategy=TPUSpawnPlugin(debug=True),
     )
 
     model = DebugModel()
@@ -474,5 +474,5 @@ def test_device_type_when_training_plugin_tpu_passed(tmpdir):
 
     trainer = Trainer(strategy=TPUSpawnPlugin(), tpu_cores=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
-    assert trainer._device_type == DeviceType.TPU
+    assert trainer._device_type == _AcceleratorType.TPU
     assert isinstance(trainer.accelerator, TPUAccelerator)

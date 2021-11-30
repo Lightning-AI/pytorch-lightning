@@ -59,7 +59,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     with early stopping
     """
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
@@ -79,7 +79,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -143,7 +143,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             batch = batch.to(device)
             return batch
 

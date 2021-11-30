@@ -16,9 +16,11 @@ from typing import Optional
 
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -29,20 +31,24 @@ class FitLoop(Loop):
 
     Args:
         min_epochs: The minimum number of epochs
-        max_epochs: The maximum number of epochs
+        max_epochs: The maximum number of epochs, can be set -1 to turn this limit off
     """
 
-    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
+    def __init__(
+        self,
+        min_epochs: Optional[int] = 1,
+        max_epochs: int = 1000,
+    ) -> None:
         super().__init__()
-        # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
-        if max_epochs and max_epochs < -1:
+        if max_epochs < -1:
+            # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
-                f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
+                f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
             )
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop: Optional[TrainingEpochLoop] = None
+        self.epoch_loop = TrainingEpochLoop()
         self.epoch_progress = Progress()
         self._is_fresh_start_epoch: bool = True
 
@@ -102,8 +108,16 @@ class FitLoop(Loop):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        if value and value < -1:
-            raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
+        if value is None:
+            rank_zero_deprecation(
+                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
+                " Use `max_steps = -1` instead."
+            )
+            value = -1
+        elif value < -1:
+            raise MisconfigurationException(
+                f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
+            )
         self.epoch_loop.max_steps = value
 
     @property
@@ -114,15 +128,11 @@ class FitLoop(Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        assert self.epoch_loop.batch_loop is not None
-        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        assert self.epoch_loop.batch_loop is not None
-        assert self.epoch_loop.batch_loop.optimizer_loop is not None
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
@@ -141,8 +151,8 @@ class FitLoop(Loop):
         is reached.
         """
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = FitLoop._is_max_limit_enabled(self.max_steps) and self.global_step >= self.max_steps
-        stop_epochs = FitLoop._is_max_limit_enabled(self.max_epochs) and self.current_epoch >= self.max_epochs
+        stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
+        stop_epochs = _is_max_limit_reached(self.current_epoch, self.max_epochs)
 
         should_stop = False
         if self.trainer.should_stop:
@@ -195,7 +205,9 @@ class FitLoop(Loop):
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
-        if callable(getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)):
+        if self.trainer.train_dataloader is not None and callable(
+            getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
+        ):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
 
@@ -212,7 +224,7 @@ class FitLoop(Loop):
     def advance(self) -> None:
         """Runs one whole epoch."""
         dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
-        data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
+        data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             self.epoch_loop.run(data_fetcher)
@@ -249,16 +261,3 @@ class FitLoop(Loop):
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
-
-    @staticmethod
-    def _is_max_limit_enabled(max_value: Optional[int]) -> bool:
-        """Checks whether the max_value is enabled. This can be used for checking whether max_epochs or max_steps
-        is enabled.
-
-        Args:
-            max_value: the value to check
-
-        Returns:
-            whether the limit for this value should be enabled
-        """
-        return max_value not in (None, -1)

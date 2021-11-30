@@ -33,7 +33,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctely when training and after teardown for DDPPlugin."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
@@ -64,7 +64,7 @@ class BarrierModel(BoringModel):
         self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
 
 
-@RunIf(min_gpus=4, special=True)
+@RunIf(min_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
@@ -80,7 +80,8 @@ def test_incorrect_ddp_script_spawning(tmpdir):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
-        def creates_children(self):
+        @property
+        def creates_processes_externally(self):
             # returning false no matter what means Lightning would spawn also on ranks > 0 new processes
             return False
 
@@ -104,7 +105,7 @@ def test_ddp_configure_ddp():
     ddp_plugin = DDPPlugin()
     trainer = Trainer(
         max_epochs=1,
-        plugins=[ddp_plugin],
+        strategy=ddp_plugin,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
@@ -119,7 +120,7 @@ def test_ddp_configure_ddp():
 
     trainer = Trainer(
         max_epochs=1,
-        plugins=[ddp_plugin],
+        strategy=ddp_plugin,
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.training_type_plugin.connect(model)

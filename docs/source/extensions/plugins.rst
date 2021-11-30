@@ -46,7 +46,7 @@ PrecisionPlugin
 
 
 Futhermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
-to configure Lighting to integrate with a :ref:`custom-cluster`.
+to configure Lightning to integrate with a :ref:`custom-cluster`.
 
 
 .. image:: ../_static/images/accelerator/overview.svg
@@ -77,7 +77,7 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
 .. code-block:: python
 
     # custom plugins
-    trainer = Trainer(plugins=[CustomDDPPlugin(), CustomPrecisionPlugin()])
+    trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
     accelerator = MyAccelerator(

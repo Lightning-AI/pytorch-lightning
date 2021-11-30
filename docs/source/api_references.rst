@@ -15,6 +15,7 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
+    IPUAccelerator
     GPUAccelerator
     TPUAccelerator
 
@@ -210,6 +211,7 @@ Checkpoint IO Plugins
 
     CheckpointIO
     TorchCheckpointIO
+    XLACheckpointIO
 
 Profiler API
 ------------
@@ -227,6 +229,7 @@ Profiler API
     PassThroughProfiler
     PyTorchProfiler
     SimpleProfiler
+    XLAProfiler
 
 
 Trainer API
@@ -239,6 +242,17 @@ Trainer API
     :nosignatures:
 
     trainer
+
+LightningLite API
+-----------------
+
+.. currentmodule:: pytorch_lightning.lite
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+
+    LightningLite
 
 Tuner API
 ---------

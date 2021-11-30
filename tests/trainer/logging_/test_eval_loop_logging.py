@@ -23,7 +23,10 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
@@ -273,6 +276,10 @@ def test_log_works_in_val_callback(tmpdir):
 
             for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
                 fx = f"{func_name}_{idx}"
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
                 self.logged_values[fx].append(self.count)
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
@@ -380,6 +387,10 @@ def test_log_works_in_test_callback(tmpdir):
                 func_name = original_func_name[:]
                 custom_func_name = f"{idx}_{func_name}"
 
+                if not on_step and not on_epoch:
+                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                        pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch)
+                    continue
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
@@ -414,6 +425,12 @@ def test_log_works_in_test_callback(tmpdir):
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, trainer, pl_module):
+            if trainer.testing:
+                self.make_logging(
+                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                )
+
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_test_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -434,7 +451,7 @@ def test_log_works_in_test_callback(tmpdir):
     class TestModel(BoringModel):
         seen_losses = {i: [] for i in range(num_dataloaders)}
 
-        def test_step(self, batch, batch_idx, dataloader_idx=None):
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
             loss = super().test_step(batch, batch_idx)["y"]
             self.log("test_loss", loss)
             self.seen_losses[dataloader_idx].append(loss)
@@ -507,7 +524,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
             self.log("valid_loss_2", loss, on_step=True, on_epoch=False)
-            self.log("valid_loss_3", loss, on_step=False, on_epoch=False)
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
@@ -658,3 +674,52 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["kwargs", "expected"],
+    [
+        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
+        (
+            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
+            {"acc/dataloader_idx_0": 123},
+        ),
+        (
+            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
+            {"acc/dataloader_idx_10": 321},
+        ),
+        (
+            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
+            {"top_3_acc/dataloader_idx_3": 321},
+        ),
+        # theoretical case, as `/dataloader_idx_3` would have been added
+        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
+    ],
+)
+def test_filter_metrics_for_dataloader(kwargs, expected):
+    """Logged metrics should only include metrics from the concerned dataloader."""
+    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
+    assert actual == expected
+
+
+@RunIf(min_gpus=1)
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, *args):
+            x = torch.tensor(2.0, requires_grad=True, device=self.device)
+            y = x * 2
+            assert x.requires_grad is True
+            assert y.grad_fn is None  # disabled by validation
+
+            self.log("foo", y)
+            return y
+
+        def validation_epoch_end(self, outputs):
+            # the step outputs were not moved
+            assert all(o.device == self.device for o in outputs), outputs
+            # but the logging results were
+            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer.validate(model, verbose=False)

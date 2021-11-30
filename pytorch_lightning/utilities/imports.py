@@ -14,7 +14,6 @@
 """General utilities."""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -44,7 +43,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = True) -> bool:
+def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
     """Compare package version with some requirements.
 
     >>> _compare_version("torch", operator.ge, "0.1")
@@ -59,7 +58,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
             pkg_version = Version(pkg.__version__)
         else:
             # try pkg_resources to infer version
-            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
+            pkg_version = Version(pkg_resources.get_distribution(package).version)
     except TypeError:
         # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
@@ -70,15 +69,13 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
-_TORCH_GREATER_EQUAL_DEV_1_10 = _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
+# _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BOLTS_AVAILABLE = _module_available("pl_bolts")
 _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
@@ -87,27 +84,16 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.grou
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _module_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _POPTORCH_AVAILABLE = _module_available("poptorch")
 _RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
-_TORCH_CPU_AMP_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.dev20210902"
-)  # todo: swap to 1.10.0 once released
-_TORCH_BFLOAT_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210902"
-)  # todo: swap to 1.10.0 once released
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCH_SHARDED_TENSOR_AVAILABLE = _compare_version(
-    "torch", operator.ge, "1.10.0.dev20210809"
-)  # todo: swap to 1.10.0 once released
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
-_TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
-_TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
@@ -124,4 +110,6 @@ else:
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+    from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+    return _FaultTolerantMode.detect_current_mode().is_enabled

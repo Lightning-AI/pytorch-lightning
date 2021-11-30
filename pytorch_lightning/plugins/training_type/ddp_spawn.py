@@ -25,25 +25,27 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import (
-    _TORCH_GREATER_EQUAL_1_7,
-    _TORCH_GREATER_EQUAL_1_8,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_ddp_connection, rank_zero_only, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    rank_zero_only,
+    ReduceOp,
+    sync_ddp_if_available,
+)
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -58,15 +60,14 @@ class DDPSpawnPlugin(ParallelPlugin):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = "ddp_spawn"
+    distributed_backend = _StrategyType.DDP_SPAWN
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        sync_batchnorm: Optional[bool] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -76,19 +77,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
-        if num_nodes is not None:
-            rank_zero_deprecation(
-                "Argument `num_nodes` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._num_nodes = num_nodes or 1
-        if sync_batchnorm is not None:
-            rank_zero_deprecation(
-                "Argument `sync_batchnorm` in `DDPSpawnPlugin` is deprecated in v1.4, and will be removed in v1.6. "
-                "Notice that it will be overriden by the trainer setting."
-            )
-        self._sync_batchnorm = sync_batchnorm or False
+        self._num_nodes = 1
+        self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self._ddp_comm_state = ddp_comm_state
@@ -106,14 +98,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
-
-    @property
-    def sync_batchnorm(self) -> bool:
-        return self._sync_batchnorm
-
-    @sync_batchnorm.setter
-    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
-        self._sync_batchnorm = sync_batchnorm
 
     @property
     def local_rank(self) -> int:
@@ -141,10 +125,11 @@ class DDPSpawnPlugin(ParallelPlugin):
     @property
     def _is_single_process_single_device(self):
         return True
-
-    def setup(self) -> None:
+        
+    def setup(self, trainer: "pl.Trainer") -> None:
         # TODO: is this needed here? already getting set in spawn()
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -162,6 +147,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
+        self._clean_logger(trainer)
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
         self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
@@ -169,11 +155,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         return results
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
         self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
         return results
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
         self.__recover_child_process_weights(best_model_path, last_path, extra, trainer)
         return results
@@ -185,28 +173,35 @@ class DDPSpawnPlugin(ParallelPlugin):
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+            return_result: If ``True``, copies the output of the function from process 0 to the main process and
+                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
+
+        Return:
+            The output of the function of process 0.
         """
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        smp = mp.get_context("spawn")
-        mp_queue = smp.SimpleQueue()
-        mp.spawn(self._wrapped_function, args=(function, args, kwargs, mp_queue), nprocs=self.num_processes)
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
+        context = mp.get_context("spawn")
+        return_queue = context.SimpleQueue() if return_result else None
+        mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
         return mp_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, mp_queue: SimpleQueue
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if self.is_global_zero:
-            mp_queue.put(move_data_to_device(result, "cpu"))
+        if self.local_rank == 0:
+            return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-        init_ddp_connection(self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size)
+        init_dist_connection(
+            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        )
 
     def new_process(self, trainer: "pl.Trainer") -> Any:
         # move the model to the correct device
@@ -235,15 +230,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-        if (
-            _TORCH_GREATER_EQUAL_1_7
-            and not self.lightning_module.automatic_optimization
-            and not self._ddp_kwargs.get("find_unused_parameters", False)
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
+            "find_unused_parameters", False
         ):
+            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
-                "to properly work with DDP."
+                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
+                " properly work with DDP. Using `find_unused_parameters=True`."
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
@@ -334,7 +327,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
-        broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
     def model_to_device(self):
@@ -428,3 +421,16 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    @staticmethod
+    def _clean_logger(trainer: "pl.Trainer") -> None:
+        loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+        for logger in loggers:
+            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
+                rank_zero_warn(
+                    "When using `ddp_spawn`, the `TensorBoardLogger` experiment should be `None`. Setting it to `None`."
+                )
+                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
+                # we want to make sure these are closed before we spawn our own threads.
+                # assuming nothing else references the experiment object, python should instantly `__del__` it.
+                logger._experiment = None

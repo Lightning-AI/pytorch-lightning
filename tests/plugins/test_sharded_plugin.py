@@ -1,5 +1,6 @@
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -9,7 +10,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -48,17 +48,6 @@ def test_sharded_ddp_choice(tmpdir, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
 
     with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-
-@RunIf(amp_apex=True, fairscale=True)
-def test_invalid_apex_sharded(tmpdir):
-    """Test to ensure that we raise an error when we try to use apex and sharded."""
-
-    model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="Sharded Plugin is not supported with Apex AMP"):
-        trainer = Trainer(fast_dev_run=True, strategy="ddp_sharded_spawn", precision=16, amp_backend="apex")
-
         trainer.fit(model)
 
 
@@ -132,7 +121,7 @@ def test_ddp_sharded_plugin_finetune(tmpdir):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
@@ -144,17 +133,15 @@ def test_ddp_sharded_plugin_resume_from_checkpoint(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
-    )
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path_downsize_gpus(tmpdir):
     """Test to ensure that resuming from checkpoint works when downsizing number of GPUS."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=2)
@@ -166,13 +153,13 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_downsize_gpus(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=1, resume_from_checkpoint=checkpoint_path)
+    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=1)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
+def test_ddp_sharded_plugin_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
@@ -184,14 +171,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True, resume_from_checkpoint=checkpoint_path
-    )
+    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
 
-    trainer.fit(model)
+    trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True)
+@RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize("trainer_kwargs", (dict(num_processes=2), pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2))))
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
@@ -217,7 +202,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -225,7 +210,7 @@ def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
@@ -272,14 +257,14 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
-
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
     class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
@@ -293,12 +278,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     plugin = DDPShardedPlugin(**params)
     plugin.num_nodes = num_nodes
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs
 

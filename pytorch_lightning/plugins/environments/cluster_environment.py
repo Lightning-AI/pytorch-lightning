@@ -12,22 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import Any, Type
+
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
 
+    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+        # TODO: remove in 1.7
+        _check_for_deprecated_methods(cls)
+        return super().__new__(cls)
+
+    @property
     @abstractmethod
-    def creates_children(self) -> bool:
+    def creates_processes_externally(self) -> bool:
         """Whether the environment creates the subprocesses or not."""
 
+    @property
     @abstractmethod
-    def master_address(self) -> str:
-        """The master address through which all processes connect and communicate."""
+    def main_address(self) -> str:
+        """The main address through which all processes connect and communicate."""
 
+    @property
     @abstractmethod
-    def master_port(self) -> int:
-        """An open and configured port in the master node through which all processes communicate."""
+    def main_port(self) -> int:
+        """An open and configured port in the main node through which all processes communicate."""
+
+    @staticmethod
+    @abstractmethod
+    def detect() -> bool:
+        """Detects the environment settings corresponding to this cluster and returns ``True`` if they match."""
 
     @abstractmethod
     def world_size(self) -> int:
@@ -56,3 +72,16 @@ class ClusterEnvironment(ABC):
     def teardown(self) -> None:
         """Clean up any state set after execution finishes."""
         pass
+
+
+def _check_for_deprecated_methods(cls: Type[ClusterEnvironment]) -> None:
+    if hasattr(cls, "master_address") and callable(cls.master_address):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in v1.7."
+            " Implement the property `main_address` instead (do not forget to add the `@property` decorator)."
+        )
+    if hasattr(cls, "master_port") and callable(cls.master_port):
+        rank_zero_deprecation(
+            f"`{cls.__name__}.master_port` has been deprecated in v1.6 and will be removed in v1.7."
+            " Implement the property `main_port` instead (do not forget to add the `@property` decorator)."
+        )

@@ -21,10 +21,9 @@ from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
+from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -102,7 +101,7 @@ class SwaTestCallback(StochasticWeightAveraging):
 
         if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.accelerator.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
+            assert trainer.training_type_plugin.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
         # check call counts
         assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
@@ -132,14 +131,14 @@ def train_with_swa(
         num_processes=num_processes,
     )
 
-    with mock.patch.object(Accelerator, "backward", wraps=trainer.accelerator.backward):
+    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
         trainer.fit(model)
 
     # check the model is the expected
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, strategy="ddp", gpus=2)
 
@@ -149,7 +148,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", num_processes=2)
 
@@ -172,7 +171,7 @@ def test_swa_callback_scheduler_step(tmpdir, interval: str):
 
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
@@ -200,14 +199,19 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
             return optimizer
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=StochasticWeightAveraging(swa_lrs=1e-3) if use_callbacks else None,
-        stochastic_weight_avg=stochastic_weight_avg,
-        limit_train_batches=4,
-        limit_val_batches=4,
-        max_epochs=2,
-    )
+    kwargs = {
+        "default_root_dir": tmpdir,
+        "callbacks": StochasticWeightAveraging(swa_lrs=1e-3) if use_callbacks else None,
+        "stochastic_weight_avg": stochastic_weight_avg,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+        "max_epochs": 2,
+    }
+    if stochastic_weight_avg:
+        with pytest.deprecated_call(match=r"stochastic_weight_avg=True\)` is deprecated in v1.5"):
+            trainer = Trainer(**kwargs)
+    else:
+        trainer = Trainer(**kwargs)
     trainer.fit(model)
     if use_callbacks or stochastic_weight_avg:
         assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
@@ -228,14 +232,13 @@ def test_swa_deepcopy(tmpdir):
             super().on_before_accelerator_backend_setup(trainer, pl_module)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
-            assert isinstance(pl_module.train_dataloader, _PatchDataLoader)
             assert self._average_model.trainer is None
             self.on_before_accelerator_backend_setup_called = True
 
     model = BoringModel()
     swa = TestSWA()
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
-    trainer.fit(model, train_dataloader=DataLoader(RandomDataset(32, 2)))
+    trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
     assert swa.on_before_accelerator_backend_setup_called
 
 

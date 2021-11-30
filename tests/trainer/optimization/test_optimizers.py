@@ -383,7 +383,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     max_epochs = 1 if complete_epoch else None
-    max_steps = None if complete_epoch else 1
+    max_steps = -1 if complete_epoch else 1
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
 
     model.configure_optimizers = lambda: {
@@ -537,7 +537,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_optimizer_state_on_device(tmpdir):
     """Test that optimizers that create state initially at instantiation still end up with the state on the GPU."""
 

@@ -30,8 +30,6 @@ from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-    test_step = None
-
     def __init__(self):
         super().__init__()
         self.layer = Sequential(
@@ -162,26 +160,17 @@ def test_pruning_callback(
     )
 
 
-@RunIf(special=True, min_gpus=2)
-def test_pruning_callback_ddp_0(tmpdir):
+@RunIf(standalone=True, min_gpus=2)
+@pytest.mark.parametrize("parameters_to_prune", (False, True))
+@pytest.mark.parametrize("use_global_unstructured", (False, True))
+def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured):
     train_with_pruning_callback(
-        tmpdir, parameters_to_prune=False, use_global_unstructured=False, strategy="ddp", gpus=2
+        tmpdir,
+        parameters_to_prune=parameters_to_prune,
+        use_global_unstructured=use_global_unstructured,
+        strategy="ddp",
+        gpus=2,
     )
-
-
-@RunIf(special=True, min_gpus=2)
-def test_pruning_callback_ddp_1(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=False, use_global_unstructured=True, strategy="ddp", gpus=2)
-
-
-@RunIf(special=True, min_gpus=2)
-def test_pruning_callback_ddp_2(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=False, strategy="ddp", gpus=2)
-
-
-@RunIf(special=True, min_gpus=2)
-def test_pruning_callback_ddp_3(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, use_global_unstructured=True, strategy="ddp", gpus=2)
 
 
 @RunIf(min_gpus=2, skip_windows=True)
@@ -189,7 +178,7 @@ def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(tmpdir, use_global_unstructured=True, strategy="ddp_spawn", gpus=2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", num_processes=2)
 

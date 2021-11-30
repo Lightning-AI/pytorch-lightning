@@ -29,11 +29,18 @@ class CPUAccelerator(Accelerator):
             MisconfigurationException:
                 If the selected device is not CPU.
         """
-        if "cpu" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
+        if "cpu" not in str(self.training_type_plugin.root_device):
+            raise MisconfigurationException(
+                f"Device should be CPU, got {self.training_type_plugin.root_device} instead."
+            )
 
         return super().setup(trainer)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """CPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return 1

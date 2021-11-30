@@ -66,7 +66,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -82,7 +82,7 @@ def test_horovod_cpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -99,7 +99,7 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
@@ -273,7 +273,7 @@ def test_result_reduce_horovod(tmpdir):
     This test mirrors tests/core/test_results.py::_ddp_test_fn
     """
     tutils.reset_seed()
-    tutils.set_random_master_port()
+    tutils.set_random_main_port()
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))

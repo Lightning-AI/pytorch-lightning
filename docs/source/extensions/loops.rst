@@ -50,7 +50,7 @@ Think of this as swapping out the engine in a car!
 
 ----------
 
-Understanding the default Trainer loop
+Understanding the Default Trainer Loop
 --------------------------------------
 
 The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` automates the standard optimization loop which every PyTorch user is familiar with:
@@ -75,7 +75,7 @@ The core research logic is simply shifted to the :class:`~pytorch_lightning.core
         # loss = loss_function(y_hat, y)    moved to training_step
         loss = lightning_module.training_step(batch, i)
 
-        # Lighting handles automatically:
+        # Lightning handles automatically:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -109,12 +109,12 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 
 .. _override default loops:
 
-Overriding the default loops
+Overriding the default Loops
 ----------------------------
 
 The fastest way to get started with loops, is to override functionality of an existing loop.
-Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for training and validating,
-:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for testing,
+Lightning has 4 main loops which relies on : :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for fitting (training and validating),
+:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for validating or testing,
 :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` for predicting.
 
 For simple changes that don't require a custom loop, you can modify each of these loops.
@@ -122,20 +122,20 @@ For simple changes that don't require a custom loop, you can modify each of thes
 Each loop has a series of methods that can be modified.
 For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loops import FitLoop
 
+
     class MyLoop(FitLoop):
+        def advance(self):
+            """Advance from one iteration to the next."""
 
-        def advance():
-            ...
-
-        def on_advance_end(self)
-            ...
+        def on_advance_end(self):
+            """Do something at the end of an iteration."""
 
         def on_run_end(self):
-            ...
+            """Do something when the loop ends."""
 
 A full list with all built-in loops and subloops can be found :ref:`here <loop structure>`.
 
@@ -166,11 +166,11 @@ Now simply attach the correct loop in the trainer directly:
     # fit() now uses the new FitLoop!
     trainer.fit(...)
 
-    # the equivalent for validate(), test(), predict()
+    # the equivalent for validate()
     val_loop = CustomValLoop()
     trainer = Trainer()
     trainer.validate_loop = val_loop
-    trainer.validate(model)
+    trainer.validate(...)
 
 Now your code is FULLY flexible and you can still leverage ALL the best parts of Lightning!
 
@@ -179,26 +179,28 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 
 ----------
 
-Creating a new loop from scratch
+Creating a New Loop From Scratch
 --------------------------------
 
 You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
 You will need to override a minimum of two things:
 
-.. code-block::
+.. code-block:: python
 
     from pytorch_lightning.loop import Loop
 
-    class MyFancyLoop(Loop):
 
+    class MyFancyLoop(Loop):
         @property
         def done(self):
-            # provide condition to stop the loop
+            """Provide a condition to stop the loop."""
 
         def advance(self):
-            # access your dataloader/s in whatever way you want
-            # do your fancy optimization things
-            # call the lightning module methods at your leisure
+            """
+            Access your dataloader/s in whatever way you want.
+            Do your fancy optimization things.
+            Call the LightningModule methods at your leisure.
+            """
 
 Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
@@ -210,8 +212,7 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
     # fit() now uses your fancy loop!
     trainer.fit(...)
 
-Now you have full control over the Trainer.
-But beware: The power of loop customization comes with great responsibility.
+But beware: Loop customization gives you more power and full control over the Trainer and with great power comes great responsibility.
 We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
 
 ----------
@@ -220,7 +221,7 @@ Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base of all loops in the same way as the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base of all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties
@@ -346,6 +347,12 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
+   * - :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` is the top-level loop where validation/testing starts.
+       It simply iterates over each evaluation dataloader from one to the next by calling :code:`EvaluationEpochLoop.run()` in its :code:`advance()` method.
+   * - :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` is the top-level loop where prediction starts.
+       It simply iterates over each prediction dataloader from one to the next by calling :code:`PredictionEpochLoop.run()` in its :code:`advance()` method.
 
 
 ----------
@@ -380,6 +387,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # Implement the research use-case where we mask labels from labelled dataset.
     datamodule = ActiveLearningDataModule(
         ImageClassificationData.from_folders(train_folder="data/hymenoptera_data/train/", batch_size=2),
+        initial_num_labels=5,
         val_split=0.1,
     )
 
@@ -388,7 +396,8 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
         torch.nn.Dropout(p=0.1),
         torch.nn.Linear(512, datamodule.num_classes),
     )
-    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, serializer=Probabilities())
+    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, output=Probabilities())
+
 
     # 3.1 Create the trainer
     trainer = flash.Trainer(max_epochs=3)
@@ -408,21 +417,36 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
 
-Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
-
-
-`KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into `num_folds` complementary subsets.
-One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
-To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
-averaged when estimating the model's predictive performance on the test dataset.
-KFold can elegantly be implemented with `Lightning Loop Customization` as follows:
-
-Here is the `KFold Loop example <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loops/kfold.py>`_.
+Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py>`_.
 
 
 ----------
 
-Advanced Topics and Examples
-----------------------------
+Advanced Examples
+-----------------
 
-Next: :doc:`Advanced loop features and examples <../extensions/loops_advanced>`
+
+.. list-table:: Ready-to-run loop examples and tutorials
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Link to Example
+     - Description
+   * - `K-fold Cross Validation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/kfold.py>`_
+     - `KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into ``num_folds`` complementary subsets.
+       One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
+       To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
+       averaged when estimating the model's predictive performance on the test dataset.
+   * - `Yielding Training Step <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/yielding_training_step.py>`_
+     - This loop enables you to write the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` hook
+       as a Python Generator for automatic optimization with multiple optimizers, i.e., you can :code:`yield` loss
+       values from it instead of returning them. This can enable more elegant and expressive implementations, as shown
+       shown with a GAN in this example.
+
+
+----------
+
+Advanced Features
+-----------------
+
+Next: :doc:`Advanced loop features <../extensions/loops_advanced>`
