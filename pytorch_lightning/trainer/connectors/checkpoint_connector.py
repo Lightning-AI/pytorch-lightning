@@ -381,7 +381,7 @@ class CheckpointConnector:
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
+                optimizer_state = self.trainer.training_type_plugin.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint["optimizer_states"] = optimizer_states
