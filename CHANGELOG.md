@@ -182,7 +182,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `DeepSpeedPlugin.{precision,amp_type,amp_level}` properties ([#10657](https://github.com/PyTorchLightning/pytorch-lightning/pull/10657))
 
 
-- Removed setting None to `TensorBoardLogger` warning in `DDPSpawn` plugin ([#10805](https://github.com/PyTorchLightning/pytorch-lightning/pull/10805))
 
 
 ### Fixed
