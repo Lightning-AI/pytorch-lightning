@@ -208,29 +208,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
-        checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
-
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = self.lightning_module.state_dict()
-
-        if self.mp_queue is not None:
-            rank_zero_warn("cleaning up tpu spawn environment...")
-
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
-
-            if self.local_rank == 0:
-                # todo, pass complete checkpoint as state dictionary
-                self.mp_queue.put(best_model_path)
-                self.mp_queue.put(last_path)
-                self.mp_queue.put(results)
-                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
-
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
             return obj
