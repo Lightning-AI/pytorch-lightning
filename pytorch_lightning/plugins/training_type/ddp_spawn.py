@@ -117,7 +117,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return True
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # TODO: is this needed here? already getting set in spawn()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)
 
@@ -191,7 +190,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def new_process(self, trainer: "pl.Trainer") -> Any:
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
         # move the model to the correct device
         self.model_to_device()
 
@@ -251,7 +250,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __collect_rank_zero_results(
         self, trainer: "pl.Trainer", results: Any
-    ) -> Optional[Tuple[Optional[str], Optional[str], Any, List[Any]]]:
+    ) -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
 
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -271,7 +270,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             atomic_save(state_dict, last_path)
 
         # adds the `callback_metrics` to the queue
-        extra = []
+        extra = _ExtraQueue()
         if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
@@ -281,7 +280,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return best_model_path, last_path, results, extra
 
     def __recover_child_process_weights(
-        self, best_path: Optional[str], last_path: Optional[str], extra: List[Any], trainer
+        self, best_path: Optional[str], last_path: Optional[str], extra: "_ExtraQueue", trainer
     ) -> None:
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback:
@@ -366,7 +365,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
-    def add_to_queue(self, trainer: "pl.Trainer", queue: "_SimpleQueue") -> None:
+    def add_to_queue(self, trainer: "pl.Trainer", queue: "_ExtraQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -379,7 +378,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 
-    def get_from_queue(self, trainer: "pl.Trainer", queue: "_SimpleQueue") -> None:
+    def get_from_queue(self, trainer: "pl.Trainer", queue: "_ExtraQueue") -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -424,8 +423,8 @@ class DDPSpawnPlugin(ParallelPlugin):
                 logger._experiment = None
 
 
-class _SimpleQueue(list):
-    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` using the Python list interface."""
+class _ExtraQueue(list):
+    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
 
     def get(self) -> Any:
         return self.pop(0)
