@@ -131,7 +131,5 @@ class SignalHandlers:
 )
 def test_has_already_handler(handler, expected_return):
     """Test that the SignalConnector detects whether a signal handler is already attached."""
-    trainer = Trainer()
-    connector = SignalConnector(trainer)
     with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
-        assert connector._has_already_handler(signal.SIGTERM) is expected_return
+        assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return
