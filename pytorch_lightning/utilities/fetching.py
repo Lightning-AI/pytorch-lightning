@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Callable, Generator, List, Optional, Tuple
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -70,7 +70,7 @@ class AbstractDataFetcher(ABC):
         self.store_on_device = False
         self.prefetch_batches = prefetch_batches + 1
 
-        self.dataloader: Optional[Iterable] = None
+        self.dataloader: Optional[Union[DataLoader, CombinedLoader]] = None
         self.dataloader_iter: Optional[Iterator] = None
 
         self.stage: Optional[str]

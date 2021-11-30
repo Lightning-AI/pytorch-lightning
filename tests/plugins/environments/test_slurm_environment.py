@@ -27,6 +27,7 @@ def test_default_attributes():
     assert env.creates_processes_externally
     assert env.main_address == "127.0.0.1"
     assert env.main_port == 12910
+    assert env.job_id() is None
     with pytest.raises(KeyError):
         # world size is required to be passed as env variable
         env.world_size()
@@ -55,6 +56,7 @@ def test_attributes_from_environment_variables(caplog):
     assert env.auto_requeue is True
     assert env.main_address == "1.1.1.1"
     assert env.main_port == 15000 + 1234
+    assert env.job_id() == int("0001234")
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 2
