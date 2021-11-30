@@ -17,7 +17,6 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
