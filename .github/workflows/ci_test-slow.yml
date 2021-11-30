@@ -9,10 +9,11 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   slow:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macOS-latest]
         # same config as '.azure-pipelines/gpu-tests.yml'
         python-version: ["3.7"]
         pytorch-version: ["1.8"]
