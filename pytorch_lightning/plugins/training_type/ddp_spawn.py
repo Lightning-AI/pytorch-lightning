@@ -257,9 +257,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.local_rank != 0:
-            return
-
         rank_zero_warn("cleaning up ddp environment...")
 
         # save the last weights
@@ -267,6 +264,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
             last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
             self.save_checkpoint(state_dict, last_path)
+
+        if self.local_rank != 0:
+            return
 
         # adds the `callback_metrics` to the queue
         extra = _ExtraQueue()
