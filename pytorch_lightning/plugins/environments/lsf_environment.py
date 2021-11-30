@@ -14,6 +14,7 @@
 
 import os
 import socket
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 
@@ -56,7 +57,7 @@ class LSFEnvironment(ClusterEnvironment):
         os.environ["MASTER_PORT"] = str(self._main_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        tmp = ('main_address', 'main_port', 'world_size', 'local_rank', 'node_rank', 'global_rank')
+        tmp = ("main_address", "main_port", "world_size", "local_rank", "node_rank", "global_rank")
         self._rep = ",".join("{}={}".format(s, getattr(self, "_" + s)) for s in tmp)
 
     def _read_hosts(self):
@@ -72,12 +73,12 @@ class LSFEnvironment(ClusterEnvironment):
         return ret
 
     def _get_main_address(self):
-        """A helper for getting the master address"""
+        """A helper for getting the master address."""
         hosts = self._read_hosts()
         return hosts[1]
 
     def _get_main_port(self):
-        """A helper for getting the master port
+        """A helper for getting the master port.
 
         Use the LSF job ID so all ranks can compute the master port
         """
@@ -153,36 +154,23 @@ class LSFEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect():
-        """Detect if running in an LSF environment"""
-        env_vars = [
-            "LSB_JOBID",
-            "LSB_DJOB_RANKFILE",
-            "JSM_NAMESPACE_LOCAL_RANK",
-            "JSM_NAMESPACE_SIZE"
-        ]
+        """Detect if running in an LSF environment."""
+        env_vars = ["LSB_JOBID", "LSB_DJOB_RANKFILE", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE"]
         flags = [v in os.environ for v in env_vars]
         return any(flags)
 
     def creates_processes_externally(self):
-        """
-        LSF creates subprocesses -- i.e. PyTorch Lightning does not need to
-        spawn them
-        """
+        """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
         return True
 
     @property
     def main_address(self):
-        """
-        Master address is read from an OpenMPI host rank file in the environment
-        variable *LSB_DJOB_RANKFILE*
-        """
+        """Master address is read from an OpenMPI host rank file in the environment variable *LSB_DJOB_RANKFILE*"""
         return self._main_address
 
     @property
     def main_port(self):
-        """
-        Master port is calculated from the LSF job ID
-        """
+        """Master port is calculated from the LSF job ID."""
         return self._main_port
 
     def world_size(self):
