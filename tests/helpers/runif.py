@@ -36,10 +36,9 @@ try:
     from horovod.common.util import nccl_built
 
     nccl_built()
+    _HOROVOD_NCCL_AVAILABLE = True
 except (ImportError, ModuleNotFoundError, AttributeError):
     _HOROVOD_NCCL_AVAILABLE = False
-finally:
-    _HOROVOD_NCCL_AVAILABLE = True
 
 
 class RunIf:
@@ -75,25 +74,25 @@ class RunIf:
     ):
         """
         Args:
-            args: native pytest.mark.skipif arguments
-            min_gpus: min number of gpus required to run test
-            min_torch: minimum pytorch version to run test
-            max_torch: maximum pytorch version to run test
-            min_python: minimum python version required to run test
-            quantization: if `torch.quantization` package is required to run test
-            amp_apex: NVIDIA Apex is installed
-            tpu: if TPU is available
-            ipu: if IPU is available
-            horovod: if Horovod is installed
-            horovod_nccl: if Horovod is installed with NCCL support
-            skip_windows: skip test for Windows platform (typically for some limited torch functionality)
+            *args: Any :class:`pytest.mark.skipif` arguments.
+            min_gpus: Require this number of gpus.
+            min_torch: Require that PyTorch is greater or equal than this version.
+            max_torch: Require that PyTorch is less than this version.
+            min_python: Require that Python is greater or equal than this version.
+            quantization: Require that `torch.quantization` is available.
+            amp_apex: Require that NVIDIA/apex is installed.
+            tpu: Require that TPU is available.
+            ipu: Require that IPU is available.
+            horovod: Require that Horovod is installed.
+            horovod_nccl: Require that Horovod is installed with NCCL support.
+            skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
-            fairscale: if `fairscale` module is required to run the test
-            fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
-            deepspeed: if `deepspeed` module is required to run the test
-            rich: if `rich` module is required to run the test
+            fairscale: Require that facebookresearch/fairscale is installed.
+            fairscale_fully_sharded: Require that `fairscale` fully sharded support is available.
+            deepspeed: Require that Microsoft/DeepSpeed is installed.
+            rich: Require that willmcgugan/rich is installed.
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
-            kwargs: native pytest.mark.skipif keyword arguments
+            **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
         reasons = []
