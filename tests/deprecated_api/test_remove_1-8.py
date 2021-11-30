@@ -39,4 +39,4 @@ def test_v1_8_0_deprecated_torchtext_batch():
     with pytest.deprecated_call(match="is deprecated and Lightning will remove support for it in v1.8"):
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
-        _ = move_data_to_device(batch=batch, device=torch.device("cuda", 0))
+        _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
