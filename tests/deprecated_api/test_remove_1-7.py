@@ -509,7 +509,7 @@ def test_v1_7_0_cluster_environment_master_port(cls):
         (TorchElasticEnvironment, "is_using_torchelastic"),
     ],
 )
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+@mock.patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
 def test_v1_7_0_cluster_environment_detection(cls, method_name):
     class MyClusterEnvironment(cls):
         @staticmethod
