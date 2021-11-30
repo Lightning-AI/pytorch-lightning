@@ -204,7 +204,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __collect_rank_zero_results(
         self, trainer: "pl.Trainer", results: Any
-    ) -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
+    ) -> Optional[Tuple[Optional[str], Optional[str], Any, _ExtraQueue]]:
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
@@ -213,11 +213,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         rank_zero_warn("cleaning up tpu spawn environment...")
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
         if self.local_rank != 0:
             return
@@ -303,16 +303,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._clean_logger(trainer)
         return super().start_training(trainer)
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self._clean_logger(trainer)
-        return super().start_evaluating(trainer)
-
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        self._clean_logger(trainer)
-        return super().start_predicting(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
