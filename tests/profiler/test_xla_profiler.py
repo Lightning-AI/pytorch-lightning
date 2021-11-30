@@ -13,12 +13,14 @@
 # limitations under the License.
 import os
 from multiprocessing import Event, Process
+from unittest.mock import patch
 
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import XLAProfiler
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TPU_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -62,3 +64,16 @@ def test_xla_profiler_prog_capture(tmpdir):
     p.terminate()
 
     assert os.isfile(os.path.join(logdir, "plugins", "profile", "*", "*.xplane.pb"))
+
+
+@patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
+def test_xla_profiler_tpu_not_available_exception(*_):
+    with pytest.raises(MisconfigurationException, match="`XLAProfiler` is only supported on TPUs"):
+        _ = XLAProfiler()
+
+
+@RunIf(max_torch="1.8.0")
+@patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=True)
+def test_xla_profiler_torch_lesser_than_1_8_exception(*_):
+    with pytest.raises(MisconfigurationException, match="`XLAProfiler` is only supported with `torch-xla>=1.8`"):
+        _ = XLAProfiler()
