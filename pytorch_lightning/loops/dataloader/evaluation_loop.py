@@ -32,7 +32,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         self._results = ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
-        self._max_batches: List[Union[int, float]] = []
+        self._max_batches: List[int] = []
         self._has_run: bool = False
 
     @property
