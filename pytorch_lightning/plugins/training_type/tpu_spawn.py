@@ -132,9 +132,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         """Moves the state of the optimizers to the TPU if needed."""
         # TODO: `self.root_device` would raise error if called outside the spawn process
         # while training on 8 and more cores.
+        device = device or self.root_device
         for opt in self.optimizers:
             for p, v in opt.state.items():
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, xm.xla_device())
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
 
     def _setup_model(self, model: Module) -> Module:
         return model
