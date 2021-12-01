@@ -872,7 +872,7 @@ Where the arguments can be passed directly through command line without specifyi
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
 example can be when one wants to add support for multiple optimizers:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.utilities.cli import instantiate_class
 
