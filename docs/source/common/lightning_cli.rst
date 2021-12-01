@@ -917,7 +917,7 @@ With shorthand notation:
         --gen_discriminator=AdamW \
         --gen_discriminator.lr=0.0001
 
-You can also use pass the class path directly, for example, if the optimizer hasn't been registered to the
+You can also pass the class path directly, for example, if the optimizer hasn't been registered to the
 ``OPTIMIZER_REGISTRY``:
 
 .. code-block:: bash
