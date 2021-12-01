@@ -32,7 +32,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters, rank_zero_warn
+from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
