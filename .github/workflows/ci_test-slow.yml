@@ -72,7 +72,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
-      if: always()
+      if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
