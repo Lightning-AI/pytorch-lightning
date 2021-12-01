@@ -71,6 +71,7 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         skip_49370: bool = False,
+        skip_hanging_spawn: bool = False,
         **kwargs,
     ):
         """
@@ -93,6 +94,7 @@ class RunIf:
             deepspeed: if `deepspeed` module is required to run the test
             rich: if `rich` module is required to run the test
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
+            skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             kwargs: native pytest.mark.skipif keyword arguments
         """
         conditions = []
@@ -177,6 +179,15 @@ class RunIf:
             old_torch = Version(torch_version) < Version("1.8")
             conditions.append(ge_3_9 and old_torch)
             reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
+
+        if skip_hanging_spawn:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.8, torch<1.9 does not work
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            ge_3_8 = Version(py_version) >= Version("3.8")
+            torch_version = get_distribution("torch").version
+            old_torch = Version(torch_version) < Version("1.9")
+            conditions.append(ge_3_8 and old_torch)
+            reasons.append("Impacted by hanging DDP spawn")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
