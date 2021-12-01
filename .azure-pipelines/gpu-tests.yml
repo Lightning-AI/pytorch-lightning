@@ -67,15 +67,17 @@ jobs:
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
-    - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
-      displayName: 'Testing: standard'
+
 
     - bash: |
         bash tests/standalone_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: standalone'
+
+    - bash: |
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      displayName: 'Testing: standard'
 
     - bash: |
         python -m coverage report
