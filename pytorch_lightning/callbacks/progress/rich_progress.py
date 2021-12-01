@@ -18,7 +18,7 @@ from typing import Any, Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available, _RICH_AVAILABLE, _RICH_GREATER_EQUAL_10_2_2
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
 Task, Style = None, None
 if _RICH_AVAILABLE:
@@ -228,11 +228,7 @@ class RichProgressBar(ProgressBarBase):
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
-        if not _module_available("rich"):
-            raise ModuleNotFoundError(
-                "`RichProgressBar` requires `rich` to be installed. Install it by running `pip install -U rich`."
-            )
-        if not _RICH_GREATER_EQUAL_10_2_2:
+        if not _RICH_AVAILABLE:
             raise MisconfigurationException(
                 "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
             )
