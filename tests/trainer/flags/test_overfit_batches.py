@@ -19,40 +19,6 @@ from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
-def test_overfit_multiple_val_loaders(tmpdir):
-    """Tests that overfit batches works with multiple val dataloaders."""
-    val_dl_count = 2
-    overfit_batches = 3
-
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            output = self.layer(batch[0])
-            loss = self.loss(batch, output)
-            return {"x": loss}
-
-        def validation_epoch_end(self, outputs) -> None:
-            pass
-
-        def val_dataloader(self):
-            dls = [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(val_dl_count)]
-            return dls
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        overfit_batches=overfit_batches,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-    )
-
-    trainer.fit(model)
-    assert trainer.num_training_batches == overfit_batches
-    assert len(trainer.num_val_batches) == val_dl_count
-    assert all(nbatches == overfit_batches for nbatches in trainer.num_val_batches)
-
-
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
 def test_overfit_basic(tmpdir, overfit_batches):
     """Tests that only training_step can be used when overfitting."""

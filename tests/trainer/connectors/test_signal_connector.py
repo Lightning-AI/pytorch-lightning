@@ -109,3 +109,27 @@ def test_signal_connector_in_thread():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
             assert future.exception() is None
+
+
+def signal_handler():
+    pass
+
+
+class SignalHandlers:
+    def signal_handler(self):
+        pass
+
+
+@pytest.mark.parametrize(
+    ["handler", "expected_return"],
+    [
+        (signal.Handlers.SIG_IGN, True),
+        (signal.Handlers.SIG_DFL, False),
+        (signal_handler, True),
+        (SignalHandlers().signal_handler, True),
+    ],
+)
+def test_has_already_handler(handler, expected_return):
+    """Test that the SignalConnector detects whether a signal handler is already attached."""
+    with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
+        assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return
