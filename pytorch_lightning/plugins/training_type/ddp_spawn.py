@@ -34,7 +34,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available, rank_zero_debug
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -271,6 +271,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        rank_zero_debug("Transferring results back to main process ...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
@@ -278,8 +279,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         state_dict = self.lightning_module.state_dict()
 
         if self.global_rank == 0 and self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
-
             # save the last weights
             last_path = None
             if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
