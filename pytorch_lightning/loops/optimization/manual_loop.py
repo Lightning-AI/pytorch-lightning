@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
 
@@ -33,15 +33,19 @@ class ManualResult(OutputResult):
 
     Attributes:
         extra: Anything returned by the ``training_step``.
+        was_dict: Whether the training step output was a dictionary.
     """
 
     extra: Dict[str, Any] = field(default_factory=dict)
+    was_dict: bool = False
 
     @classmethod
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
-        extra = {}
+        extra, was_dict = {}, False
+
         if isinstance(training_step_output, dict):
             extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
+            was_dict = True
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
@@ -54,13 +58,15 @@ class ManualResult(OutputResult):
             # we detach manually as it's expected that it will have a `grad_fn`
             extra["loss"] = extra["loss"].detach()
 
-        return cls(extra=extra)
+        return cls(extra=extra, was_dict=was_dict)
 
-    def asdict(self) -> Dict[str, Any]:
-        return self.extra
+    def get(self) -> Union[Optional[Tensor], Dict[str, Any]]:
+        if self.was_dict:
+            return self.extra
+        return self.extra.get("loss")
 
 
-_OUTPUTS_TYPE = Dict[str, Any]
+_OUTPUTS_TYPE = Union[Optional[Tensor], Dict[str, Any]]
 
 
 class ManualOptimization(Loop[_OUTPUTS_TYPE]):
@@ -131,7 +137,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             self.trainer._results.cpu()
 
         self._done = True
-        self._output = result.asdict()
+        self._output = result.get()
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""

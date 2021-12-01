@@ -68,8 +68,8 @@ def test__eval_step__flow(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
-    assert train_step_out["loss"].item() == 171
+    assert isinstance(train_step_out, torch.Tensor)
+    assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -131,8 +131,8 @@ def test__eval_step__eval_step_end__flow(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
-    assert train_step_out["loss"].item() == 171
+    assert isinstance(train_step_out, torch.Tensor)
+    assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(

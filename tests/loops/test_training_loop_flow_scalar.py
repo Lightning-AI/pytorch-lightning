@@ -109,15 +109,9 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
         def training_epoch_end(self, outputs):
             self.training_epoch_end_called = True
-
             # verify we saw the current num of batches
             assert len(outputs) == 2
-
-            for b in outputs:
-                # time = 1
-                assert len(b) == 1
-                assert "loss" in b
-                assert isinstance(b, dict)
+            assert all(isinstance(o, torch.Tensor) for o in outputs)
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -151,8 +145,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
-    assert train_step_out["loss"].item() == 171
+    assert isinstance(train_step_out, torch.Tensor)
+    assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -184,12 +178,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
             # verify we saw the current num of batches
             assert len(outputs) == 2
-
-            for b in outputs:
-                # time = 1
-                assert len(b) == 1
-                assert "loss" in b
-                assert isinstance(b, dict)
+            assert all(isinstance(o, torch.Tensor) for o in outputs)
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -223,8 +212,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
-    assert train_step_out["loss"].item() == 171
+    assert isinstance(train_step_out, torch.Tensor)
+    assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop._make_closure(
@@ -284,6 +273,9 @@ def test_training_step_no_return_when_even(tmpdir):
             loss = self.step(batch[0])
             self.log("a", loss, on_step=True, on_epoch=True)
             return loss if batch_idx % 2 else None
+
+        def training_epoch_end(self, outputs) -> None:
+            torch.stack(outputs).mean()
 
     model = TestModel()
     trainer = Trainer(

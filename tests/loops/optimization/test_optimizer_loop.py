@@ -28,13 +28,13 @@ from tests.helpers import BoringModel
 
 def test_closure_result_deepcopy():
     closure_loss = torch.tensor(123.45)
-    result = ClosureResult(closure_loss)
+    result = ClosureResult(closure_loss, was_dict=True)
 
     assert closure_loss.data_ptr() == result.closure_loss.data_ptr()
     # the `loss` is cloned so the storage is different
     assert closure_loss.data_ptr() != result.loss.data_ptr()
 
-    copy = result.asdict()
+    copy = result.get()
     assert result.loss == copy["loss"]
     assert copy.keys() == {"loss"}
 

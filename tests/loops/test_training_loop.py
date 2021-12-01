@@ -146,6 +146,10 @@ def test_warning_valid_train_step_end(tmpdir):
             loss = self.loss(outputs["batch"], outputs["output"])
             return loss
 
+        def training_epoch_end(self, outputs) -> None:
+            # since `training_step_end` returns a tensor, these are tensors
+            torch.stack(outputs).mean()
+
     # No error is raised
     model = ValidTrainStepEndModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)

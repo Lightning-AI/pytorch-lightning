@@ -47,11 +47,13 @@ class ClosureResult(OutputResult):
         closure_loss: The loss with a graph attached.
         loss: A detached copy of the closure loss.
         extra: Any keys other than the loss returned.
+        was_dict: Whether the training step output was a dictionary.
     """
 
     closure_loss: Optional[Tensor]
     loss: Optional[Tensor] = field(init=False, default=None)
     extra: Dict[str, Any] = field(default_factory=dict)
+    was_dict: bool = False
 
     def __post_init__(self) -> None:
         self._clone_loss()
@@ -67,6 +69,7 @@ class ClosureResult(OutputResult):
     ) -> "ClosureResult":
         closure_loss, extra = None, {}
 
+        was_dict = False
         if isinstance(training_step_output, dict):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
@@ -75,6 +78,7 @@ class ClosureResult(OutputResult):
                     "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
                 )
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+            was_dict = True
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
         elif training_step_output is not None:
@@ -88,10 +92,12 @@ class ClosureResult(OutputResult):
             # note: avoid in-place operation `x /= y` here on purpose
             closure_loss = closure_loss / normalize
 
-        return cls(closure_loss, extra=extra)
+        return cls(closure_loss, extra=extra, was_dict=was_dict)
 
-    def asdict(self) -> Dict[str, Any]:
-        return {"loss": self.loss, **self.extra}
+    def get(self) -> Union[Optional[Tensor], Dict[str, Any]]:
+        if self.was_dict:
+            return {"loss": self.loss, **self.extra}
+        return self.loss
 
 
 class Closure(AbstractClosure[ClosureResult]):
@@ -149,7 +155,7 @@ class Closure(AbstractClosure[ClosureResult]):
         return self._result.loss
 
 
-_OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
+_OUTPUTS_TYPE = Dict[int, Union[Optional[Tensor], Dict[str, Any]]]
 
 
 class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
@@ -209,7 +215,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         if result.loss is not None:
             # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
             # would be skipped otherwise
-            self._outputs[self.optimizer_idx] = result.asdict()
+            self._outputs[self.optimizer_idx] = result.get()
         self.optim_progress.optimizer_position += 1
 
     def on_run_end(self) -> _OUTPUTS_TYPE:

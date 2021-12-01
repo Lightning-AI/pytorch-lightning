@@ -23,7 +23,7 @@ from tests.helpers import BoringModel
 def test_manual_result():
     training_step_output = {"loss": torch.tensor(25.0, requires_grad=True), "something": "jiraffe"}
     result = ManualResult.from_training_step_output(training_step_output)
-    asdict = result.asdict()
+    asdict = result.get()
     assert not asdict["loss"].requires_grad
     assert asdict["loss"] == 25
     assert result.extra == asdict
