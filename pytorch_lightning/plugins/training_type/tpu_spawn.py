@@ -205,20 +205,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def __collect_rank_zero_results(
         self, trainer: "pl.Trainer", results: Any
     ) -> Optional[Tuple[Optional[str], Optional[str], Any, _ExtraQueue]]:
+        rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        rank_zero_warn("cleaning up tpu spawn environment...")
-
         # save the last weights
         last_path = None
         if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
             last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
             self.checkpoint_io.save_checkpoint(state_dict, last_path)
-
+            
+        # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
         if self.local_rank != 0:
             return
 
