@@ -89,6 +89,7 @@ class PredictionEpochLoop(Loop):
             return_predictions: whether to return the obtained predictions
         """
         batch_idx, batch = next(dataloader_iter)
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         if batch is None:
             raise StopIteration
 
