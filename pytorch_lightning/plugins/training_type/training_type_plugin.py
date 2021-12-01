@@ -107,7 +107,7 @@ class TrainingTypePlugin(ABC):
         self.lr_schedulers = schedulers
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the GPU if needed."""
+        """Moves the state of the optimizers to the appropriate device if needed."""
         for opt in self.optimizers:
             for p, v in opt.state.items():
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
