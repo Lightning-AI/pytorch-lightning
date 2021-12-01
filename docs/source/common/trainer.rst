@@ -1074,7 +1074,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+Uses this much data of the training set. If nonzero, will turn-off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
@@ -1084,7 +1084,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set (and use the train set for val and test)
+    # use only 1% of the train set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
