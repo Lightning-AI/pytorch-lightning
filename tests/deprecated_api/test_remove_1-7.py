@@ -522,6 +522,7 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
         @staticmethod
         def is_using_torchelastic():
             pass
+
     hosts = "batch\n10.10.10.0\n10.10.10.1\n10.10.10.2\n10.10.10.3"
     p = tmp_path / "lsb_djob_rankfile"
     p.write_text(hosts)
