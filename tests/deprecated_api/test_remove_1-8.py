@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+from unittest.mock import Mock
+
 import pytest
 import torch
 
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -40,3 +43,12 @@ def test_v1_8_0_deprecated_torchtext_batch():
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
+
+
+def test_v1_8_0_index_batch_sampler_wrapper_batch_indices():
+    sampler = IndexBatchSamplerWrapper(Mock())
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        _ = sampler.batch_indices
+
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        sampler.batch_indices = []
