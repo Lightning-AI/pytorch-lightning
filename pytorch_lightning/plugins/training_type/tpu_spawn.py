@@ -29,7 +29,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, DDPSpawnPlugin, _SpawnOutput
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
@@ -202,9 +202,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __collect_rank_zero_results(
-        self, trainer: "pl.Trainer", results: Any
-    ) -> Optional[Tuple[Optional[str], Optional[str], Any, _FakeQueue]]:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -230,7 +228,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             self.add_to_queue(trainer, extra)
 
-        return best_model_path, last_path, results, extra
+        return _SpawnOutput(best_model_path, last_path, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
@@ -274,7 +272,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())

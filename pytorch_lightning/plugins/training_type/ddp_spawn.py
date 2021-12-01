@@ -15,7 +15,7 @@ import logging
 import os
 import re
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union, NamedTuple
 
 import numpy as np
 import torch
@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT, _PATH
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -133,23 +133,23 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
-        best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
-        return results
+        return spawn_output.trainer_results
 
     def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
-        return results
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
+        return spawn_output.trainer_results
 
     def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
-        return results
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
+        return spawn_output.trainer_results
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.
 
         Args:
@@ -184,7 +184,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
+    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
         # move the model to the correct device
         self.model_to_device()
 
@@ -242,9 +242,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def __collect_rank_zero_results(
-        self, trainer: "pl.Trainer", results: Any
-    ) -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -269,28 +267,28 @@ class DDPSpawnPlugin(ParallelPlugin):
         else:
             self.add_to_queue(trainer, extra)
 
-        return best_model_path, last_path, results, extra
+        return _SpawnOutput(best_model_path, last_path, results, extra)
 
-    def __recover_results_in_main_process(
-        self, best_path: Optional[str], last_path: Optional[str], extra: "_FakeQueue", trainer
-    ) -> None:
+    def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
+            self.lightning_module.trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
 
+        # TODO: pass also best score
         # load last weights
-        if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            ckpt = self.checkpoint_io.load_checkpoint(last_path, map_location=(lambda storage, loc: storage))
+        if spawn_output.last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            ckpt = self.checkpoint_io.load_checkpoint(
+                spawn_output.last_path, map_location=(lambda storage, loc: storage)
+            )
             self.lightning_module.load_state_dict(ckpt)
 
         # get the `callback_metrics` and set it to the trainer
         if is_overridden("get_from_queue", self.lightning_module):
             # only in case the user does not override it.
             # TODO: Remove the if in v1.7
-            self.lightning_module.get_from_queue(extra)
+            self.lightning_module.get_from_queue(spawn_output.extra)
         else:
-            self.get_from_queue(trainer, extra)
+            self.get_from_queue(trainer, spawn_output.extra)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
@@ -413,3 +411,10 @@ class _FakeQueue(list):
 
     def empty(self) -> bool:
         return len(self) == 0
+
+
+class _SpawnOutput(NamedTuple):
+    best_model_path: Optional[_PATH]
+    last_path: Optional[_PATH]
+    trainer_results: Any
+    extra: _FakeQueue
