@@ -20,6 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class DummyPredictionWriter(BasePredictionWriter):
@@ -80,7 +81,7 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
     assert cb.write_on_epoch_end.call_count == 1
 
 
-@pytest.mark.parametrize("num_workers", [0, 2])  # TODO: configure slow CI for num_workers > 0
+@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 def test_prediction_writer_batch_indices(tmpdir, num_workers):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
