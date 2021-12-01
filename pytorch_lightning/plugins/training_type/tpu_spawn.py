@@ -221,7 +221,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
             last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
             self.checkpoint_io.save_checkpoint(state_dict, last_path)
-
+# We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
         if self.local_rank == 0:
             # todo, pass complete checkpoint as state dictionary
             self.mp_queue.put(best_model_path)
