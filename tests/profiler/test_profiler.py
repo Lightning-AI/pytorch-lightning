@@ -526,6 +526,7 @@ def test_trainer_profiler_incorrect_str_arg():
         Trainer(profiler="unknown_profiler")
 
 
+@pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
 @pytest.mark.parametrize(
     ["trainer_config", "trainer_fn"],
     [
