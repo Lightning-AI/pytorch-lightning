@@ -214,7 +214,7 @@ If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_li
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import SLURMEnvironment
+    from pytorch_lightning.plugins.environments import SLURMEnvironment
 
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=False)])
 
