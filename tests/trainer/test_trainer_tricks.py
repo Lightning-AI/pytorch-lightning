@@ -117,16 +117,11 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         trainer = Trainer(overfit_batches=0.11)
         trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == num_train_samples
-
-        # make sure we turned off shuffle for the user
-        assert isinstance(dataloaders[0].sampler, SequentialSampler)
-
-        # make sure the loaders are the same
-        (xb, yb) = next(iter(dataloaders[0]))
-        assert torch.eq(xa, xb).all()
-        assert torch.eq(ya, yb).all()
+        loader_num_batches, _ = trainer._reset_eval_dataloader(split, model=model)
+        if split == RunningStage.VALIDATING:
+            assert loader_num_batches[0] == 0
+        else:
+            assert loader_num_batches[0] == len(test_loader)
 
         # ------------------------------------------------------
         # test overfit_batches as int
@@ -134,11 +129,25 @@ def test_overfit_batch_limits(tmpdir):
         trainer = Trainer(overfit_batches=1)
         trainer._data_connector.attach_dataloaders(model)
         loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == 1
+        if split == RunningStage.VALIDATING:
+            assert loader_num_batches[0] == 0
+        else:
+            assert loader_num_batches[0] == len(test_loader)
+            # make sure we turned off shuffle for the user
+            assert isinstance(dataloaders[0].sampler, SequentialSampler)
+
+            # make sure the loaders are the same
+            (xb, yb) = next(iter(dataloaders[0]))
+            assert torch.eq(xa, xb).all()
+            assert torch.eq(ya, yb).all()
+
         trainer = Trainer(overfit_batches=5)
         trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        assert loader_num_batches[0] == 5
+        loader_num_batches, _ = trainer._reset_eval_dataloader(split, model=model)
+        if split == RunningStage.VALIDATING:
+            assert loader_num_batches[0] == 0
+        else:
+            assert loader_num_batches[0] == len(test_loader)
 
         # ------------------------------------------------------
         # test limit_xxx_batches as percent AND int

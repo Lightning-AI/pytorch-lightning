@@ -637,8 +637,7 @@ class Trainer(
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
-            self.limit_test_batches = overfit_batches
+            self.limit_val_batches = 0
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
