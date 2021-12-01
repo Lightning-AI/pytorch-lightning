@@ -53,13 +53,10 @@ class PredictionLoop(DataLoaderLoop):
     @property
     def max_batches(self) -> List[int]:
         """The max number of batches this loop will run for each dataloader."""
-        max_batches = self.trainer.num_predict_batches
-        if isinstance(max_batches, int):
-            max_batches = [max_batches] * len(self.dataloaders)
-        return max_batches
+        return self.trainer.num_predict_batches
 
     @property
-    def dataloaders(self) -> Sequence[DataLoader]:
+    def dataloaders(self) -> Optional[Sequence[DataLoader]]:
         """Returns all prediction dataloaders."""
         return self.trainer.predict_dataloaders
 
