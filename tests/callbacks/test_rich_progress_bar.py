@@ -85,7 +85,7 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
 
 def test_rich_progress_bar_import_error():
     if not _RICH_AVAILABLE:
-        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` to be installed."):
+        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
             Trainer(callbacks=RichProgressBar())
 
 
