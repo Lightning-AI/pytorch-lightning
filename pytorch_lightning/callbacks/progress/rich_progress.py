@@ -226,6 +226,7 @@ class RichProgressBar(ProgressBarBase):
         self,
         refresh_rate: int = 1,
         leave: bool = False,
+        force_terminal: bool = True,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
     ) -> None:
         if not _RICH_AVAILABLE:
@@ -236,6 +237,7 @@ class RichProgressBar(ProgressBarBase):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
+        self._force_terminal: bool = force_terminal
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
@@ -281,7 +283,7 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            self._console: Console = Console()
+            self._console: Console = Console(force_terminal=self._force_terminal)
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(
@@ -324,7 +326,7 @@ class RichProgressBar(ProgressBarBase):
 
     def __setstate__(self, state):
         self.__dict__ = state
-        state["_console"] = Console()
+        state["_console"] = Console(force_terminal=self._force_terminal)
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
