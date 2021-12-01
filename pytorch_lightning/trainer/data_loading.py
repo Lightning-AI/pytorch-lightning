@@ -53,13 +53,13 @@ class TrainerDataLoadingMixin(ABC):
     limit_train_batches: Union[int, float]
     num_training_batches: int
     val_check_batch: float
-    val_dataloaders: Optional[List[DataLoader]]
+    val_dataloaders: List[DataLoader]
     limit_val_batches: Union[int, float]
     num_val_batches: List[int]
-    test_dataloaders: Optional[List[DataLoader]]
+    test_dataloaders: List[DataLoader]
     limit_test_batches: Union[int, float]
     num_test_batches: List[int]
-    predict_dataloaders: Optional[List[DataLoader]]
+    predict_dataloaders: List[DataLoader]
     limit_predict_batches: Union[int, float]
     num_predict_batches: List[int]
     log_every_n_steps: int

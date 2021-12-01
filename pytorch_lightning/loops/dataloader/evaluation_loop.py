@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -49,7 +49,7 @@ class EvaluationLoop(DataLoaderLoop):
         return length
 
     @property
-    def dataloaders(self) -> Optional[Sequence[DataLoader]]:
+    def dataloaders(self) -> Sequence[DataLoader]:
         """Returns the validation or test dataloaders."""
         dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         if dataloaders is None:

@@ -56,7 +56,7 @@ class PredictionLoop(DataLoaderLoop):
         return self.trainer.num_predict_batches
 
     @property
-    def dataloaders(self) -> Optional[Sequence[DataLoader]]:
+    def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders."""
         return self.trainer.predict_dataloaders
 
