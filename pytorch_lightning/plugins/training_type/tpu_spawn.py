@@ -299,18 +299,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_global_core_rank = xm.get_ordinal()
         rank_zero_only.rank = self.global_rank
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._clean_logger(trainer)
         return super().start_training(trainer)
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         self._clean_logger(trainer)
         return super().start_evaluating(trainer)
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         self._clean_logger(trainer)
         return super().start_predicting(trainer)
 

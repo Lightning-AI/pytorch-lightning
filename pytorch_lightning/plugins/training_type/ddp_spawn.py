@@ -139,12 +139,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         trainer.optimizers = []
         return results
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
         self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         return results
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         best_model_path, last_path, results, extra = self.spawn(self.new_process, trainer)
         self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         return results
