@@ -73,6 +73,7 @@ class RunIf:
         skip_49370: bool = False,
         skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
+        slow: bool = False,
         **kwargs,
     ):
         """
@@ -97,6 +98,7 @@ class RunIf:
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
+            slow: Mark the test as slow, our CI will run it in a separate job.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -194,6 +196,13 @@ class RunIf:
         if omegaconf:
             conditions.append(not _OMEGACONF_AVAILABLE)
             reasons.append("omegaconf")
+
+        if slow:
+            env_flag = os.getenv("PL_RUN_SLOW_TESTS", "0")
+            conditions.append(env_flag != "1")
+            reasons.append("Slow test")
+            # used in tests/conftest.py::pytest_collection_modifyitems
+            kwargs["slow"] = True
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
