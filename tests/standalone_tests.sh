@@ -12,11 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-# STANDALONE_PATTERN allows filtering the tests to run when debugging.
-# use as `STANDALONE_PATTERN="foo_bar" ./standalone_tests.sh` to run only those tests with `foo_bar` in their name.
-
 set -e
 
 # this environment variable allows special tests to run
@@ -33,9 +28,9 @@ files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  parametrizations=$(pytest $files --collect-only --quiet -k $STANDALONE_PATTERN | tail -r | sed -e '1,3d' | tail -r)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  parametrizations=$(pytest $files --collect-only --quiet -k $STANDALONE_PATTERN | head -n -2)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 parametrizations_arr=($parametrizations)
 
