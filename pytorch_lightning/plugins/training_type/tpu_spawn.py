@@ -29,7 +29,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import _ExtraQueue, DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
@@ -164,7 +164,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_ExtraQueue"]]:
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
@@ -204,7 +204,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __collect_rank_zero_results(
         self, trainer: "pl.Trainer", results: Any
-    ) -> Optional[Tuple[Optional[str], Optional[str], Any, _ExtraQueue]]:
+    ) -> Optional[Tuple[Optional[str], Optional[str], Any, _FakeQueue]]:
         rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -223,7 +223,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             return
 
         # adds the `callback_metrics` to the queue
-        extra = _ExtraQueue()
+        extra = _FakeQueue()
         if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
