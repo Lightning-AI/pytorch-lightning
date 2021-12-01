@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock, call, ANY
+from unittest.mock import ANY, call, Mock
 
 import pytest
 from torch.utils.data import DataLoader
