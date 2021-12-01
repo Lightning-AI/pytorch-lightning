@@ -149,7 +149,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.__recover_results_in_main_process(best_model_path, last_path, extra, trainer)
         return results
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
