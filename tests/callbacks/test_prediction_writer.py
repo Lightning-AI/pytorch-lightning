@@ -11,54 +11,67 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import Mock
 
 import pytest
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 
 
-def test_prediction_writer(tmpdir):
-    class CustomPredictionWriter(BasePredictionWriter):
-        def __init__(self, writer_interval: str):
-            super().__init__(writer_interval)
+class DummyPredictionWriter(BasePredictionWriter):
+    def write_on_batch_end(self, *args, **kwargs):
+        pass
 
-            self.write_on_batch_end_called = False
-            self.write_on_epoch_end_called = False
+    def write_on_epoch_end(self, *args, **kwargs):
+        pass
 
-        def write_on_batch_end(self, *args, **kwargs):
-            self.write_on_batch_end_called = True
 
-        def write_on_epoch_end(self, *args, **kwargs):
-            self.write_on_epoch_end_called = True
-
+def test_prediction_writer_invalid_write_interval():
     with pytest.raises(MisconfigurationException, match=r"`write_interval` should be one of \['batch"):
-        CustomPredictionWriter("something")
+        DummyPredictionWriter("something")
+
+
+def test_prediction_writer_hook_call_intervals(tmpdir):
+    DummyPredictionWriter.write_on_batch_end = Mock()
+    DummyPredictionWriter.write_on_epoch_end = Mock()
+
+    dataloader = DataLoader(RandomDataset(32, 64))
 
     model = BoringModel()
-    cb = CustomPredictionWriter("batch_and_epoch")
+    cb = DummyPredictionWriter("batch_and_epoch")
     trainer = Trainer(limit_predict_batches=4, callbacks=cb)
-    results = trainer.predict(model, dataloaders=model.train_dataloader())
+    results = trainer.predict(model, dataloaders=dataloader)
     assert len(results) == 4
-    assert cb.write_on_batch_end_called
-    assert cb.write_on_epoch_end_called
+    assert cb.write_on_batch_end.call_count == 4
+    assert cb.write_on_epoch_end.call_count == 1
 
-    cb = CustomPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
-    trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=False)
-    assert cb.write_on_batch_end_called
-    assert cb.write_on_epoch_end_called
+    DummyPredictionWriter.write_on_batch_end.reset_mock()
+    DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
-    cb = CustomPredictionWriter("batch")
+    cb = DummyPredictionWriter("batch_and_epoch")
     trainer = Trainer(limit_predict_batches=4, callbacks=cb)
-    trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=False)
-    assert cb.write_on_batch_end_called
-    assert not cb.write_on_epoch_end_called
+    trainer.predict(model, dataloaders=dataloader, return_predictions=False)
+    assert cb.write_on_batch_end.call_count == 4
+    assert cb.write_on_epoch_end.call_count == 1
 
-    cb = CustomPredictionWriter("epoch")
+    DummyPredictionWriter.write_on_batch_end.reset_mock()
+    DummyPredictionWriter.write_on_epoch_end.reset_mock()
+
+    cb = DummyPredictionWriter("batch")
     trainer = Trainer(limit_predict_batches=4, callbacks=cb)
-    trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=False)
-    assert not cb.write_on_batch_end_called
-    assert cb.write_on_epoch_end_called
+    trainer.predict(model, dataloaders=dataloader, return_predictions=False)
+    assert cb.write_on_batch_end.call_count == 4
+    assert cb.write_on_epoch_end.call_count == 0
+
+    DummyPredictionWriter.write_on_batch_end.reset_mock()
+    DummyPredictionWriter.write_on_epoch_end.reset_mock()
+
+    cb = DummyPredictionWriter("epoch")
+    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer.predict(model, dataloaders=dataloader, return_predictions=False)
+    assert cb.write_on_batch_end.call_count == 0
+    assert cb.write_on_epoch_end.call_count == 1
