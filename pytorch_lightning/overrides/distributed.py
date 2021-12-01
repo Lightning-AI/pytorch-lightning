@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterator, List, Optional, Sized, Union
+from typing import Any, cast, Iterator, List, Sized, Union
 
 import torch
 from torch import Tensor
