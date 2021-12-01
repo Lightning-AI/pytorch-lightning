@@ -60,9 +60,11 @@ class TensorRunningAccum:
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
 
-    def reset(self) -> None:
+    def reset(self, window_length: Optional[int] = None) -> None:
         """Empty the accumulator."""
-        self.__init__(self.window_length)
+        if window_length is None:
+            window_length = self.window_length
+        self.__init__(window_length)
 
     def last(self):
         """Get the last added element."""
