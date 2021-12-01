@@ -110,7 +110,8 @@ class TrainingTypePlugin(ABC):
         """Moves the state of the optimizers to the appropriate device if needed."""
         for opt in self.optimizers:
             for p, v in opt.state.items():
-                # `self.root_device` would raise error if called outside the spawn process while training on 8 and more cores.
+                # `self.root_device` would raise error if called outside the spawn process
+                # while training on 8 and more cores.
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
