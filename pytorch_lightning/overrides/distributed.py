@@ -124,11 +124,12 @@ class IndexBatchSamplerWrapper:
 
     def __init__(self, sampler: BatchSampler) -> None:
         self._sampler = sampler
-        self.batch_indices: Optional[List[int]] = None
+        self.batch_indices: List[int] = []
 
     def __iter__(self) -> Iterator[List[int]]:
+        self.batch_indices = []
         for batch in self._sampler:
-            self.batch_indices = batch
+            self.batch_indices.append(batch)
             yield batch
 
     def __len__(self) -> int:
