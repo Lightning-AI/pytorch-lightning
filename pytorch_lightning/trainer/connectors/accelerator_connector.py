@@ -584,7 +584,7 @@ class AcceleratorConnector:
     @property
     def root_gpu(self) -> Optional[int]:
         return (
-            self.accelerator.root_device.index
+            self.training_type_plugin.root_device.index
             if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
             else None
         )
@@ -1009,7 +1009,7 @@ class AcceleratorConnector:
         if (
             (not self.use_ddp and not self.use_ddp2)
             or not SLURMEnvironment.detect()
-            or os.environ.get("SLURM_JOB_NAME") == "bash"  # in interactive mode we don't manage tasks
+            or SLURMEnvironment.job_name() == "bash"  # in interactive mode we don't manage tasks
         ):
             return False
 

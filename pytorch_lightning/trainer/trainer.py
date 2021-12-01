@@ -38,7 +38,15 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PLUGIN_INPUT, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DDPSpawnPlugin,
+    NativeMixedPrecisionPlugin,
+    ParallelPlugin,
+    PLUGIN_INPUT,
+    PrecisionPlugin,
+    TrainingTypePlugin,
+)
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -67,6 +75,7 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
+    AMPType,
     device_parser,
     GradClipAlgorithmType,
     parsing,
@@ -1222,6 +1231,7 @@ class Trainer(
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
+        self.signal_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:
@@ -1645,7 +1655,7 @@ class Trainer(
 
     @property
     def optimizers(self) -> List[Optimizer]:
-        return self.accelerator.optimizers
+        return self.training_type_plugin.optimizers
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
@@ -1654,35 +1664,39 @@ class Trainer(
         # the `lightning_optimizers` trainer property
         self._lightning_optimizers = None
 
-        self.accelerator.optimizers = new_optims
+        self.training_type_plugin.optimizers = new_optims
 
     @property
     def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
-        return self.accelerator.lr_schedulers
+        return self.training_type_plugin.lr_schedulers
 
     @lr_schedulers.setter
     def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
-        self.accelerator.lr_schedulers = new_schedulers
+        self.training_type_plugin.lr_schedulers = new_schedulers
 
     @property
     def optimizer_frequencies(self) -> list:
-        return self.accelerator.optimizer_frequencies
+        return self.training_type_plugin.optimizer_frequencies
 
     @optimizer_frequencies.setter
     def optimizer_frequencies(self, new_freqs: list) -> None:
-        self.accelerator.optimizer_frequencies = new_freqs
+        self.training_type_plugin.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
+    def amp_backend(self) -> Optional[AMPType]:
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            return AMPType.APEX
+        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            return AMPType.NATIVE
+        return None
 
     @property
     def precision(self) -> Union[str, int]:
         return self.training_type_plugin.precision_plugin.precision
 
     @property
-    def scaler(self):
-        return self.accelerator.scaler
+    def scaler(self) -> Optional[Any]:
+        return getattr(self.precision_plugin, "scaler", None)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
