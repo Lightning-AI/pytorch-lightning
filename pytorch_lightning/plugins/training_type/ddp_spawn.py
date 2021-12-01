@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
-    rank_zero_info,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -272,7 +271,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
-        rank_zero_info("Transferring results back to main process ...")
+        rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
