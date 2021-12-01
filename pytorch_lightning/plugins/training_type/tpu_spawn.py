@@ -60,7 +60,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
-        **_: Any
+        **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
@@ -132,6 +132,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         """Moves the state of the optimizers to the TPU if needed."""
         # TODO: `self.root_device` would raise error if called outside the spawn process
         # while training on 8 and more cores.
+        if device:
+            raise ValueError(f"device should be None" f" found: {device}.")
         device = device or self.root_device
         for opt in self.optimizers:
             for p, v in opt.state.items():
