@@ -71,6 +71,7 @@ class RunIf:
         deepspeed: bool = False,
         rich: bool = False,
         skip_49370: bool = False,
+        skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
         **kwargs,
     ):
@@ -94,6 +95,7 @@ class RunIf:
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
+            skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
@@ -179,6 +181,15 @@ class RunIf:
             old_torch = Version(torch_version) < Version("1.8")
             conditions.append(ge_3_9 and old_torch)
             reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
+
+        if skip_hanging_spawn:
+            # strategy=ddp_spawn, accelerator=cpu, python>=3.8, torch<1.9 does not work
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            ge_3_8 = Version(py_version) >= Version("3.8")
+            torch_version = get_distribution("torch").version
+            old_torch = Version(torch_version) < Version("1.9")
+            conditions.append(ge_3_8 and old_torch)
+            reasons.append("Impacted by hanging DDP spawn")
 
         if omegaconf:
             conditions.append(not _OMEGACONF_AVAILABLE)
