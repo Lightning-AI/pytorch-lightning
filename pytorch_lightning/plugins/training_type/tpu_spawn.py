@@ -303,7 +303,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
+        self._clean_logger(trainer)
         return super().start_training(trainer)
+
+    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
+        return super().start_evaluating(trainer)
+
+    def start_predicting(self, trainer: "pl.Trainer") -> None:
+        self._clean_logger(trainer)
+        return super().start_predicting(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -380,3 +389,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+
+    @staticmethod
+    def _clean_logger(trainer: "pl.Trainer") -> None:
+        loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+        for logger in loggers:
+            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
+                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
+                # we want to make sure these are closed before we spawn our own threads.
+                # assuming nothing else references the experiment object, python should instantly `__del__` it.
+                logger._experiment = None
