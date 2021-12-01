@@ -509,8 +509,7 @@ def test_v1_7_0_cluster_environment_master_port(cls):
         (TorchElasticEnvironment, "is_using_torchelastic"),
     ],
 )
-@mock.patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
-def test_v1_7_0_cluster_environment_detection(cls, method_name):
+def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
     class MyClusterEnvironment(cls):
         @staticmethod
         def is_using_kubeflow():
@@ -523,8 +522,19 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name):
         @staticmethod
         def is_using_torchelastic():
             pass
-
-    with pytest.deprecated_call(
-        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
-    ):
-        MyClusterEnvironment()
+    hosts = "batch\n10.10.10.0\n10.10.10.1\n10.10.10.2\n10.10.10.3"
+    p = tmp_path / "lsb_djob_rankfile"
+    p.write_text(hosts)
+    environ = {
+        "LSB_DJOB_RANKFILE": str(p),
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "4",
+        "JSM_NAMESPACE_RANK": "3",
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+    }
+    with mock.patch.dict(os.environ, environ):
+        with mock.patch("socket.gethostname", return_value="10.10.10.2"):
+            with pytest.deprecated_call(
+                match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
+            ):
+                MyClusterEnvironment()

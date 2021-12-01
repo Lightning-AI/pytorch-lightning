@@ -17,6 +17,7 @@ import socket
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class LSFEnvironment(ClusterEnvironment):
@@ -44,6 +45,13 @@ class LSFEnvironment(ClusterEnvironment):
     """
 
     def __init__(self):
+        super().__init__()
+        # TODO: remove in 1.7
+        if hasattr(self, "is_using_lsf") and callable(self.is_using_lsf):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.is_using_lsf` has been deprecated in v1.6 and will be removed in v1.7."
+                " Implement the static method `detect()` instead (do not forget to add the `@staticmethod` decorator)."
+            )
         self._main_address = self._get_main_address()
         self._main_port = self._get_main_port()
         self._local_rank = self._get_local_rank()
