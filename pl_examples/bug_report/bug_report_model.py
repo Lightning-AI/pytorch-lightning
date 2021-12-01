@@ -4,7 +4,6 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import BasePredictionWriter
 
 
 class RandomDataset(Dataset):
@@ -27,33 +26,40 @@ class BoringModel(LightningModule):
     def forward(self, x):
         return self.layer(x)
 
-    def predict_step(self, batch, batch_idx):
-        return self(batch)
+    def training_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("train_loss", loss)
+        return {"loss": loss}
+
+    def validation_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("valid_loss", loss)
+
+    def test_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
-class Writer(BasePredictionWriter):
-    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx):
-        pass
-
-    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
-        print(batch_indices[0])
-
-
 def run():
-    predict_data = DataLoader(RandomDataset(32, 16), batch_size=4, num_workers=2)
+    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        num_sanity_val_steps=0,
         max_epochs=1,
         enable_model_summary=False,
-        enable_progress_bar=False,
-        callbacks=[Writer(write_interval="epoch")],
     )
-    trainer.predict(model, predict_data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
 
 
 if __name__ == "__main__":
