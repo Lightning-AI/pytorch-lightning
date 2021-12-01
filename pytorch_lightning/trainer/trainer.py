@@ -1264,6 +1264,7 @@ class Trainer(
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
+        self.signal_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:

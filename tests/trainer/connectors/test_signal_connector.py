@@ -20,18 +20,32 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_handlers_restored_in_teardown():
+    """Test that the SignalConnector restores the previously configured handler on teardown."""
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+
+    trainer = Trainer(plugins=SLURMEnvironment())
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    assert signal.getsignal(signal.SIGUSR1) is not signal.SIG_DFL
+    connector.teardown()
+    assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
+
+
 @pytest.mark.parametrize("register_handler", [False, True])
 @pytest.mark.parametrize("terminate_gracefully", [False, True])
-@RunIf(min_torch="1.7.0", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
-
-    # hack to reset the signal
-    signal.signal(signal.SIGUSR1, 0)
 
     if register_handler:
 
