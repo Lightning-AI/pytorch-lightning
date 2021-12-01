@@ -15,9 +15,9 @@ import pytest
 import torch
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
 
+from legacy.simple_classif_training import ClassifDataModule, ClassificationModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import RunningStage
-from tests.base.model_template import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
@@ -70,32 +70,32 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # Make sure shuffle is correct across loaders initially
     # ------------------------------------------------------
-    model = EvalModelTemplate()
-    model.train_dataloader()
+    model = ClassificationModel()
+    dm = ClassifDataModule()
 
     # original train loader which should be replaced in all methods
-    train_loader = model.train_dataloader()
+    train_loader = dm.train_dataloader()
 
     # make sure the val and tests are not shuffled
     assert isinstance(train_loader.sampler, RandomSampler)
-    assert isinstance(model.val_dataloader().sampler, SequentialSampler)
-    assert isinstance(model.test_dataloader().sampler, SequentialSampler)
+    assert isinstance(dm.val_dataloader().sampler, SequentialSampler)
+    assert isinstance(dm.test_dataloader().sampler, SequentialSampler)
 
     # ------------------------------------------------------
     # get the training loader and batch
     # ------------------------------------------------------
     # Create a reference train dataloader without shuffling.
-    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
+    train_loader = DataLoader(dm.train_dataloader().dataset, shuffle=False)
     (xa, ya) = next(iter(train_loader))
-    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=True)
+    train_loader = DataLoader(dm.train_dataloader().dataset, shuffle=True)
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
 
     # ------------------------------------------------------
     # set VAL and Test loaders
     # ------------------------------------------------------
-    val_loader = DataLoader(model.val_dataloader().dataset, shuffle=False)
-    test_loader = DataLoader(model.test_dataloader().dataset, shuffle=False)
+    val_loader = DataLoader(dm.val_dataloader().dataset, shuffle=False)
+    test_loader = DataLoader(dm.test_dataloader().dataset, shuffle=False)
 
     # set the model loaders
     model.train_dataloader = lambda: train_loader
@@ -165,27 +165,3 @@ def test_overfit_batch_limits(tmpdir):
             assert loader_num_batches[0] == 0
         else:
             assert loader_num_batches[0] == len(test_loader)
-
-        # ------------------------------------------------------
-        # test limit_xxx_batches as percent AND int
-        # ------------------------------------------------------
-        if split == RunningStage.VALIDATING:
-            trainer = Trainer(limit_val_batches=0.1)
-            trainer._data_connector.attach_dataloaders(model)
-            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-            assert loader_num_batches[0] == int(0.1 * len(val_loader))
-
-            trainer = Trainer(limit_val_batches=10)
-            trainer._data_connector.attach_dataloaders(model)
-            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-            assert loader_num_batches[0] == 10
-        else:
-            trainer = Trainer(limit_test_batches=0.1)
-            trainer._data_connector.attach_dataloaders(model)
-            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-            assert loader_num_batches[0] == int(0.1 * len(test_loader))
-
-            trainer = Trainer(limit_test_batches=10)
-            trainer._data_connector.attach_dataloaders(model)
-            loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-            assert loader_num_batches[0] == 10
