@@ -278,23 +278,25 @@ class DDPSpawnPlugin(ParallelPlugin):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.global_rank == 0:
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        if self.global_rank != 0:
+            return
 
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(last_path)
-            self.mp_queue.put(results)
-            # adds the `callback_metrics` to the queue
-            # TODO: Remove the if in v1.7
-            if is_overridden("add_to_queue", self.lightning_module):
-                self.lightning_module.add_to_queue(self.mp_queue)
-            else:
-                self.add_to_queue(trainer, self.mp_queue)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
+
+        # todo, pass complete checkpoint as state dictionary
+        self.mp_queue.put(best_model_path)
+        self.mp_queue.put(last_path)
+        self.mp_queue.put(results)
+        # adds the `callback_metrics` to the queue
+        # TODO: Remove the if in v1.7
+        if is_overridden("add_to_queue", self.lightning_module):
+            self.lightning_module.add_to_queue(self.mp_queue)
+        else:
+            self.add_to_queue(trainer, self.mp_queue)
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
