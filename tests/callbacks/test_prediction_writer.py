@@ -80,7 +80,7 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
     assert cb.write_on_epoch_end.call_count == 1
 
 
-@pytest.mark.parametrize("num_workers", [0, 2])  # TODO: configure slow CI for num_workers=2
+@pytest.mark.parametrize("num_workers", [0, 2])  # TODO: configure slow CI for num_workers > 0
 def test_prediction_writer_batch_indices(tmpdir, num_workers):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
@@ -100,8 +100,8 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
         ]
     )
 
-    # writer.write_on_epoch_end.assert_has_calls(
-    #     [
-    #         call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
-    #     ]
-    # )
+    writer.write_on_epoch_end.assert_has_calls(
+        [
+            call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
+        ]
+    )
