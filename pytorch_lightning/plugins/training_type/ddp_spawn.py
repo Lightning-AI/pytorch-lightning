@@ -15,7 +15,7 @@ import logging
 import os
 import re
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union, NamedTuple
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
 
 import numpy as np
 import torch
@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT, _PATH
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
