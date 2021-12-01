@@ -14,7 +14,6 @@
 import multiprocessing
 import os
 from abc import ABC
-from copy import deepcopy
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -293,28 +292,14 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        # when overfitting, use the training loader as val and test
-        # duplicate it the numb of times needed to match the train loaders
-        if self.overfit_batches > 0:
-            train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
-            dataloaders = [deepcopy(train_dataloader) for _ in range(len(dataloaders))]
-
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
             if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
-                # when overfitting, the dataloader should not have sampler
-                if self.overfit_batches > 0 and mode.evaluating:
-                    rank_zero_warn(
-                        "You requested to overfit but enabled val/test dataloader shuffling."
-                        " We are turning it off for you."
-                    )
-                    dataloaders[loader_i] = _update_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
-                else:
-                    rank_zero_warn(
-                        f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                        "it is strongly recommended that you turn this off for val/test/predict dataloaders."
-                    )
+                rank_zero_warn(
+                    f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
+                    "it is strongly recommended that you turn this off for val/test/predict dataloaders."
+                )
 
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")

@@ -335,3 +335,19 @@ def test_pre_made_batches():
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
+
+
+@RunIf(skip_windows=True)
+def test_distributed_sampler_with_overfit_batches(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        overfit_batches=1,
+        fast_dev_run=1,
+        strategy="ddp_find_unused_parameters_false",
+        num_processes=1,
+    )
+    trainer.fit(model)
+    train_sampler = trainer.train_dataloader.loaders.sampler
+    assert isinstance(train_sampler, DistributedSampler)
+    assert train_sampler.shuffle is False
