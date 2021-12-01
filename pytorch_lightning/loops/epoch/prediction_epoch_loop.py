@@ -23,10 +23,10 @@ class PredictionEpochLoop(Loop):
         self.current_batch_indices: List[int] = []
         self.batch_progress = Progress()
 
-        self._dataloader_idx = 0
         self._dl_max_batches = 0
         self._num_dataloaders = 0
         self._warning_cache = WarningCache()
+        self._all_batch_indices: List[List[int]] = []
 
     @property
     def done(self) -> bool:
@@ -65,9 +65,9 @@ class PredictionEpochLoop(Loop):
             return_predictions: whether to return the obtained predictions
         """
         void(dataloader_iter, dataloader_idx)
-        self._dataloader_idx = dataloader_idx
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
+        self._all_batch_indices = self._get_batch_indices(dataloader_idx)
         self.return_predictions = return_predictions
 
     def advance(  # type: ignore[override]
@@ -99,10 +99,10 @@ class PredictionEpochLoop(Loop):
         with self.trainer.profiler.profile("predict_step"):
             self._predict_step(batch, batch_idx, dataloader_idx)
 
-    def on_run_end(self) -> Tuple[List[Any], List[int]]:
+    def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
-        predictions, self.predictions = self.predictions, []  # free memory
-        all_batch_indices = self._get_batch_indices(self._dataloader_idx)
+        predictions, all_batch_indices = self.predictions, self._all_batch_indices
+        self.predictions, self._all_batch_indices = [], []  # free memory
         return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -116,10 +116,9 @@ class PredictionEpochLoop(Loop):
         """
         # configure step_kwargs
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
-
-        # extract batch_indices and store them
-
         model_ref = self.trainer.lightning_module
+
+        self.current_batch_indices = self._all_batch_indices[batch_idx] if self._all_batch_indices else []
 
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
@@ -156,12 +155,12 @@ class PredictionEpochLoop(Loop):
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
-    def _get_batch_indices(self, dataloader_idx: int) -> List[int]:
+    def _get_batch_indices(self, dataloader_idx: int) -> List[List[int]]:
         """Returns all the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
-            return batch_sampler.batch_indices
+            return batch_sampler.all_batch_indices
 
         warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
         return []
