@@ -124,7 +124,7 @@ class IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
     def __init__(self, sampler: BatchSampler) -> None:
-        self.all_batch_indices: List[List[int]] = []
+        self.seen_batch_indices: List[List[int]] = []
         self._sampler = sampler
         self._batch_indices: List[int] = []
 
@@ -132,7 +132,7 @@ class IndexBatchSamplerWrapper:
     def batch_indices(self) -> List[int]:
         rank_zero_deprecation(
             "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.6 and will be removed in v1.8."
-            " Access the full list `all_batch_indices` instead."
+            " Access the full list `seen_batch_indices` instead."
         )
         return self._batch_indices
 
@@ -140,15 +140,15 @@ class IndexBatchSamplerWrapper:
     def batch_indices(self, indices: List[int]) -> None:
         rank_zero_deprecation(
             "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.6 and will be removed in v1.8."
-            " Access the full list `all_batch_indices` instead."
+            " Access the full list `seen_batch_indices` instead."
         )
         self._batch_indices = indices
 
     def __iter__(self) -> Iterator[List[int]]:
-        self.all_batch_indices = []
+        self.seen_batch_indices = []
         for batch in self._sampler:
             self._batch_indices = batch
-            self.all_batch_indices.append(batch)
+            self.seen_batch_indices.append(batch)
             yield batch
 
     def __len__(self) -> int:
