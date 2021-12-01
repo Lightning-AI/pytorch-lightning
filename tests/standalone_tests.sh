@@ -28,9 +28,9 @@ files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  parametrizations=$(pytest $files --collect-only --quiet | tail -r | sed -e '1,3d' | tail -r)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  parametrizations=$(pytest $files --collect-only --quiet | head -n -2)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 parametrizations_arr=($parametrizations)
 
@@ -43,14 +43,6 @@ for i in "${!parametrizations_arr[@]}"; do
 
   # check blocklist
   if echo $blocklist | grep -F "${parametrization}"; then
-    report+="Skipped\t$parametrization\n"
-    continue
-  fi
-
-  # STANDALONE_PATTERN allows filtering the tests to run when debugging.
-  # use as `STANDALONE_PATTERN="foo_bar" ./standalone_tests.sh` to run only those
-  # test with `foo_bar` in their name
-  if [[ $parametrization != *STANDALONE_PATTERN* ]]; then
     report+="Skipped\t$parametrization\n"
     continue
   fi
