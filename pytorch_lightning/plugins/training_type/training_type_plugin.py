@@ -421,13 +421,15 @@ class TrainingTypePlugin(ABC):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to.
 
-        Returns: Model parallel context.
+        shard the model instantly - useful for extremely large models. Can save memory and
+        initialization time.
+        Returns:
+            Model parallel context.
         """
-        yield
+        with self.training_type_plugin.model_sharded_context():
+            yield
 
     @abstractmethod
     def teardown(self) -> None:
