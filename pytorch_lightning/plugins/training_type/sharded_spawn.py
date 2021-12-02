@@ -114,12 +114,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, _FakeQueue]]:
+    def pre_dispatch(self) -> None:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
         if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
             self._precision_plugin.scaler = ShardedGradScaler()
-        return super().new_process(trainer)
+        return super().pre_dispatch()
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
