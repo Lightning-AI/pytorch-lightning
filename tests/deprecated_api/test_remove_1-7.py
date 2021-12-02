@@ -534,8 +534,8 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name):
 
 def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
     sampler = IndexBatchSamplerWrapper(Mock())
-    with pytest.deprecated_call(match="was deprecated in v1.5.5 and will be removed in v1.7"):
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         _ = sampler.batch_indices
 
-    with pytest.deprecated_call(match="was deprecated in v1.5.5 and will be removed in v1.7"):
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         sampler.batch_indices = []

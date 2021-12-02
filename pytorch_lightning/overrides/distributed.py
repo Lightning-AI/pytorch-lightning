@@ -131,7 +131,7 @@ class IndexBatchSamplerWrapper:
     @property
     def batch_indices(self) -> List[int]:
         rank_zero_deprecation(
-            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5.5 and will be removed in"
+            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5 and will be removed in"
             " v1.7. Access the full list `seen_batch_indices` instead."
         )
         return self._batch_indices
@@ -139,7 +139,7 @@ class IndexBatchSamplerWrapper:
     @batch_indices.setter
     def batch_indices(self, indices: List[int]) -> None:
         rank_zero_deprecation(
-            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5.5 and will be removed in"
+            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5 and will be removed in"
             " v1.7. Access the full list `seen_batch_indices` instead."
         )
         self._batch_indices = indices
