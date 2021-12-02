@@ -182,7 +182,7 @@ Activation checkpointing frees activations from memory as soon as they are not n
 
 FairScales' checkpointing wrapper also handles batch norm layers correctly unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
 
-This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/checkpoint/checkpoint_activations.html>`__ for more information.
+This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See :class:`here <fairscale.nn.checkpoint.checkpoint_wrapper>` for more information.
 
 .. warning::
 
