@@ -338,12 +338,10 @@ def test_pre_made_batches():
 
 
 @RunIf(skip_windows=True)
-def test_distributed_sampler_with_overfit_batches(tmpdir):
+def test_distributed_sampler_with_overfit_batches():
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
         overfit_batches=1,
-        fast_dev_run=1,
         strategy="ddp_spawn",
         num_processes=2,
     )
