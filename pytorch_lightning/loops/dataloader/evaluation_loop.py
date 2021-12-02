@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Sequence
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -32,7 +32,8 @@ class EvaluationLoop(DataLoaderLoop):
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
-        self._max_batches: Optional[Union[int, Sequence[int]]] = None
+        self._outputs: List[EPOCH_OUTPUT] = []
+        self._max_batches: List[int] = []
         self._has_run: bool = False
 
     @property
@@ -147,7 +148,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[Union[int, float]]:
+    def _get_max_batches(self) -> List[int]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches

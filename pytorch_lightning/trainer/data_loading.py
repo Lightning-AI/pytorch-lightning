@@ -52,13 +52,18 @@ class TrainerDataLoadingMixin(ABC):
     val_check_interval: float
     tpu_local_core_rank: int
     train_dataloader: DataLoader
-    num_training_batches: Union[int, float]
-    val_check_batch: float
-    val_dataloaders: Optional[List[DataLoader]]
-    num_val_batches: List[Union[int, float]]
-    test_dataloaders: Optional[List[DataLoader]]
-    num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    num_training_batches: int
+    val_check_batch: float
+    val_dataloaders: List[DataLoader]
+    limit_val_batches: Union[int, float]
+    num_val_batches: List[int]
+    test_dataloaders: List[DataLoader]
+    limit_test_batches: Union[int, float]
+    num_test_batches: List[int]
+    predict_dataloaders: List[DataLoader]
+    limit_predict_batches: Union[int, float]
+    num_predict_batches: List[int]
     log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
