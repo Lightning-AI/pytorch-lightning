@@ -1145,9 +1145,9 @@ class Trainer(
                                 |                             ||
                         create accelerator                    ||
                                 |                             ||  LIGHTNING
-                                |                             ||  
+                                |                             ||
                          {self.run_stage}                     ||  FLOW
-                                |                             ||  
+                                |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
@@ -1246,7 +1246,9 @@ class Trainer(
             self.logger.save()
 
     def _teardown(self):
-        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and Callback.
+        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
+        Callback.
+
         Those are handled by :meth:`_call_teardown_hook`.
         """
         self.training_type_plugin.teardown()
