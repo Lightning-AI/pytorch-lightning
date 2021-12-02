@@ -34,7 +34,7 @@ from tests.helpers.runif import RunIf
 
 
 def test_fit_train_loader_only(tmpdir):
-    model = EvalModelTemplate()
+    model = BoringModel()
     train_dataloader = model.train_dataloader()
 
     model.train_dataloader = None
@@ -52,7 +52,7 @@ def test_fit_train_loader_only(tmpdir):
 
 
 def test_fit_val_loader_only(tmpdir):
-    model = EvalModelTemplate()
+    model = BoringModel()
     train_dataloader = model.train_dataloader()
     val_dataloader = model.val_dataloader()
 
@@ -69,7 +69,7 @@ def test_fit_val_loader_only(tmpdir):
 
 @pytest.mark.parametrize("dataloader_options", [dict(val_check_interval=10000)])
 def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
     with pytest.raises(ValueError):
         # fit model
@@ -162,10 +162,13 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit."""
 
     # only train passed to fit
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
-    fit_options = dict(train_dataloaders=model.dataloader(train=True))
+    model = BoringModel()
+    train_loader = model.train_dataloader()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    fit_options = dict(train_dataloaders=train_loader)
     trainer.fit(model, **fit_options)
+    assert trainer.num_training_batches == 2
+    assert trainer.train_dataloader.loaders == train_loader
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -934,7 +937,7 @@ class DistribSamplerCallback(Callback):
 def test_dataloader_distributed_sampler(tmpdir):
     """Test DistributedSampler and it's arguments for DDP backend."""
     seed_everything(123)
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
@@ -947,7 +950,7 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer.test(model)
 
 
-class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
+class ModelWithDataLoaderDistributedSampler(BoringModel):
     def train_dataloader(self):
         dataloader = super().train_dataloader()
         dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True, seed=11)
