@@ -32,7 +32,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         self._results = ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
-        self._max_batches: List[Union[int, float]] = []
+        self._max_batches: List[int] = []
         self._has_run: bool = False
 
     @property
@@ -141,7 +141,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[Union[int, float]]:
+    def _get_max_batches(self) -> List[int]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
