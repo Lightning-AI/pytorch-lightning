@@ -390,6 +390,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         )
 
     def teardown(self) -> None:
+        super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 

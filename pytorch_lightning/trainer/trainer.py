@@ -1161,7 +1161,7 @@ class Trainer(
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
         results = self._dispatch()
 
-        self._post_dispatch()
+        self._teardown()
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -1222,10 +1222,12 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def _post_dispatch(self):
-        self.accelerator.post_dispatch(self)
-        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
-        # which need to happen before.
+    def _teardown(self):
+        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and Callback.
+        Those are handled by :meth:`_call_teardown_hook`.
+        """
+        self.training_type_plugin.teardown()
+        # TODO: once accelerator is part of TTP, call teardown in TTP's teardown() method
         self.accelerator.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()

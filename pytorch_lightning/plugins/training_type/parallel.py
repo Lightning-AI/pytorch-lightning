@@ -132,3 +132,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
+
+    def teardown(self) -> None:
+        super().teardown()
+        self.cluster_environment.teardown()

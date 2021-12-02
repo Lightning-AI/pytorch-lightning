@@ -368,7 +368,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return xm.all_gather(tensor)
 
     def teardown(self) -> None:
-        # TPU teardown
+        super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)
         self.barrier("teardown")
 

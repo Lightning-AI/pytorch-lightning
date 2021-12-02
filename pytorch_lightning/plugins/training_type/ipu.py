@@ -272,6 +272,7 @@ class IPUPlugin(ParallelPlugin):
         return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
+        super().teardown()
         # undo dataloader patching
         pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
 
