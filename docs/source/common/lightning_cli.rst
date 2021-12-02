@@ -822,42 +822,20 @@ Furthermore, you can register your own optimizers and/or learning rate scheduler
 
     $ python trainer.py fit --optimizer=CustomAdam --optimizer.lr=0.01 --lr_scheduler=CustomCosineAnnealingLR
 
-If you need to customize the key names or link arguments together, you can choose from all available optimizers and
-learning rate schedulers by accessing the registries.
+The :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler requires an additional monitor argument:
 
-.. code-block::
+.. code-block:: bash
+
+    $ python trainer.py fit --optimizer=Adam --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=metric_to_track
+
+If you need to customize the learning rate scheduler configuration, you can do so by overriding
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.configure_optimizers`:
+
+.. testcode::
 
     class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(
-                OPTIMIZER_REGISTRY.classes,
-                nested_key="gen_optimizer",
-                link_to="model.optimizer1_init"
-            )
-            parser.add_optimizer_args(
-                OPTIMIZER_REGISTRY.classes,
-                nested_key="gen_discriminator",
-                link_to="model.optimizer2_init"
-            )
-
-.. code-block:: bash
-
-    $ python trainer.py fit \
-        --gen_optimizer=Adam \
-        --gen_optimizer.lr=0.01 \
-        --gen_discriminator=AdamW \
-        --gen_discriminator.lr=0.0001
-
-You can also use pass the class path directly, for example, if the optimizer hasn't been registered to the
-``OPTIMIZER_REGISTRY``:
-
-.. code-block:: bash
-
-    $ python trainer.py fit \
-        --gen_optimizer.class_path=torch.optim.Adam \
-        --gen_optimizer.init_args.lr=0.01 \
-        --gen_discriminator.class_path=torch.optim.AdamW \
-        --gen_discriminator.init_args.lr=0.0001
+        def configure_optimizers(lightning_module, optimizer, lr_scheduler=None):
+            return ...
 
 If you will not be changing the class, you can manually add the arguments for specific optimizers and/or
 learning rate schedulers by subclassing the CLI. This has the advantage of providing the proper help message for those
@@ -892,44 +870,63 @@ Where the arguments can be passed directly through command line without specifyi
     $ python trainer.py fit --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
 
 The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
-example can be :code:`ReduceLROnPlateau` which requires to specify a monitor. This would be:
+example can be when one wants to add support for multiple optimizers:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.utilities.cli import instantiate_class
 
 
     class MyModel(LightningModule):
-        def __init__(self, optimizer_init: dict, lr_scheduler_init: dict):
+        def __init__(self, optimizer1_init: dict, optimizer2_init: dict):
             super().__init__()
-            self.optimizer_init = optimizer_init
-            self.lr_scheduler_init = lr_scheduler_init
+            self.optimizer1_init = optimizer1_init
+            self.optimizer2_init = optimizer2_init
 
         def configure_optimizers(self):
-            optimizer = instantiate_class(self.parameters(), self.optimizer_init)
-            scheduler = instantiate_class(optimizer, self.lr_scheduler_init)
-            return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}
+            optimizer1 = instantiate_class(self.parameters(), self.optimizer1_init)
+            optimizer2 = instantiate_class(self.parameters(), self.optimizer2_init)
+            return [optimizer1, optimizer2]
 
 
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
-                torch.optim.Adam,
-                link_to="model.optimizer_init",
+                OPTIMIZER_REGISTRY.classes, nested_key="gen_optimizer", link_to="model.optimizer1_init"
             )
-            parser.add_lr_scheduler_args(
-                torch.optim.lr_scheduler.ReduceLROnPlateau,
-                link_to="model.lr_scheduler_init",
+            parser.add_optimizer_args(
+                OPTIMIZER_REGISTRY.classes, nested_key="gen_discriminator", link_to="model.optimizer2_init"
             )
 
 
     cli = MyLightningCLI(MyModel)
 
-The value given to :code:`optimizer_init` will always be a dictionary including :code:`class_path` and
+The value given to :code:`optimizer*_init` will always be a dictionary including :code:`class_path` and
 :code:`init_args` entries. The function :func:`~pytorch_lightning.utilities.cli.instantiate_class`
 takes care of importing the class defined in :code:`class_path` and instantiating it using some positional arguments,
 in this case :code:`self.parameters()`, and the :code:`init_args`.
 Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
+
+With shorthand notation:
+
+.. code-block:: bash
+
+    $ python trainer.py fit \
+        --gen_optimizer=Adam \
+        --gen_optimizer.lr=0.01 \
+        --gen_discriminator=AdamW \
+        --gen_discriminator.lr=0.0001
+
+You can also pass the class path directly, for example, if the optimizer hasn't been registered to the
+``OPTIMIZER_REGISTRY``:
+
+.. code-block:: bash
+
+    $ python trainer.py fit \
+        --gen_optimizer.class_path=torch.optim.Adam \
+        --gen_optimizer.init_args.lr=0.01 \
+        --gen_discriminator.class_path=torch.optim.AdamW \
+        --gen_discriminator.init_args.lr=0.0001
 
 
 Notes related to reproducibility

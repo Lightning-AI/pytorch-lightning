@@ -201,9 +201,6 @@ class PrecisionPlugin(CheckpointHooks):
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
-    def pre_dispatch(self) -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something when ``Accelerator.dispatch()`` gets called."""
 

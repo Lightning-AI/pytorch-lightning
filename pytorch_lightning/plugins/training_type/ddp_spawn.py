@@ -146,25 +146,23 @@ class DDPSpawnPlugin(ParallelPlugin):
         return {"nprocs": self.num_processes}
 
     def start_training(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+        self.spawn(self.new_process, trainer, self.mp_queue)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
     def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
     def start_predicting(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+        self.spawn(self.new_process, trainer, self.mp_queue)
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
         """Spawn processes that run the given function.
 
         Args:
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
-            return_result: If ``True``, copies the output of the function from process 0 to the main process and
-                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
 
@@ -173,16 +171,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
-        return_queue = context.SimpleQueue() if return_result else None
+        return_queue = context.SimpleQueue()
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
-        return return_queue.get() if return_result else None
+        return return_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if return_queue is not None and self.local_rank == 0:
+        if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
@@ -271,31 +269,32 @@ class DDPSpawnPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+        rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.global_rank == 0 and self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+        if self.global_rank != 0:
+            return
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(last_path)
-            self.mp_queue.put(results)
-            # adds the `callback_metrics` to the queue
-            # TODO: Remove the if in v1.7
-            if is_overridden("add_to_queue", self.lightning_module):
-                self.lightning_module.add_to_queue(self.mp_queue)
-            else:
-                self.add_to_queue(trainer, self.mp_queue)
+        # todo, pass complete checkpoint as state dictionary
+        self.mp_queue.put(best_model_path)
+        self.mp_queue.put(last_path)
+        self.mp_queue.put(results)
+        # adds the `callback_metrics` to the queue
+        # TODO: Remove the if in v1.7
+        if is_overridden("add_to_queue", self.lightning_module):
+            self.lightning_module.add_to_queue(self.mp_queue)
+        else:
+            self.add_to_queue(trainer, self.mp_queue)
 
     def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
