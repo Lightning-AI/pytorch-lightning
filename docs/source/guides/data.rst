@@ -372,7 +372,7 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
 
 .. code-block:: python
 
-    def test_step(batch, batch_idx, dataloader_idx):
+    def test_step(self, batch, batch_idx, dataloader_idx):
         test_dl = self.trainer.test_dataloaders[dataloader_idx]
         test_dataset = test_dl.dataset
         # extract metadata, etc. from the dataset:
