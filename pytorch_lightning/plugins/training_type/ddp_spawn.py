@@ -14,6 +14,7 @@
 import logging
 import os
 import re
+from collections import UserList
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
 
@@ -378,7 +379,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             torch.cuda.empty_cache()
 
 
-class _FakeQueue(list):
+class _FakeQueue(UserList):
     """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
 
     def get(self) -> Any:
