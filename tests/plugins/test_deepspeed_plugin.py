@@ -381,7 +381,9 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
         precision=16,
         gpus=1,
     )
-    with mock.patch("deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure) as deepspeed_checkpointing_configure:
+    with mock.patch(
+        "deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure
+    ) as deepspeed_checkpointing_configure:
         trainer.fit(model)
 
     deepspeed_checkpointing_configure.assert_called_with(
