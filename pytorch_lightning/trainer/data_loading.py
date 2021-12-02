@@ -298,7 +298,8 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
                 rank_zero_warn(
                     f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                    "it is strongly recommended that you turn this off for val/test/predict dataloaders."
+                    " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                    category=PossibleUserWarning,
                 )
 
         if any(dl is None for dl in dataloaders):
