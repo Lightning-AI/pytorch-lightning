@@ -78,8 +78,6 @@ class Accelerator:
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.training_type_plugin.setup_optimizers(trainer)
 
-        self.training_type_plugin.precision_plugin.pre_dispatch()
-
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
