@@ -24,6 +24,7 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterabl
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 
+
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
@@ -359,6 +360,32 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["cpu_checkpointing"]
     assert checkpoint_config["contiguous_memory_optimization"]
     assert checkpoint_config["synchronize_checkpoint_boundary"]
+
+
+@RunIf(min_gpus=1, deepspeed=True)
+@mock.patch("deepspeed.checkpointing.configure", autospec=True, wraps=deepspeed.checkpointing.configure)
+def test_deepspeed_custom_activation_checkpointing_params_forwarded(deepspeed_checkpointing_configure, tmpdir):
+    """Ensure if we modify the activation checkpointing parameters, we pass these
+    to deepspeed.checkpointing.configure correctly."""
+    ds = DeepSpeedPlugin(
+        partition_activations=True,
+        cpu_checkpointing=True,
+        contiguous_memory_optimization=True,
+        synchronize_checkpoint_boundary=True,
+    )
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        strategy=ds,
+        precision=16,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+    deepspeed_checkpointing_configure.assert_called_with(mpu_=None, partition_activations=True, contiguous_checkpointing=True, checkpoint_in_cpu=True, profile=None)
 
 
 @RunIf(min_gpus=1, deepspeed=True)
