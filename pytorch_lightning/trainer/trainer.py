@@ -1445,20 +1445,23 @@ class Trainer(
         **kwargs: Any,
     ):
         pl_module = pl_module or self.lightning_module
+
+        assert pl_module is not None, "No lightning module is available to call hooks on"
+
+        fn = getattr(pl_module, hook_name)
+        assert callable(fn), "Hook is not callable"
+
         output = None
 
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = hook_name
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
 
-            fn = getattr(pl_module, hook_name)
-            if callable(fn):
-                # TODO: when profiling separate hook name by LM hooks/Callback hooks
-                with self.profiler.profile(hook_name):
-                    output = fn(*args, **kwargs)
+        # TODO: when profiling separate hook name by hook object name (e.g. Callback, LM)
+        with self.profiler.profile(hook_name):
+            output = fn(*args, **kwargs)
 
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
@@ -1475,25 +1478,25 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove code in if statement in v1.7
+        # TODO: remove first if statement in v1.7
         if hook_name in ("on_train_batch_start", "on_train_batch_end"):
             fn = getattr(self, hook_name)
             if callable(fn):
                 with self.profiler.profile(hook_name):
                     output = fn(*args, **kwargs)
+        elif hook_name in ("on_init_start", "on_init_end"):
+            # these `Callback` hooks are the only ones that do not take a lightning module.
+            # we also don't profile bc profiler hasn't been set yet
+            for callback in self.callbacks:
+                fn = getattr(callback, hook_name)
+                if callable(fn):
+                    output = fn(self, *args, **kwargs)
         else:
             for callback in self.callbacks:
-                if hook_name in ("on_init_start", "on_init_end"):
-                    # these `Callback` hooks are the only ones that do not take a lightning module.
-                    # we also don't profile bc profiler hasn't been set yet
-                    fn = getattr(callback, hook_name)
-                    if callable(fn):
-                        output = fn(self, *args, **kwargs)
-                else:
-                    fn = getattr(callback, hook_name)
-                    if callable(fn):
-                        with self.profiler.profile(hook_name):
-                            output = fn(self, self.lightning_module, *args, **kwargs)
+                fn = getattr(callback, hook_name)
+                if callable(fn):
+                    with self.profiler.profile(hook_name):
+                        output = fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
@@ -1510,9 +1513,10 @@ class Trainer(
     ):
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
-        if callable(fn):
-            with self.profiler.profile(hook_name):
-                output = fn(*args, **kwargs)
+        assert callable(fn), "Hook is not callable"
+
+        with self.profiler.profile(hook_name):
+            output = fn(*args, **kwargs)
 
         return output
 
@@ -1525,9 +1529,10 @@ class Trainer(
     ) -> Optional[Any]:
         output = None
         fn = getattr(self.accelerator, hook_name)
-        if callable(fn):
-            with self.profiler.profile(hook_name):
-                output = fn(*args, **kwargs)
+        assert callable(fn), "Hook is not callable"
+
+        with self.profiler.profile(hook_name):
+            output = fn(*args, **kwargs)
 
         return output
 
