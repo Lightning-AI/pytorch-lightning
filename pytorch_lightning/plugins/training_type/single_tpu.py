@@ -14,15 +14,12 @@
 import os
 from typing import Any, Dict, Optional
 
-import torch
-
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
@@ -65,14 +62,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         if not self.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-
-    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the TPU if needed."""
-        # TODO: `self.root_device` would raise error if called outside the spawn process
-        # while training on 8 and more cores.
-        for opt in self.optimizers:
-            for p, v in opt.state.items():
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
