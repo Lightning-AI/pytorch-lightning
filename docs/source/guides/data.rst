@@ -364,9 +364,9 @@ option when using sequential data.
     trainer = Trainer(limit_val_batches=100)
 
 
-*****************************************
-Accessing DataLoaders in LightningModules
-*****************************************
+********************************************
+Accessing DataLoaders within LightningModule
+********************************************
 
 In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
 
