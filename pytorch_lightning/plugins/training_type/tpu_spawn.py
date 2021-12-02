@@ -16,7 +16,7 @@ import os
 import re
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -29,7 +29,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
@@ -123,18 +123,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.create_mp_queue()
+        self.start_method = "fork"
         if not self.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> Module:
         return model
-
-    def create_mp_queue(self):
-        self.start_method = "fork"
-        smp = mp.get_context(self.start_method)
-        self.mp_queue = smp.SimpleQueue()
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
@@ -161,9 +156,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
-
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
@@ -181,7 +174,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
+        outputs = self.__collect_rank_zero_results(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -192,6 +185,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
+        return outputs
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
@@ -200,7 +194,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -215,17 +209,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
-        if self.local_rank == 0:
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(last_path)
-            self.mp_queue.put(results)
-            # adds the `callback_metrics` to the queue
+        if self.local_rank != 0:
+            return
+
+        # adds the `callback_metrics` to the queue
+        extra = _FakeQueue()
+        if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
-            if is_overridden("add_to_queue", self.lightning_module):
-                self.lightning_module.add_to_queue(self.mp_queue)
-            else:
-                self.add_to_queue(trainer, self.mp_queue)
+            self.lightning_module.add_to_queue(extra)
+        else:
+            self.add_to_queue(trainer, extra)
+
+        return _SpawnOutput(best_model_path, last_path, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
@@ -269,7 +264,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
@@ -294,18 +289,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_global_core_rank = xm.get_ordinal()
         rank_zero_only.rank = self.global_rank
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
         self._clean_logger(trainer)
         return super().start_training(trainer)
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         self._clean_logger(trainer)
         return super().start_evaluating(trainer)
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         self._clean_logger(trainer)
         return super().start_predicting(trainer)
 

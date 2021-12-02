@@ -30,7 +30,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import _PATH
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -43,7 +43,6 @@ class TrainingTypePlugin(ABC):
         self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
         self._model: Optional[Module] = None
-        self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
@@ -291,18 +290,6 @@ class TrainingTypePlugin(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return unwrap_lightning_module(self._model) if self._model is not None else None
 
-    @property
-    def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        """Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run.
-
-        The result is
-        cached instead of returned directly, because some plugins require transmitting the results from one
-        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the main process through a
-        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
-        """
-        return self._results
-
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
@@ -315,17 +302,17 @@ class TrainingTypePlugin(ABC):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.model.training_step(*args, **kwargs)

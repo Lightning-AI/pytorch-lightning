@@ -1159,9 +1159,8 @@ class Trainer(
         self.checkpoint_connector.resume_end()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        self._dispatch()
+        results = self._dispatch()
 
-        # plugin will finalized fitting (e.g. ddp_spawn will load trained model)
         self._post_dispatch()
 
         # ----------------------------
@@ -1180,7 +1179,7 @@ class Trainer(
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        return self.training_type_plugin.results
+        return results
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -1233,13 +1232,13 @@ class Trainer(
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def _dispatch(self):
+    def _dispatch(self) -> Any:
         if self.evaluating:
-            self.training_type_plugin.start_evaluating(self)
+            return self.training_type_plugin.start_evaluating(self)
         elif self.predicting:
-            self.training_type_plugin.start_predicting(self)
+            return self.training_type_plugin.start_predicting(self)
         else:
-            self.training_type_plugin.start_training(self)
+            return self.training_type_plugin.start_training(self)
 
     def run_stage(self):
         self.accelerator.dispatch(self)
