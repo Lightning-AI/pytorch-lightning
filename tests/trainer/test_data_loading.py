@@ -347,7 +347,10 @@ def test_distributed_sampler_with_overfit_batches(tmpdir):
         strategy="ddp_spawn",
         num_processes=2,
     )
-    trainer.fit(model)
+    model.trainer = trainer
+    trainer.model = model
+    trainer._data_connector.attach_dataloaders(model)
+    trainer.reset_train_dataloader()
     train_sampler = trainer.train_dataloader.loaders.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False
