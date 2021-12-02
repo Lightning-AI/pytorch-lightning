@@ -132,23 +132,6 @@ class DDPSpawnPlugin(ParallelPlugin):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
-        # reset optimizers, since main process is never used for training and thus does not have a valid optim state
-        trainer.optimizers = []
-        return spawn_output.trainer_results
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
-
-    def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
-
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.
 
@@ -184,7 +167,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
+    def pre_dispatch(self) -> None:
         # move the model to the correct device
         self.model_to_device()
 
@@ -196,14 +179,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
+        # TODO: needed?
         self.barrier()
-
-        results = trainer.run_stage()
-        outputs = self.__collect_rank_zero_results(trainer, results)
-
-        # ensure that spawned processes go through teardown before joining
-        trainer._call_teardown_hook()
-        return outputs
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
@@ -242,7 +219,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -269,14 +246,14 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         return _SpawnOutput(best_model_path, last_path, results, extra)
 
-    def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
+    def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
+        if trainer.checkpoint_callback:
+            trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
 
         # TODO: pass also best score
         # load last weights
-        if spawn_output.last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+        if spawn_output.last_path is not None and trainer.state.fn == TrainerFn.FITTING:
             ckpt = self.checkpoint_io.load_checkpoint(
                 spawn_output.last_path, map_location=(lambda storage, loc: storage)
             )

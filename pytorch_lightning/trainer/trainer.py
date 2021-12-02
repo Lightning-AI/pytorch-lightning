@@ -19,6 +19,7 @@ import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
@@ -48,6 +49,7 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -722,9 +724,15 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        self._call_and_handle_interrupt(
-            self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
-        )
+        function = partial(self._call_and_handle_interrupt, trainer_fn=self._fit_impl)
+        args = (model, train_dataloaders, val_dataloaders, datamodule, ckpt_path)
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
+            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+            output = spawn_output.trainer_results
+        else:
+            output = function(*args)
+        return output
 
     def _fit_impl(
         self,
@@ -1158,8 +1166,10 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        results = self._dispatch()
+        results = self.run_stage()
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         self._teardown()
 
@@ -1170,10 +1180,7 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_end")
 
-        # teardown if necessary (similar calls for spawn plugins are excluded as they have
-        # been included at the end of `new_process` functions)
-        if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            self._call_teardown_hook()
+        self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1233,14 +1240,6 @@ class Trainer(
         self._active_loop.teardown()
         self.logger_connector.teardown()
         self.signal_connector.teardown()
-
-    def _dispatch(self) -> Any:
-        if self.evaluating:
-            return self.training_type_plugin.start_evaluating(self)
-        elif self.predicting:
-            return self.training_type_plugin.start_predicting(self)
-        else:
-            return self.training_type_plugin.start_training(self)
 
     def run_stage(self):
         self.accelerator.dispatch(self)
