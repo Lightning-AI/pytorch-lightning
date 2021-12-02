@@ -24,7 +24,6 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterabl
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 
-
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
