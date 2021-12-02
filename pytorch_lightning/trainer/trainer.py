@@ -729,10 +729,8 @@ class Trainer(
         if isinstance(self.training_type_plugin, DDPSpawnPlugin):
             spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
             self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
-            output = spawn_output.trainer_results
         else:
-            output = function(*args)
-        return output
+            function(*args)
 
     def _fit_impl(
         self,
@@ -765,11 +763,11 @@ class Trainer(
 
         # TODO: ckpt_path only in v1.7
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        output = self._run(model, ckpt_path=ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
-        return output
+        return results
 
     def validate(
         self,
@@ -803,7 +801,15 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        function = partial(self._call_and_handle_interrupt, self._validate_impl)
+        args = (model, dataloaders, ckpt_path, verbose, datamodule)
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
+            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+            output = spawn_output.trainer_results
+        else:
+            output = function(*args)
+        return output
 
     def _validate_impl(
         self,
@@ -886,7 +892,15 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        function = partial(self._call_and_handle_interrupt, self._test_impl)
+        args = (model, dataloaders, ckpt_path, verbose, datamodule)
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
+            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+            output = spawn_output.trainer_results
+        else:
+            output = function(*args)
+        return output
 
     def _test_impl(
         self,
@@ -968,9 +982,15 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
-        return self._call_and_handle_interrupt(
-            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
-        )
+        function = partial(self._call_and_handle_interrupt, self._predict_impl)
+        args = (model, dataloaders, datamodule, return_predictions, ckpt_path)
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
+            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+            output = spawn_output.trainer_results
+        else:
+            output = function(*args)
+        return output
 
     def _predict_impl(
         self,

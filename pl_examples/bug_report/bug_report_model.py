@@ -27,6 +27,7 @@ class BoringModel(LightningModule):
         return self.layer(x)
 
     def training_step(self, batch, batch_idx):
+        print(self.global_rank, self.global_step)
         loss = self(batch).sum()
         self.log("train_loss", loss)
         return {"loss": loss}
@@ -62,6 +63,8 @@ def run():
         num_processes=2,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.validate(model, dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
 
 
 if __name__ == "__main__":
