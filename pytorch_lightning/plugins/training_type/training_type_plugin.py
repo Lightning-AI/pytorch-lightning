@@ -107,11 +107,12 @@ class TrainingTypePlugin(ABC):
         self.lr_schedulers = schedulers
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the GPU if needed."""
-        device = device or self.root_device
+        """Moves the state of the optimizers to the appropriate device if needed."""
         for opt in self.optimizers:
             for p, v in opt.state.items():
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
+                # `self.root_device` would raise error if called outside the spawn process
+                # while training on 8 and more cores.
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
