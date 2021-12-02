@@ -379,4 +379,3 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
         ...
 
 Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
-
