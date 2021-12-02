@@ -365,7 +365,7 @@ option when using sequential data.
 
 
 ********************************************
-Accessing DataLoaders within LightningModule
+Accessing DataLoaders within LightningModules
 ********************************************
 
 In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
@@ -379,4 +379,4 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
         ...
 
 Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
-stored in the Dataset object.
+
