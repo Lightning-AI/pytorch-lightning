@@ -254,6 +254,7 @@ class FitLoop(Loop):
         # hook
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
+        self.trainer._call_ttp_hook("on_train_end")
 
         # give accelerators a chance to finish
         self.trainer.training_type_plugin.on_train_end()

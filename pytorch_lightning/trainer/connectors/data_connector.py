@@ -288,7 +288,7 @@ class _DataLoaderSource:
             return self.instance
 
         if isinstance(self.instance, LightningModule):
-            return self.instance.trainer._call_lightning_module_hook(self.name)
+            return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
 
         if isinstance(self.instance, LightningDataModule):
             method = getattr(self.instance, self.name)

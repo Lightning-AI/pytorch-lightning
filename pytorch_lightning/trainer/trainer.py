@@ -1446,10 +1446,12 @@ class Trainer(
     ):
         pl_module = pl_module or self.lightning_module
 
-        assert pl_module is not None, "No lightning module is available to call hooks on"
+        if pl_module is None:
+            raise MisconfigurationException("No lightning module is available to call hooks on")
 
         fn = getattr(pl_module, hook_name)
-        assert callable(fn), "Hook is not callable"
+        if not callable(fn):
+            raise MisconfigurationException("Hook is not callable")
 
         output = None
 
@@ -1513,7 +1515,8 @@ class Trainer(
     ):
         output = None
         fn = getattr(self.training_type_plugin, hook_name)
-        assert callable(fn), "Hook is not callable"
+        if not callable(fn):
+            raise MisconfigurationException("Hook is not callable")
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
@@ -1529,7 +1532,8 @@ class Trainer(
     ) -> Optional[Any]:
         output = None
         fn = getattr(self.accelerator, hook_name)
-        assert callable(fn), "Hook is not callable"
+        if not callable(fn):
+            raise MisconfigurationException("Hook is not callable")
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)

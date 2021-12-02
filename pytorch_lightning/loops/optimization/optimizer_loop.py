@@ -432,7 +432,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
             del step_kwargs
 
-            training_step_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+            ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
+            training_step_output = ttp_output if model_output is None else model_output
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
