@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -22,6 +23,7 @@ from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -448,3 +450,12 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
 
     with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
         assert lr_monitor.lr_sch_names == ["lr-SGD"]
+
+
+def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
+    sampler = IndexBatchSamplerWrapper(Mock())
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
+        _ = sampler.batch_indices
+
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
+        sampler.batch_indices = []
