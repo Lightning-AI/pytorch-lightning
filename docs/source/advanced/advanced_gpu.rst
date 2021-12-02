@@ -117,7 +117,7 @@ To activate parameter sharding, you must wrap your model using provided ``wrap``
 When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other plugins.
 
 ``auto_wrap`` will recursively wrap `torch.nn.Modules` within the ``LightningModule`` with nested Fully Sharded Wrappers,
-signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information `here <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__).
+signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information :class:`here <fairscale.nn.fsdp>`).
 
 ``auto_wrap`` can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**.
 
