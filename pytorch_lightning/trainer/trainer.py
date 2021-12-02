@@ -724,7 +724,7 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        function = partial(self._call_and_handle_interrupt, trainer_fn=self._fit_impl)
+        function = partial(self._call_and_handle_interrupt, self._fit_impl)
         args = (model, train_dataloaders, val_dataloaders, datamodule, ckpt_path)
         if isinstance(self.training_type_plugin, DDPSpawnPlugin):
             spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
@@ -765,10 +765,11 @@ class Trainer(
 
         # TODO: ckpt_path only in v1.7
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        self._run(model, ckpt_path=ckpt_path)
+        output = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
+        return output
 
     def validate(
         self,
