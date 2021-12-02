@@ -378,5 +378,5 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
         # extract metadata, etc. from the dataset:
         ...
 
-Since pytorch-lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata
+Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
 stored in the Dataset object.
