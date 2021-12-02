@@ -676,7 +676,12 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            return trainer_fn(*args, **kwargs)
+            if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+                spawn_output: _SpawnOutput = self.training_type_plugin.spawn(trainer_fn, *args, **kwargs)
+                self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+                return spawn_output.trainer_results
+            else:
+                return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
@@ -724,13 +729,9 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        function = partial(self._call_and_handle_interrupt, self._fit_impl)
-        args = (model, train_dataloaders, val_dataloaders, datamodule, ckpt_path)
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
-            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
-        else:
-            function(*args)
+        self._call_and_handle_interrupt(
+            self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
+        )
 
     def _fit_impl(
         self,
@@ -801,15 +802,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        function = partial(self._call_and_handle_interrupt, self._validate_impl)
-        args = (model, dataloaders, ckpt_path, verbose, datamodule)
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
-            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
-            output = spawn_output.trainer_results
-        else:
-            output = function(*args)
-        return output
+        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
         self,
@@ -892,15 +885,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        function = partial(self._call_and_handle_interrupt, self._test_impl)
-        args = (model, dataloaders, ckpt_path, verbose, datamodule)
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
-            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
-            output = spawn_output.trainer_results
-        else:
-            output = function(*args)
-        return output
+        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
         self,
@@ -982,15 +967,9 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
-        function = partial(self._call_and_handle_interrupt, self._predict_impl)
-        args = (model, dataloaders, datamodule, return_predictions, ckpt_path)
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            spawn_output: _SpawnOutput = self.training_type_plugin.spawn(function, *args)
-            self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
-            output = spawn_output.trainer_results
-        else:
-            output = function(*args)
-        return output
+        return self._call_and_handle_interrupt(
+            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+        )
 
     def _predict_impl(
         self,
