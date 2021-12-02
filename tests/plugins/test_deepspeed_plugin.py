@@ -364,8 +364,8 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 @RunIf(min_gpus=1, deepspeed=True)
 @mock.patch("deepspeed.checkpointing.configure", autospec=True, wraps=deepspeed.checkpointing.configure)
 def test_deepspeed_custom_activation_checkpointing_params_forwarded(deepspeed_checkpointing_configure, tmpdir):
-    """Ensure if we modify the activation checkpointing parameters, we pass these
-    to deepspeed.checkpointing.configure correctly."""
+    """Ensure if we modify the activation checkpointing parameters, we pass these to
+    deepspeed.checkpointing.configure correctly."""
     ds = DeepSpeedPlugin(
         partition_activations=True,
         cpu_checkpointing=True,
@@ -384,7 +384,9 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(deepspeed_ch
     )
     trainer.fit(model)
 
-    deepspeed_checkpointing_configure.assert_called_with(mpu_=None, partition_activations=True, contiguous_checkpointing=True, checkpoint_in_cpu=True, profile=None)
+    deepspeed_checkpointing_configure.assert_called_with(
+        mpu_=None, partition_activations=True, contiguous_checkpointing=True, checkpoint_in_cpu=True, profile=None
+    )
 
 
 @RunIf(min_gpus=1, deepspeed=True)
