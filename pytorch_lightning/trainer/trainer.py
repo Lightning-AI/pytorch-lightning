@@ -1123,16 +1123,11 @@ class Trainer(
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
                         create accelerator                    ||
-                                |                             ||
-                         {self._dispatch}                     ||
                                 |                             ||  LIGHTNING
-         {self.training_type_plugin.start_training}           ||
-       or {self.training_type_plugin.start_evaluating}        ||
-       or {self.training_type_plugin.start_predicting}        ||  FLOW
-                                |                             ||
-                         {self.run_stage}                     ||
-                                |                             ||  DIRECTION
-                        {self._run_train}                     ||
+                                |                             ||  
+                         {self.run_stage}                     ||  FLOW
+                                |                             ||  
+                        {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
                                 |                             ||
