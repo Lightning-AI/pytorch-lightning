@@ -1074,7 +1074,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will turn-off validation.
+Uses this much data of the training set. If nonzero, will turn off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.

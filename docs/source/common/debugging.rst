@@ -79,7 +79,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and turn-off validation)
+    # use only 1% of training data (and turn off validation)
     trainer = Trainer(overfit_batches=0.01)
 
     # similar, but with a fixed 10 batches
