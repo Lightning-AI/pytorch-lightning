@@ -393,6 +393,7 @@ class ResultCollection(dict):
         self.device: Optional[Union[str, torch.device]] = device
         self.batch: Optional[Any] = None
         self.batch_size: Optional[int] = None
+        self.dataloader_idx: Optional[int] = None
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -436,7 +437,6 @@ class ResultCollection(dict):
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-        dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
@@ -453,9 +453,9 @@ class ResultCollection(dict):
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
-        if add_dataloader_idx and dataloader_idx is not None:
-            key += f".{dataloader_idx}"
-            fx += f".{dataloader_idx}"
+        if add_dataloader_idx and self.dataloader_idx is not None:
+            key += f".{self.dataloader_idx}"
+            fx += f".{self.dataloader_idx}"
 
         meta = _Metadata(
             fx=fx,
@@ -467,7 +467,7 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
-            dataloader_idx=dataloader_idx,
+            dataloader_idx=self.dataloader_idx,
             metric_attribute=metric_attribute,
         )
         meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)

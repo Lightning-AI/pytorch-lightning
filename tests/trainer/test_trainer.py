@@ -1876,11 +1876,9 @@ def test_module_current_fx_attributes_reset(tmpdir):
 
     trainer.fit(model)
     assert model._current_fx_name is None
-    assert model._current_dataloader_idx is None
 
     trainer.test(model)
     assert model._current_fx_name is None
-    assert model._current_dataloader_idx is None
 
 
 def test_exception_when_lightning_module_is_not_set_on_trainer():
