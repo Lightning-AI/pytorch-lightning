@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-import re
 from collections import UserList
 from multiprocessing.queues import SimpleQueue
 from pathlib import Path
@@ -273,8 +272,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
+        if trainer.checkpoint_callback:
+            trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
 
         # TODO: pass also best score
         # load last weights
