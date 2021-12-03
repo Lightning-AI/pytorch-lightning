@@ -13,8 +13,6 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 
-from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
-
 
 class TestDataloaderVariations(ABC):
     @abstractmethod
@@ -23,14 +21,3 @@ class TestDataloaderVariations(ABC):
 
     def test_dataloader(self):
         return self.dataloader(train=False)
-
-    def test_dataloader__infinite(self):
-        return CustomInfDataloader(self.dataloader(train=False))
-
-    def test_dataloader__not_implemented_error(self):
-        return CustomNotImplementedErrorDataloader(self.dataloader(train=False))
-
-    def test_dataloader__multiple_mixed_length(self):
-        lengths = [50, 30, 40]
-        dataloaders = [self.dataloader(train=False, num_samples=n) for n in lengths]
-        return dataloaders
