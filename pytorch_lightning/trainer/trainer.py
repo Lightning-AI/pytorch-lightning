@@ -1166,9 +1166,6 @@ class Trainer(
 
         results = self.run_stage()
 
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            results = self.training_type_plugin._collect_rank_zero_results(self, results)
-
         self._teardown()
 
         # ----------------------------
@@ -1183,6 +1180,9 @@ class Trainer(
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         return results
 
