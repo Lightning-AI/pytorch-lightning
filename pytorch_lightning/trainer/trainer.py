@@ -1154,7 +1154,7 @@ class Trainer(
         if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
 
-        # plugin will setup fitting (e.g. ddp will launch child processes)
+        # plugin will move model to device
         self._pre_dispatch()
 
         if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
