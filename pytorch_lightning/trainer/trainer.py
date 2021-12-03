@@ -1166,13 +1166,13 @@ class Trainer(
         self.checkpoint_connector.resume_end()
 
         # TODO: needed? (was originally in TPUSpawnPLugin)
-        # self.training_type_plugin.barrier("pre-run-stage")
+        self.training_type_plugin.barrier("pre-run-stage")
 
         results = self.run_stage()
 
         # TODO: needed? (was originally in TPUSpawnPLugin)
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        # self.training_type_plugin.barrier("end-process")
+        self.training_type_plugin.barrier("end-process")
 
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         # if self.local_rank == 0:
