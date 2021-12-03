@@ -637,8 +637,7 @@ class Trainer(
         """Use less data for debugging purposes."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
-            self.limit_test_batches = overfit_batches
+            self.limit_val_batches = 0
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -1160,9 +1159,8 @@ class Trainer(
         self.checkpoint_connector.resume_end()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        self._dispatch()
+        results = self._dispatch()
 
-        # plugin will finalized fitting (e.g. ddp_spawn will load trained model)
         self._post_dispatch()
 
         # ----------------------------
@@ -1181,7 +1179,7 @@ class Trainer(
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        return self.training_type_plugin.results
+        return results
 
     def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -1234,13 +1232,13 @@ class Trainer(
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def _dispatch(self):
+    def _dispatch(self) -> Any:
         if self.evaluating:
-            self.training_type_plugin.start_evaluating(self)
+            return self.training_type_plugin.start_evaluating(self)
         elif self.predicting:
-            self.training_type_plugin.start_predicting(self)
+            return self.training_type_plugin.start_predicting(self)
         else:
-            self.training_type_plugin.start_training(self)
+            return self.training_type_plugin.start_training(self)
 
     def run_stage(self):
         self.accelerator.dispatch(self)
@@ -1407,7 +1405,7 @@ class Trainer(
         self.training_type_plugin.barrier("post_setup")
 
     def _call_configure_sharded_model(self) -> None:
-        with self.accelerator.model_sharded_context():
+        with self.training_type_plugin.model_sharded_context():
             self._handle_meta_model()
             self.call_hook("configure_sharded_model")
             self.call_hook("on_configure_sharded_model")

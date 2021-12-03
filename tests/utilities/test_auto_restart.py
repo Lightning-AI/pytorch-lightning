@@ -177,9 +177,8 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [6, 7, 8]
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived the right next
+    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrieved the right next
     batch on restart."""
     seed = 42
     seed_everything(42)
@@ -255,8 +254,9 @@ class RangeIterableDataset(IterableDataset):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize(
+    "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
+)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
@@ -368,8 +368,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
     assert sampler.state_dict(num_yielded)[0]["current_iteration"] == 16
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -638,14 +637,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
+@RunIf(slow=True)
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -668,9 +666,9 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None)
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
-def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
+def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
@@ -771,7 +769,7 @@ class RandomGetItemDataset(Dataset):
         # RandomGeneratorGetItemDataset,
     ],
 )
-@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
@@ -897,10 +895,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
-# this test will fail `fault_tolerant` don't support multiple datasets.
-# this tests works as the dataset is fully deterministic and therefore
-# there is not overall between the seeds.
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic", lambda x, y: None)
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     "dataset_classes",
@@ -916,7 +911,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
-def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, multiple_trainloader_mode):
+def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, multiple_trainloader_mode):
     """Test that the Trainer can resume from a failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -1384,10 +1379,10 @@ def test_collect_states_with_collection():
     assert generated == [{"a": {0: state}, "b": [{"a": {0: state}}]}]
 
 
-@pytest.mark.parametrize("num_workers", [0])
+# FIXME(@tchaton): >0 num_workers failing
+@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=[RunIf(slow=True), pytest.mark.xfail()])])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
-
     seed_everything(42)
 
     _get_iterator_fn = DataLoader._get_iterator
