@@ -1515,14 +1515,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-
-    def run(expected_plugin, **trainer_kwargs):
-        trainer = Trainer(**trainer_kwargs, fast_dev_run=True)
-        assert isinstance(trainer.training_type_plugin, expected_plugin)
-        with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
-            trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
-
-    run(DDPSpawnPlugin, accelerator=accelerator, strategy="ddp_spawn", devices=2)
+    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
+        trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
