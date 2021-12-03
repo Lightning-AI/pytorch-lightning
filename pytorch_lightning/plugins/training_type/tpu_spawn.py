@@ -194,7 +194,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -217,8 +217,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
-        else:
-            self.add_to_queue(trainer, extra)
+        self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, last_path, results, extra)
 
