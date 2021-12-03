@@ -63,7 +63,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.scheduler_progress = SchedulerProgress()
 
         self.batch_loop = TrainingBatchLoop()
-        self.val_loop = loops.EvaluationLoop()
+        self.val_loop = loops.EvaluationLoop(verbose=False)
 
         self._results = ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []

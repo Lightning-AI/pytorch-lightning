@@ -658,9 +658,6 @@ class Trainer(
         self.test_dataloaders = None
         self.val_dataloaders = None
 
-        # when true, print evaluation results in .validate() and .test()
-        self.verbose_evaluate = True
-
         self.num_predict_batches = []
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -808,7 +805,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("validate")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -828,6 +824,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
             )
+
+        self.validate_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
@@ -891,7 +889,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("test")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -911,6 +908,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
             )
+
+        self.test_loop.verbose = True
 
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
@@ -2074,6 +2073,23 @@ class Trainer(
         """
         loop.trainer = self
         self._predict_loop = loop
+
+    @property
+    def verbose_evaluate(self) -> bool:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.7. The current value"
+            " returned is just a token value.",
+            stacklevel=5,
+        )
+        return True
+
+    @verbose_evaluate.setter
+    def verbose_evaluate(self, value: bool) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.7. Setting the value"
+            " is a no-op.",
+            stacklevel=5,
+        )
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:

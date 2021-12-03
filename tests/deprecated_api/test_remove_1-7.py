@@ -539,3 +539,12 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
 
     with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         sampler.batch_indices = []
+
+
+def test_v1_7_0_trainer_verbose_evaluate():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.7"):
+        assert trainer.verbose_evaluate
+
+    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.7"):
+        trainer.verbose_evaluate = False
