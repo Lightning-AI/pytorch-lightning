@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
+from pytorch_lightning.utilities import _RICH_AVAILABLE, ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -240,7 +240,10 @@ class CallbackConnector:
         if refresh_rate is None:
             refresh_rate = 1
 
-        progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+        if _RICH_AVAILABLE:
+            progress_bar_callback = RichProgressBar(refresh_rate=refresh_rate)
+        else:
+            progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
         self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
