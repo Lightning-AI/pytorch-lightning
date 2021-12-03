@@ -75,5 +75,5 @@ class TorchCheckpointIO(CheckpointIO):
         """
         fs = get_filesystem(path)
         if fs.exists(path):
-            fs.rm(path, recursive=True)
+            fs.rm(str(path), recursive=True)
             log.debug(f"Removed checkpoint: {path}")
