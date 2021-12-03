@@ -154,21 +154,20 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self._increment_eval_log_step()
 
-    @staticmethod
-    def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
-    ) -> _OUT_DICT:
-        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
-
-    def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
+    def _prepare_eval_loop_results(self) -> None:
         if self.trainer.sanity_checking:
             return
 
+        on_step = not self._epoch_end_reached
         num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
-            # remove callback metrics that don't belong to this dataloader
-            callback_metrics = self._filter_metrics_for_dataloader(dl_idx, metrics)
+        assert self.trainer._evaluation_loop._results is not None
+        for dl_idx in range(num_dataloaders):
+            metrics = self.trainer._evaluation_loop._results.metrics(
+                on_step, dataloader_idx=dl_idx if num_dataloaders > 1 else None
+            )
+            callback_metrics = metrics["callback"]
+
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
             else:
@@ -182,7 +181,7 @@ class LoggerConnector:
             # log all the metrics as a single dict
             self.log_metrics(metrics["log"])
 
-        self._prepare_eval_loop_results(metrics["callback"])
+        self._prepare_eval_loop_results()
 
         # log results of evaluation
         if (
