@@ -151,8 +151,6 @@ class BoringDataModule(LightningDataModule):
         self.data_dir = data_dir
         self.non_picklable = None
         self.checkpoint_state: Optional[str] = None
-
-    def prepare_data(self):
         self.random_full = RandomDataset(32, 64 * 4)
 
     def setup(self, stage: Optional[str] = None):

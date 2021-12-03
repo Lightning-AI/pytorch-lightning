@@ -79,10 +79,10 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and use the same training dataloader (with shuffle off) in val and test)
+    # use only 1% of training data (and turn off validation)
     trainer = Trainer(overfit_batches=0.01)
 
-    # similar, but with a fixed 10 batches no matter the size of the dataset
+    # similar, but with a fixed 10 batches
     trainer = Trainer(overfit_batches=10)
 
 With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler

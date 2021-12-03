@@ -27,11 +27,11 @@ class EvaluationLoop(DataLoaderLoop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.outputs: List[EPOCH_OUTPUT] = []
         self.epoch_loop = EvaluationEpochLoop()
 
         self._results = ResultCollection(training=False)
-        self._max_batches: List[Union[int, float]] = []
+        self._outputs: List[EPOCH_OUTPUT] = []
+        self._max_batches: List[int] = []
         self._has_run: bool = False
 
     @property
@@ -74,7 +74,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
         # bookkeeping
-        self.outputs = []
+        self._outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
@@ -109,7 +109,7 @@ class EvaluationLoop(DataLoaderLoop):
         dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
 
         # store batch level output per dataloader
-        self.outputs.append(dl_outputs)
+        self._outputs.append(dl_outputs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
@@ -117,7 +117,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
-        outputs, self.outputs = self.outputs, []  # free memory
+        outputs, self._outputs = self._outputs, []  # free memory
 
         # lightning module method
         self._evaluation_epoch_end(outputs)
@@ -140,7 +140,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[Union[int, float]]:
+    def _get_max_batches(self) -> List[int]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches

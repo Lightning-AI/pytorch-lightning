@@ -27,8 +27,12 @@ def rank_zero_warn(*args, stacklevel: int = 4, **kwargs):
     _warn(*args, stacklevel=stacklevel, **kwargs)
 
 
+class PossibleUserWarning(UserWarning):
+    """Warnings that could be false positives."""
+
+
 class LightningDeprecationWarning(DeprecationWarning):
-    ...
+    """Deprecation warnings raised by PyTorch Lightning."""
 
 
 # enable our warnings

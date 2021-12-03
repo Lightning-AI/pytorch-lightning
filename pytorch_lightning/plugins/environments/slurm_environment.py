@@ -38,21 +38,6 @@ class SLURMEnvironment(ClusterEnvironment):
     def creates_processes_externally(self) -> bool:
         return True
 
-    @staticmethod
-    def job_id() -> Optional[int]:
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id:
-            try:
-                job_id = int(job_id)
-            except ValueError:
-                job_id = None
-
-        # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
-        if in_slurm_interactive_mode:
-            job_id = None
-        return job_id
-
     @property
     def main_address(self) -> str:
         # figure out the root node addr
@@ -99,6 +84,25 @@ class SLURMEnvironment(ClusterEnvironment):
     def detect() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
+
+    @staticmethod
+    def job_name() -> Optional[str]:
+        return os.environ.get("SLURM_JOB_NAME")
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = SLURMEnvironment.job_name() == "bash"
+        if in_slurm_interactive_mode:
+            return None
+
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id is None:
+            return None
+        try:
+            return int(job_id)
+        except ValueError:
+            return None
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])

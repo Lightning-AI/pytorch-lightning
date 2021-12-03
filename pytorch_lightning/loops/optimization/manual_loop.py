@@ -102,7 +102,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             )
 
             # manually capture logged metrics
-            training_step_output = self.trainer._call_accelerator_hook("training_step", step_kwargs)
+            training_step_output = self.trainer._call_accelerator_hook("training_step", *step_kwargs.values())
             self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs

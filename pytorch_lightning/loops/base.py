@@ -58,7 +58,7 @@ class Loop(ABC, Generic[T]):
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: "pl.Trainer"):
+    def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
@@ -99,7 +99,7 @@ class Loop(ABC, Generic[T]):
         Linked loops should form a tree.
         """
 
-    def on_skip(self) -> Optional[Any]:
+    def on_skip(self) -> T:
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
@@ -215,7 +215,7 @@ class Loop(ABC, Generic[T]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
         """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:
@@ -262,7 +262,7 @@ class Loop(ABC, Generic[T]):
             elif (
                 isinstance(v, ResultCollection)
                 and self.trainer is not None
-                and getattr(self.trainer, "lightning_module", None) is not None
+                and self.trainer.lightning_module is not None
             ):
                 metric_attributes = {
                     name: module
@@ -278,7 +278,7 @@ class Loop(ABC, Generic[T]):
                 # On reload, we need to re-attach the `Metric`s back to the `ResultCollection`.
                 # The references are provided through the `metric_attributes` dictionary.
                 v.load_state_dict(
-                    state_dict[prefix + k], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
+                    state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
                 )
 
                 if not self.trainer.is_global_zero:

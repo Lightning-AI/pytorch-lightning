@@ -22,12 +22,14 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
     MergedIteratorState,
 )
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -42,13 +44,13 @@ class EvaluationEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.outputs: EPOCH_OUTPUT = []
         self.batch_progress = BatchProgress()
 
-        self._dl_max_batches: Optional[int] = None
-        self._num_dataloaders: Optional[int] = None
+        self._outputs: EPOCH_OUTPUT = []
+        self._dl_max_batches = 0
+        self._num_dataloaders = 0
         self._dataloader_iter: Optional[Iterator] = None
-        self._data_fetcher: Optional[DataFetcher] = None
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
 
     @property
@@ -58,17 +60,17 @@ class EvaluationEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
-        self._dl_max_batches = None
-        self._num_dataloaders = None
+        self._dl_max_batches = 0
+        self._num_dataloaders = 0
         self._data_fetcher = None
-        self.outputs = []
+        self._outputs = []
 
         if not self.restarting:
             self.batch_progress.reset_on_run()
         else:
             self.batch_progress.reset_on_restart()
 
-    def on_run_start(
+    def on_run_start(  # type: ignore[override]
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary.
@@ -87,7 +89,7 @@ class EvaluationEpochLoop(Loop):
         self._reload_dataloader_state_dict(data_fetcher)
         self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_progress.current.ready)
 
-    def advance(
+    def advance(  # type: ignore[override]
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: int, dl_max_batches: int, num_dataloaders: int
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
@@ -101,16 +103,17 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(data_fetcher, dl_max_batches, num_dataloaders)
+        void(dl_max_batches, num_dataloaders)
 
+        assert self._dataloader_iter is not None
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         if batch is None:
             raise StopIteration
 
-        if not self.trainer._data_connector.evaluation_data_fetcher.store_on_device:
+        if not data_fetcher.store_on_device:
             with self.trainer.profiler.profile("evaluation_batch_to_device"):
-                batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -136,7 +139,7 @@ class EvaluationEpochLoop(Loop):
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
-            self.outputs.append(output)
+            self._outputs.append(output)
 
         if self.trainer.move_metrics_to_cpu:
             # the evaluation step output is not moved as they are not considered "metrics"
@@ -149,9 +152,7 @@ class EvaluationEpochLoop(Loop):
 
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
-        outputs = self.outputs
-        # free memory
-        self.outputs = []
+        outputs, self._outputs = self._outputs, []  # free memory
         self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
@@ -186,10 +187,18 @@ class EvaluationEpochLoop(Loop):
             return
         self._dataloader_state_dict = dataloader_state_dict[self.trainer.global_rank]
 
-    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher):
-        if not self.trainer.sanity_checking and self._dataloader_state_dict:
-            _reload_dataloader_state_dict(data_fetcher.dataloader, self._dataloader_state_dict)
-            self._dataloader_state_dict = {}
+    def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
+        if self.trainer.sanity_checking or not self._dataloader_state_dict:
+            return
+        dataloader = data_fetcher.dataloader
+        if isinstance(dataloader, CombinedLoader):
+            raise MisconfigurationException(
+                "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
+                " in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+            )
+        assert dataloader is not None
+        _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
+        self._dataloader_state_dict = {}
 
     def _num_completed_batches_reached(self) -> bool:
         epoch_finished_on_completed = self.batch_progress.current.completed == self._dl_max_batches
@@ -214,9 +223,9 @@ class EvaluationEpochLoop(Loop):
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         if self.trainer.testing:
-            output = self.trainer._call_accelerator_hook("test_step", step_kwargs)
+            output = self.trainer._call_accelerator_hook("test_step", *step_kwargs.values())
         else:
-            output = self.trainer._call_accelerator_hook("validation_step", step_kwargs)
+            output = self.trainer._call_accelerator_hook("validation_step", *step_kwargs.values())
 
         return output
 

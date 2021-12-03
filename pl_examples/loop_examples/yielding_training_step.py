@@ -59,7 +59,7 @@ class YieldLoop(OptimizerLoop):
     def on_run_start(self, batch, optimizers, batch_idx):
         super().on_run_start(batch, optimizers, batch_idx)
         if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
-            raise MisconfigurationException("The LightingModule does not yield anything in the `training_step`.")
+            raise MisconfigurationException("The `LightningModule` does not yield anything in the `training_step`.")
         assert self.trainer.lightning_module.automatic_optimization
 
         # We request the generator once and save it for later
@@ -77,7 +77,7 @@ class YieldLoop(OptimizerLoop):
         # Here we are basically calling `lightning_module.training_step()`
         # and this returns a generator! The `training_step` is handled by the
         # accelerator to enable distributed training.
-        return self.trainer.accelerator.training_step(step_kwargs)
+        return self.trainer.accelerator.training_step(*step_kwargs.values())
 
     def _training_step(self, generator):
         # required for logging

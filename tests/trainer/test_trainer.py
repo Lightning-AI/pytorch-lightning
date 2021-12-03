@@ -26,7 +26,6 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
-from omegaconf import OmegaConf
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
@@ -51,6 +50,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
@@ -58,6 +58,9 @@ from tests.helpers.boring_model import RandomIterableDataset, RandomIterableData
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1271,12 +1274,12 @@ def test_trainer_subclassing():
         TrainerSubclass(abcdefg="unknown_arg")
 
 
-@pytest.mark.parametrize(
-    "trainer_params", [OmegaConf.create(dict(max_epochs=1, gpus=1)), OmegaConf.create(dict(max_epochs=1, gpus=[0]))]
-)
-@RunIf(min_gpus=1)
-def test_trainer_omegaconf(trainer_params):
-    Trainer(**trainer_params)
+@RunIf(omegaconf=True)
+@pytest.mark.parametrize("trainer_params", [{"max_epochs": 1, "gpus": 1}, {"max_epochs": 1, "gpus": [0]}])
+@mock.patch("torch.cuda.device_count", return_value=1)
+def test_trainer_omegaconf(_, trainer_params):
+    config = OmegaConf.create(trainer_params)
+    Trainer(**config)
 
 
 def test_trainer_pickle(tmpdir):
@@ -1512,14 +1515,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-
-    def run(expected_plugin, **trainer_kwargs):
-        trainer = Trainer(**trainer_kwargs, fast_dev_run=True)
-        assert isinstance(trainer.training_type_plugin, expected_plugin)
-        with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
-            trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
-
-    run(DDPSpawnPlugin, accelerator=accelerator, strategy="ddp_spawn", devices=2)
+    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
+        trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])

@@ -13,9 +13,6 @@
 # limitations under the License.
 import os
 
-import matplotlib.pylab as plt
-import pandas as pd
-
 from tests.benchmarks.test_basic_parity import measure_loops
 from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
@@ -27,6 +24,9 @@ FIGURE_EXTENSION = ".png"
 
 
 def _main():
+    import matplotlib.pylab as plt
+    import pandas as pd
+
     fig, axarr = plt.subplots(nrows=len(MODEL_CLASSES))
 
     for i, cls_model in enumerate(MODEL_CLASSES):
