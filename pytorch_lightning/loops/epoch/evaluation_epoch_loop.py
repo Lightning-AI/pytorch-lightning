@@ -249,17 +249,11 @@ class EvaluationEpochLoop(Loop):
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         if self.trainer.testing:
-<<<<<<< HEAD
-            self.trainer._call_callback_hooks("on_test_batch_start", batch, batch_idx, dataloader_idx)
-            self.trainer._call_lightning_module_hook("on_test_batch_start", batch, batch_idx, dataloader_idx)
+            self.trainer._call_callback_hooks("on_test_batch_start", *kwargs.values())
+            self.trainer._call_lightning_module_hook("on_test_batch_start", *kwargs.values())
         else:
-            self.trainer._call_callback_hooks("on_validation_batch_start", batch, batch_idx, dataloader_idx)
-            self.trainer._call_lightning_module_hook("on_validation_batch_start", batch, batch_idx, dataloader_idx)
-=======
-            self.trainer.call_hook("on_test_batch_start", *kwargs.values())
-        else:
-            self.trainer.call_hook("on_validation_batch_start", *kwargs.values())
->>>>>>> a28b4cd0c0bba30c21cae571e650877f66cf5588
+            self.trainer._call_callback_hooks("on_validation_batch_start", *kwargs.values())
+            self.trainer._call_lightning_module_hook("on_validation_batch_start", *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -272,12 +266,8 @@ class EvaluationEpochLoop(Loop):
         """
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
-<<<<<<< HEAD
-        self.trainer._call_callback_hooks(hook_name, output, batch, batch_idx, dataloader_idx)
-        self.trainer._call_lightning_module_hook(hook_name, output, batch, batch_idx, dataloader_idx)
-=======
-        self.trainer.call_hook(hook_name, output, *kwargs.values())
->>>>>>> a28b4cd0c0bba30c21cae571e650877f66cf5588
+        self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
+        self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
 
         self.trainer.logger_connector.on_batch_end()
 
