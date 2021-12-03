@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import pytest
 from unittest import mock
 from unittest.mock import Mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -38,7 +38,8 @@ class HPCHookdedModel(BoringModel):
         assert "state_dict" in checkpoint
         self.hpc_load_called += 1
 
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_hpc_hook_calls(tmpdir):
     model = HPCHookdedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
