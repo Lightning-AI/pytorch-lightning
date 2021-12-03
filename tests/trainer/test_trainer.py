@@ -1411,7 +1411,9 @@ def predict(
         callbacks=[cb, cb_1] if use_callbacks else [],
     )
     if strategy == "ddp_spawn":
-        with pytest.raises(MisconfigurationException):
+        with pytest.raises(
+            torch.multiprocessing.ProcessRaisedException, match="`return_predictions` should be set to `False`"
+        ):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
     if datamodule:
