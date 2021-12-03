@@ -59,14 +59,12 @@ class SingleTPUPlugin(SingleDevicePlugin):
         else:
             set_shared_parameters(self.model, shared_params)
 
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 

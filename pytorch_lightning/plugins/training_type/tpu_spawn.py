@@ -118,11 +118,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-        trainer = self.lightning_module.trainer
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             # TODO: this is already done in the trainer, still needed?
             trainer.progress_bar_callback.disable()
@@ -139,9 +138,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model

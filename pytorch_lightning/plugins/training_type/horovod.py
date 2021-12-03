@@ -78,7 +78,7 @@ class HorovodPlugin(ParallelPlugin):
         self.model_to_device()
         super().setup(trainer)
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
 
         if not self.lightning_module.trainer.training:
             # no need to setup optimizers

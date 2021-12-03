@@ -121,9 +121,7 @@ class IPUPlugin(ParallelPlugin):
         self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
         pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
 
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         super().setup_optimizers(trainer)
@@ -131,7 +129,7 @@ class IPUPlugin(ParallelPlugin):
         if len(self.optimizers) > 1:
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 

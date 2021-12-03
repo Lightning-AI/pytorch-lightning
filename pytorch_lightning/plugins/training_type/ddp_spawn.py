@@ -168,7 +168,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         # move the model to the correct device
         self.model_to_device()
 
