@@ -204,21 +204,21 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_stages(tmpdir):
+@pytest.mark.parametrize("limit_val_batches", (1, 5))
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
     model = BoringModel()
+
+    progress_bar = RichProgressBar()
+    num_sanity_val_steps = 3
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        num_sanity_val_steps=1,
+        num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        limit_predict_batches=1,
+        limit_val_batches=limit_val_batches,
         max_epochs=1,
-        callbacks=RichProgressBar(),
+        callbacks=progress_bar,
     )
 
     trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
+    assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)
