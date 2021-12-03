@@ -164,6 +164,7 @@ class EvaluationLoop(DataLoaderLoop):
             # TODO: this should be defined in this loop, not the Trainer
             and self.trainer.verbose_evaluate
         ):
+            assert self.trainer.state.stage is not None
             self._print_results(logged_outputs, self.trainer.state.stage)
 
         return logged_outputs
