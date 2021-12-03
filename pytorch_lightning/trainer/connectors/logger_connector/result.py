@@ -525,12 +525,13 @@ class ResultCollection(dict):
             return cache.detach()
         return cache
 
-    def valid_items(self, dataloader_idx: Optional[int] = None) -> Generator:
+    def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
         return (
             (k, v)
             for k, v in self.items()
-            if not (isinstance(v, ResultMetric) and v.has_reset) and (dataloader_idx in (None, v.meta.dataloader_idx))
+            if not (isinstance(v, ResultMetric) and v.has_reset)
+            and (self.dataloader_idx in (None, v.meta.dataloader_idx))
         )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
@@ -544,10 +545,10 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool, dataloader_idx: Optional[int] = None) -> _METRICS:
+    def metrics(self, on_step: bool) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
-        for _, result_metric in self.valid_items(dataloader_idx):
+        for _, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
