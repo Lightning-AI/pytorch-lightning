@@ -16,7 +16,7 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import call, PropertyMock, Mock
+from unittest.mock import call, Mock, PropertyMock
 
 import pytest
 import torch
