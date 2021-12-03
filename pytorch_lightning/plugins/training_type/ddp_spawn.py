@@ -254,7 +254,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # TODO: pass also best score
         # load last weights
-        if spawn_output.last_path is not None and trainer.state.fn == TrainerFn.FITTING:
+        if spawn_output.last_path is not None:
             ckpt = self.checkpoint_io.load_checkpoint(
                 spawn_output.last_path, map_location=(lambda storage, loc: storage)
             )
