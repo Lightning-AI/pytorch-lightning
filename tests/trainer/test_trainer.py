@@ -26,7 +26,6 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
-from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
@@ -1518,7 +1517,9 @@ def test_spawn_predict_return_predictions(_, __, accelerator):
     model = BoringModel()
     trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
+    with pytest.raises(
+        torch.multiprocessing.ProcessRaisedException, match="`return_predictions` should be set to `False`"
+    ):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
