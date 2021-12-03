@@ -100,14 +100,16 @@ class EvaluationLoop(DataLoaderLoop):
         """Performs evaluation on one single dataloader."""
         void(*args, **kwargs)
 
-        dataloader_idx: int = self.current_dataloader_idx
+        dataloader_idx = self.current_dataloader_idx
         dataloader = self.trainer.training_type_plugin.process_dataloader(self.current_dataloader)
         self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
             dataloader, dataloader_idx=dataloader_idx
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(dataloader, dataloader_idx, dl_max_batches, self.num_dataloaders)
+        dl_outputs = self.epoch_loop.run(
+            dataloader, dataloader_idx if self.num_dataloaders > 1 else None, dl_max_batches
+        )
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
@@ -212,17 +214,13 @@ class EvaluationLoop(DataLoaderLoop):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
-        # call the model epoch end
-        model = self.trainer.lightning_module
-
-        # unset dataloader_idx in model
-        model._current_dataloader_idx = None
-
         # with a single dataloader don't pass a 2D list
         output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
             outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs
         )
 
+        # call the model epoch end
+        model = self.trainer.lightning_module
         if self.trainer.testing:
             if is_overridden("test_epoch_end", model):
                 model._current_fx_name = "test_epoch_end"
