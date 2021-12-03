@@ -909,7 +909,7 @@ class Trainer(
                 "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
             )
 
-        self.test_loop.verbose = True
+        self.test_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)

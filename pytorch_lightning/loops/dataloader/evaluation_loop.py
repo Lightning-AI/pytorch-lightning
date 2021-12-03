@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -158,12 +158,7 @@ class EvaluationLoop(DataLoaderLoop):
         # enable train mode again
         self._on_evaluation_model_train()
 
-        if (
-            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
-            and not self.trainer.sanity_checking
-            and self.trainer.is_global_zero
-            and self.verbose
-        ):
+        if self.verbose and self.trainer.is_global_zero:
             assert self.trainer.state.stage is not None
             self._print_results(logged_outputs, self.trainer.state.stage)
 
