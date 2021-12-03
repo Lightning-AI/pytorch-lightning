@@ -44,6 +44,7 @@ def test_v1_8_0_deprecated_torchtext_batch():
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
 
+
 def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     class TestModelSave(BoringModel):
         def on_hpc_save(self):
@@ -58,6 +59,6 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
 
     with pytest.deprecated_call(match=r"Method `model.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."):
-         trainer.fit(save_model)
+        trainer.fit(save_model)
     with pytest.deprecated_call(match=r"Method `model.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."):
-         trainer.fit(load_model)
+        trainer.fit(load_model)
