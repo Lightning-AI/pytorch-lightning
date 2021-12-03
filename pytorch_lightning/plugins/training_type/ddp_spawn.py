@@ -283,7 +283,6 @@ class DDPSpawnPlugin(ParallelPlugin):
                 spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
             self.lightning_module.load_state_dict(ckpt)
-            self.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         # get the `callback_metrics` and set it to the trainer
         if is_overridden("get_from_queue", self.lightning_module):
