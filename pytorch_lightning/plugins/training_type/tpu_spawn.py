@@ -16,7 +16,7 @@ import os
 import re
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
