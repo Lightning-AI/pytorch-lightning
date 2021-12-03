@@ -858,9 +858,7 @@ class ModelWithDataLoaderDistributedSampler(BoringModel):
     def train_dataloader(self):
         dataloader = super().train_dataloader()
         dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True, seed=11)
-        return DataLoader(
-            dataloader.dataset, batch_size=self.batch_size, drop_last=False, sampler=dist_sampler, shuffle=False
-        )
+        return DataLoader(dataloader.dataset, batch_size=32, drop_last=False, sampler=dist_sampler, shuffle=False)
 
 
 @RunIf(min_gpus=2, skip_windows=True)
