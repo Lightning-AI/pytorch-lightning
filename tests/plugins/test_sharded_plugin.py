@@ -6,7 +6,6 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE

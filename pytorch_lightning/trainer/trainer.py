@@ -19,7 +19,6 @@ import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
-from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
