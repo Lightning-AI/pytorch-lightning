@@ -179,8 +179,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
             # hook
-            response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
             response = self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
             response = self.trainer._call_ttp_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
             if response == -1:
                 self.batch_progress.increment_processed()
