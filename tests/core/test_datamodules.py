@@ -40,7 +40,7 @@ if _OMEGACONF_AVAILABLE:
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-    dm = Mock(spec=BoringDataModule)
+    dm = Mock(spec=LightningDataModule)
     dm.prepare_data_per_node = True
     trainer = Trainer()
     trainer.datamodule = dm
