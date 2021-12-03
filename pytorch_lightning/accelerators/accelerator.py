@@ -126,21 +126,21 @@ class Accelerator:
         with self.training_type_plugin.precision_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
-    def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
         with self.training_type_plugin.precision_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*step_kwargs.values())
+            return self.training_type_plugin.validation_step(*kwargs.values())
 
-    def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
         with self.training_type_plugin.precision_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*step_kwargs.values())
+            return self.training_type_plugin.test_step(*kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.

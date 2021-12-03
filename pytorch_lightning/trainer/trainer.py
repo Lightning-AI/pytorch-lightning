@@ -1430,7 +1430,6 @@ class Trainer(
         self.call_hook("teardown", stage=fn)
 
         self.lightning_module._current_fx_name = None
-        self.lightning_module._current_dataloader_idx = None
         # these could have become stale if metrics are defined in `setup`
         self.lightning_module._metric_attributes = None
 

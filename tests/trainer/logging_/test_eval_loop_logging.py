@@ -393,8 +393,8 @@ def test_log_works_in_test_callback(tmpdir):
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
-                if pl_module._current_dataloader_idx is not None:
-                    dl_idx = pl_module._current_dataloader_idx
+                dl_idx = pl_module.trainer._results.dataloader_idx
+                if dl_idx is not None:
                     num_dl_ext = f"/dataloader_idx_{dl_idx}"
                     func_name += num_dl_ext
 

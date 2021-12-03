@@ -139,11 +139,6 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_batch_start(self, dataloader_idx: int, num_dataloaders: int) -> None:
-        model = self.trainer.lightning_module
-        # set dataloader_idx only if multiple ones
-        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
     def update_eval_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
             return
@@ -259,20 +254,25 @@ class LoggerConnector:
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self, batch_idx: int, batch: Any) -> None:
+    def on_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> None:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
 
-        assert self.trainer._results is not None
+        results = self.trainer._results
+        assert results is not None
         # attach reference to the new batch and remove the cached batch_size
-        self.trainer._results.batch = batch
-        self.trainer._results.batch_size = None
+        results.batch = batch
+        results.batch_size = None
+        results.dataloader_idx = dataloader_idx
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
         self._split_idx = None
-        assert self.trainer._results is not None
+
+        results = self.trainer._results
+        assert results is not None
+        results.dataloader_idx = None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
