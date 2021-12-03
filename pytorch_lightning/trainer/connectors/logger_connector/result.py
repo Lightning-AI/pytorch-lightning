@@ -523,9 +523,13 @@ class ResultCollection(dict):
             return cache.detach()
         return cache
 
-    def valid_items(self) -> Generator:
+    def valid_items(self, dataloader_idx: Optional[int] = None) -> Generator:
         """This function is used to iterate over current valid metrics."""
-        return ((k, v) for k, v in self.items() if not (isinstance(v, ResultMetric) and v.has_reset))
+        return (
+            (k, v)
+            for k, v in self.items()
+            if not (isinstance(v, ResultMetric) and v.has_reset) and (dataloader_idx in (None, v.meta.dataloader_idx))
+        )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
@@ -541,7 +545,7 @@ class ResultCollection(dict):
     def metrics(self, on_step: bool, dataloader_idx: Optional[int] = None) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
-        for _, result_metric in self.valid_items():
+        for _, result_metric in self.valid_items(dataloader_idx):
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
@@ -568,9 +572,7 @@ class ResultCollection(dict):
                 metrics["log"][forked_name] = value
 
             # populate callback metrics. callback metrics don't take `_step` forked metrics
-            if (self.training or result_metric.meta.on_epoch and not on_step) and (
-                dataloader_idx is None or result_metric.meta.dataloader_idx == dataloader_idx
-            ):
+            if self.training or result_metric.meta.on_epoch and not on_step:
                 metrics["callback"][name] = value
                 metrics["callback"][forked_name] = value
 
