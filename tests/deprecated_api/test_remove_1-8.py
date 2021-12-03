@@ -16,9 +16,11 @@
 import pytest
 import torch
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
+from tests.helpers import BoringModel
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
@@ -41,3 +43,21 @@ def test_v1_8_0_deprecated_torchtext_batch():
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
+
+def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
+    class TestModelSave(BoringModel):
+        def on_hpc_save(self):
+            print("on_hpc_save override")
+
+    class TestModelLoad(BoringModel):
+        def on_hpc_load(self):
+            print("on_hpc_load override")
+
+    save_model = TestModelSave()
+    load_model = TestModelLoad()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
+
+    with pytest.deprecated_call(match=r"Method `model.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."):
+         trainer.fit(save_model)
+    with pytest.deprecated_call(match=r"Method `model.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."):
+         trainer.fit(load_model)
