@@ -708,8 +708,6 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
-            logits = self.layer(batch)
-            loss = torch.nn.functional.mse_loss(logits, torch.randn(*logits.shape))
             self.log_dict(log_common_same_val)
             self.log(log_common_diff_val, dataloader_idx + 1)
             self.log(
@@ -717,13 +715,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
                 (batch_idx + 1) * (dataloader_idx + 1),
                 add_dataloader_idx=False,
             )
-
-            if dataloader_idx == 0:
-                self.log_dict(log_key_dl0, add_dataloader_idx=False)
-            else:
-                self.log_dict(log_key_dl1, add_dataloader_idx=False)
-
-            return {"y": loss}
+            self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
 
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
