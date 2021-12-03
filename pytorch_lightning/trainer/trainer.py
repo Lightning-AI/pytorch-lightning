@@ -1462,9 +1462,7 @@ class Trainer(
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
-            raise MisconfigurationException("Hook is not callable")
-
-        output = None
+            return None
 
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
@@ -1517,17 +1515,16 @@ class Trainer(
 
         return output
 
-    # TODO: eventually no longer need this
+    # TODO: rename to _call_strategy_hook and eventually no longer need this
     def _call_ttp_hook(
         self,
         hook_name: str,
         *args: Any,
         **kwargs: Any,
     ):
-        output = None
         fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
-            raise MisconfigurationException("Hook is not callable")
+            return None
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
@@ -1541,10 +1538,9 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> Optional[Any]:
-        output = None
         fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
-            raise MisconfigurationException("Hook is not callable")
+            return None
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
