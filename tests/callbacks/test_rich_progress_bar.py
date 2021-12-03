@@ -201,3 +201,24 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
     trainer.fit(model)
 
     assert progress_update.call_count == expected_call_count
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_stages(tmpdir):
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        max_epochs=1,
+        callbacks=RichProgressBar(),
+    )
+
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
