@@ -4,7 +4,7 @@ from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import LightningModule, Trainer, seed_everything
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 
 
 class RandomDataset(Dataset):
