@@ -69,7 +69,7 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.reset_on_restart()
 
     def on_run_start(  # type: ignore[override]
-        self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: Optional[int]
+        self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: int
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
