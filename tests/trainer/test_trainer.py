@@ -50,7 +50,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
@@ -61,6 +61,10 @@ from tests.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
+
+ProcessRaisedException = Exception
+if _TORCH_GREATER_EQUAL_1_8:
+    from torch.multiprocessing import ProcessRaisedException
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1411,9 +1415,7 @@ def predict(
         callbacks=[cb, cb_1] if use_callbacks else [],
     )
     if strategy == "ddp_spawn":
-        with pytest.raises(
-            torch.multiprocessing.ProcessRaisedException, match="`return_predictions` should be set to `False`"
-        ):
+        with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
     if datamodule:
@@ -1519,9 +1521,7 @@ def test_spawn_predict_return_predictions(_, __, accelerator):
     model = BoringModel()
     trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    with pytest.raises(
-        torch.multiprocessing.ProcessRaisedException, match="`return_predictions` should be set to `False`"
-    ):
+    with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
