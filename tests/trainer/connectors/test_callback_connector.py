@@ -25,6 +25,7 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.progress import RichProgressBar
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from tests.helpers import BoringModel
 
@@ -157,7 +158,7 @@ def test_attach_model_callbacks():
         return trainer
 
     early_stopping = EarlyStopping(monitor="foo")
-    progress_bar = TQDMProgressBar()
+    progress_bar = RichProgressBar()
     lr_monitor = LearningRateMonitor()
     grad_accumulation = GradientAccumulationScheduler({1: 1})
 

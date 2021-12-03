@@ -21,7 +21,7 @@ import pytest
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.callbacks.progress import ProgressBar
+from pytorch_lightning.callbacks.progress import ProgressBar, TQDMProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -107,6 +107,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        callbacks=TQDMProgressBar(),
         progress_bar_refresh_rate=None,
         fast_dev_run=True,
     )

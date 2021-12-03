@@ -79,7 +79,7 @@ def test_tqdm_progress_bar_totals(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=TQDMProgressBar())
     bar = trainer.progress_bar_callback
     assert float("inf") == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -130,7 +130,7 @@ def test_tqdm_progress_bar_totals(tmpdir):
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=TQDMProgressBar())
 
     trainer.fit(model)
 
@@ -270,7 +270,7 @@ def test_tqdm_progress_bar_default_value(tmpdir):
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
 def test_tqdm_progress_bar_value_on_colab(tmpdir):
     """Test that Trainer will override the default in Google COLAB."""
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
@@ -370,7 +370,12 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        enable_checkpointing=False,
+        callbacks=[TQDMProgressBar()],
     )
     trainer.fit(TestModel())
 
