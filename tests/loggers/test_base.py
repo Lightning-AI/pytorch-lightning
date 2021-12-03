@@ -242,7 +242,7 @@ def test_dummylogger_noop_method_calls():
 
 
 def test_dummyexperiment_support_item_assignment():
-    """Test that the DummyExperiment supports item assignment"""
+    """Test that the DummyExperiment supports item assignment."""
     experiment = DummyExperiment()
     experiment["variable"] = "value"
 
