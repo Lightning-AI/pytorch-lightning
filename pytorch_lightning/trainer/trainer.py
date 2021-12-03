@@ -1458,7 +1458,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise MisconfigurationException("No lightning module is available to call hooks on")
+            raise Exception("No Lightning Module is available to call hooks on")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
