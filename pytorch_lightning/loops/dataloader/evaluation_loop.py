@@ -241,6 +241,8 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
+        self.trainer.logger_connector._evaluation_epoch_end()
+
         # with a single dataloader don't pass a 2D list
         output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
             outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs

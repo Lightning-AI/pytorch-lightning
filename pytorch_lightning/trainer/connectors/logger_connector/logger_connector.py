@@ -137,6 +137,11 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
+    def _evaluation_epoch_end(self) -> None:
+        results = self.trainer._results
+        assert results is not None
+        results.dataloader_idx = None
+
     def update_eval_step_metrics(self) -> None:
         assert not self._epoch_end_reached
         if self.trainer.sanity_checking:
@@ -231,11 +236,6 @@ class LoggerConnector:
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
-        results = self.trainer._results
-        assert results is not None
-        # we need to reset this index before the `self.metrics` call below
-        results.dataloader_idx = None
-
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
