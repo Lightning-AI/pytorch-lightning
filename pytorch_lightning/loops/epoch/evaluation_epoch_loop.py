@@ -225,11 +225,11 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             self.trainer.lightning_module._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
-                output = self.trainer.accelerator.test_step(step_kwargs)
+                output = self.trainer.accelerator.test_step(*step_kwargs.values())
         else:
             self.trainer.lightning_module._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
-                output = self.trainer.accelerator.validation_step(step_kwargs)
+                output = self.trainer.accelerator.validation_step(*step_kwargs.values())
 
         return output
 
