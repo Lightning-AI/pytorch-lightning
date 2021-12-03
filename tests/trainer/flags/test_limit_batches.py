@@ -52,24 +52,17 @@ def test_num_dataloader_batches(tmpdir):
         (RunningStage.PREDICTING, "predict"),
     ],
 )
-def test_eval_limit_batches(stage, mode):
+@pytest.mark.parametrize("limit_batches", [0.1, 10])
+def test_eval_limit_batches(stage, mode, limit_batches):
     limit_eval_batches = f"limit_{mode}_batches"
     dl_hook = f"{mode}_dataloader"
     model = BoringModel()
     eval_loader = getattr(model, dl_hook)()
 
-    limit_batches = 0.1
     trainer = Trainer(**{limit_eval_batches: limit_batches})
     model.trainer = trainer
     trainer._data_connector.attach_dataloaders(model)
     loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
-    assert loader_num_batches[0] == int(limit_batches * len(eval_loader))
-    assert len(dataloaders[0]) == len(eval_loader)
-
-    limit_batches = 10
-    trainer = Trainer(**{limit_eval_batches: limit_batches})
-    model.trainer = trainer
-    trainer._data_connector.attach_dataloaders(model)
-    loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
-    assert loader_num_batches[0] == limit_batches
+    expected_batches = int(limit_batches * len(eval_loader)) if isinstance(limit_batches, float) else limit_batches
+    assert loader_num_batches[0] == expected_batches
     assert len(dataloaders[0]) == len(eval_loader)

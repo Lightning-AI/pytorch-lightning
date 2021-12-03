@@ -16,8 +16,7 @@ from io import StringIO
 from re import escape
 
 import pytest
-from torch.utils.data import DataLoader, DistributedSampler
-from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import _update_dataloader
@@ -335,20 +334,3 @@ def test_pre_made_batches():
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
-
-
-@RunIf(skip_windows=True)
-def test_distributed_sampler_with_overfit_batches():
-    model = BoringModel()
-    trainer = Trainer(
-        overfit_batches=1,
-        strategy="ddp_spawn",
-        num_processes=2,
-    )
-    model.trainer = trainer
-    trainer.model = model
-    trainer._data_connector.attach_dataloaders(model)
-    trainer.reset_train_dataloader()
-    train_sampler = trainer.train_dataloader.loaders.sampler
-    assert isinstance(train_sampler, DistributedSampler)
-    assert train_sampler.shuffle is False

@@ -13,12 +13,13 @@
 # limitations under the License.
 import pytest
 import torch
-from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
 from legacy.simple_classif_training import ClassifDataModule, ClassificationModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
@@ -66,102 +67,73 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
     assert isinstance(trainer.train_dataloader.loaders.sampler, SequentialSampler)
 
 
-def test_overfit_batch_limits(tmpdir):
-    # ------------------------------------------------------
-    # Make sure shuffle is correct across loaders initially
-    # ------------------------------------------------------
+@pytest.mark.parametrize(
+    "stage,mode",
+    [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
+)
+@pytest.mark.parametrize("overfit_batches", [0.11, 4])
+def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
+    model = ClassificationModel()
+    dm = ClassifDataModule()
+    eval_loader = getattr(dm, f"{mode}_dataloader")()
+    trainer = Trainer(overfit_batches=overfit_batches)
+    model.trainer = trainer
+    trainer._data_connector.attach_datamodule(model, datamodule=dm)
+
+    loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
+    if stage == RunningStage.VALIDATING:
+        assert loader_num_batches[0] == 0
+    else:
+        assert loader_num_batches[0] == len(eval_loader)
+        assert isinstance(dataloaders[0].sampler, SequentialSampler)
+
+
+@pytest.mark.parametrize("overfit_batches", [0.11, 4])
+def test_overfit_batch_limits_train(overfit_batches):
     model = ClassificationModel()
     dm = ClassifDataModule()
 
     # original train loader which should be replaced in all methods
     train_loader = dm.train_dataloader()
-
-    # make sure the val and tests are not shuffled
     assert isinstance(train_loader.sampler, RandomSampler)
-    assert isinstance(dm.val_dataloader().sampler, SequentialSampler)
-    assert isinstance(dm.test_dataloader().sampler, SequentialSampler)
 
-    # ------------------------------------------------------
-    # get the training loader and batch
-    # ------------------------------------------------------
     # Create a reference train dataloader without shuffling.
     train_loader = DataLoader(dm.train_dataloader().dataset, shuffle=False)
     (xa, ya) = next(iter(train_loader))
     train_loader = DataLoader(dm.train_dataloader().dataset, shuffle=True)
     full_train_samples = len(train_loader)
-    num_train_samples = int(0.11 * full_train_samples)
-
-    # ------------------------------------------------------
-    # set VAL and Test loaders
-    # ------------------------------------------------------
-    val_loader = DataLoader(dm.val_dataloader().dataset, shuffle=False)
-    test_loader = DataLoader(dm.test_dataloader().dataset, shuffle=False)
 
     # set the model loaders
     model.train_dataloader = lambda: train_loader
-    model.val_dataloader = lambda: val_loader
-    model.test_dataloader = lambda: test_loader
 
-    # ------------------------------------------------------
     # test train loader applies correct limits
-    # ------------------------------------------------------
-    trainer = Trainer(overfit_batches=4)
+    trainer = Trainer(overfit_batches=overfit_batches)
     model.trainer = trainer
     trainer._data_connector.attach_dataloaders(model=model)
     trainer.reset_train_dataloader(model)
-    assert trainer.num_training_batches == 4
+    expected_batches = (
+        int(overfit_batches * full_train_samples) if isinstance(overfit_batches, float) else overfit_batches
+    )
+    assert trainer.num_training_batches == expected_batches
 
     # make sure the loaders are the same
     (xb, yb) = next(iter(trainer.train_dataloader))
     assert torch.eq(xa, xb).all()
     assert torch.eq(ya, yb).all()
 
-    trainer = Trainer(overfit_batches=0.11)
+
+@RunIf(skip_windows=True)
+def test_distributed_sampler_with_overfit_batches():
+    model = BoringModel()
+    trainer = Trainer(
+        overfit_batches=1,
+        strategy="ddp_spawn",
+        num_processes=2,
+    )
     model.trainer = trainer
-    trainer._data_connector.attach_dataloaders(model=model)
-    trainer.reset_train_dataloader(model)
-    # The dataloader should have been overwritten with a Sequential sampler.
-    assert trainer.train_dataloader is not train_loader
-    assert trainer.num_training_batches == num_train_samples
-
-    # make sure the loaders are the same
-    (xb, yb) = next(iter(trainer.train_dataloader))
-    assert torch.eq(xa, xb).all()
-    assert torch.eq(ya, yb).all()
-
-    # ------------------------------------------------------
-    # run tests for both val and test
-    # ------------------------------------------------------
-    for split in (RunningStage.VALIDATING, RunningStage.TESTING):
-
-        # ------------------------------------------------------
-        # test overfit_batches as percent
-        # ------------------------------------------------------
-        trainer = Trainer(overfit_batches=0.11)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, _ = trainer._reset_eval_dataloader(split, model=model)
-        if split == RunningStage.VALIDATING:
-            assert loader_num_batches[0] == 0
-        else:
-            assert loader_num_batches[0] == len(test_loader)
-
-        # ------------------------------------------------------
-        # test overfit_batches as int
-        # ------------------------------------------------------
-        trainer = Trainer(overfit_batches=1)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, dataloaders = trainer._reset_eval_dataloader(split, model=model)
-        if split == RunningStage.VALIDATING:
-            assert loader_num_batches[0] == 0
-        else:
-            assert loader_num_batches[0] == len(test_loader)
-            # make sure we turned off shuffle for the user
-            assert isinstance(dataloaders[0].sampler, SequentialSampler)
-
-        trainer = Trainer(overfit_batches=5)
-        trainer._data_connector.attach_dataloaders(model)
-        loader_num_batches, _ = trainer._reset_eval_dataloader(split, model=model)
-        if split == RunningStage.VALIDATING:
-            assert loader_num_batches[0] == 0
-        else:
-            assert loader_num_batches[0] == len(test_loader)
+    trainer.model = model
+    trainer._data_connector.attach_dataloaders(model)
+    trainer.reset_train_dataloader()
+    train_sampler = trainer.train_dataloader.loaders.sampler
+    assert isinstance(train_sampler, DistributedSampler)
+    assert train_sampler.shuffle is False
