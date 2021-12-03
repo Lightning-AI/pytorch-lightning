@@ -108,7 +108,7 @@ class EvaluationEpochLoop(Loop):
 
         if not data_fetcher.store_on_device:
             with self.trainer.profiler.profile("evaluation_batch_to_device"):
-                batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx or 0)
+                batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=(dataloader_idx or 0))
 
         self.batch_progress.increment_ready()
 
