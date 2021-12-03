@@ -118,7 +118,7 @@ class DataConnector:
         data_fetcher.setup(
             dataloader,
             stage=stage,
-            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
+            batch_to_device=partial(self.trainer.training_type_plugin.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)

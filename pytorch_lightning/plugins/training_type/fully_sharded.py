@@ -157,7 +157,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
-        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
+        self.setup_optimizers(self.lightning_module.trainer)
 
     def pre_dispatch(self) -> None:
         if self.sync_batchnorm:

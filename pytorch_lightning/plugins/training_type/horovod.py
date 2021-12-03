@@ -19,6 +19,7 @@ import torch.nn as nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -73,8 +74,9 @@ class HorovodPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+        super().setup(trainer)
 
     def pre_dispatch(self):
 
@@ -85,7 +87,7 @@ class HorovodPlugin(ParallelPlugin):
         def _unpack_lightning_optimizer(opt):
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
 
-        optimizers = self.lightning_module.trainer.optimizers
+        optimizers = self.optimizers
         optimizers = [_unpack_lightning_optimizer(opt) for opt in optimizers]
 
         # Horovod: scale the learning rate by the number of workers to account for
@@ -106,7 +108,7 @@ class HorovodPlugin(ParallelPlugin):
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        self.lightning_module.trainer.accelerator.optimizers = self._wrap_optimizers(optimizers)
+        self.optimizers = self._wrap_optimizers(optimizers)
 
     def start_training(self, trainer):
         with ExitStack() as stack:

@@ -14,6 +14,7 @@
 import inspect
 import os
 import sys
+from functools import partial, update_wrapper
 from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
@@ -28,7 +29,7 @@ from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, rank_zero_warn,
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
@@ -83,6 +84,15 @@ OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
 
 LR_SCHEDULER_REGISTRY = _Registry()
 LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+
+
+class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
+    def __init__(self, optimizer: Optimizer, monitor: str, *args: Any, **kwargs: Any) -> None:
+        super().__init__(optimizer, *args, **kwargs)
+        self.monitor = monitor
+
+
+LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
 
 CALLBACK_REGISTRY = _Registry()
 CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.callbacks.Callback)
@@ -173,7 +183,7 @@ class LightningArgumentParser(ArgumentParser):
         """Adds arguments from an optimizer class to a nested key of the parser.
 
         Args:
-            optimizer_class: Any subclass of torch.optim.Optimizer.
+            optimizer_class: Any subclass of :class:`torch.optim.Optimizer`.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
@@ -263,9 +273,27 @@ class LightningArgumentParser(ArgumentParser):
             else:
                 clean_argv.append(arg)
             i += 1
+
+        # the user requested a help message
+        help_key = argv_key + ".help"
+        if help_key in passed_args:
+            argv_class = passed_args[help_key]
+            if "." in argv_class:
+                # user passed the class path directly
+                class_path = argv_class
+            else:
+                # convert shorthand format to the classpath
+                for cls in classes:
+                    if cls.__name__ == argv_class:
+                        class_path = _class_path_from_class(cls)
+                        break
+                else:
+                    raise ValueError(f"Could not generate get the class_path for {repr(argv_class)}")
+            return clean_argv + [help_key, class_path]
+
         # generate the associated config file
-        argv_class = passed_args.pop(argv_key, None)
-        if argv_class is None:
+        argv_class = passed_args.pop(argv_key, "")
+        if not argv_class:
             # the user passed a config as a str
             class_path = passed_args[f"{argv_key}.class_path"]
             init_args_key = f"{argv_key}.init_args"
@@ -672,12 +700,31 @@ class LightningCLI:
         action_subcommand = self.parser._subcommands_action
         return action_subcommand._name_parser_map[subcommand]
 
-    def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Adds to the model an automatically generated ``configure_optimizers`` method.
+    @staticmethod
+    def configure_optimizers(
+        lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
+    ) -> Any:
+        """Override to customize the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
+        method.
 
-        If a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC', then a
-        `configure_optimizers` method is automatically implemented in the model class.
+        Args:
+            lightning_module: A reference to the model.
+            optimizer: The optimizer.
+            lr_scheduler: The learning rate scheduler (if used).
         """
+        if lr_scheduler is None:
+            return optimizer
+        if isinstance(lr_scheduler, ReduceLROnPlateau):
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {"scheduler": lr_scheduler, "monitor": lr_scheduler.monitor},
+            }
+        return [optimizer], [lr_scheduler]
+
+    def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
+        """Overrides the model's :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
+        method if a single optimizer and optionally a scheduler argument groups are added to the parser as
+        'AUTOMATIC'."""
         parser = self._parser(subcommand)
 
         def get_automatic(
@@ -721,21 +768,18 @@ class LightningCLI:
             if not isinstance(lr_scheduler_class, tuple):
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
-        def configure_optimizers(
-            self: LightningModule,
-        ) -> Union[Optimizer, Tuple[List[Optimizer], List[LRSchedulerType]]]:
-            optimizer = instantiate_class(self.parameters(), optimizer_init)
-            if not lr_scheduler_init:
-                return optimizer
-            lr_scheduler = instantiate_class(optimizer, lr_scheduler_init)
-            return [optimizer], [lr_scheduler]
-
         if is_overridden("configure_optimizers", self.model):
             warnings._warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
-                f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model`."
+                f"`{self.__class__.__name__}.configure_optimizers`."
             )
-        self.model.configure_optimizers = MethodType(configure_optimizers, self.model)
+
+        optimizer = instantiate_class(self.model.parameters(), optimizer_init)
+        lr_scheduler = instantiate_class(optimizer, lr_scheduler_init) if lr_scheduler_init else None
+        fn = partial(self.configure_optimizers, optimizer=optimizer, lr_scheduler=lr_scheduler)
+        update_wrapper(fn, self.model.configure_optimizers)  # necessary for `is_overridden`
+        # override the existing method
+        self.model.configure_optimizers = MethodType(fn, self.model)
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
@@ -769,12 +813,16 @@ class LightningCLI:
         return fn_kwargs
 
 
+def _class_path_from_class(class_type: Type) -> str:
+    return class_type.__module__ + "." + class_type.__name__
+
+
 def _global_add_class_path(
     class_type: Type, init_args: Optional[Union[Namespace, Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     if isinstance(init_args, Namespace):
         init_args = init_args.as_dict()
-    return {"class_path": class_type.__module__ + "." + class_type.__name__, "init_args": init_args or {}}
+    return {"class_path": _class_path_from_class(class_type), "init_args": init_args or {}}
 
 
 def _add_class_path_generator(class_type: Type) -> Callable[[Namespace], Dict[str, Any]]:
