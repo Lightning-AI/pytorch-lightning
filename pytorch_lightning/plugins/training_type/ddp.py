@@ -27,9 +27,10 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
-import pytorch_lightning as pl
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+
+import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
