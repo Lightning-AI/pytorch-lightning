@@ -94,8 +94,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
+        self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
     def setup_precision_plugin(self) -> None:
@@ -350,17 +349,6 @@ class TrainingTypePlugin(ABC):
         return trainer.init_optimizers(model)
 
     @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
-        `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain
-        precision plugins such as APEX which require optimizers to be set.
-
-        Returns:
-            If True, delay setup optimizers till pre_dispatch, else call within setup.
-        """
-        return False
-
-    @property
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
         requires all the setup hooks to run before loading checkpoint.
@@ -469,7 +457,7 @@ class TrainingTypePlugin(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
 
     def dispatch(self, trainer: "pl.Trainer") -> None:

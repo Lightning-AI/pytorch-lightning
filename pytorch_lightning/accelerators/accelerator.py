@@ -73,10 +73,7 @@ class Accelerator:
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin._move_optimizer_state()
-
-        self.training_type_plugin.pre_dispatch()
-        if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
-            self.training_type_plugin.setup_optimizers(trainer)
+        self.training_type_plugin.pre_dispatch(trainer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
@@ -121,37 +118,37 @@ class Accelerator:
         """
         self.training_type_plugin.teardown()
 
-    def training_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
         """
         with self.training_type_plugin.precision_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*step_kwargs.values())
+            return self.training_type_plugin.training_step(*args, **kwargs)
 
-    def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
         with self.training_type_plugin.precision_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*step_kwargs.values())
+            return self.training_type_plugin.validation_step(*args, **kwargs)
 
-    def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
         with self.training_type_plugin.precision_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*step_kwargs.values())
+            return self.training_type_plugin.test_step(*args, **kwargs)
 
-    def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual predict step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
         with self.training_type_plugin.precision_plugin.predict_step_context():
-            return self.training_type_plugin.predict_step(*step_kwargs.values())
+            return self.training_type_plugin.predict_step(*args, **kwargs)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device.

@@ -428,7 +428,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # manually capture logged metrics
             lightning_module._current_fx_name = "training_step"
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
+                training_step_output = self.trainer.accelerator.training_step(*step_kwargs.values())
                 self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs

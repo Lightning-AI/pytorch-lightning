@@ -16,8 +16,7 @@ from io import StringIO
 from re import escape
 
 import pytest
-from torch.utils.data import DataLoader, DistributedSampler
-from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.data import _update_dataloader

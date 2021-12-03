@@ -118,15 +118,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model
