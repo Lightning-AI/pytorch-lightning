@@ -1246,8 +1246,6 @@ class Trainer(
 
         Those are handled by :meth:`_call_teardown_hook`.
         """
-        self.training_type_plugin.teardown()
-        # TODO: once accelerator is part of TTP, call teardown in TTP's teardown() method
         self.accelerator.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
