@@ -270,12 +270,13 @@ class LoggerConnector:
         self._batch_idx = None
         self._split_idx = None
 
-        results = self.trainer._results
-        assert results is not None
-        results.dataloader_idx = None
-
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
+        results = self.trainer._results
+        assert results is not None
+        # we need to reset this index before the `self.metrics` call below
+        results.dataloader_idx = None
+
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
@@ -308,8 +309,9 @@ class LoggerConnector:
         self._callback_metrics = {}
 
     def reset_results(self) -> None:
-        if self.trainer._results is not None:
-            self.trainer._results.reset()
+        results = self.trainer._results
+        if results is not None:
+            results.reset()
 
         self._batch_idx = None
         self._split_idx = None
