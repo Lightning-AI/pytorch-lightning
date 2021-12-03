@@ -712,7 +712,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
             self.log(log_common_diff_val, dataloader_idx + 1)
             self.log(
                 log_key_no_dl_idx.format(dataloader_idx),
-                (batch_idx + 1) * (dataloader_idx + 1),
+                321 * (dataloader_idx + 1),
                 add_dataloader_idx=False,
             )
             self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
@@ -722,21 +722,19 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
     model = CustomBoringModel()
     model.test_epoch_end = None
-    fast_dev_run = 5
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     results = trainer.test(model)
 
-    accumulated_value = fast_dev_run * (fast_dev_run + 1) / (2 * fast_dev_run)
     assert len(results) == num_dataloaders
     assert results[0] == {
         "test_log_common/dataloader_idx_0": 789.0,
         "test_log_common_diff_value/dataloader_idx_0": 1.0,
-        "test_log_no_dl_idx_0": accumulated_value * 1,
+        "test_log_no_dl_idx_0": 321,
         "test_log_a_class": 123.0,
     }
     assert results[1] == {
         "test_log_common/dataloader_idx_1": 789.0,
         "test_log_common_diff_value/dataloader_idx_1": 2.0,
-        "test_log_no_dl_idx_1": accumulated_value * 2,
+        "test_log_no_dl_idx_1": 321 * 2,
         "test_log_b_class": 456.0,
     }
