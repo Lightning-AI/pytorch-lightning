@@ -140,11 +140,11 @@ class LoggerConnector:
             self._test_log_step += 1
 
     def update_eval_step_metrics(self) -> None:
+        assert not self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
         # logs user requested information to logger
-        assert not self._epoch_end_reached
         self.log_metrics(self.metrics["log"], step=self._eval_log_step)
 
         # increment the step even if nothing was logged
