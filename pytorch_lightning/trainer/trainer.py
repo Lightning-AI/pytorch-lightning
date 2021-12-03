@@ -15,6 +15,7 @@
 import inspect
 import logging
 import os
+import time
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
@@ -1164,7 +1165,18 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        results = self.run_stage()
+        # TODO: needed? (was originally in TPUSpawnPLugin)
+        # self.training_type_plugin.barrier("pre-run-stage")
+
+        self.run_stage()
+
+        # TODO: needed? (was originally in TPUSpawnPLugin)
+        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
+        # self.training_type_plugin.barrier("end-process")
+
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        # if self.local_rank == 0:
+        #     time.sleep(2)
 
         self._teardown()
 
