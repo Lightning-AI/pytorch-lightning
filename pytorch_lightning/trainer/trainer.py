@@ -1168,7 +1168,7 @@ class Trainer(
         # TODO: needed? (was originally in TPUSpawnPLugin)
         # self.training_type_plugin.barrier("pre-run-stage")
 
-        self.run_stage()
+        results = self.run_stage()
 
         # TODO: needed? (was originally in TPUSpawnPLugin)
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
@@ -1196,6 +1196,7 @@ class Trainer(
         if isinstance(self.training_type_plugin, DDPSpawnPlugin):
             results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
+        # TODO: The reslts no longer need to pass through _collect_rank_zero_results and can be returned directly here
         return results
 
     def _pre_dispatch(self):
