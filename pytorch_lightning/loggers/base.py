@@ -474,6 +474,9 @@ class DummyExperiment:
         # enables self.logger.experiment[0].add_image(...)
         return self
 
+    def __setitem__(self, *args, **kwargs) -> None:
+        pass
+
 
 class DummyLogger(LightningLoggerBase):
     """Dummy logger for internal use.
