@@ -123,7 +123,6 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_advance_end(self) -> None:
-        # inform logger the epoch loop has finished
         self.trainer.logger_connector.epoch_end_reached()
 
         self._logged_outputs.append(self.trainer.logger_connector.update_eval_epoch_metrics())
@@ -132,9 +131,12 @@ class EvaluationLoop(DataLoaderLoop):
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
-        outputs, self._outputs = self._outputs, []  # free memory
+        # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
+        self.trainer.logger_connector.epoch_end_reached()
+
         # hook
-        self._evaluation_epoch_end(outputs)
+        self._evaluation_epoch_end(self._outputs)
+        self._outputs = []  # free memory
 
         # hook
         self._on_evaluation_epoch_end()
