@@ -75,7 +75,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-
     def save(self, state_dict: Dict, path: _PATH) -> None:
         xm.save(state_dict, path)
 

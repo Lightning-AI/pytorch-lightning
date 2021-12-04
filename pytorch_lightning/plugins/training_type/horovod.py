@@ -110,7 +110,6 @@ class HorovodPlugin(ParallelPlugin):
 
         self.optimizers = self._wrap_optimizers(optimizers)
 
-
     def start_training(self, trainer):
         with ExitStack() as stack:
             for optimizer in trainer.optimizers:
