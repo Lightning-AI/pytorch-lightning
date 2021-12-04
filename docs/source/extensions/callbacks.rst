@@ -43,25 +43,17 @@ Example:
 .. testcode::
 
     from pytorch_lightning.callbacks import Callback
+    from pytorch_lightning import LightningModule
 
 
     class MyPrintingCallback(Callback):
-        def on_init_start(self, trainer):
-            print("Starting to initialize the trainer!")
-
-        def on_init_end(self, trainer):
-            print("trainer is initialized now")
+        def on_train_start(self, trainer, pl_module):
+            print("Training is starting")
 
         def on_train_end(self, trainer, pl_module):
-            print("do something when training ends")
-
+            print("Training is ending")
 
     trainer = Trainer(callbacks=[MyPrintingCallback()])
-
-.. testoutput::
-
-    Starting to initialize the trainer!
-    trainer is initialized now
 
 We successfully extended functionality without polluting our super clean
 :doc:`lightning module <../common/lightning_module>` research code.
