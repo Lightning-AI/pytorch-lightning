@@ -79,7 +79,7 @@ class HorovodPlugin(ParallelPlugin):
         super().setup(trainer)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-
+        super().pre_dispatch(trainer)
         if not self.lightning_module.trainer.training:
             # no need to setup optimizers
             return
@@ -109,6 +109,7 @@ class HorovodPlugin(ParallelPlugin):
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
         self.optimizers = self._wrap_optimizers(optimizers)
+
 
     def start_training(self, trainer):
         with ExitStack() as stack:

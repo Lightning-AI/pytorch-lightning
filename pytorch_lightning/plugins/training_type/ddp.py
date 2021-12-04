@@ -339,6 +339,7 @@ class DDPPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         # share ddp pids to all processes
         self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
         if self._should_run_deadlock_detection():
@@ -357,6 +358,7 @@ class DDPPlugin(ParallelPlugin):
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         self.cluster_environment.teardown()
+        super().post_dispatch(trainer)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():

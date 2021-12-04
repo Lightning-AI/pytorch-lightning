@@ -1182,7 +1182,7 @@ class Trainer(
         return results
 
     def _pre_dispatch(self):
-        self.accelerator.pre_dispatch(self)
+        self.training_type_plugin.pre_dispatch(self)
         self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
@@ -1223,7 +1223,7 @@ class Trainer(
             self.logger.save()
 
     def _post_dispatch(self):
-        self.accelerator.post_dispatch(self)
+        self.training_type_plugin.post_dispatch(self)
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
@@ -1241,7 +1241,7 @@ class Trainer(
             return self.training_type_plugin.start_training(self)
 
     def run_stage(self):
-        self.accelerator.dispatch(self)
+        self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
 
         if self.evaluating:
