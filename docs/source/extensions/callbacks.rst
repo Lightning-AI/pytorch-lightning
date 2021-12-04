@@ -53,6 +53,7 @@ Example:
         def on_train_end(self, trainer, pl_module):
             print("Training is ending")
 
+
     trainer = Trainer(callbacks=[MyPrintingCallback()])
 
 We successfully extended functionality without polluting our super clean
