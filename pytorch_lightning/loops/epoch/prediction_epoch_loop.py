@@ -130,7 +130,6 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_started()
 
-        self.trainer.lightning_module._current_fx_name = "predict_step"
         predictions = self.trainer._call_accelerator_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()

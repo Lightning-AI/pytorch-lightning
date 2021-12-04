@@ -1457,7 +1457,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise Exception("No Lightning Module is available to call hooks on")
+            raise TypeError("No Lightning Module is available to call hooks on")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
@@ -1538,6 +1538,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> Optional[Any]:
+        self.lightning_module._current_fx_name = hook_name
         fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
             return None
