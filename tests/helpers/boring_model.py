@@ -100,7 +100,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, dataloader_idx=0):
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -111,7 +111,7 @@ class BoringModel(LightningModule):
     def training_epoch_end(self, outputs) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
         output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
@@ -119,7 +119,7 @@ class BoringModel(LightningModule):
     def validation_epoch_end(self, outputs) -> None:
         torch.stack([x["x"] for x in outputs]).mean()
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx, dataloader_idx=0):
         output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}

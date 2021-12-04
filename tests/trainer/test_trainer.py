@@ -541,9 +541,9 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
-            # try to force stop right after first step
-            if self.global_step > 0:
-                self.trainer.should_step = True
+            # try to force stop right at first step
+            if self.global_step == 1:
+                self.trainer.should_stop = True
 
             return super().training_step(*args, **kwargs)
 
@@ -1089,9 +1089,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """Test that the number of sanity check batches is clipped to `limit_val_batches`."""
 
     class CustomModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            return super().validation_step(batch, batch_idx)
-
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 
@@ -1131,9 +1128,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     `limit_val_batches` Trainer argument."""
 
     class CustomModel(BoringModel):
-        def validation_step(self, batch, batch_idx, dataloader_idx):
-            return super().validation_step(batch, batch_idx)
-
         def val_dataloader(self):
             return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
 

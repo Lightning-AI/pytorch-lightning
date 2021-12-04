@@ -37,9 +37,6 @@ class MultiValDataLoaderBoringModel(BoringModel):
     def val_dataloader(self):
         return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64), batch_size=8)]
 
-    def validation_step(self, batch, batch_idx, dataloader_idx):
-        return super().validation_step(batch, batch_idx)
-
     def validation_epoch_end(self, *args, **kwargs):
         pass
 
@@ -47,9 +44,6 @@ class MultiValDataLoaderBoringModel(BoringModel):
 class MultiTestDataLoaderBoringModel(BoringModel):
     def test_dataloader(self):
         return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64), batch_size=8)]
-
-    def test_step(self, batch, batch_idx, dataloader_idx):
-        return super().test_step(batch, batch_idx)
 
     def test_epoch_end(self, *args, **kwargs):
         pass
@@ -122,36 +116,6 @@ def test_dataloader_config_errors_init(tmpdir, dataloader_options):
         Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
 
 
-def test_multiple_val_dataloader(tmpdir):
-    """Verify multiple val_dataloader."""
-
-    model = MultiValDataLoaderBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.3, limit_train_batches=1.0)
-    trainer.fit(model)
-
-    # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    # verify there are 2 val loaders
-    assert len(trainer.val_dataloaders) == 2, "Multiple val_dataloaders not initiated properly"
-
-
-@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
-def test_multiple_eval_dataloader(tmpdir, ckpt_path):
-    """Verify multiple evaluation dataloaders."""
-    model = MultiEvalDataLoaderModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=10, limit_train_batches=100)
-    trainer.fit(model)
-    ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == "specific" else ckpt_path
-
-    trainer.validate(ckpt_path=ckpt_path, verbose=False)
-    # verify there are 2 loaders
-    assert len(trainer.val_dataloaders) == 2
-
-    trainer.test(ckpt_path=ckpt_path, verbose=False)
-    assert len(trainer.test_dataloaders) == 2
-
-
 def test_train_dataloader_passed_to_fit(tmpdir):
     """Verify that train dataloader can be passed to fit."""
 
@@ -159,8 +123,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     model = BoringModel()
     train_loader = model.train_dataloader()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-    fit_options = dict(train_dataloaders=train_loader)
-    trainer.fit(model, **fit_options)
+    trainer.fit(model, train_dataloaders=train_loader)
     assert trainer.num_training_batches == 2
     assert trainer.train_dataloader.loaders == train_loader
 
