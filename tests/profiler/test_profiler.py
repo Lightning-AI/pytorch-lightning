@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel, ManualOptimBoringModel
@@ -295,7 +295,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
@@ -333,7 +333,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-validation_step" in f for f in files)
 
 
-@RunIf(special=True)
+@RunIf(standalone=True)
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
@@ -428,7 +428,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert look_for_trace(tmpdir)
 
 
-@RunIf(min_gpus=1, special=True)
+@RunIf(min_gpus=1, standalone=True)
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """This test check emit_nvtx is correctly supported."""
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
@@ -524,3 +524,31 @@ def test_trainer_profiler_incorrect_str_arg():
         match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*",
     ):
         Trainer(profiler="unknown_profiler")
+
+
+@pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
+@pytest.mark.parametrize(
+    ["trainer_config", "trainer_fn"],
+    [
+        ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
+        ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),
+        (
+            {
+                "limit_train_batches": 7,
+                "limit_val_batches": 2,
+            },
+            "fit",
+        ),
+        ({"limit_val_batches": 4}, "validate"),
+        ({"limit_test_batches": 4}, "test"),
+        ({"limit_predict_batches": 4}, "predict"),
+    ],
+)
+def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_config, trainer_fn):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", max_epochs=1, **trainer_config)
+    warning_cache.clear()
+    with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
+        getattr(trainer, trainer_fn)(model)
+        assert trainer.profiler._schedule is None
+        warning_cache.clear()

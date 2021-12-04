@@ -153,6 +153,11 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
 
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
 
+    # or to ignore all warnings which could be false positives
+    from pytorch_lightning.utilities.warnings import PossibleUserWarning
+
+    warnings.filterwarnings("ignore", category=PossibleUserWarning)
+
 Spawn
 """""
 When using ``strategy=ddp_spawn`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
@@ -331,7 +336,7 @@ If you don't want to check 100% of the training/validation/test set set these fl
 
 If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
 
-.. note:: ``limit_train_batches``, ``limit_val_batches`` and ``limit_test_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches`` > 0. ``limit_val_batches`` will be ignored if ``fast_dev_run=True``.
+.. note:: ``limit_train_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches > 0`` and will turn off validation.
 
 .. note:: If you set ``limit_val_batches=0``, validation will be disabled.
 

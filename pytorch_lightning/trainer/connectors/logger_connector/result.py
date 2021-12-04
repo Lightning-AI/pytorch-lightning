@@ -113,6 +113,7 @@ class _Metadata:
     on_epoch: bool = True
     reduce_fx: Callable = torch.mean
     enable_graph: bool = False
+    add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
@@ -211,8 +212,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.add_state("value", torch.tensor(0.0), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
+        # this is defined here only because upstream is missing the type annotation
+        self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
         if self.is_tensor:
             if not torch.is_floating_point(value):
                 dtype = torch.get_default_dtype()
@@ -225,16 +228,17 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
             if self.meta.on_step:
                 self._forward_cache = self.meta.sync(value.clone())  # `clone` because `sync` is in-place
-
-            # performance: no need to accumulate on values only logged on_step
-            if not self.meta.on_epoch:
-                self.value = self._forward_cache
-                return
+                # performance: no need to accumulate on values only logged on_step
+                if not self.meta.on_epoch:
+                    self.value = self._forward_cache
+                    return
 
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
-                self.cumulated_batch_size += batch_size
+                # `Metric.add_state` does not work well with mypy, mypy doesn't know this is a `Tensor`
+                # we could add an assertion, but this is a hot code path
+                self.cumulated_batch_size += batch_size  # type: ignore[operator]
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
@@ -280,8 +284,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 )
 
             # return cached value
-            if self._computed is not None:  # type: ignore
-                return self._computed  # type: ignore
+            if self._computed is not None:
+                return self._computed
             self._computed = compute(*args, **kwargs)
             return self._computed
 
@@ -335,12 +339,13 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args: Any) -> None:
-        super().__init__(*args)
-
     @property
     def meta(self) -> _Metadata:
-        return list(self.values())[0].meta
+        return next(iter(self.values())).meta
+
+    @property
+    def has_tensor(self) -> bool:
+        return any(v.is_tensor for v in self.values())
 
     def __getstate__(self, drop_value: bool = False) -> dict:
         def getstate(item: ResultMetric) -> dict:
@@ -388,6 +393,7 @@ class ResultCollection(dict):
         self.device: Optional[Union[str, torch.device]] = device
         self.batch: Optional[Any] = None
         self.batch_size: Optional[int] = None
+        self.dataloader_idx: Optional[int] = None
 
     @property
     def result_metrics(self) -> List[ResultMetric]:
@@ -400,7 +406,7 @@ class ResultCollection(dict):
         apply_to_collection(list(self.values()), ResultMetric, append_fn)
         return o
 
-    def _extract_batch_size(self, batch_size: Optional[int], meta: _Metadata) -> int:
+    def _extract_batch_size(self, value: _METRIC_COLLECTION, batch_size: Optional[int], meta: _Metadata) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = self.batch_size
@@ -409,7 +415,8 @@ class ResultCollection(dict):
             return batch_size
 
         batch_size = 1
-        if self.batch is not None and meta.on_epoch and meta.is_mean_reduction:
+        is_tensor = value.is_tensor if isinstance(value, ResultMetric) else value.has_tensor
+        if self.batch is not None and is_tensor and meta.on_epoch and meta.is_mean_reduction:
             batch_size = extract_batch_size(self.batch)
             self.batch_size = batch_size
 
@@ -429,7 +436,7 @@ class ResultCollection(dict):
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
-        dataloader_idx: Optional[int] = None,
+        add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
@@ -446,9 +453,9 @@ class ResultCollection(dict):
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
-        if dataloader_idx is not None:
-            key += f".{dataloader_idx}"
-            fx += f".{dataloader_idx}"
+        if add_dataloader_idx and self.dataloader_idx is not None:
+            key += f".{self.dataloader_idx}"
+            fx += f".{self.dataloader_idx}"
 
         meta = _Metadata(
             fx=fx,
@@ -459,7 +466,8 @@ class ResultCollection(dict):
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
-            dataloader_idx=dataloader_idx,
+            add_dataloader_idx=add_dataloader_idx,
+            dataloader_idx=self.dataloader_idx,
             metric_attribute=metric_attribute,
         )
         meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
@@ -474,7 +482,7 @@ class ResultCollection(dict):
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 
-        batch_size = self._extract_batch_size(batch_size, meta)
+        batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
@@ -517,24 +525,29 @@ class ResultCollection(dict):
             return cache.detach()
         return cache
 
-    def valid_items(self) -> Generator:
+    def valid_items(self, dataloader_idx: Optional[int] = None) -> Generator:
         """This function is used to iterate over current valid metrics."""
-        return ((k, v) for k, v in self.items() if not (isinstance(v, ResultMetric) and v.has_reset))
+        return (
+            (k, v)
+            for k, v in self.items()
+            if not (isinstance(v, ResultMetric) and v.has_reset) and (dataloader_idx in (None, v.meta.dataloader_idx))
+        )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
+        add_dataloader_idx = result_metric.meta.add_dataloader_idx
         dl_idx = result_metric.meta.dataloader_idx
-        if dl_idx is not None:
+        if add_dataloader_idx and dl_idx is not None:
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool) -> _METRICS:
+    def metrics(self, on_step: bool, dataloader_idx: Optional[int] = None) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
-        for _, result_metric in self.valid_items():
+        for _, result_metric in self.valid_items(dataloader_idx):
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)

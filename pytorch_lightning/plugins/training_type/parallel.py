@@ -57,8 +57,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
-    def lightning_module(self):
-        return unwrap_lightning_module(self._model)
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def global_rank(self) -> int:

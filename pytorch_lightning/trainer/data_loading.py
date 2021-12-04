@@ -14,8 +14,6 @@
 import multiprocessing
 import os
 from abc import ABC
-from copy import deepcopy
-from functools import partial
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -29,9 +27,10 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _capture_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -40,6 +39,7 @@ from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -49,13 +49,18 @@ class TrainerDataLoadingMixin(ABC):
     val_check_interval: float
     tpu_local_core_rank: int
     train_dataloader: DataLoader
-    num_training_batches: Union[int, float]
-    val_check_batch: float
-    val_dataloaders: Optional[List[DataLoader]]
-    num_val_batches: List[Union[int, float]]
-    test_dataloaders: Optional[List[DataLoader]]
-    num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    num_training_batches: int
+    val_check_batch: float
+    val_dataloaders: List[DataLoader]
+    limit_val_batches: Union[int, float]
+    num_val_batches: List[int]
+    test_dataloaders: List[DataLoader]
+    limit_test_batches: Union[int, float]
+    num_test_batches: List[int]
+    predict_dataloaders: List[DataLoader]
+    limit_predict_batches: Union[int, float]
+    num_predict_batches: List[int]
     log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
@@ -109,7 +114,8 @@ class TrainerDataLoadingMixin(ABC):
                 f"The dataloader, {name}, does not have many workers which may be a bottleneck."
                 " Consider increasing the value of the `num_workers` argument`"
                 f" (try {num_cpus} which is the number of cpus on this machine)"
-                " in the `DataLoader` init to improve performance."
+                " in the `DataLoader` init to improve performance.",
+                category=PossibleUserWarning,
             )
 
     def _requires_distributed_sampler(self, dataloader) -> bool:
@@ -215,7 +221,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
-            apply_to_collection(self.train_dataloader, DataLoader, self._add_sampler_metadata_collate)
+            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
@@ -267,7 +273,8 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
-                " you want to see logs for the training epoch."
+                " you want to see logs for the training epoch.",
+                category=PossibleUserWarning,
             )
 
     def _reset_eval_dataloader(
@@ -290,28 +297,15 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        # when overfitting, use the training loader as val and test
-        # duplicate it the numb of times needed to match the train loaders
-        if self.overfit_batches > 0:
-            train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
-            dataloaders = [deepcopy(train_dataloader) for _ in range(len(dataloaders))]
-
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
             if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
-                # when overfitting, the dataloader should not have sampler
-                if self.overfit_batches > 0 and mode.evaluating:
-                    rank_zero_warn(
-                        "You requested to overfit but enabled val/test dataloader shuffling."
-                        " We are turning it off for you."
-                    )
-                    dataloaders[loader_i] = _update_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
-                else:
-                    rank_zero_warn(
-                        f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                        "it is strongly recommended that you turn this off for val/test/predict dataloaders."
-                    )
+                rank_zero_warn(
+                    f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
+                    " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                    category=PossibleUserWarning,
+                )
 
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
@@ -431,19 +425,15 @@ class TrainerDataLoadingMixin(ABC):
 
         hook = f"{stage.dataloader_prefix}_dataloader"
         self.call_hook("on_" + hook, pl_module=model)
-        dataloader = source.dataloader()
+        with _replace_dataloader_init_method():
+            # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.training_type_plugin.barrier("get_dataloaders")
+        _validate_fault_tolerant_automatic(dataloader, stage)
         return dataloader
-
-    @staticmethod
-    def _add_sampler_metadata_collate(dataloader: DataLoader) -> None:
-        """Wrap default collate function to retrive ``FastForwardSampler`` state dict when fault tolerant is
-        enabled."""
-        dataloader.collate_fn = partial(
-            _capture_metadata_collate, dataset=dataloader.dataset, default_collate=dataloader.collate_fn
-        )
 
     @staticmethod
     def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:

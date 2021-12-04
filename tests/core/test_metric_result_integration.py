@@ -480,7 +480,7 @@ def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)

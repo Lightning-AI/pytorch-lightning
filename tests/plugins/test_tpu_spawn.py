@@ -20,6 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.plugins.training_type import TPUSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -102,3 +103,18 @@ def test_model_tpu_one_core():
     model = BoringModelTPU()
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize("use_list", [False, True])
+def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
+    tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
+    assert tensorboard_logger._experiment is None
+    tensorboard_logger.experiment  # this property access will create the experiment
+    assert tensorboard_logger._experiment is not None
+    logger = [tensorboard_logger] if use_list else tensorboard_logger
+    trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices="auto", logger=logger)
+    trainer.training_type_plugin._clean_logger(trainer)
+    if use_list:
+        assert isinstance(trainer.logger, LoggerCollection)
+    assert tensorboard_logger._experiment is None

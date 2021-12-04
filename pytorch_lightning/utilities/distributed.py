@@ -16,7 +16,7 @@ import logging
 import os
 from functools import wraps
 from platform import python_version
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -376,3 +376,26 @@ def init_dist_connection(
             f"All distributed processes registered. Starting with {world_size} processes\n"
             f"{'-' * 100}\n"
         )
+
+
+def _broadcast_object_list(obj: Any, rank: int) -> Any:
+    objects = [obj if torch.distributed.get_rank() == rank else None]
+    torch.distributed.broadcast_object_list(objects, src=rank)
+    return objects[0]
+
+
+# TODO: Refactor with the Strategy Collectives once finalized.
+def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
+    """This distributed utility collects dictionary state across all processes.
+
+    Args:
+        state: Dictionary containing the state of the current process
+        device: Current process device.
+
+    Returns:
+        states: On global rank 0, a dictionary where the primary keys are
+            the process rank and the values their associated states. Otherwise, returns None.
+    """
+    if not distributed_available():
+        return {0: state}
+    return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}

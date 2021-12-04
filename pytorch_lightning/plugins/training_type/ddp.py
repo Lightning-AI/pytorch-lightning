@@ -338,7 +338,7 @@ class DDPPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes
         self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
         if self._should_run_deadlock_detection():
