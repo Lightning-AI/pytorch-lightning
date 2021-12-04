@@ -70,8 +70,8 @@ def _parse_loop_limits(
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
 ) -> Tuple[Optional[int], int]:
-    """This utility computes the number minimum and maximum number of epochs " based on the minimum and maximum number
-    of steps and maximum time.
+    """This utility computes the number minimum and maximum number of epochs " based on the minimum and maximum
+    number of steps and maximum time.
 
     Args:
         min_steps: Minimum number of steps.
