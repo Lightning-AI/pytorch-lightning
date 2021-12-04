@@ -262,14 +262,17 @@ class IPUPlugin(ParallelPlugin):
         with self.precision_plugin.train_step_context():
             return self._step(RunningStage.TRAINING, *args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self._step(RunningStage.VALIDATING, *args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.training_type_plugin.precision_plugin.val_step_context():
+            return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self._step(RunningStage.TESTING, *args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.training_type_plugin.precision_plugin.test_step_context():
+            return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self._step(RunningStage.PREDICTING, *args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.training_type_plugin.precision_plugin.predict_step_context():
+            return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
         # undo dataloader patching

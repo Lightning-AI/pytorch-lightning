@@ -324,14 +324,29 @@ class TrainingTypePlugin(ABC):
     def post_training_step(self):
         pass
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+    def validation_step(self, *args, **kwargs)-> Optional[STEP_OUTPUT]:
+        """The actual validation step.
 
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        """
+        with self.training_type_plugin.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual test step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        """
+        with self.training_type_plugin.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        """The actual predict step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        """
+        with self.training_type_plugin.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output

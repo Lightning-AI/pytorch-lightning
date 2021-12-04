@@ -402,18 +402,21 @@ class DDPPlugin(ParallelPlugin):
             return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        if isinstance(self.model, DistributedDataParallel):
-            # used when calling `trainer.fit`
-            return self.model(*args, **kwargs)
-        else:
-            # used when calling `trainer.validate`
-            return self.lightning_module.validation_step(*args, **kwargs)
+        with self.training_type_plugin.precision_plugin.val_step_context():
+            if isinstance(self.model, DistributedDataParallel):
+                # used when calling `trainer.fit`
+                return self.model(*args, **kwargs)
+            else:
+                # used when calling `trainer.validate`
+                return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        return self.lightning_module.test_step(*args, **kwargs)
+        with self.training_type_plugin.precision_plugin.test_step_context():
+            return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> Any:
-        return self.lightning_module.predict_step(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.training_type_plugin.precision_plugin.test_step_context():
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
