@@ -109,7 +109,6 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._current_fx_name: Optional[str] = None
-        self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = {}
@@ -375,7 +374,7 @@ class LightningModule(
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # if we started a new epoch (running it's first batch) the hook name has changed
+            # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
@@ -419,7 +418,6 @@ class LightningModule(
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
-            dataloader_idx=self._current_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and distributed_available(),
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,

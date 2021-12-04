@@ -393,8 +393,8 @@ def test_log_works_in_test_callback(tmpdir):
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
-                if pl_module._current_dataloader_idx is not None:
-                    dl_idx = pl_module._current_dataloader_idx
+                dl_idx = pl_module.trainer._results.dataloader_idx
+                if dl_idx is not None:
                     num_dl_ext = f"/dataloader_idx_{dl_idx}"
                     func_name += num_dl_ext
 
@@ -471,13 +471,13 @@ def test_log_works_in_test_callback(tmpdir):
     assert cb.funcs_called_count["on_test_batch_end"] == 4
     assert cb.funcs_called_count["on_test_epoch_end"] == 1
 
-    callback_metrics_keys = list(trainer.callback_metrics)
-    for func_name in cb.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
+    callback_metrics = trainer.callback_metrics
+    for func_name in cb.callback_funcs_called:
+        for key in callback_metrics:
+            if func_name in key:
+                break
+        else:
+            assert False, (func_name, list(callback_metrics))
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
