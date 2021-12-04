@@ -172,7 +172,8 @@ class DDPFullyShardedPlugin(DDPPlugin):
         self.lightning_module.to(self.root_device)
 
     def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         return self.model.validation_step(*args, **kwargs)

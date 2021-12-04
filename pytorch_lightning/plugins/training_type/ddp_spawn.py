@@ -335,8 +335,9 @@ class DDPSpawnPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs) -> Optional[Any]:
-        return self.model(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.train_step_context():
+            return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         if isinstance(self.model, DistributedDataParallel):

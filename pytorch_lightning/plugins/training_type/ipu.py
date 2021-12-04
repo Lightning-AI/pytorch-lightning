@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -257,8 +258,9 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self, *args, **kwargs):
-        return self._step(RunningStage.TRAINING, *args, **kwargs)
+    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.train_step_context():
+            return self._step(RunningStage.TRAINING, *args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         return self._step(RunningStage.VALIDATING, *args, **kwargs)

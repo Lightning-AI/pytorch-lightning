@@ -302,9 +302,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._clean_logger(trainer)
         return super().start_predicting(trainer)
 
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
     def validation_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 

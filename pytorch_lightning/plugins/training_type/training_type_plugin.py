@@ -30,7 +30,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -313,8 +313,13 @@ class TrainingTypePlugin(ABC):
         # double dispatch to initiate the predicting loop
         return trainer.run_stage()
 
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual training step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        """
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass

@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -118,8 +118,9 @@ class DataParallelPlugin(ParallelPlugin):
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
 
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.train_step_context():
+            return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
