@@ -218,7 +218,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, last_path, results, extra)
+        trainer_state = trainer.state
+        return _SpawnOutput(best_model_path, last_path, trainer_state, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
