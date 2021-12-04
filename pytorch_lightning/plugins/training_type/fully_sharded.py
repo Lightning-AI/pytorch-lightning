@@ -161,7 +161,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         self.setup_optimizers(self.lightning_module.trainer)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
+        self._move_optimizer_state()
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
