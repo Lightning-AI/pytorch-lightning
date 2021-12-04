@@ -41,7 +41,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
 
     __verify_dp_batch_transfer_support(trainer, model)
     _check_add_get_queue(model)
-    # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
+    # TODO: Delete _check_progress_bar in v1.7
     _check_progress_bar(model)
     # TODO: Delete _check_on_post_move_to_device in v1.7
     _check_on_post_move_to_device(model)
@@ -49,6 +49,8 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     _check_on_keyboard_interrupt(trainer)
     # TODO: Remove this in v1.7 (deprecation: #9816)
     _check_dl_idx_in_on_train_batch_hooks(trainer, model)
+    # TODO: Remove this in v1.8
+    _check_on_init_start_end(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -288,3 +290,14 @@ def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.Ligh
                     f"Base `Callback.{hook}` hook signature has changed in v1.5."
                     " The `dataloader_idx` argument will be removed in v1.7."
                 )
+
+
+def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
+    """Checks if on_init_start/end are overridden and sends a deprecation warning."""
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_init_start", instance=callback):
+            rank_zero_deprecation(
+                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+            )
+        if is_overridden(method_name="on_init_end", instance=callback):
+            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
