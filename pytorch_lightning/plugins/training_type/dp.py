@@ -118,7 +118,7 @@ class DataParallelPlugin(ParallelPlugin):
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
 
-    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self.model(*args, **kwargs)
 

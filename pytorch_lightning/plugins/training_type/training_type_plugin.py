@@ -313,7 +313,7 @@ class TrainingTypePlugin(ABC):
         # double dispatch to initiate the predicting loop
         return trainer.run_stage()
 
-    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details

@@ -258,7 +258,7 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self._step(RunningStage.TRAINING, *args, **kwargs)
 

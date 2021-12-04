@@ -397,7 +397,7 @@ class DDPPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self.model(*args, **kwargs)
 
