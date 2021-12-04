@@ -303,15 +303,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return super().start_predicting(trainer)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        with self.training_type_plugin.precision_plugin.val_step_context():
+        with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        with self.training_type_plugin.precision_plugin.test_step_context():
+        with self.precision_plugin.test_step_context():
             return self.model(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        with self.training_type_plugin.precision_plugin.predict_step_context():
+        with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:

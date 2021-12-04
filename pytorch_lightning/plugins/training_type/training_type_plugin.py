@@ -329,7 +329,7 @@ class TrainingTypePlugin(ABC):
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
         """
-        with self.training_type_plugin.precision_plugin.val_step_context():
+        with self.precision_plugin.val_step_context():
             return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -337,7 +337,7 @@ class TrainingTypePlugin(ABC):
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
         """
-        with self.training_type_plugin.precision_plugin.test_step_context():
+        with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
@@ -345,7 +345,7 @@ class TrainingTypePlugin(ABC):
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
         """
-        with self.training_type_plugin.precision_plugin.predict_step_context():
+        with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
