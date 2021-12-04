@@ -15,7 +15,6 @@ import io
 import os
 import time
 from multiprocessing.queues import SimpleQueue
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -203,7 +202,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
-            weights_path = Path(checkpoint_callback.dirpath if checkpoint_callback is not None else ".") / ".temp.ckpt"
+            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
             self.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
