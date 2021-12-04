@@ -415,7 +415,7 @@ class DDPPlugin(ParallelPlugin):
             return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        with self.precision_plugin.test_step_context():
+        with self.precision_plugin.predict_step_context():
             return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
