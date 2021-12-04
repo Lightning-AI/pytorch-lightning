@@ -355,9 +355,6 @@ class DDPPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        self.cluster_environment.teardown()
-
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
             return
@@ -495,6 +492,7 @@ class DDPPlugin(ParallelPlugin):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
+        super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 

@@ -1223,7 +1223,6 @@ class Trainer(
             self.logger.save()
 
     def _post_dispatch(self):
-        self.accelerator.post_dispatch(self)
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()

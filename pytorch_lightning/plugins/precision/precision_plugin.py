@@ -204,9 +204,6 @@ class PrecisionPlugin(CheckpointHooks):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something when ``Accelerator.dispatch()`` gets called."""
 
-    def post_dispatch(self) -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
-
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""

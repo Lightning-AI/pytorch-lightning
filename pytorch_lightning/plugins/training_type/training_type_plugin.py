@@ -462,6 +462,3 @@ class TrainingTypePlugin(ABC):
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something at trainer run_stage starts."""
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
