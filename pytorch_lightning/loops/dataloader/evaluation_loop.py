@@ -230,7 +230,6 @@ class EvaluationLoop(DataLoaderLoop):
         )
 
         # call the model epoch end
-        model = self.trainer.lightning_module
         if self.trainer.testing:
             self.trainer._call_lightning_module_hook("test_epoch_end", output_or_outputs)
         else:
