@@ -324,7 +324,7 @@ class TrainingTypePlugin(ABC):
     def post_training_step(self):
         pass
 
-    def validation_step(self, *args, **kwargs)-> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
