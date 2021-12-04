@@ -1481,26 +1481,27 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> Optional[Any]:
-        pl_module = self.lightning_module
         output = None
-
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = hook_name
-
-        # TODO: remove first if statement in v1.7
-        if hook_name in ("on_train_batch_start", "on_train_batch_end"):
-            fn = getattr(self, hook_name)
-            if callable(fn):
-                with self.profiler.profile(hook_name):
-                    output = fn(*args, **kwargs)
-        elif hook_name in ("on_init_start", "on_init_end"):
+        if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
                     output = fn(self, *args, **kwargs)
+            return output
+
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
+
+        # TODO: remove if statement in v1.7
+        if hook_name in ("on_train_batch_start", "on_train_batch_end"):
+            fn = getattr(self, hook_name)
+            if callable(fn):
+                with self.profiler.profile(hook_name):
+                    output = fn(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
