@@ -134,19 +134,19 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
         spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
+        self._recover_results_in_main_process(spawn_output, trainer)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
         return spawn_output.trainer_results
 
     def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
+        self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
     def start_predicting(self, trainer: "pl.Trainer") -> Any:
         spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self.__recover_results_in_main_process(spawn_output, trainer)
+        self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
@@ -199,7 +199,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.barrier()
 
         results = trainer.run_stage()
-        outputs = self.__collect_rank_zero_results(trainer, results)
+        outputs = self._collect_rank_zero_results(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
@@ -242,7 +242,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -269,7 +269,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         return _SpawnOutput(best_model_path, weights_path, results, extra)
 
-    def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
+    def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback:
             trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
