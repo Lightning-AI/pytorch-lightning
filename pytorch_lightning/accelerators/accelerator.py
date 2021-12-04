@@ -118,14 +118,6 @@ class Accelerator:
         """
         self.training_type_plugin.teardown()
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        """The actual training step.
-
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
-        """
-        with self.training_type_plugin.precision_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*args, **kwargs)
-
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
