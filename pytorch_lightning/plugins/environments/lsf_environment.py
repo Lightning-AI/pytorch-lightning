@@ -14,7 +14,7 @@
 
 import os
 import socket
-from typing import List, Dict
+from typing import Dict, List
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -160,4 +160,3 @@ class LSFEnvironment(ClusterEnvironment):
             return port
         else:
             raise ValueError("Could not find job id in environment variable LSB_JOBID")
-
