@@ -97,7 +97,7 @@ class ReduceLROnPlateau:
     def state_dict(self) -> dict:
         ...
 
-    def load_state_dict(self, state_dict: dict):
+    def load_state_dict(self, state_dict: dict) -> None:
         ...
 
 
