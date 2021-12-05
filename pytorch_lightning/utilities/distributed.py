@@ -231,7 +231,7 @@ def all_gather_ddp_if_available(
     """
     group = group if group is not None else torch.distributed.group.WORLD
     if distributed_available():
-        gathered_list = [torch.zeros_like(tensor) for _ in range(group.size())]
+        gathered_list = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group))]
         if sync_grads:
             torch.distributed.all_gather(gathered_list, tensor, group=group)
         with torch.no_grad():
