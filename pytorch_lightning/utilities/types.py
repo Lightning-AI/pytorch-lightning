@@ -21,6 +21,7 @@ from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type,
 
 import torch
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler as _TorchLRScheduler, ReduceLROnPlateau as TorchReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import TypedDict
@@ -48,7 +49,7 @@ EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 
 # Copied from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class _LRScheduler:
+class _LRScheduler(_TorchLRScheduler):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, last_epoch: int = ...) -> None:
@@ -72,7 +73,7 @@ class _LRScheduler:
 
 # Copied from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau:
+class ReduceLROnPlateau(TorchReduceLROnPlateau):
     in_cooldown: bool
     optimizer: Optimizer
 
