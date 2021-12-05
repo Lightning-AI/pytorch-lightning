@@ -109,6 +109,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the access to the attribute `IndexBatchSamplerWrapper.batch_indices` in favor of `IndexBatchSamplerWrapper.seen_batch_indices` ([#10870](https://github.com/PyTorchLightning/pytorch-lightning/pull/10870))
 
 
+- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's `torch.distributed.all_gather` ([#10504](https://github.com/PyTorchLightning/pytorch-lightning/pull/10504))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -169,9 +172,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `utilities.distributed.rank_zero_{warn/deprecation}` ([#10451](https://github.com/PyTorchLightning/pytorch-lightning/pull/10451))
 
 
-- Removed custom `AllGatherGrad` implementation in favor of PyTorch's ([#10504](https://github.com/PyTorchLightning/pytorch-lightning/pull/10504))
-
-
 - Removed deprecated `mode` argument from `ModelSummary` class ([#10449](https://github.com/PyTorchLightning/pytorch-lightning/pull/10449))
 
 
@@ -181,6 +181,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `Trainer.train_loop` property in favor of `Trainer.fit_loop` ([#10482](https://github.com/PyTorchLightning/pytorch-lightning/pull/10482))
 
 
+- Removed deprecated `disable_validation` property from Trainer ([#10450](https://github.com/PyTorchLightning/pytorch-lightning/pull/10450))
+
+
+- Removed deprecated `CheckpointConnector.hpc_load` property in favor of `CheckpointConnector.restore` ([#10525](https://github.com/PyTorchLightning/pytorch-lightning/pull/10525))
+
+
+- Removed deprecated `reload_dataloaders_every_epoch` from `Trainer` in favour of `reload_dataloaders_every_n_epochs` ([#10481](https://github.com/PyTorchLightning/pytorch-lightning/pull/10481))
+
+
+- Removed the `precision_plugin` attribute from `Accelerator` in favor of its equivalent attribute `precision_plugin` in the `TrainingTypePlugin` ([#10570](https://github.com/PyTorchLightning/pytorch-lightning/pull/10570))
 
 
 - Removed `DeepSpeedPlugin.{precision,amp_type,amp_level}` properties ([#10657](https://github.com/PyTorchLightning/pytorch-lightning/pull/10657))
