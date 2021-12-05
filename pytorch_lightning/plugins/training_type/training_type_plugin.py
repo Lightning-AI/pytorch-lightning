@@ -19,7 +19,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -30,7 +29,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -47,7 +46,7 @@ class TrainingTypePlugin(ABC):
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
         self.optimizers: List[Optimizer] = []
-        self.lr_schedulers: List[_LRScheduler] = []
+        self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
 
     @property

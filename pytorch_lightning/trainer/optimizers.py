@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import LR_SCHEDULER_CONFIG
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 
 class TrainerOptimizersMixin(ABC):
@@ -124,7 +124,7 @@ class TrainerOptimizersMixin(ABC):
     @staticmethod
     def _configure_schedulers(
         schedulers: list, monitor: Optional[str], is_manual_optimization: bool
-    ) -> List[LR_SCHEDULER_CONFIG]:
+    ) -> List[LRSchedulerConfig]:
         """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()

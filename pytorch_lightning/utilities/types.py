@@ -46,23 +46,68 @@ TRAIN_DATALOADERS = Union[
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 
 
-@runtime_checkable
-class _LRScheduler(Protocol):
+# Copied from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+class _LRScheduler:
     optimizer: Optimizer
 
+    def __init__(self, optimizer: Optimizer, last_epoch: int = ...) -> None:
+        ...
 
-@runtime_checkable
-class ReduceLROnPlateau(Protocol):
+    def state_dict(self) -> dict:
+        ...
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        ...
+
+    def get_last_lr(self) -> List[float]:
+        ...
+
+    def get_lr(self) -> float:
+        ...
+
+    def step(self, epoch: Optional[int] = ...) -> None:
+        ...
+
+
+# Copied from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+class ReduceLROnPlateau:
+    in_cooldown: bool
     optimizer: Optimizer
 
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        mode: str = ...,
+        factor: float = ...,
+        patience: int = ...,
+        verbose: bool = ...,
+        threshold: float = ...,
+        threshold_mode: str = ...,
+        cooldown: int = ...,
+        min_lr: float = ...,
+        eps: float = ...,
+    ) -> None:
+        ...
 
-# todo: improve LRSchedulerType naming/typing ???
+    def step(self, metrics: Any, epoch: Optional[int] = ...) -> None:
+        ...
+
+    def state_dict(self) -> dict:
+        ...
+
+    def load_state_dict(self, state_dict: dict):
+        ...
+
+
+# todo: improve LRSchedulerType naming/typing
 LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
 
 
-class LR_SCHEDULER_CONFIG(TypedDict):
+class LRSchedulerConfig(TypedDict):
     scheduler: LRSchedulerTypeUnion
     name: Optional[str]
     interval: str
