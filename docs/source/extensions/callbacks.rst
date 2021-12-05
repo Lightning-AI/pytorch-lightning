@@ -43,7 +43,6 @@ Example:
 .. testcode::
 
     from pytorch_lightning.callbacks import Callback
-    from pytorch_lightning import LightningModule
 
 
     class MyPrintingCallback(Callback):
