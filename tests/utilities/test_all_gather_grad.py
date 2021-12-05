@@ -32,7 +32,7 @@ def setup_ddp(rank, world_size):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
-def _test_all_gather_ddp(rank, world_size):
+def _   test_all_gather_ddp(rank, world_size):
 
     """_test_all_gather_ddp will be removed as deprecating AllGatherGrad."""
 
