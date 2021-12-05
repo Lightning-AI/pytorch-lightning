@@ -103,7 +103,6 @@ from pytorch_lightning.utilities.types import (
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
-    LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning

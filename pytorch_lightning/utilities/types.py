@@ -17,13 +17,12 @@ Convention:
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, runtime_checkable, Sequence, Type, TypedDict, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, TypedDict, Union
 
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import Protocol
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
