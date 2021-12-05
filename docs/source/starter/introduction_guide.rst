@@ -954,8 +954,6 @@ for hooks that you might care about
         def on_train_end(self, trainer, pl_module):
             print("Training is ending")
 
-
-
 And pass the callbacks into the trainer
 
 .. testcode::
