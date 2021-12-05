@@ -77,7 +77,7 @@ class SLURMEnvironment(ClusterEnvironment):
             os.environ["MASTER_PORT"] = str(default_port)
 
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-        return int(default_port)
+        return default_port
 
     @staticmethod
     def detect() -> bool:
