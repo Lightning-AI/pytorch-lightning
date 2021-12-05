@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import os
-import sys
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
@@ -26,15 +23,6 @@ from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
-
-
-def setup_ddp(rank, world_size):
-    """Setup ddp enviroment."""
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "8088"
-
-    if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
-        torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
 def test_v1_8_0_deprecated_distributed_type_enum():
