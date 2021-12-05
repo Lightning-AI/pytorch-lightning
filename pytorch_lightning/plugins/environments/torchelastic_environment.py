@@ -14,7 +14,6 @@
 
 import logging
 import os
-from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
