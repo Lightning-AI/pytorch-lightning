@@ -149,15 +149,15 @@ class LSFEnvironment(ClusterEnvironment):
         Uses the LSF job ID so all ranks can compute the main port.
         """
         # check for user-specified main port
-        port = os.environ.get("MASTER_PORT")
-        if not port:
-            jobid = os.environ.get("LSB_JOBID")
-            if not jobid:
-                raise ValueError("Could not find job id in environment variable LSB_JOBID")
-            port = int(jobid)
+        if "MASTER_PORT" in os.environ:
+            log.debug(f"using externally specified main port: {os.environ['MASTER_PORT']}")
+            return int(os.environ["MASTER_PORT"])
+        if "LSB_JOBID" in os.environ:
+            port = int(os.environ["LSB_JOBID"])
             # all ports should be in the 10k+ range
-            port = int(port) % 1000 + 10000
+            port = port % 1000 + 10000
             log.debug(f"calculated LSF main port: {port}")
+            return port
         else:
-            log.debug(f"using externally specified main port: {port}")
-        return int(port)
+            raise ValueError("Could not find job id in environment variable LSB_JOBID")
+
