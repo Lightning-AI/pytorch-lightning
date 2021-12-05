@@ -20,6 +20,7 @@ Monitor and logs XLA stats during training.
 """
 import time
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE, rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -66,7 +67,7 @@ class XLAStatsMonitor(Callback):
 
         self._verbose = verbose
 
-    def on_train_start(self, trainer, pl_module) -> None:
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not trainer.logger:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
@@ -80,10 +81,10 @@ class XLAStatsMonitor(Callback):
         total_memory = trainer.training_type_plugin.reduce(memory_info["kb_total"]) * 0.001
         rank_zero_info(f"Average Total memory: {total_memory:.2f} MB")
 
-    def on_train_epoch_start(self, trainer, pl_module) -> None:
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time = time.time()
 
-    def on_train_epoch_end(self, trainer, pl_module) -> None:
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         logs = {}
         memory_info = xm.get_memory_info(pl_module.device)
         epoch_time = time.time() - self._start_time
