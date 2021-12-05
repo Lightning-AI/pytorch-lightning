@@ -1,4 +1,4 @@
-name: CI complete testing
+name: Test
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -10,7 +10,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
 
-  pytest:
+  cpu:
 
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
@@ -28,14 +28,7 @@ jobs:
           - {os: macOS-10.15, python-version: "3.6", requires: "oldest", release: "stable"}
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
-        exclude:
-          # PyTorch 1.6 is not available with Python 3.9: https://github.com/pytorch/pytorch/issues/46205
-          - {os: ubuntu-18.04, python-version: "3.9", requires: "oldest", release: "stable"}
-          - {os: windows-2019, python-version: "3.9", requires: "oldest", release: "stable"}
-          - {os: macOS-10.15, python-version: "3.9", requires: "oldest", release: "stable"}
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    # TODO: the macOS is taking too long, probably caching did not work...
     timeout-minutes: 40
 
     steps:

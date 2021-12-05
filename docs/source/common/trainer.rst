@@ -1074,7 +1074,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+Uses this much data of the training set. If nonzero, will turn off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
@@ -1084,7 +1084,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set (and use the train set for val and test)
+    # use only 1% of the train set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
@@ -1116,11 +1116,11 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     class MyCluster(ClusterEnvironment):
-        def master_address(self):
-            return your_master_address
+        def main_address(self):
+            return your_main_address
 
-        def master_port(self):
-            return your_master_port
+        def main_port(self):
+            return your_main_port
 
         def world_size(self):
             return the_world_size
@@ -1131,6 +1131,16 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
+.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
+    in the following code:
+
+    .. testcode::
+
+        class LitDataModule(LightningDataModule):
+            def __init__(self):
+                super().__init__()
+                self.prepare_data_per_node = True
 
 .. raw:: html
 
@@ -1140,8 +1150,8 @@ prepare_data_per_node
 
 |
 
-If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
-If False will only call from NODE_RANK=0, LOCAL_RANK=0
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
 
 .. testcode::
 

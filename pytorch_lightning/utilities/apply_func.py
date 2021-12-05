@@ -16,16 +16,17 @@ import operator
 from abc import ABC
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
-if _TORCHTEXT_AVAILABLE:
+if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
@@ -119,11 +120,21 @@ def apply_to_collection(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        out_dict = {}
+        # make a deepcopy of the data,
+        # but do not deepcopy mapped fields since the computation would
+        # be wasted on values that likely get immediately overwritten
+        fields = {}
+        memo = {}
         for field in dataclasses.fields(data):
-            if field.init:
+            field_value = getattr(data, field.name)
+            fields[field.name] = (field_value, field.init)
+            memo[id(field_value)] = field_value
+        result = deepcopy(data, memo=memo)
+        # apply function to each field
+        for field_name, (field_value, field_init) in fields.items():
+            if field_init:
                 v = apply_to_collection(
-                    getattr(data, field.name),
+                    field_value,
                     dtype,
                     function,
                     *args,
@@ -131,9 +142,10 @@ def apply_to_collection(
                     include_none=include_none,
                     **kwargs,
                 )
-                if include_none or v is not None:
-                    out_dict[field.name] = v
-        return elem_type(**out_dict)
+            if not field_init or (not include_none and v is None):  # retain old value
+                v = getattr(data, field_name)
+            setattr(result, field_name, v)
+        return result
 
     # data is neither of dtype, nor a collection
     return data
@@ -246,8 +258,13 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
     def batch_to(data: Any) -> Any:
         # try to move torchtext data first
-        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
-
+        if _TORCHTEXT_LEGACY and isinstance(data, Batch):
+            # TODO: also remove the torchtext dependency with Lightning 1.8
+            rank_zero_deprecation(
+                "The `torchtext.legacy.Batch` object is deprecated and Lightning will remove support for it in v1.8."
+                " We recommend you to migrate away from Batch by following the TorchText README:"
+                " https://github.com/pytorch/text#bc-breaking-legacy"
+            )
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field, field_value in data.dataset.fields.items():
@@ -264,7 +281,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
         # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
         return data
 
-    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_LEGACY else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 

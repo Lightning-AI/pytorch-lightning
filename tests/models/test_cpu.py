@@ -106,7 +106,6 @@ def test_early_stopping_cpu_model(tmpdir):
         callbacks=[stopping],
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
-        overfit_batches=0.20,
         track_grad_norm=2,
         enable_progress_bar=False,
         accumulate_grad_batches=2,
@@ -122,7 +121,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_main_port()

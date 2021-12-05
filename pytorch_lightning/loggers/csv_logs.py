@@ -95,9 +95,9 @@ class ExperimentWriter:
         metrics_keys = list(last_m.keys())
 
         with open(self.metrics_file_path, "w", newline="") as f:
-            self.writer = csv.DictWriter(f, fieldnames=metrics_keys)
-            self.writer.writeheader()
-            self.writer.writerows(self.metrics)
+            writer = csv.DictWriter(f, fieldnames=metrics_keys)
+            writer.writeheader()
+            writer.writerows(self.metrics)
 
 
 class CSVLogger(LightningLoggerBase):

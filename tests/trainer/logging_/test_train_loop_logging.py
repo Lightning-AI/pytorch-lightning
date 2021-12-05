@@ -272,13 +272,11 @@ def test_log_works_in_train_callback(tmpdir):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_epoch_start(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
-            )
+            self.make_logging(pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, "on_train_epoch_start", on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
+                pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_batch_start(self, _, pl_module, *__):
@@ -397,7 +395,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True, skip_49370=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
@@ -435,7 +433,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
@@ -717,19 +715,15 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_train_batch_start(self, batch, batch_idx):
-            assert self.trainer._results.batch_size == 2
-            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
-            assert self.trainer._results.batch_size == 2
-            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-            assert self.trainer._results.batch_size == 2
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
 
         def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            assert self.trainer._results.batch_size == 2
             self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
 
         def training_epoch_end(self, *_) -> None:

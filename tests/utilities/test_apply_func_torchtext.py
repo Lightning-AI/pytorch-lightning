@@ -15,49 +15,22 @@ import pytest
 import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from tests.helpers.imports import Dataset, Example, Field, Iterator
+from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.runif import RunIf
-
-
-def _get_torchtext_data_iterator(include_lengths=False):
-    text_field = Field(
-        sequential=True,
-        pad_first=False,  # nosec
-        init_token="<s>",
-        eos_token="</s>",  # nosec
-        include_lengths=include_lengths,
-    )  # nosec
-
-    example1 = Example.fromdict({"text": "a b c a c"}, {"text": ("text", text_field)})
-    example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
-    example3 = Example.fromdict({"text": "c b a"}, {"text": ("text", text_field)})
-
-    dataset = Dataset([example1, example2, example3], {"text": text_field})
-    text_field.build_vocab(dataset)
-
-    iterator = Iterator(
-        dataset,
-        batch_size=3,
-        sort_key=None,
-        device=None,
-        batch_size_fn=None,
-        train=True,
-        repeat=False,
-        shuffle=None,
-        sort=None,
-        sort_within_batch=None,
-    )
-    return iterator, text_field
+from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
 @pytest.mark.parametrize("include_lengths", [False, True])
 @pytest.mark.parametrize("device", [torch.device("cuda", 0)])
+@pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 @RunIf(min_gpus=1)
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
-    data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
+    data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3, include_lengths=include_lengths)
     data_iter = iter(data_iterator)
     batch = next(data_iter)
-    batch_on_device = move_data_to_device(batch, device)
+
+    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+        batch_on_device = move_data_to_device(batch, device)
 
     if include_lengths:
         # tensor with data
@@ -69,5 +42,6 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
 
 
 @pytest.mark.parametrize("include_lengths", [False, True])
+@pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths):
     test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device("cpu"))

@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, IO, Optional, Union
 import fsspec
 import torch
 from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
-from packaging.version import Version
 
 
 def load(
@@ -59,12 +58,6 @@ def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     """
 
     bytesbuffer = io.BytesIO()
-    # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
-    # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
-    # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if Version(torch.__version__).release[:3] == (1, 6, 0):
-        torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
-    else:
-        torch.save(checkpoint, bytesbuffer)
+    torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())

@@ -67,7 +67,7 @@ class SyncBNModule(LightningModule):
 
 # TODO: Fatal Python error: Bus error
 @pytest.mark.skip(reason="Fatal Python error: Bus error")
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
     set_random_main_port()

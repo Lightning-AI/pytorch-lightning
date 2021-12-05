@@ -13,10 +13,10 @@ from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 class PredictionLoop(DataLoaderLoop):
     """Loop to run over dataloaders for prediction."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.predictions: Optional[List[List[Any]]] = None
-        self.epoch_batch_indices: Optional[List[List[int]]] = None
+        self.predictions: List[List[Any]] = []
+        self.epoch_batch_indices: List[List[int]] = []
         self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
@@ -53,10 +53,7 @@ class PredictionLoop(DataLoaderLoop):
     @property
     def max_batches(self) -> List[int]:
         """The max number of batches this loop will run for each dataloader."""
-        max_batches = self.trainer.num_predict_batches
-        if isinstance(max_batches, int):
-            max_batches = [max_batches] * len(self.dataloaders)
-        return max_batches
+        return self.trainer.num_predict_batches
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
@@ -67,7 +64,7 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(self, epoch_loop: PredictionEpochLoop):
+    def connect(self, epoch_loop: PredictionEpochLoop) -> None:  # type: ignore[override]
         """Connect the prediction epoch loop with this loop."""
         self.epoch_loop = epoch_loop
 
@@ -77,7 +74,7 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions = []
         self.epoch_batch_indices = []
 
-    def on_run_start(self) -> None:
+    def on_run_start(self) -> None:  # type: ignore[override]
         """Calls ``_on_predict_start`` hook."""
         self._on_predict_start()
 
@@ -94,7 +91,7 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions.append(dl_predictions)
         self.epoch_batch_indices.append(dl_batch_indices)
 
-    def on_run_end(self) -> _PREDICT_OUTPUT:
+    def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
         results = self._on_predict_epoch_end()
         self._on_predict_end()
@@ -110,8 +107,12 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer.lightning_module.zero_grad()
 
         # hook
-        self.trainer.call_hook("on_predict_start")
-        self.trainer.call_hook("on_predict_epoch_start")
+        self.trainer._call_callback_hooks("on_predict_start")
+        self.trainer._call_lightning_module_hook("on_predict_start")
+        self.trainer._call_ttp_hook("on_predict_start")
+
+        self.trainer._call_callback_hooks("on_predict_epoch_start")
+        self.trainer._call_lightning_module_hook("on_predict_epoch_start")
 
     def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` hook.
@@ -121,7 +122,8 @@ class PredictionLoop(DataLoaderLoop):
         """
         results = self.predictions
 
-        self.trainer.call_hook("on_predict_epoch_end", results)
+        self.trainer._call_callback_hooks("on_predict_epoch_end", results)
+        self.trainer._call_lightning_module_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
             return results[0] if self.num_dataloaders == 1 else results
@@ -133,9 +135,11 @@ class PredictionLoop(DataLoaderLoop):
         self.epoch_batch_indices = []
 
         # hook
-        self.trainer.call_hook("on_predict_end")
+        self.trainer._call_callback_hooks("on_predict_end")
+        self.trainer._call_lightning_module_hook("on_predict_end")
+        self.trainer._call_ttp_hook("on_predict_end")
 
-    def _on_predict_model_eval(self):
+    def _on_predict_model_eval(self) -> None:
         """Calls ``on_predict_model_eval`` hook."""
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()

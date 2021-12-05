@@ -16,11 +16,13 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -30,7 +32,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 class DDPFullyShardedPlugin(DDPPlugin):
 
-    distributed_backend = DistributedType.DDP_FULLY_SHARDED
+    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
 
     def __init__(
         self,
@@ -46,6 +48,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
@@ -97,6 +100,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -124,7 +128,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        precision = self.lightning_module.trainer.precision
+        precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
@@ -136,7 +140,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=precision == "mixed",
+            mixed_precision=(precision == PrecisionType.MIXED),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -154,22 +158,18 @@ class DDPFullyShardedPlugin(DDPPlugin):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
-        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
+        self.setup_optimizers(self.lightning_module.trainer)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
         self.barrier()
+        self.setup_optimizers(trainer)
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
-
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        # Setup optimizers after the Fully Sharded Model has been made
-        return True
 
     def training_step(self, *args, **kwargs):
         return self.model.training_step(*args, **kwargs)

@@ -183,7 +183,7 @@ def test_early_stopping_patience_train(
 
 
 def test_pickling(tmpdir):
-    early_stopping = EarlyStopping()
+    early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
@@ -228,7 +228,13 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
     early_stopping = EarlyStopping(
         monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
     )
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=20)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stopping],
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        max_epochs=20,
+    )
     trainer.fit(model)
     assert trainer.current_epoch == expected_epoch, "early_stopping failed"
 
@@ -246,7 +252,13 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
 
     model = CurrentModel()
     early_stopping = EarlyStopping(monitor="val_loss", check_finite=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[early_stopping], overfit_batches=0.20, max_epochs=10)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stopping],
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        max_epochs=10,
+    )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
     assert early_stopping.stopped_epoch == expected_stop_epoch
@@ -350,7 +362,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
 
 def test_early_stopping_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
-        EarlyStopping(mode="unknown_option")
+        EarlyStopping(monitor="foo", mode="unknown_option")
 
 
 class EarlyStoppingModel(BoringModel):
@@ -381,7 +393,7 @@ class EarlyStoppingModel(BoringModel):
 
 _ES_CHECK = dict(check_on_train_epoch_end=True)
 _ES_CHECK_P3 = dict(patience=3, check_on_train_epoch_end=True)
-_NO_WIN = dict(marks=RunIf(skip_windows=True))
+_SPAWN_MARK = dict(marks=RunIf(skip_windows=True, skip_49370=True))
 
 
 @pytest.mark.parametrize(
@@ -389,8 +401,8 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_NO_WIN),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_NO_WIN),
+        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
+        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
         ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
         ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
         pytest.param(
@@ -399,7 +411,7 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
-            **_NO_WIN,
+            **_SPAWN_MARK,
         ),
         pytest.param(
             [EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)],
@@ -407,7 +419,7 @@ _NO_WIN = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
-            **_NO_WIN,
+            **_SPAWN_MARK,
         ),
     ],
 )
@@ -426,7 +438,8 @@ def test_multiple_early_stopping_callbacks(
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=callbacks,
-        overfit_batches=0.20,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         max_epochs=20,
         strategy=strategy,
         accelerator="cpu",
@@ -469,3 +482,16 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         assert trainer.global_step == len(side_effect) * int(trainer.limit_train_batches * trainer.val_check_interval)
     else:
         assert trainer.current_epoch == len(side_effect) * trainer.check_val_every_n_epoch - 1
+
+
+def test_early_stopping_squeezes():
+    early_stopping = EarlyStopping(monitor="foo")
+    trainer = Trainer()
+    trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
+
+    with mock.patch(
+        "pytorch_lightning.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+    ) as es_mock:
+        early_stopping._run_early_stopping_check(trainer)
+
+    es_mock.assert_called_once_with(torch.tensor(0))

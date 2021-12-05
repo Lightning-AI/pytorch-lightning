@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType, rank_zero_deprecation
+from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -33,19 +33,6 @@ class PrecisionPlugin(CheckpointHooks):
     """
 
     precision: Union[str, int] = 32
-
-    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The main params of the model.
-
-        .. deprecated:: v1.5
-
-            This method is deprecated in v1.5 and will be removed in v1.6. Use :meth:`main_params` instead.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.master_params` was deprecated in v1.5 and will be removed in v1.6."
-            f" Use `main_params` instead."
-        )
-        return self.main_params(optimizer)
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
@@ -68,7 +55,8 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        model.trainer.call_hook("on_before_backward", closure_loss)
+        model.trainer._call_callback_hooks("on_before_backward", closure_loss)
+        model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
         return closure_loss
 
     def backward(
@@ -101,7 +89,8 @@ class PrecisionPlugin(CheckpointHooks):
         """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-        model.trainer.call_hook("on_after_backward")
+        model.trainer._call_callback_hooks("on_after_backward")
+        model.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
     def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
@@ -120,7 +109,8 @@ class PrecisionPlugin(CheckpointHooks):
             return
         trainer = model.trainer
         assert trainer is not None
-        trainer.call_hook("on_before_optimizer_step", optimizer, optimizer_idx)
+        trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
+        trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
         if optimizer_idx == 0:
             self._track_grad_norm(trainer)
@@ -160,7 +150,7 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        optimizer.step(closure=closure, **kwargs)
+        optimizer.step(closure=closure, **kwargs)  # type: ignore[call-arg]
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
@@ -213,9 +203,6 @@ class PrecisionPlugin(CheckpointHooks):
         """Clip gradients by norm."""
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
-
-    def pre_dispatch(self) -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something when ``Accelerator.dispatch()`` gets called."""

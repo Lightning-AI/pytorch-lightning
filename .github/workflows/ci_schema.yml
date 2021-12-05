@@ -1,11 +1,11 @@
-name: CI action schema
+name: Schema
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push: {}
   pull_request:
     branches: [master, "release/*"]
 
 jobs:
-  validate-schema:
+  check:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout

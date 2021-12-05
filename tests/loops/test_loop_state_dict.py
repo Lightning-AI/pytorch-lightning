@@ -14,7 +14,6 @@
 from unittest.mock import Mock
 
 import pytest
-import torch
 
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
@@ -80,14 +79,18 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "epoch_loop.val_loop._results": {
+                "batch": None,
+                "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
             "epoch_loop._results": {
+                "batch": None,
+                "batch_size": None,
+                "dataloader_idx": None,
                 "training": True,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
@@ -106,8 +109,10 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "_results": {
+                "batch": None,
+                "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },
@@ -122,8 +127,10 @@ def test_loops_state_dict_structure():
                 "is_last_batch": False,
             },
             "_results": {
+                "batch": None,
+                "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
-                "_batch_size": torch.tensor(1),
                 "device": None,
                 "items": {},
             },

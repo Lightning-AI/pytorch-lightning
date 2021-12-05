@@ -382,7 +382,7 @@ class CheckpointConnector:
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
+                optimizer_state = self.trainer.training_type_plugin.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint["optimizer_states"] = optimizer_states
@@ -412,17 +412,6 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
-
-    def hpc_load(self, checkpoint_path: _PATH) -> None:
-        """Attempts to restore the full training and model state from a HPC checkpoint file.
-
-        .. deprecated:: v1.4     Will be removed in v1.6. Use :meth:`restore` instead.
-        """
-        rank_zero_deprecation(
-            "`CheckpointConnector.hpc_load()` was deprecated in v1.4 and will be removed in v1.6."
-            " Use `CheckpointConnector.restore()` instead."
-        )
-        self.restore(checkpoint_path)
 
     def max_ckpt_version_in_folder(self, dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.

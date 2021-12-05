@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import Sequence
+from typing import Sequence
 from unittest import mock
 
 import pytest
@@ -33,8 +33,9 @@ from pytorch_lightning.trainer.supporters import (
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
+from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
+from tests.helpers.boring_model import RandomDataset
 
 
 def test_tensor_running_accum_reset():
@@ -310,7 +311,6 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -379,3 +379,56 @@ def test_combined_data_loader_validation_test(
             assert isinstance(d, CustomDataset)
 
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
+
+
+@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
+def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, tmpdir):
+    """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
+    with ddp and `max_size_cycle` mode."""
+    trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
+
+    dataloader = CombinedLoader(
+        {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
+    )
+    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    assert len(dataloader) == 4 if replace_sampler_ddp else 8
+
+    for a_length in [6, 8, 10]:
+        dataloader = CombinedLoader(
+            {
+                "a": DataLoader(range(a_length), batch_size=1),
+                "b": DataLoader(range(8), batch_size=1),
+            },
+            mode="max_size_cycle",
+        )
+
+        length = max(a_length, 8)
+        assert len(dataloader) == length
+        dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+        assert len(dataloader) == length // 2 if replace_sampler_ddp else length
+        if replace_sampler_ddp:
+            last_batch = list(dataloader)[-1]
+            if a_length == 6:
+                assert last_batch == {"a": torch.tensor([0]), "b": torch.tensor([6])}
+            elif a_length == 8:
+                assert last_batch == {"a": torch.tensor([6]), "b": torch.tensor([6])}
+            elif a_length == 10:
+                assert last_batch == {"a": torch.tensor([8]), "b": torch.tensor([0])}
+
+    class InfiniteDataset(IterableDataset):
+        def __iter__(self):
+            while True:
+                yield 1
+
+    dataloader = CombinedLoader(
+        {
+            "a": DataLoader(InfiniteDataset(), batch_size=1),
+            "b": DataLoader(range(8), batch_size=1),
+        },
+        mode="max_size_cycle",
+    )
+    assert get_len(dataloader) == float("inf")
+    assert len(dataloader.loaders["b"].loader) == 8
+    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
+    assert get_len(dataloader) == float("inf")

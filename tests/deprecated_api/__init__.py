@@ -14,7 +14,7 @@
 """Test deprecated functionality which will be removed in vX.Y.Z."""
 import sys
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Type
 
 import pytest
 
@@ -26,14 +26,28 @@ def _soft_unimport_module(str_module):
 
 
 @contextmanager
-def no_deprecated_call(match: Optional[str] = None):
+def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Optional[str] = None):
     with pytest.warns(None) as record:
         yield
+
+    if match is None:
         try:
-            w = record.pop(DeprecationWarning)
-            if match is not None and match not in str(w.message):
-                return
+            w = record.pop(expected_warning)
         except AssertionError:
-            # no DeprecationWarning raised
+            # no warning raised
             return
-        raise AssertionError(f"`DeprecationWarning` was raised: {w}")
+    else:
+        for w in record.list:
+            if w.category is expected_warning and match in w.message.args[0]:
+                break
+        else:
+            return
+
+    msg = "A warning" if expected_warning is None else f"`{expected_warning.__name__}`"
+    raise AssertionError(f"{msg} was raised: {w}")
+
+
+@contextmanager
+def no_deprecated_call(match: Optional[str] = None):
+    with no_warning_call(expected_warning=DeprecationWarning, match=match):
+        yield
