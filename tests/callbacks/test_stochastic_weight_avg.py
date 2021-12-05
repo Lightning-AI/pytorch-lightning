@@ -326,10 +326,8 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     )
 
     exception_type = Exception if ddp else RuntimeError
-    with (
-        mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward),
-        pytest.raises(exception_type),
-    ):
+    backward_patch = mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward)
+    with backward_patch, pytest.raises(exception_type):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
