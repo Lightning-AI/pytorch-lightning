@@ -178,9 +178,11 @@ def sync_ddp(
 
 
 class AllGatherGrad(torch.autograd.Function):
-    """
+    """Gathers tensors from the whole group and stacks them.
+
     .. deprecated:: v1.6
-        This callback hook was deprecated in v1.6 and will be removed in v1.8.
+        This function has been deprecated in v1.6 in favor of :func:`torch.distributed.all_gather` and will be removed
+         in v1.8.
     """
 
     @staticmethod
@@ -189,6 +191,13 @@ class AllGatherGrad(torch.autograd.Function):
         tensor: torch.Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
     ) -> torch.Tensor:
+        from pytorch_lightning.utilities import rank_zero_deprecation
+
+        rank_zero_deprecation(
+            "`AllGatherGrad` has been deprecated in v1.6 and will be removed in v1.8."
+            " Use `torch.distributed.all_gather` instead."
+        )
+
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
@@ -222,10 +231,12 @@ def all_gather_ddp_if_available(
     """
     group = group if group is not None else torch.distributed.group.WORLD
     if distributed_available():
+        gathered_list = [torch.zeros_like(tensor) for _ in range(group.size())]
         if sync_grads:
-            return AllGatherGrad.apply(tensor, group)
+            torch.distributed.all_gather(gathered_list, tensor, group=group)
         with torch.no_grad():
-            return AllGatherGrad.apply(tensor, group)
+            torch.distributed.all_gather(gathered_list, tensor, group=group)
+        return torch.stack(gathered_list, dim=0)
     return tensor
 
 
