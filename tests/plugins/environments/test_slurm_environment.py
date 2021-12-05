@@ -27,6 +27,9 @@ def test_default_attributes():
     assert env.creates_processes_externally
     assert env.main_address == "127.0.0.1"
     assert env.main_port == 12910
+    assert env.job_name() is None
+    assert env.job_id() is None
+
     with pytest.raises(KeyError):
         # world size is required to be passed as env variable
         env.world_size()
@@ -47,6 +50,7 @@ def test_default_attributes():
         "SLURM_LOCALID": "2",
         "SLURM_PROCID": "1",
         "SLURM_NODEID": "3",
+        "SLURM_JOB_NAME": "JOB",
     },
 )
 def test_attributes_from_environment_variables(caplog):
@@ -55,10 +59,12 @@ def test_attributes_from_environment_variables(caplog):
     assert env.auto_requeue is True
     assert env.main_address == "1.1.1.1"
     assert env.main_port == 15000 + 1234
+    assert env.job_id() == int("0001234")
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    assert env.job_name() == "JOB"
     # setter should be no-op
     with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
         env.set_global_rank(100)

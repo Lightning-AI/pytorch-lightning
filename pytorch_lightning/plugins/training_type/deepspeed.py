@@ -374,7 +374,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         return True
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         self.init_deepspeed()
         self.barrier()
 
