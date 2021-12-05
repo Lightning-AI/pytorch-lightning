@@ -29,7 +29,7 @@ if _TPU_AVAILABLE:
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
-
+    from torch.distributed.nn.functional import all_gather as all_gather_grad
 else:
 
     class ReduceOp:  # type: ignore # (see https://github.com/python/mypy/issues/1153)
@@ -180,9 +180,8 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
     """Gathers tensors from the whole group and stacks them.
 
-    .. deprecated:: v1.6
-        This function has been deprecated in v1.6 in favor of :func:`torch.distributed.all_gather` and will be removed
-         in v1.8.
+    .. deprecated:: v1.6     This function has been deprecated in v1.6 in favor of :func:`torch.distributed.all_gather`
+    and will be removed      in v1.8.
     """
 
     @staticmethod
@@ -231,12 +230,12 @@ def all_gather_ddp_if_available(
     """
     group = group if group is not None else torch.distributed.group.WORLD
     if distributed_available():
-        gathered_list = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group))]
         if sync_grads:
-            torch.distributed.all_gather(gathered_list, tensor, group=group)
-        with torch.no_grad():
-            torch.distributed.all_gather(gathered_list, tensor, group=group)
-        return torch.stack(gathered_list, dim=0)
+            gathered_tensors = all_gather_grad(tensor, group=group)
+        else:
+            gathered_tensors = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group))]
+            torch.distributed.all_gather(gathered_tensors, tensor, group=group)
+        return torch.stack(gathered_tensors, dim=0)
     return tensor
 
 
