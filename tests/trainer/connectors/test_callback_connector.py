@@ -40,8 +40,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
     # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
-    cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,
         lr_monitor,
@@ -55,6 +53,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.model = model
+    cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,

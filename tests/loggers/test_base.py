@@ -241,6 +241,13 @@ def test_dummylogger_noop_method_calls():
     logger.log_metrics("1", 2, three="three")
 
 
+def test_dummyexperiment_support_item_assignment():
+    """Test that the DummyExperiment supports item assignment."""
+    experiment = DummyExperiment()
+    experiment["variable"] = "value"
+    assert experiment["variable"] != "value"  # this is only a stateless mock experiment
+
+
 def test_np_sanitization():
     class CustomParamsLogger(CustomLogger):
         def __init__(self):

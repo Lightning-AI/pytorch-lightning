@@ -16,7 +16,7 @@ import os
 import re
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -24,11 +24,12 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
@@ -59,7 +60,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
-        **_: Any
+        **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
@@ -117,20 +118,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def setup(self) -> None:
-        self.create_mp_queue()
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.start_method = "fork"
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model
-
-    def create_mp_queue(self):
-        self.start_method = "fork"
-        smp = mp.get_context(self.start_method)
-        self.mp_queue = smp.SimpleQueue()
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
@@ -157,9 +154,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
-
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
@@ -170,14 +165,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             set_shared_parameters(self.model.module, shared_params)
 
-        trainer.accelerator.setup_optimizers(trainer)
-        self.precision_plugin.connect(self._model, None, None)
+        trainer.training_type_plugin.setup_optimizers(trainer)
+        trainer.precision_plugin.connect(self._model, None, None)
 
         self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
 
-        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
+        outputs = self.__collect_rank_zero_results(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -188,6 +183,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
+        return outputs
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
@@ -196,31 +192,33 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+        rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.mp_queue is not None:
-            rank_zero_warn("cleaning up tpu spawn environment...")
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                self.save(state_dict, last_path)
+        # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
+        if self.local_rank != 0:
+            return
 
-            if self.local_rank == 0:
-                # todo, pass complete checkpoint as state dictionary
-                self.mp_queue.put(best_model_path)
-                self.mp_queue.put(last_path)
-                self.mp_queue.put(results)
-                self.lightning_module.add_to_queue(self.mp_queue)  # adds the `callback_metrics` to the queue
+        # adds the `callback_metrics` to the queue
+        extra = _FakeQueue()
+        if is_overridden("add_to_queue", self.lightning_module):
+            # TODO: Remove the if in v1.7
+            self.lightning_module.add_to_queue(extra)
+        else:
+            self.add_to_queue(trainer, extra)
 
-    def save(self, state_dict: Dict, path: _PATH) -> None:
-        xm.save(state_dict, path)
+        return _SpawnOutput(best_model_path, last_path, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
@@ -258,28 +256,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         return output
 
-    def _close_logger(self, trainer) -> None:
-        if trainer.logger is not None:
-            trainer.logger.finalize("success")
-
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         context = mp.get_context(self.start_method or "fork")
-        return_queue = context.SimpleQueue() if return_result else None
+        return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
-        return return_queue.get() if return_result else None
+        return return_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if return_queue is not None and self.local_rank == 0:
+        if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
         self.barrier("end-process")
@@ -293,16 +287,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_global_core_rank = xm.get_ordinal()
         rank_zero_only.rank = self.global_rank
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
-        self._close_logger(trainer)
+        self._clean_logger(trainer)
         return super().start_training(trainer)
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self._close_logger(trainer)
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
+        self._clean_logger(trainer)
         return super().start_evaluating(trainer)
+
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
+        self._clean_logger(trainer)
+        return super().start_predicting(trainer)
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -379,3 +377,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+
+    @staticmethod
+    def _clean_logger(trainer: "pl.Trainer") -> None:
+        loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
+        for logger in loggers:
+            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
+                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
+                # we want to make sure these are closed before we spawn our own threads.
+                # assuming nothing else references the experiment object, python should instantly `__del__` it.
+                logger._experiment = None

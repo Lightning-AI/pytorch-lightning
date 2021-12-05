@@ -16,12 +16,13 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -139,7 +140,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=precision == "mixed",
+            mixed_precision=(precision == PrecisionType.MIXED),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -157,22 +158,18 @@ class DDPFullyShardedPlugin(DDPPlugin):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
-        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
+        self.setup_optimizers(self.lightning_module.trainer)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
         self.barrier()
+        self.setup_optimizers(trainer)
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
-
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        # Setup optimizers after the Fully Sharded Model has been made
-        return True
 
     def training_step(self, *args, **kwargs):
         return self.model.training_step(*args, **kwargs)

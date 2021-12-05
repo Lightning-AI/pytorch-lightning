@@ -1,11 +1,11 @@
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
@@ -31,43 +31,23 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_sharded_ddp_choice(tmpdir, strategy):
+@pytest.mark.parametrize(
+    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+)
+def test_sharded_ddp_choice(tmpdir, strategy, expected):
     """Test to ensure that plugin is correctly chosen."""
-
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            if strategy == "ddp_sharded":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif strategy == "ddp_sharded_spawn":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy)
+    assert isinstance(trainer.accelerator.training_type_plugin, expected)
 
 
 @RunIf(min_gpus=1, fairscale=True)
-@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_ddp_choice_sharded_amp(tmpdir, strategy):
+@pytest.mark.parametrize(
+    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+)
+def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            if strategy == "ddp_sharded":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif strategy == "ddp_sharded_spawn":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
+    assert isinstance(trainer.accelerator.training_type_plugin, expected)
 
 
 @RunIf(skip_windows=True, fairscale=True)
@@ -175,7 +155,7 @@ def test_ddp_sharded_plugin_fit_ckpt_path_gpu_to_cpu(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True)
+@RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize("trainer_kwargs", (dict(num_processes=2), pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2))))
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
@@ -201,7 +181,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -209,7 +189,7 @@ def test_ddp_sharded_plugin_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
 def test_ddp_sharded_plugin_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
@@ -256,14 +236,14 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
-
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
     class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
@@ -277,12 +257,13 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     plugin = DDPShardedPlugin(**params)
     plugin.num_nodes = num_nodes
+    plugin.model = Mock(spec=LightningModule)
+    plugin.model.trainer = Mock()
 
-    with mock.patch.object(plugin, "_model", autospec=True):
-        with mock.patch(
-            "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
-        ) as mock_sharded:
-            plugin.configure_ddp()
+    with mock.patch(
+        "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
+    ) as mock_sharded:
+        plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs
 

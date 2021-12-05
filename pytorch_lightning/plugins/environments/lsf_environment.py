@@ -71,8 +71,8 @@ class LSFEnvironment(ClusterEnvironment):
     @staticmethod
     def detect() -> bool:
         """Returns ``True`` if the current process was launched using the jsrun command."""
-        required_env_vars = ("LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
-        return all(v in os.environ for v in required_env_vars)
+        required_env_vars = {"LSB_JOBID", "LSB_HOSTS", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE"}
+        return required_env_vars.issubset(os.environ.keys())
 
     def world_size(self):
         """The world size is read from the environment variable `JSM_NAMESPACE_SIZE`."""

@@ -61,8 +61,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
     @staticmethod
     def detect() -> bool:
         """Returns ``True`` if the current process was launched using the torchelastic command."""
-        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return all(v in os.environ for v in required_env_vars)
+        required_env_vars = {"RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
+        return required_env_vars.issubset(os.environ.keys())
 
     def world_size(self) -> Optional[int]:
         world_size = os.environ.get("WORLD_SIZE")
