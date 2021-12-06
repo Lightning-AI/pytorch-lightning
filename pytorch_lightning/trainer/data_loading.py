@@ -424,7 +424,7 @@ class TrainerDataLoadingMixin(ABC):
         source = getattr(self._data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
-        self.call_hook("on_" + hook, pl_module=model)
+        self._call_lightning_module_hook("on_" + hook, pl_module=model)
         with _replace_dataloader_init_method():
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning

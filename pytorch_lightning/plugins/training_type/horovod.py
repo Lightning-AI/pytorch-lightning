@@ -79,7 +79,7 @@ class HorovodPlugin(ParallelPlugin):
         super().setup(trainer)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-
+        super().pre_dispatch(trainer)
         if not self.lightning_module.trainer.training:
             # no need to setup optimizers
             return

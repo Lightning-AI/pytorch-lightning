@@ -30,7 +30,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -313,20 +313,40 @@ class TrainingTypePlugin(ABC):
         # double dispatch to initiate the predicting loop
         return trainer.run_stage()
 
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        """The actual training step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        """
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual validation step.
 
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        """
+        with self.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual test step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        """
+        with self.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        """The actual predict step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        """
+        with self.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -459,9 +479,12 @@ class TrainingTypePlugin(ABC):
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
+        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something at trainer run_stage starts."""
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
+        """Hook to do something after the training/evaluation/prediction starts."""
+        self.precision_plugin.post_dispatch()

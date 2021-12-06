@@ -20,7 +20,6 @@ from torch.nn import Module
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Accelerator:
@@ -70,21 +69,6 @@ class Accelerator:
         """
         self.training_type_plugin.setup(trainer)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.training_type_plugin._move_optimizer_state()
-        self.training_type_plugin.pre_dispatch(trainer)
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.training_type_plugin.dispatch(trainer)
-        self.training_type_plugin.precision_plugin.dispatch(trainer)
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction starts."""
-        self.training_type_plugin.post_dispatch(trainer)
-        self.training_type_plugin.precision_plugin.post_dispatch()
-
     @property
     def model(self) -> Module:
         """Returns the model.
@@ -117,38 +101,6 @@ class Accelerator:
         It is the right place to release memory and free other resources.
         """
         self.training_type_plugin.teardown()
-
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        """The actual training step.
-
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
-        """
-        with self.training_type_plugin.precision_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*args, **kwargs)
-
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """The actual validation step.
-
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
-        """
-        with self.training_type_plugin.precision_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*args, **kwargs)
-
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """The actual test step.
-
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
-        """
-        with self.training_type_plugin.precision_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*args, **kwargs)
-
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        """The actual predict step.
-
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
-        """
-        with self.training_type_plugin.precision_plugin.predict_step_context():
-            return self.training_type_plugin.predict_step(*args, **kwargs)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for a given device.
