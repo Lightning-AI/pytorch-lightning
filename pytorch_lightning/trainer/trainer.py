@@ -456,12 +456,9 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        min_epochs, max_epochs = _parse_loop_limits(
-            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, max_time
-        )
-
+        min_epochs, max_epochs = _parse_loop_limits(min_steps, max_steps, min_epochs, max_epochs, max_time)
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
-        training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
         training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
