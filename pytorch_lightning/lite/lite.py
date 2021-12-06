@@ -404,7 +404,7 @@ class LightningLite(ABC):
         run_method = partial(self._run_with_sharded_context, run_method)
 
         if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, return_result=True, **kwargs)
+            return self._strategy.spawn(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 

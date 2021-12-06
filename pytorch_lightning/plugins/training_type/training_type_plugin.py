@@ -30,7 +30,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import _PATH
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -43,7 +43,6 @@ class TrainingTypePlugin(ABC):
         self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
         self._model: Optional[Module] = None
-        self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
@@ -95,8 +94,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
+        self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
     def setup_precision_plugin(self) -> None:
@@ -107,11 +105,12 @@ class TrainingTypePlugin(ABC):
         self.lr_schedulers = schedulers
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the GPU if needed."""
-        device = device or self.root_device
+        """Moves the state of the optimizers to the appropriate device if needed."""
         for opt in self.optimizers:
             for p, v in opt.state.items():
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
+                # `self.root_device` would raise error if called outside the spawn process
+                # while training on 8 and more cores.
+                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
@@ -290,18 +289,6 @@ class TrainingTypePlugin(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return unwrap_lightning_module(self._model) if self._model is not None else None
 
-    @property
-    def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        """Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run.
-
-        The result is
-        cached instead of returned directly, because some plugins require transmitting the results from one
-        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the main process through a
-        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
-        """
-        return self._results
-
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
@@ -314,17 +301,17 @@ class TrainingTypePlugin(ABC):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
+    def start_training(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_stage()
+        return trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.model.training_step(*args, **kwargs)
@@ -360,17 +347,6 @@ class TrainingTypePlugin(ABC):
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
-        `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain
-        precision plugins such as APEX which require optimizers to be set.
-
-        Returns:
-            If True, delay setup optimizers till pre_dispatch, else call within setup.
-        """
-        return False
 
     @property
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
@@ -481,7 +457,7 @@ class TrainingTypePlugin(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
