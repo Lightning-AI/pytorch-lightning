@@ -144,12 +144,10 @@ class Closure(AbstractClosure[ClosureResult]):
                 )
 
             if self._zero_grad_fn is not None:
-                with self._profiler.profile("zero_grad"):
-                    self._zero_grad_fn()
+                self._zero_grad_fn()
 
             if self._backward_fn is not None and step_output.closure_loss is not None:
-                with self._profiler.profile("backward"):
-                    self._backward_fn(step_output.closure_loss)
+                self._backward_fn(step_output.closure_loss)
 
         return step_output
 
