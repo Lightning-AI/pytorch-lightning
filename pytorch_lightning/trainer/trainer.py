@@ -1452,7 +1452,7 @@ class Trainer(
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Optional[Any]:
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
