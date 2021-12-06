@@ -21,7 +21,6 @@ from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
@@ -200,16 +199,20 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_test_start", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_validation_start", *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_model_eval")
+            self.trainer._call_lightning_module_hook("on_test_model_eval")
         else:
-            self.trainer.call_hook("on_validation_model_eval")
+            self.trainer._call_lightning_module_hook("on_validation_model_eval")
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
@@ -222,9 +225,13 @@ class EvaluationLoop(DataLoaderLoop):
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_test_end", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_ttp_hook("on_validation_end", *args, **kwargs)
 
         # reset the logger connector state
         self.trainer.logger_connector.reset_results()
@@ -232,12 +239,15 @@ class EvaluationLoop(DataLoaderLoop):
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
         self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start", *args, **kwargs)
+        self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
+        self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_epoch_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_epoch_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_epoch_start", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_epoch_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_epoch_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_epoch_start", *args, **kwargs)
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
@@ -249,22 +259,19 @@ class EvaluationLoop(DataLoaderLoop):
         )
 
         # call the model epoch end
-        model = self.trainer.lightning_module
         if self.trainer.testing:
-            if is_overridden("test_epoch_end", model):
-                model._current_fx_name = "test_epoch_end"
-                model.test_epoch_end(output_or_outputs)
-
+            self.trainer._call_lightning_module_hook("test_epoch_end", output_or_outputs)
         else:
-            if is_overridden("validation_epoch_end", model):
-                model._current_fx_name = "validation_epoch_end"
-                model.validation_epoch_end(output_or_outputs)
+            self.trainer._call_lightning_module_hook("validation_epoch_end", output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-        self.trainer.call_hook(hook_name)
-        self.trainer.call_hook("on_epoch_end")
+        self.trainer._call_callback_hooks(hook_name)
+        self.trainer._call_lightning_module_hook(hook_name)
+
+        self.trainer._call_callback_hooks("on_epoch_end")
+        self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
