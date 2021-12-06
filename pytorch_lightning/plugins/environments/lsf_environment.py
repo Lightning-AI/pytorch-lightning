@@ -158,5 +158,4 @@ class LSFEnvironment(ClusterEnvironment):
             port = port % 1000 + 10000
             log.debug(f"calculated LSF main port: {port}")
             return port
-        else:
-            raise ValueError("Could not find job id in environment variable LSB_JOBID")
+        raise ValueError("Could not find job id in environment variable LSB_JOBID")
