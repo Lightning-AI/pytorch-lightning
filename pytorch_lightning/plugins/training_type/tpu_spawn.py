@@ -13,10 +13,9 @@
 # limitations under the License.
 import io
 import os
-import re
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -118,15 +117,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model
@@ -156,7 +154,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, "_FakeQueue"]]:
+    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
         if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
             trainer.progress_bar_callback.disable()
 
@@ -174,7 +172,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        outputs = self.__collect_rank_zero_results(trainer, results)
+        outputs = self._collect_rank_zero_results(trainer, results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
@@ -194,7 +192,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.is_distributed:
             rendezvous(name)
 
-    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up tpu spawn environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -203,10 +201,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         state_dict = self.lightning_module.state_dict()
 
         # save the last weights
-        last_path = None
-        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-            self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        weights_path = None
+        if trainer.state.fn == TrainerFn.FITTING:
+            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
+            self.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
         if self.local_rank != 0:
@@ -220,7 +218,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         else:
             self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, last_path, results, extra)
+        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:
@@ -304,17 +302,17 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._clean_logger(trainer)
         return super().start_predicting(trainer)
 
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         self._pod_progress_bar_force_stdout()

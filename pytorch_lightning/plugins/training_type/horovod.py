@@ -78,8 +78,8 @@ class HorovodPlugin(ParallelPlugin):
         self.model_to_device()
         super().setup(trainer)
 
-    def pre_dispatch(self):
-
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if not self.lightning_module.trainer.training:
             # no need to setup optimizers
             return
@@ -217,6 +217,7 @@ class HorovodPlugin(ParallelPlugin):
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
