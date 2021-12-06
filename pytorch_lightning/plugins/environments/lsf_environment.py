@@ -147,7 +147,12 @@ class LSFEnvironment(ClusterEnvironment):
         return int(world_size)
 
     def _get_node_rank(self):
-        """A helper function for getting the node rank."""
+        """A helper function for getting the node rank.
+        
+        Node rank is determined by the position of the current node in the hosts
+        used in the job. This is calculated by reading all hosts from LSB_DJOB_RANKFILE
+        and finding this nodes hostname in the list.
+        """
         hosts = self._read_hosts()
         count = dict()
         for host in hosts:
