@@ -292,6 +292,7 @@ def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.Ligh
                 )
 
 
+# TODO: Delete _check_on_hpc_hooks in v1.8
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
         rank_zero_deprecation(
