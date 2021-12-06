@@ -265,8 +265,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
-        else:
-            self.add_to_queue(trainer, extra)
+        self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, last_path, results, extra)
 
@@ -288,8 +287,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             # only in case the user does not override it.
             # TODO: Remove the if in v1.7
             self.lightning_module.get_from_queue(spawn_output.extra)
-        else:
-            self.get_from_queue(trainer, spawn_output.extra)
+        self.get_from_queue(trainer, spawn_output.extra)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
