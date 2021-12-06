@@ -150,6 +150,7 @@ class DataParallelPlugin(ParallelPlugin):
         return output
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
