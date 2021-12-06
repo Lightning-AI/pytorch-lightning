@@ -1224,12 +1224,6 @@ class Trainer(
             self.logger.save()
 
     def _post_dispatch(self):
-        if is_overridden("post_dispatch", self.training_type_plugin, parent=TrainingTypePlugin):
-            rank_zero_deprecation(
-                f"`{self.training_type_plugin.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and"
-                " will be removed in v1.7. Move your implementation to"
-                f" `{self.training_type_plugin.__class__.__name__}.teardown()` instead."
-            )
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
         self.accelerator.teardown()
