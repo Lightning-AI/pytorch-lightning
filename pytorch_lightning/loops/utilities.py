@@ -86,7 +86,11 @@ def _parse_loop_limits(
     """
     if max_epochs is None:
         if max_steps == -1 and max_time is None:
-            rank_zero_warn("`max_epochs` was not set. Setting it to 1000 epochs.", category=PossibleUserWarning)
+            rank_zero_warn(
+                "`max_epochs` was not set. Setting it to 1000 epochs. To train without an epoch limit,"
+                " set `max_epochs=-1`.",
+                category=PossibleUserWarning,
+            )
             max_epochs = 1000
         else:
             max_epochs = -1
