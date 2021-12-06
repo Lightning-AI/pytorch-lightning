@@ -65,6 +65,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.model.to(self.root_device)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
