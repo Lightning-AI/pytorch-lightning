@@ -172,35 +172,23 @@ The :class:`~pytorch_lightning.DataModule` class provides an organized way to de
         def train_loader(self):
             return DataLoader(self.mnist, batch_size=128)
 
-However, for in-memory datasets, that means that each process will hold a (redundant) replica of the dataset in memory, which may be impractical when using many processes and utilizing datasets that nearly fit into CPU memory, as the memory consumption will scale up linearly with the number of processes.
-For example, when training Graph Neural Networks, a common strategy is to load the entire graph into CPU memory for fast access to the entire graph structure and its features, and perform neighbor sampling to obtain mini-batches that fit onto the GPU.
+However, for in-memory datasets, that means that each process will hold a (redundant) replica of the dataset in memory, which may be impractical when using many processes while utilizing datasets that nearly fit into CPU memory, as the memory consumption will scale up linearly with the number of processes.
+For example, when training Graph Neural Networks, a common strategy is to load the entire graph into CPU memory for fast access to the entire graph structure and its features, and to then perform neighbor sampling to obtain mini-batches that fit onto the GPU.
 
-A simple way to disallow redundant dataset replicas is to rely on :obj:`torch.multiprocessing` to share the `data automatically between spawned processes via shared memory <https://pytorch.org/docs/stable/notes/multiprocessing.html>`_.
+A simple way to prevent redundant dataset replicas is to rely on :obj:`torch.multiprocessing` to share the `data automatically between spawned processes via shared memory <https://pytorch.org/docs/stable/notes/multiprocessing.html>`_.
 For this, all data pre-processing should be done on the main process inside :meth:`DataModule.__init__`.
 As a result, all tensor-data will get automatically shared when using the :class:`~pytorch_lightning.plugins.DDPSpawnPlugin` training type plugin:
 
-.. note::
-    :obj:`torch.multiprocessing` will only send a handle of the data to another process.
-    In order to prevent any errors due to too many open file handles, try to reduce the number of tensors to share.
+.. warning::
+
+    :obj:`torch.multiprocessing` will send a handle of each individual tensor to another process.
+    In order to prevent any errors due to too many open file handles, try to reduce the number of tensors to share, *e.g.*, by stacking your data into a single tensor.
 
 .. code-block:: python
 
-    class MNISTTensor(torch.utils.data.Dataset):
-        def __init__(self, data_dir: str):
-            mnist = MNIST(data_dir, download=True, transform=T.ToTensor())
-            self.data = mnist.data.to(torch.float)  # [60000, 28, 28]
-            self.targets = mnist.targets  # [60000]
-
-        def __len__(self) -> int:
-            return self.data.size(0)
-
-        def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
-            return self.data[idx], self.targets[idx]
-
-
     class MNISTDataModule(pl.LightningDataModule):
         def __init__(self, data_dir: str):
-            self.mnist = MNISTTensor(data_dir)
+            self.mnist = MNIST(data_dir, download=True, transform=T.ToTensor())
 
         def train_loader(self):
             return DataLoader(self.mnist, batch_size=128)
