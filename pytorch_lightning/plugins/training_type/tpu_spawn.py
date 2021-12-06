@@ -201,8 +201,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             self.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
-        state = trainer.state
-        return _SpawnOutput(best_model_path, last_path, state, results, extra)
+        return _SpawnOutput(best_model_path, last_path, trainer.state, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         if not self.is_distributed:

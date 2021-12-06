@@ -244,8 +244,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
-        state = trainer.state
-        return _SpawnOutput(best_model_path, last_path, state, results, extra)
+        return _SpawnOutput(best_model_path, last_path, trainer.state, results, extra)
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
