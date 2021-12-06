@@ -70,9 +70,9 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
-) -> Tuple[Optional[int], int]:
-    """This utility computes the number minimum and maximum number of epochs " based on the minimum and maximum
-    number of steps and maximum time.
+) -> Tuple[Optional[int], int, Optional[int], int, Optional[Union[str, timedelta, Dict[str, int]]]]:
+    """This utility computes the default values for the minimum and maximum number of steps and epochs given the
+    values the user has selected.
 
     Args:
         min_steps: Minimum number of steps.
@@ -82,7 +82,7 @@ def _parse_loop_limits(
         max_time: Maximum time for the training.
 
     Returns:
-        A list of tuples (opt_idx, optimizer) of currently active optimizers.
+        The parsed limits, with default values being set for the ones that the user did not specify.
     """
     if max_epochs is None:
         if max_steps == -1 and max_time is None:
@@ -91,7 +91,7 @@ def _parse_loop_limits(
         else:
             max_epochs = -1
     min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
-    return min_epochs, max_epochs
+    return min_steps, max_steps, min_epochs, max_epochs, max_time
 
 
 def _build_training_step_kwargs(
