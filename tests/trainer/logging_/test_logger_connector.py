@@ -31,18 +31,16 @@ from tests.models.test_hooks import get_members
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted(get_members(Callback))
+    funcs_name = get_members(Callback)
 
-    callbacks_func = [
+    callbacks_func = {
         "on_before_backward",
-        "backward",
         "on_after_backward",
         "on_before_optimizer_step",
         "on_batch_end",
         "on_batch_start",
         "on_before_accelerator_backend_setup",
         "on_before_zero_grad",
-        "optimizer_zero_grad",
         "on_epoch_end",
         "on_epoch_start",
         "on_fit_end",
@@ -84,9 +82,9 @@ def test_fx_validator(tmpdir):
         "on_predict_start",
         "setup",
         "teardown",
-    ]
+    }
 
-    not_supported = [
+    not_supported = {
         "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
@@ -112,11 +110,10 @@ def test_fx_validator(tmpdir):
         "on_validation_end",
         "setup",
         "teardown",
-    ]
+    }
 
-    assert funcs_name == sorted(
-        callbacks_func
-    ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
+    # Detected new callback function. Need to add its logging permission to FxValidator and update this test
+    assert funcs_name == callbacks_func
 
     validator = _FxValidator()
 
@@ -263,6 +260,7 @@ def test_fx_validator_integration(tmpdir):
             "on_test_dataloader": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
+            "on_test_model_train": "You can't",
             "on_test_end": "You can't",
         }
     )
