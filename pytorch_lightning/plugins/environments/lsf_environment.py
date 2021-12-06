@@ -81,7 +81,12 @@ class LSFEnvironment(ClusterEnvironment):
         return ret
 
     def _get_main_address(self):
-        """A helper for getting the master address."""
+        """A helper for getting the master address.
+        
+        Master address is assigned to the first node in the list of nodes used for the job.
+        These nodes are read for LSB_DJOB_RANKFILE. Since the first node in this list is 
+        always the launch node, we get master address from second element in the list.
+        """
         hosts = self._read_hosts()
         return hosts[1]
 
@@ -94,7 +99,7 @@ class LSFEnvironment(ClusterEnvironment):
         port = os.environ.get("MASTER_PORT")
         if not port:
             var = "LSB_JOBID"
-            jobid = os.environ.get(var)
+            jobid = os.environ.get(var, None)
             if not jobid:
                 raise ValueError("Could not find job id -- expected in environment variable %s" % var)
             else:
@@ -139,10 +144,10 @@ class LSFEnvironment(ClusterEnvironment):
         Read this from the environment variable JSM_NAMESPACE_SIZE
         """
         var = "JSM_NAMESPACE_SIZE"
-        world_size = os.environ.get(var)
+        world_size = os.environ.get(var, None)
         if world_size is None:
             raise ValueError(
-                "Cannot determine local rank -- expected in %s " "-- make sure you run your executable with jsrun" % var
+                f'Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun'
             )
         return int(world_size)
 
@@ -168,9 +173,8 @@ class LSFEnvironment(ClusterEnvironment):
     @staticmethod
     def detect():
         """Detect if running in an LSF environment."""
-        env_vars = ["LSB_JOBID", "LSB_DJOB_RANKFILE", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE"]
-        flags = [v in os.environ for v in env_vars]
-        return any(flags)
+        env_vars = ("LSB_JOBID", "LSB_DJOB_RANKFILE", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
+        return any(f in os.environ for f in env_vars)
 
     def creates_processes_externally(self):
         """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
