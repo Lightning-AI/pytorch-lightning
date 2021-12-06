@@ -58,17 +58,28 @@ class LSFEnvironment(ClusterEnvironment):
         self._global_rank = self._get_global_rank()
         self._world_size = self._get_world_size()
         self._node_rank = self._get_node_rank()
+        self._rep = (f'main_address={self._main_address},main_port={self._main_port},local_rank={self._local_rank},'
+                     f'global_rank={self._global_rank},world_size={self._world_size},node_rank={self._node_rank}')
+        self.__set_environ_vars()
 
+    def __set_environ_vars(self):
         # set environment variables needed for initializing torch distributed process group
         os.environ["MASTER_ADDR"] = str(self._main_address)
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         os.environ["MASTER_PORT"] = str(self._main_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        tmp = ("main_address", "main_port", "world_size", "local_rank", "node_rank", "global_rank")
-        self._rep = ",".join("{}={}".format(s, getattr(self, "_" + s)) for s in tmp)
+    def creates_processes_externally(self):
+        """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
+        return True
 
     def _read_hosts(self):
+        """Read compute hosts that are a part of the compute job.
+
+        LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM
+        from "launch" nodes. Each job is assigned a launch node. This launch node will be the first node
+        in the list contained in LSB_DJOB_RANKFILE.
+        """
         var = "LSB_DJOB_RANKFILE"
         try:
             rankfile = os.environ[var]
@@ -78,17 +89,26 @@ class LSFEnvironment(ClusterEnvironment):
             raise ValueError("Environment variable LSB_DJOB_RANKFILE is empty")
         with open(rankfile) as f:
             ret = [line.strip() for line in f]
-        return ret
+        # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
+        return ret[1:]
+
+    @property
+    def main_address(self):
+        """Master address is read from an OpenMPI host rank file in the environment variable *LSB_DJOB_RANKFILE*"""
+        return self._main_address
 
     def _get_main_address(self):
         """A helper for getting the master address.
-        
+
         Master address is assigned to the first node in the list of nodes used for the job.
-        These nodes are read for LSB_DJOB_RANKFILE. Since the first node in this list is 
-        always the launch node, we get master address from second element in the list.
         """
         hosts = self._read_hosts()
-        return hosts[1]
+        return hosts[0]
+
+    @property
+    def main_port(self):
+        """Master port is calculated from the LSF job ID."""
+        return self._main_port
 
     def _get_main_port(self):
         """A helper for getting the master port.
@@ -111,32 +131,15 @@ class LSFEnvironment(ClusterEnvironment):
             log.debug("using externally specified master port")
         return port
 
-    def _get_global_rank(self):
-        """A helper function for getting the global rank.
+    @staticmethod
+    def detect():
+        """Detect if running in an LSF environment."""
+        env_vars = ("LSB_JOBID", "LSB_DJOB_RANKFILE", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
+        return any(f in os.environ for f in env_vars)
 
-        Read this from the environment variable JSM_NAMESPACE_LOCAL_RANK
-        """
-        var = "JSM_NAMESPACE_RANK"
-        global_rank = os.environ.get(var)
-        if global_rank is None:
-            raise ValueError(
-                "Cannot determine global rank -- expected in %s "
-                "-- make sure you run your executable with jsrun" % var
-            )
-        return int(global_rank)
-
-    def _get_local_rank(self):
-        """A helper function for getting the local rank.
-
-        Read this from the environment variable JSM_NAMESPACE_LOCAL_RANK
-        """
-        var = "JSM_NAMESPACE_LOCAL_RANK"
-        local_rank = os.environ.get(var)
-        if local_rank is None:
-            raise ValueError(
-                "Cannot determine local rank -- expected in %s " "-- make sure you run your executable with jsrun" % var
-            )
-        return int(local_rank)
+    def world_size(self):
+        """World size is read from the environment variable JSM_NAMESPACE_SIZE."""
+        return self._world_size
 
     def _get_world_size(self):
         """A helper function for getting the world size.
@@ -151,9 +154,55 @@ class LSFEnvironment(ClusterEnvironment):
             )
         return int(world_size)
 
+    def set_world_size(self, size: int) -> None:
+        log.debug("SLURMEnvironment.set_world_size was called, but setting " "world size is not allowed. Ignored.")
+
+    def global_rank(self):
+        """World size is read from the environment variable JSM_NAMESPACE_RANK."""
+        return self._global_rank
+
+    def _get_global_rank(self):
+        """A helper function for getting the global rank.
+
+        Read this from the environment variable JSM_NAMESPACE_LOCAL_RANK
+        """
+        var = "JSM_NAMESPACE_RANK"
+        global_rank = os.environ.get(var)
+        if global_rank is None:
+            raise ValueError(
+                "Cannot determine global rank -- expected in %s "
+                "-- make sure you run your executable with jsrun" % var
+            )
+        return int(global_rank)
+
+    def set_global_rank(self, rank: int) -> None:
+        log.debug("SLURMEnvironment.set_global_rank was called, but setting " "global rank is not allowed. Ignored.")
+
+    def local_rank(self):
+        """World size is read from the environment variable JSM_NAMESPACE_LOCAL_RANK."""
+        return self._local_rank
+
+    def _get_local_rank(self):
+        """A helper function for getting the local rank.
+
+        Read this from the environment variable JSM_NAMESPACE_LOCAL_RANK
+        """
+        var = "JSM_NAMESPACE_LOCAL_RANK"
+        local_rank = os.environ.get(var)
+        if local_rank is None:
+            raise ValueError(
+                "Cannot determine local rank -- expected in %s " "-- make sure you run your executable with jsrun" % var
+            )
+        return int(local_rank)
+
+    def node_rank(self):
+        """Node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
+        LSB_DJOB_RANKFILE."""
+        return self._node_rank
+
     def _get_node_rank(self):
         """A helper function for getting the node rank.
-        
+
         Node rank is determined by the position of the current node in the hosts
         used in the job. This is calculated by reading all hosts from LSB_DJOB_RANKFILE
         and finding this nodes hostname in the list.
@@ -161,54 +210,9 @@ class LSFEnvironment(ClusterEnvironment):
         hosts = self._read_hosts()
         count = dict()
         for host in hosts:
-            if "batch" in host or "login" in host:
-                continue
             if host not in count:
                 count[host] = len(count)
         return count[socket.gethostname()]
 
     def __str__(self):
         return self._rep
-
-    @staticmethod
-    def detect():
-        """Detect if running in an LSF environment."""
-        env_vars = ("LSB_JOBID", "LSB_DJOB_RANKFILE", "JSM_NAMESPACE_LOCAL_RANK", "JSM_NAMESPACE_SIZE")
-        return any(f in os.environ for f in env_vars)
-
-    def creates_processes_externally(self):
-        """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
-        return True
-
-    @property
-    def main_address(self):
-        """Master address is read from an OpenMPI host rank file in the environment variable *LSB_DJOB_RANKFILE*"""
-        return self._main_address
-
-    @property
-    def main_port(self):
-        """Master port is calculated from the LSF job ID."""
-        return self._main_port
-
-    def world_size(self):
-        """World size is read from the environment variable JSM_NAMESPACE_SIZE."""
-        return self._world_size
-
-    def local_rank(self):
-        """World size is read from the environment variable JSM_NAMESPACE_LOCAL_RANK."""
-        return self._local_rank
-
-    def node_rank(self):
-        """Node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
-        LSB_DJOB_RANKFILE."""
-        return self._node_rank
-
-    def global_rank(self):
-        """World size is read from the environment variable JSM_NAMESPACE_RANK."""
-        return self._global_rank
-
-    def set_world_size(self, size: int) -> None:
-        log.debug("SLURMEnvironment.set_world_size was called, but setting " "world size is not allowed. Ignored.")
-
-    def set_global_rank(self, rank: int) -> None:
-        log.debug("SLURMEnvironment.set_global_rank was called, but setting " "global rank is not allowed. Ignored.")
