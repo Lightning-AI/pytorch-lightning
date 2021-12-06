@@ -1537,13 +1537,19 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> Optional[Any]:
-        self.lightning_module._current_fx_name = hook_name
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
         fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
             return None
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
+
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
