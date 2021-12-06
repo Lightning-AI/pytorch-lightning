@@ -1452,7 +1452,7 @@ class Trainer(
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ) -> Optional[Any]:
+    ) -> Any:
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
@@ -1460,7 +1460,7 @@ class Trainer(
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
-            return None
+            return
 
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
@@ -1517,14 +1517,14 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
+    ) -> Any:
         pl_module = self.lightning_module
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
 
         fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
@@ -1540,14 +1540,14 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
+    ) -> Any:
         pl_module = self.lightning_module
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
 
         fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
