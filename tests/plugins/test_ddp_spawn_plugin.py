@@ -14,6 +14,7 @@
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
