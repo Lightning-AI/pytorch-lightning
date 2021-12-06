@@ -475,7 +475,6 @@ class TrainingTypePlugin(ABC):
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something after the training/evaluation/prediction finishes.
 
-        .. deprecated:: v1.6
-            This method has been deprecated in v1.6 and will be removed in v1.7. Use :meth:`teardown` instead.
-
+        .. deprecated:: v1.6     This method has been deprecated in v1.6 and will be removed in v1.7. Use
+        :meth:`teardown` instead.
         """
