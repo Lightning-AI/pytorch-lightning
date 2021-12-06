@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class MixedPrecisionPlugin(PrecisionPlugin):
-    """Base Class for mixed precision"""
+    """Base Class for mixed precision."""
 
-    backend: 'AMPType'
+    backend: "AMPType"
     precision: Union[str, int] = "mixed"

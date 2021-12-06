@@ -4,6 +4,8 @@
 Plugins
 #######
 
+.. include:: ../links.rst
+
 Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
 distributed implementation.
 
@@ -44,7 +46,7 @@ PrecisionPlugin
 
 
 Futhermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
-to configure Lighting to integrate with a :ref:`custom-cluster`.
+to configure Lightning to integrate with a :ref:`custom-cluster`.
 
 
 .. image:: ../_static/images/accelerator/overview.svg
@@ -60,8 +62,8 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
     from pytorch_lightning.plugins import DDPPlugin
 
-    class CustomDDPPlugin(DDPPlugin):
 
+    class CustomDDPPlugin(DDPPlugin):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -75,7 +77,7 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
 .. code-block:: python
 
     # custom plugins
-    trainer = Trainer(plugins=[CustomDDPPlugin(), CustomPrecisionPlugin()])
+    trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
     accelerator = MyAccelerator(
@@ -115,8 +117,6 @@ Training Type Plugins
     DDPSpawnPlugin
     DeepSpeedPlugin
     HorovodPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
 
@@ -131,12 +131,16 @@ Precision Plugins
     :template: classtemplate.rst
 
     PrecisionPlugin
+    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TPUPrecisionPlugin
+    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
+    FullyShardedNativeMixedPrecisionPlugin
+    IPUPrecisionPlugin
 
 
 Cluster Environments
@@ -150,6 +154,7 @@ Cluster Environments
 
     ClusterEnvironment
     LightningEnvironment
+    LSFEnvironment
     TorchElasticEnvironment
     KubeflowEnvironment
     SLURMEnvironment

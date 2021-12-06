@@ -8,21 +8,25 @@ lightning_logs/
 .vscode/
 
 # Test-tube
-test_tube_logs/
-test_tube_data/
-test_tube_exp/
+test_tube_*/
 
 # Documentations
 docs/source/api
 docs/source/*.md
 docs/source/generated
 docs/source/*/generated
+docs/source/notebooks
+docs/source/_static/images/course_UvA-DL
+docs/source/_static/images/lightning_examples
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 timit_data/
+grid_generated*
+grid_ori*
+
 
 
 # C extensions
@@ -136,6 +140,9 @@ ENV/
 Datasets/
 mnist/
 legacy/checkpoints/
+*.gz
+*ubyte
+
 
 # pl tests
 ml-runs/
@@ -148,13 +155,11 @@ wandb
 .forked/
 *.prof
 *.tar.gz
+.neptune/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
 *.pt
 # ctags
 tags
-data
-MNIST
-runs
-*trace*
+.tags
