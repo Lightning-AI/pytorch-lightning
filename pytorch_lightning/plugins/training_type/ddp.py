@@ -147,6 +147,7 @@ class DDPPlugin(ParallelPlugin):
             self._call_children_scripts()
 
         self.setup_distributed()
+        super().setup_environment()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""

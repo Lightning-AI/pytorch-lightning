@@ -23,6 +23,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -42,8 +43,9 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self, accelerator: Accelerator, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
+        self._accelerator = accelerator
         self._model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
@@ -56,6 +58,10 @@ class TrainingTypePlugin(ABC):
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
             )
+
+    @property
+    def accelerator(self) -> Accelerator:
+        return self._accelerator
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -79,6 +85,7 @@ class TrainingTypePlugin(ABC):
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
+        self.accelerator.setup_environment()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -101,6 +108,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
+        self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
@@ -425,6 +433,7 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
+        self._move_optimizer_state(torch.device("cpu"))
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
@@ -437,7 +446,7 @@ class TrainingTypePlugin(ABC):
 
     def on_train_start(self) -> None:
         """Called when train begins."""
-        pass
+        self.accelerator.on_train_start()
 
     def on_validation_start(self) -> None:
         """Called when validation begins."""

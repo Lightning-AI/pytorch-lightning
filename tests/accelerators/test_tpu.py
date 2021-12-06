@@ -290,23 +290,23 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 def test_tpu_invalid_raises():
     accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
-        accelerator.setup(object())
+        training_type_plugin.setup(object())
 
     accelerator = TPUAccelerator(TPUPrecisionPlugin(), DDPPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
-        accelerator.setup(object())
+        training_type_plugin.setup(object())
 
 
 def test_tpu_invalid_raises_set_precision_with_strategy():
     accelerator = TPUAccelerator(object(), TPUSpawnPlugin(precision_plugin=object()))
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
-        accelerator.setup(object())
+        training_type_plugin.setup(object())
 
     accelerator = TPUAccelerator(None, DDPPlugin(precision_plugin=TPUPrecisionPlugin()))
     with pytest.raises(
         ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin"
     ):
-        accelerator.setup(object())
+        training_type_plugin.setup(object())
 
 
 @RunIf(tpu=True)

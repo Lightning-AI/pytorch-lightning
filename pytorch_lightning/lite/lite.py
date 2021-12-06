@@ -398,7 +398,7 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._accelerator.setup_environment()
+        self._strategy.setup_environment()
 
         # apply sharded context to prevent OOM
         run_method = partial(self._run_with_sharded_context, run_method)
