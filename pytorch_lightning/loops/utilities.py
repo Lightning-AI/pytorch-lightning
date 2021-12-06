@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoader
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
@@ -85,10 +86,7 @@ def _parse_loop_limits(
     """
     if max_epochs is None:
         if max_steps == -1 and max_time is None:
-            rank_zero_warn(
-                "`max_epochs` was not set. Setting it to 1000 epochs.",
-                UserWarning,
-            )
+            rank_zero_warn("`max_epochs` was not set. Setting it to 1000 epochs.", category=PossibleUserWarning)
             max_epochs = 1000
         else:
             max_epochs = -1
