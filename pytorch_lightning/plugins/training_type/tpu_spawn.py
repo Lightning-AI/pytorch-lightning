@@ -118,6 +118,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return super().connect(model)
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 

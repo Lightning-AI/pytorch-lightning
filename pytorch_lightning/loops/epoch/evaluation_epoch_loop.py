@@ -218,20 +218,18 @@ class EvaluationEpochLoop(Loop):
             the outputs of the step
         """
         if self.trainer.testing:
-            self.trainer.lightning_module._current_fx_name = "test_step"
-            with self.trainer.profiler.profile("test_step"):
-                output = self.trainer.accelerator.test_step(*kwargs.values())
+            output = self.trainer._call_accelerator_hook("test_step", *kwargs.values())
         else:
-            self.trainer.lightning_module._current_fx_name = "validation_step"
-            with self.trainer.profiler.profile("validation_step"):
-                output = self.trainer.accelerator.validation_step(*kwargs.values())
+            output = self.trainer._call_accelerator_hook("validation_step", *kwargs.values())
 
         return output
 
     def _evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Calls the `{validation/test}_step_end` hook."""
         hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
-        output = self.trainer.call_hook(hook_name, *args, **kwargs)
+        model_output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        ttp_output = self.trainer._call_ttp_hook(hook_name, *args, **kwargs)
+        output = ttp_output if model_output is None else model_output
         return output
 
     def _on_evaluation_batch_start(self, **kwargs: Any) -> None:
@@ -249,9 +247,11 @@ class EvaluationEpochLoop(Loop):
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_batch_start", *kwargs.values())
+            self.trainer._call_callback_hooks("on_test_batch_start", *kwargs.values())
+            self.trainer._call_lightning_module_hook("on_test_batch_start", *kwargs.values())
         else:
-            self.trainer.call_hook("on_validation_batch_start", *kwargs.values())
+            self.trainer._call_callback_hooks("on_validation_batch_start", *kwargs.values())
+            self.trainer._call_lightning_module_hook("on_validation_batch_start", *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -264,7 +264,8 @@ class EvaluationEpochLoop(Loop):
         """
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         hook_name = "on_test_batch_end" if self.trainer.testing else "on_validation_batch_end"
-        self.trainer.call_hook(hook_name, output, *kwargs.values())
+        self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
+        self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
 
         self.trainer.logger_connector.on_batch_end()
 

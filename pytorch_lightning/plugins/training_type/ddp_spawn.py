@@ -264,8 +264,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
             self.lightning_module.add_to_queue(extra)
-        else:
-            self.add_to_queue(trainer, extra)
+        self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, results, extra)
 
@@ -281,14 +280,14 @@ class DDPSpawnPlugin(ParallelPlugin):
                 spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
             self.lightning_module.load_state_dict(ckpt)
+            self.checkpoint_io.remove_checkpoint(spawn_output.last_path)
 
         # get the `callback_metrics` and set it to the trainer
         if is_overridden("get_from_queue", self.lightning_module):
             # only in case the user does not override it.
             # TODO: Remove the if in v1.7
             self.lightning_module.get_from_queue(spawn_output.extra)
-        else:
-            self.get_from_queue(trainer, spawn_output.extra)
+        self.get_from_queue(trainer, spawn_output.extra)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
