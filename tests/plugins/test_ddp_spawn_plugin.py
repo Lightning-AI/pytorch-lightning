@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
+from unittest.mock import Mock
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -140,3 +142,30 @@ def test_ddp_spawn_configure_ddp(tmpdir):
     trainer.validate(model, dataloaders=model.val_dataloader())
     trainer.test(model, dataloaders=model.test_dataloader())
     trainer.predict(model, dataloaders=model.predict_dataloader())
+
+
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
+def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
+    """Tests that the spawn plugin transfers the new weights to the main process and deletes the temporary file."""
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    plugin = DDPSpawnPlugin()
+    plugin.model = model
+    trainer = Trainer(default_root_dir=tmpdir)
+    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
+    temp_file = Path(tmpdir, ".temp.ckpt")
+
+    assert not temp_file.exists()
+    spawn_output = plugin._collect_rank_zero_results(trainer, {})
+
+    model.state_dict.assert_called_once()
+    if trainer_fn == TrainerFn.FITTING:
+        assert spawn_output.weights_path == str(temp_file)
+        assert temp_file.exists()
+    else:
+        assert spawn_output.weights_path is None
+        assert not temp_file.exists()
+
+    # <-- here would normally be the multiprocessing boundary
+    plugin._recover_results_in_main_process(spawn_output, trainer)
+    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
+    assert not temp_file.exists()

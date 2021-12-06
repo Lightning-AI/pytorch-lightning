@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-import re
 from collections import UserList
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
@@ -232,10 +231,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             return
 
         # save the last weights
-        last_path = None
-        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-            self.checkpoint_io.save_checkpoint(state_dict, last_path)
+        weights_path = None
+        if trainer.state.fn == TrainerFn.FITTING:
+            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
+            self.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
@@ -244,7 +243,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, last_path, trainer.state, results, extra)
+        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
@@ -253,12 +252,12 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # TODO: pass also best score
         # load last weights
-        if spawn_output.last_path is not None:
+        if spawn_output.weights_path is not None:
             ckpt = self.checkpoint_io.load_checkpoint(
-                spawn_output.last_path, map_location=(lambda storage, loc: storage)
+                spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
             self.lightning_module.load_state_dict(ckpt)
-            self.checkpoint_io.remove_checkpoint(spawn_output.last_path)
+            self.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         trainer.state = spawn_output.trainer_state
 
@@ -395,7 +394,7 @@ class _FakeQueue(UserList):
 
 class _SpawnOutput(NamedTuple):
     best_model_path: Optional[_PATH]
-    last_path: Optional[_PATH]
+    weights_path: Optional[_PATH]
     trainer_state: TrainerState
     trainer_results: Any
     extra: _FakeQueue
