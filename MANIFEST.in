@@ -11,69 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Manifest syntax https://docs.python.org/2/distutils/sourcedist.html
-graft wheelhouse
-
-recursive-exclude __pycache__  *.py[cod] *.orig
-
-# Include the README and CHANGELOG
-include *.md
-
-# Include the license file
-include LICENSE
-
-# Include the citation info
-include *.cff
-
-exclude *.sh
-exclude *.svg
-recursive-include pytorch_lightning *.py
-
-# Include marker file for PEP 561
-include pytorch_lightning/py.typed
-
-# include examples
-recursive-include pl_examples *.py *.md *.sh *.txt *.toml
-
-# exclude tests from package
-recursive-exclude tests *
-recursive-exclude site *
-exclude tests
-
-# Exclude the documentation files
-recursive-exclude docs *
-exclude docs
-recursive-include docs/source/_static/images/logos/ *
-recursive-include docs/source/_static/images/general/ pl_overview* tf_* tutorial_* PTL101_*
-
-# Include the Requirements
+include pytorch_lightning/py.typed  # marker file for PEP 561
+include CHANGELOG.md
 recursive-include requirements *.txt
-recursive-exclude requirements *.sh *.py
 include requirements.txt
-include pyproject.toml
-
-# Exclude build configs
-exclude *.yml
-exclude *.yaml
-exclude *.toml
-exclude *.jsonnet
-
-# Exclude pyright config
-exclude .pyrightconfig.json
-
-# Exclude submodules
-exclude .gitmodules
-exclude _notebooks
-
-# Exclude Makefile
-exclude Makefile
-
-prune .git
-prune .github
-prune .circleci
-prune temp*
-prune test*
-prune benchmark*
-prune dockers
-prune legacy
+include *.cff  # citation info

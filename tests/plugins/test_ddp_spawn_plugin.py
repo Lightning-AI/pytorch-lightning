@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -37,16 +39,16 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, queue) -> None:
         queue.put("test_val")
         return super().add_to_queue(queue)
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, queue) -> None:
         self.test_val = queue.get()
         return super().get_from_queue(queue)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPSpawnPlugin."""
     trainer = Trainer(num_processes=2, fast_dev_run=True)
@@ -76,22 +78,23 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
+    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
+        trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
 
 
 class TestDDPSpawnPlugin(DDPSpawnPlugin):
-    def add_to_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
 
-    def get_from_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, trainer: Trainer, queue) -> None:
         self.new_test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
 
@@ -102,7 +105,8 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
+    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
+        trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert ddp_spawn_plugin.new_test_val == "new_test_val"
 
@@ -128,7 +132,7 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn plugin."""
     trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)

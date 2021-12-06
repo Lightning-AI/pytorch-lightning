@@ -24,11 +24,12 @@ from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
+    _reload_dataloader_state_dict,
     MergedIteratorState,
     patch_dataloader_iterator,
-    reload_dataloader_state_dict,
 )
 from pytorch_lightning.utilities.data import get_len
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -59,9 +60,11 @@ class TensorRunningAccum:
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
 
-    def reset(self) -> None:
+    def reset(self, window_length: Optional[int] = None) -> None:
         """Empty the accumulator."""
-        self.__init__(self.window_length)
+        if window_length is None:
+            window_length = self.window_length
+        self.__init__(window_length)
 
     def last(self):
         """Get the last added element."""
@@ -403,7 +406,11 @@ class CombinedLoader:
             if isinstance(dataloader, CycleIterator):
                 dataloader = dataloader_to_iter_on.loader
 
-            reload_dataloader_state_dict(dataloader, state_dict)
+            # dataset states are collected across all ranks
+            rank = torch.distributed.get_rank() if distributed_available() else 0
+            state_dict = state_dict[rank]
+
+            _reload_dataloader_state_dict(dataloader, state_dict)
 
             # We finally spawned the workers if any.
             it = iter(dataloader_to_iter_on)

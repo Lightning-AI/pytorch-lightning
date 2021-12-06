@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import signal
 import sys
 import threading
 from functools import partial
@@ -22,7 +23,8 @@ import pytest
 import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -82,6 +84,23 @@ def restore_env_variables():
 
 
 @pytest.fixture(scope="function", autouse=True)
+def restore_signal_handlers():
+    """Ensures that signal handlers get restored before the next test runs.
+
+    This is a safety net for tests that don't run Trainer's teardown.
+    """
+    valid_signals = SignalConnector._valid_signals()
+    if not _IS_WINDOWS:
+        # SIGKILL and SIGSTOP are not allowed to be modified by the user
+        valid_signals -= {signal.SIGKILL, signal.SIGSTOP}
+    handlers = {signum: signal.getsignal(signum) for signum in valid_signals}
+    yield
+    for signum, handler in handlers.items():
+        if handler is not None:
+            signal.signal(signum, handler)
+
+
+@pytest.fixture(scope="function", autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
@@ -95,10 +114,23 @@ def reset_deterministic_algorithm():
     yield
     if _TORCH_GREATER_EQUAL_1_8:
         torch.use_deterministic_algorithms(False)
-    elif _TORCH_GREATER_EQUAL_1_7:
+    else:
         torch.set_deterministic(False)
-    else:  # the minimum version Lightning supports is PyTorch 1.6
-        torch._set_deterministic(False)
+
+
+@pytest.fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
+
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    propagate = lightning_logger.propagate
+    lightning_logger.propagate = True
+    yield caplog
+    lightning_logger.propagate = propagate
 
 
 @pytest.fixture
@@ -156,3 +188,23 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+def pytest_collection_modifyitems(items):
+    # filter out special tests
+    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(standalone=True)`
+            if marker.name == "skipif" and marker.kwargs.get("standalone")
+        ]
+    elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(slow=True)`
+            if marker.name == "skipif" and marker.kwargs.get("slow")
+        ]

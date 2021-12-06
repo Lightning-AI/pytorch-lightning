@@ -16,6 +16,7 @@ import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
+from functools import wraps
 from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
 import pytorch_lightning as pl
@@ -312,3 +313,22 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
         return int(x)
     except ValueError:
         return x
+
+
+def _defaults_from_env_vars(fn: Callable) -> Callable:
+    @wraps(fn)
+    def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
+        cls = self.__class__  # get the class
+        if args:  # in case any args passed move them to kwargs
+            # parse only the argument names
+            cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
+            # convert args to kwargs
+            kwargs.update(dict(zip(cls_arg_names, args)))
+        env_variables = vars(parse_env_variables(cls))
+        # update the kwargs by env variables
+        kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
+
+        # all args were already moved to kwargs
+        return fn(self, **kwargs)
+
+    return insert_env_defaults

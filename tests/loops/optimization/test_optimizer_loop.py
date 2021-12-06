@@ -24,7 +24,6 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 def test_closure_result_deepcopy():
@@ -140,7 +139,6 @@ class CustomException(Exception):
     pass
 
 
-@RunIf(min_torch="1.7.0")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("stop_epoch", (0, 1))
 @pytest.mark.parametrize("stop_batch", (0, 1, 2))

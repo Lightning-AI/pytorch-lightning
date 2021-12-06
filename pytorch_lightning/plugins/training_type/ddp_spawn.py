@@ -14,8 +14,9 @@
 import logging
 import os
 import re
+from collections import UserList
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
 
 import numpy as np
 import torch
@@ -27,15 +28,13 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
@@ -44,10 +43,10 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -59,13 +58,14 @@ class DDPSpawnPlugin(ParallelPlugin):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = DistributedType.DDP_SPAWN
+    distributed_backend = _StrategyType.DDP_SPAWN
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -75,12 +75,12 @@ class DDPSpawnPlugin(ParallelPlugin):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self._num_nodes = 1
         self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
-        self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -101,15 +101,6 @@ class DDPSpawnPlugin(ParallelPlugin):
     def local_rank(self) -> int:
         return self._local_rank
 
-    def __getstate__(self):
-        """Makes this plugin pickleable without destroying the queue in the current process."""
-        state = self.__dict__.copy()
-        state["mp_queue"] = None
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
@@ -123,11 +114,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _is_single_process_single_device(self):
         return True
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-        # pass in a state q
-        smp = mp.get_context("spawn")
-        self.mp_queue = smp.SimpleQueue()
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -144,26 +133,30 @@ class DDPSpawnPlugin(ParallelPlugin):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+    def start_training(self, trainer: "pl.Trainer") -> Any:
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
+        return spawn_output.trainer_results
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
+        return spawn_output.trainer_results
 
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        self.spawn(self.new_process, trainer, self.mp_queue, return_result=False)
+    def start_predicting(self, trainer: "pl.Trainer") -> Any:
+        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
+        self.__recover_results_in_main_process(spawn_output, trainer)
+        return spawn_output.trainer_results
 
-    def spawn(self, function: Callable, *args: Any, return_result: bool = True, **kwargs: Any) -> Optional[Any]:
+    def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.
 
         Args:
             function: The function to spawn processes from.
             *args: Optional positional arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
-            return_result: If ``True``, copies the output of the function from process 0 to the main process and
-                returns it.
             **kwargs: Optional named arguments that will be passed to the function in addition to the process index.
                 These arguments must be pickleable.
 
@@ -172,16 +165,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         """
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
-        return_queue = context.SimpleQueue() if return_result else None
+        return_queue = context.SimpleQueue()
         mp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), nprocs=self.num_processes)
-        return return_queue.get() if return_result else None
+        return return_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: Optional[SimpleQueue]
+        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
         self._worker_setup(process_idx)
         result = function(*args, **kwargs)
-        if return_queue is not None and self.local_rank == 0:
+        if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
     def _worker_setup(self, process_idx: int):
@@ -192,9 +185,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
-        self.mp_queue = mp_queue
-
+    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
         # move the model to the correct device
         self.model_to_device()
 
@@ -209,28 +200,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.barrier()
 
         results = trainer.run_stage()
-
-        # persist info in ddp_spawn
-        self.__transfer_distrib_spawn_state_on_fit_end(trainer, results)
+        outputs = self.__collect_rank_zero_results(trainer, results)
 
         # ensure that spawned processes go through teardown before joining
         trainer._call_teardown_hook()
-
-    def post_dispatch(self, trainer: "pl.Trainer"):
-        # restore main state with best weights
-        best_path = self.mp_queue.get()
-        last_path = self.mp_queue.get()
-        self._results = self.mp_queue.get()
-        # get the `callback_metrics` and set it to the trainer
-        # only in case the user does not override it.
-        # TODO: Remove the if in v1.7
-        if is_overridden("get_from_queue", self.lightning_module):
-            self.lightning_module.get_from_queue(self.mp_queue)
-        else:
-            self.get_from_queue(trainer, self.mp_queue)
-
-        # recover the weights of the processes trained in the children
-        self.__recover_child_process_weights(best_path, last_path)
+        return outputs
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
@@ -238,15 +212,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        # todo: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-        if (
-            _TORCH_GREATER_EQUAL_1_7
-            and not self.lightning_module.automatic_optimization
-            and not self._ddp_kwargs.get("find_unused_parameters", False)
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
+            "find_unused_parameters", False
         ):
+            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning ``manual_optimization`` needs to set ``find_unused_parameters=True`` "
-                "to properly work with DDP."
+                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
+                " properly work with DDP. Using `find_unused_parameters=True`."
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
@@ -271,43 +243,53 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def __transfer_distrib_spawn_state_on_fit_end(self, trainer: "pl.Trainer", results: Any) -> None:
+    def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+        rank_zero_warn("cleaning up ddp environment...")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = self.lightning_module.state_dict()
 
-        if self.global_rank == 0 and self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+        if self.global_rank != 0:
+            return
 
-            # save the last weights
-            last_path = None
-            if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                atomic_save(state_dict, last_path)
+        # save the last weights
+        last_path = None
+        if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
+            last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
+            self.checkpoint_io.save_checkpoint(state_dict, last_path)
 
-            # todo, pass complete checkpoint as state dictionary
-            self.mp_queue.put(best_model_path)
-            self.mp_queue.put(last_path)
-            self.mp_queue.put(results)
-            # adds the `callback_metrics` to the queue
+        # adds the `callback_metrics` to the queue
+        extra = _FakeQueue()
+        if is_overridden("add_to_queue", self.lightning_module):
             # TODO: Remove the if in v1.7
-            if is_overridden("add_to_queue", self.lightning_module):
-                self.lightning_module.add_to_queue(self.mp_queue)
-            else:
-                self.add_to_queue(trainer, self.mp_queue)
+            self.lightning_module.add_to_queue(extra)
+        else:
+            self.add_to_queue(trainer, extra)
 
-    def __recover_child_process_weights(self, best_path, last_path):
+        return _SpawnOutput(best_model_path, last_path, results, extra)
+
+    def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
+            self.lightning_module.trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
 
+        # TODO: pass also best score
         # load last weights
-        if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
+        if spawn_output.last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            ckpt = self.checkpoint_io.load_checkpoint(
+                spawn_output.last_path, map_location=(lambda storage, loc: storage)
+            )
             self.lightning_module.load_state_dict(ckpt)
+
+        # get the `callback_metrics` and set it to the trainer
+        if is_overridden("get_from_queue", self.lightning_module):
+            # only in case the user does not override it.
+            # TODO: Remove the if in v1.7
+            self.lightning_module.get_from_queue(spawn_output.extra)
+        else:
+            self.get_from_queue(trainer, spawn_output.extra)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
@@ -323,7 +305,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
-        broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
     def model_to_device(self):
@@ -374,11 +356,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
-    def add_to_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
         Args:
+            trainer: reference to the Trainer.
             queue: the instance of the queue to append the data.
         """
         callback_metrics: dict = apply_to_collection(
@@ -386,11 +369,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 
-    def get_from_queue(self, trainer: "pl.Trainer", queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
         Args:
+            trainer: reference to the Trainer.
             queue: the instance of the queue from where to get the data.
         """
         # NOTE: `add_to_queue` needs to be called before
@@ -415,3 +399,23 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+
+class _FakeQueue(UserList):
+    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
+
+    def get(self) -> Any:
+        return self.pop(0)
+
+    def put(self, item: Any) -> None:
+        self.append(item)
+
+    def empty(self) -> bool:
+        return len(self) == 0
+
+
+class _SpawnOutput(NamedTuple):
+    best_model_path: Optional[_PATH]
+    last_path: Optional[_PATH]
+    trainer_results: Any
+    extra: _FakeQueue

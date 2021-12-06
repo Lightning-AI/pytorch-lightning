@@ -19,7 +19,6 @@ Reference:
 from typing import Dict, List, Optional
 
 from torch import nn
-from torch.nn import Parameter
 
 
 def find_shared_parameters(module: nn.Module) -> List[str]:
@@ -64,7 +63,7 @@ def _get_module_by_path(module: nn.Module, path: str) -> nn.Module:
     return module
 
 
-def _set_module_by_path(module: nn.Module, path: str, value: Parameter) -> None:
+def _set_module_by_path(module: nn.Module, path: str, value: nn.Module) -> None:
     path = path.split(".")
     for name in path[:-1]:
         module = getattr(module, name)

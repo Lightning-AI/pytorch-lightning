@@ -205,7 +205,7 @@ class KFoldLoop(Loop):
         voting_model = EnsembleVotingModel(type(self.trainer.lightning_module), checkpoint_paths)
         voting_model.trainer = self.trainer
         # This requires to connect the new model and move it the right device.
-        self.trainer.accelerator.connect(voting_model)
+        self.trainer.training_type_plugin.connect(voting_model)
         self.trainer.training_type_plugin.model_to_device()
         self.trainer.test_loop.run()
 

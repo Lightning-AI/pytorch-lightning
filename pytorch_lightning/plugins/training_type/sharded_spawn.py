@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from multiprocessing.queues import SimpleQueue
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
 from torch.nn import Module
@@ -21,10 +20,10 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import DistributedType
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -38,7 +37,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """Optimizer sharded training provided by FairScale."""
 
-    distributed_backend = DistributedType.DDP_SHARDED_SPAWN
+    distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
@@ -101,13 +100,13 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model)
+        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
@@ -115,13 +114,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
+    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, _FakeQueue]]:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
-        precision_plugin = trainer.accelerator.precision_plugin
-        if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
-            precision_plugin.scaler = ShardedGradScaler()
-        return super().new_process(trainer, mp_queue)
+        if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
+            self._precision_plugin.scaler = ShardedGradScaler()
+        return super().new_process(trainer)
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

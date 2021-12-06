@@ -13,7 +13,8 @@
 # limitations under the License.
 from typing import Any
 
-from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
+import torch.distributed
+
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.distributed import group as _group
 
@@ -40,6 +41,6 @@ class LightningDistributed:
         if self.rank != 0:
             obj = [None] * len(obj)
 
-        broadcast_object_list(obj, 0, group=group or _group.WORLD)
+        torch.distributed.broadcast_object_list(obj, 0, group=group or _group.WORLD)
 
         return obj[0]

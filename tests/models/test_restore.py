@@ -84,21 +84,21 @@ class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
 
 
 class CustomClassificationModelDP(ClassificationModel):
-    def _step(self, batch, batch_idx):
+    def _step(self, batch):
         x, y = batch
         logits = self(x)
         return {"logits": logits, "y": y}
 
     def training_step(self, batch, batch_idx):
-        out = self._step(batch, batch_idx)
+        out = self._step(batch)
         loss = F.cross_entropy(out["logits"], out["y"])
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        return self._step(batch)
 
     def test_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        return self._step(batch)
 
     def validation_step_end(self, outputs):
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
@@ -142,6 +142,8 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
         logger=False,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
@@ -500,7 +502,6 @@ def test_dp_resume(tmpdir):
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer._is_slurm_managing_tasks = True
     trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun

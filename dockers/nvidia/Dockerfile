@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=21.07
+ARG PYTORCH_VERSION=21.11
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
@@ -30,18 +30,18 @@ RUN \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-        wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
-        unzip ${LIGHTNING_VERSION}.zip ; \
-        mv pytorch-lightning-*/* pytorch-lightning ; \
-        rm -rf pytorch-lightning-* ; \
-        rm *.zip ; \
+        git clone https://github.com/PyTorchLightning/pytorch-lightning.git ; \
+        cd pytorch-lightning ; \
+        git checkout ${LIGHTNING_VERSION} ; \
+        git submodule update --init --recursive ; \
+        cd .. ; \
     fi && \
 # save the examples
     mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
 
 # Installations
-    python .github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "horovod" && \
+    python ./pytorch-lightning/.github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "horovod" && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \

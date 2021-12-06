@@ -23,7 +23,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import AMPType, DeviceType
+from pytorch_lightning.utilities import _AcceleratorType, AMPType
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -261,7 +261,11 @@ class ModelSummary:
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)
 
-        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
+        if (
+            trainer is not None
+            and trainer.amp_backend == AMPType.NATIVE
+            and trainer._device_type != _AcceleratorType.TPU
+        ):
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training

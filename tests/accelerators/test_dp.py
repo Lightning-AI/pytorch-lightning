@@ -143,7 +143,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             batch = batch.to(device)
             return batch
 

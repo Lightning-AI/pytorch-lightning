@@ -1,8 +1,8 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Propose a feature for this project
 title: ''
-labels: enhancement
+labels: feature
 assignees: ''
 ---
 
@@ -12,7 +12,7 @@ assignees: ''
 
 ### Motivation
 
-<!-- Please outline the motivation for the proposal. Is your feature request related to a problem? e.g., I'm always frustrated when [...]. If this is related to another GitHub issue, please link here too -->
+<!-- Please outline the motivation for the proposal. Is your feature request related to a problem? e.g., I'm always frustrated when [...]. If this is related to another GitHub issue, please link it here -->
 
 ### Pitch
 
