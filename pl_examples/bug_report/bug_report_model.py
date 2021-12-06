@@ -1,10 +1,9 @@
 import os
-from copy import deepcopy
 
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningModule, Trainer
 
 
 class RandomDataset(Dataset):
@@ -28,7 +27,6 @@ class BoringModel(LightningModule):
         return self.layer(x)
 
     def training_step(self, batch, batch_idx):
-        print(self.global_rank, self.global_step)
         loss = self(batch).sum()
         self.log("train_loss", loss)
         return {"loss": loss}
@@ -50,28 +48,18 @@ def run():
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    seed_everything(42)
-
     model = BoringModel()
-    model_copy = deepcopy(model)
-    model.val_dataloader = None
-    model.training_epoch_end = None
-
-    limit_train_batches = 8
     trainer = Trainer(
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        num_sanity_val_steps=0,
         max_epochs=1,
-        log_every_n_steps=1,
-        accelerator="cpu",
-        gpus=2,
-        strategy="ddp_spawn",
+        enable_model_summary=False,
     )
-
-    trainer.fit(model, train_data)
-
-    for param, param_copy in zip(model.parameters(), model_copy.parameters()):
-        assert not torch.equal(param.cpu().data, param_copy.data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
 
 
 if __name__ == "__main__":
