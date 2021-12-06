@@ -1247,6 +1247,7 @@ class Trainer(
 
         Those are handled by :meth:`_call_teardown_hook`.
         """
+        self.training_type_plugin.post_dispatch(self)
         self.accelerator.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
@@ -1550,7 +1551,7 @@ class Trainer(
         **kwargs: Any,
     ) -> Optional[Any]:
         self.lightning_module._current_fx_name = hook_name
-        fn = getattr(self.accelerator, hook_name)
+        fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
             return None
 
