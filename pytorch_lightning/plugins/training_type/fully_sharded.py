@@ -24,6 +24,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -172,17 +173,21 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         pass

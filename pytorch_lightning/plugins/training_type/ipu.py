@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -258,17 +259,21 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self, *args, **kwargs):
-        return self._step(RunningStage.TRAINING, *args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self._step(RunningStage.TRAINING, *args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self._step(RunningStage.VALIDATING, *args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self._step(RunningStage.TESTING, *args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self._step(RunningStage.PREDICTING, *args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
         # undo dataloader patching
