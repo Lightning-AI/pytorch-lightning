@@ -275,8 +275,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.global_rank == 0 and self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
-
             # save the last weights
             last_path = None
             if (
