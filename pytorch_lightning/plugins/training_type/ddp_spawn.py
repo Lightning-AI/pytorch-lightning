@@ -259,6 +259,7 @@ class DDPSpawnPlugin(ParallelPlugin):
                 spawn_output.last_path, map_location=(lambda storage, loc: storage)
             )
             self.lightning_module.load_state_dict(ckpt)
+            self.checkpoint_io.remove_checkpoint(spawn_output.last_path)
 
         trainer.state = spawn_output.trainer_state
 
