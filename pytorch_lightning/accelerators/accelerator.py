@@ -69,21 +69,6 @@ class Accelerator:
         """
         self.training_type_plugin.setup(trainer)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.training_type_plugin._move_optimizer_state()
-        self.training_type_plugin.pre_dispatch(trainer)
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.training_type_plugin.dispatch(trainer)
-        self.training_type_plugin.precision_plugin.dispatch(trainer)
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction starts."""
-        self.training_type_plugin.post_dispatch(trainer)
-        self.training_type_plugin.precision_plugin.post_dispatch()
-
     @property
     def model(self) -> Module:
         """Returns the model.

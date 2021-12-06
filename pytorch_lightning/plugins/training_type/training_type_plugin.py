@@ -479,9 +479,12 @@ class TrainingTypePlugin(ABC):
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
+        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something at trainer run_stage starts."""
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
+        """Hook to do something after the training/evaluation/prediction starts."""
+        self.precision_plugin.post_dispatch()
