@@ -31,7 +31,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -266,7 +266,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, weights_path, results, extra)
+        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
@@ -281,6 +281,8 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
             self.lightning_module.load_state_dict(ckpt)
             self.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
+
+        trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
         if is_overridden("get_from_queue", self.lightning_module):
@@ -415,5 +417,6 @@ class _FakeQueue(UserList):
 class _SpawnOutput(NamedTuple):
     best_model_path: Optional[_PATH]
     weights_path: Optional[_PATH]
+    trainer_state: TrainerState
     trainer_results: Any
     extra: _FakeQueue
