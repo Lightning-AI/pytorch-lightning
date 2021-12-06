@@ -1538,7 +1538,7 @@ class Trainer(
         **kwargs: Any,
     ) -> Optional[Any]:
         self.lightning_module._current_fx_name = hook_name
-        fn = getattr(self.accelerator, hook_name)
+        fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
             return None
 
