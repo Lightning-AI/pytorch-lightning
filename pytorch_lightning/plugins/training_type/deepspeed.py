@@ -375,6 +375,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return True
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        self._move_optimizer_state()
         self.init_deepspeed()
         self.barrier()
 

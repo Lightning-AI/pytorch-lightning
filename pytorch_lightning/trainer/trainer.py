@@ -39,6 +39,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.utilities import _parse_loop_limits
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DDPSpawnPlugin,
@@ -457,13 +458,11 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(
-                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
-            ),
+        min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
+            min_steps, max_steps, min_epochs, max_epochs, max_time
         )
-        training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
+        training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
         training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
@@ -554,7 +553,7 @@ class Trainer(
             )
 
         self._terminate_on_nan = terminate_on_nan
-        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_val: Union[int, float] = gradient_clip_val
         self.gradient_clip_algorithm = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower())
             if gradient_clip_algorithm is not None
@@ -1202,7 +1201,7 @@ class Trainer(
         return results
 
     def _pre_dispatch(self):
-        self.accelerator.pre_dispatch(self)
+        self.training_type_plugin.pre_dispatch(self)
         self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
@@ -1255,7 +1254,7 @@ class Trainer(
         self.signal_connector.teardown()
 
     def run_stage(self):
-        self.accelerator.dispatch(self)
+        self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
 
         if self.evaluating:
