@@ -144,7 +144,7 @@ class SignalConnector:
 
     @staticmethod
     def _has_already_handler(signum: Signals) -> bool:
-        return signal.getsignal(signum) is not signal.SIG_DFL
+        return signal.getsignal(signum) not in (None, signal.SIG_DFL)
 
     @staticmethod
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
