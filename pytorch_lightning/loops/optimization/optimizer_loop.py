@@ -391,7 +391,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
         """
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer.call_hook("on_before_zero_grad", optimizer)
+        self.trainer._call_callback_hooks("on_before_zero_grad", optimizer)
+        self.trainer._call_lightning_module_hook("on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
@@ -426,14 +427,14 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             )
 
             # manually capture logged metrics
-            lightning_module._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(*step_kwargs.values())
-                self.trainer.training_type_plugin.post_training_step()
+            training_step_output = self.trainer._call_accelerator_hook("training_step", *step_kwargs.values())
+            self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+            ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
+            training_step_output = ttp_output if model_output is None else model_output
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
