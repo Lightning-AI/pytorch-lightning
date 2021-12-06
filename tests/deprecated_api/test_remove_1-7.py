@@ -27,7 +27,7 @@ from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.plugins import DDPPlugin, SingleDevicePlugin
+from pytorch_lightning.plugins import SingleDevicePlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
