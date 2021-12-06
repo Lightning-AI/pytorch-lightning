@@ -268,8 +268,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         else:
             self.add_to_queue(trainer, extra)
 
-        trainer_state = trainer.state
-        return _SpawnOutput(best_model_path, last_path, trainer_state, results, extra)
+        return _SpawnOutput(best_model_path, last_path, trainer.state, results, extra)
 
     def __recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
         # transfer back the best path to the trainer
