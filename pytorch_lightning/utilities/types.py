@@ -102,9 +102,9 @@ class ReduceLROnPlateau:
 
 
 # todo: improve LRSchedulerType naming/typing
-LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
+LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
 
 
 class LRSchedulerConfig(TypedDict):
