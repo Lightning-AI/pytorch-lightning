@@ -262,6 +262,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `DDPSpawnPlugin` and related plugins leaving a temporary checkpoint behind ([#10934](https://github.com/PyTorchLightning/pytorch-lightning/pull/10934))
 
 
+- Fixed TypeError cause failure in `singal_connector` `teardown` method by adding None check ([#10961](https://github.com/PyTorchLightning/pytorch-lightning/pull/10961))
+
+
 ## [1.5.4] - 2021-11-30
 
 ### Fixed
