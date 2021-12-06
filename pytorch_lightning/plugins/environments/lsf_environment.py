@@ -150,7 +150,7 @@ class LSFEnvironment(ClusterEnvironment):
         """
         # check for user-specified main port
         if "MASTER_PORT" in os.environ:
-            log.debug(f"using externally specified main port: {os.environ['MASTER_PORT']}")
+            log.debug(f"Using externally specified main port: {os.environ['MASTER_PORT']}")
             return int(os.environ["MASTER_PORT"])
         if "LSB_JOBID" in os.environ:
             port = int(os.environ["LSB_JOBID"])
