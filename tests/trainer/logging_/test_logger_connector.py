@@ -35,12 +35,14 @@ def test_fx_validator(tmpdir):
 
     callbacks_func = [
         "on_before_backward",
+        "backward",
         "on_after_backward",
         "on_before_optimizer_step",
         "on_batch_end",
         "on_batch_start",
         "on_before_accelerator_backend_setup",
         "on_before_zero_grad",
+        "optimizer_zero_grad",
         "on_epoch_end",
         "on_epoch_start",
         "on_fit_end",
@@ -233,6 +235,7 @@ def test_fx_validator_integration(tmpdir):
         "prepare_data": "You can't",
         "configure_callbacks": "You can't",
         "on_validation_model_eval": "You can't",
+        "on_validation_model_train": "You can't",
         "summarize": "not managed by the `Trainer",
     }
     model = HookedModel(not_supported)

@@ -157,8 +157,7 @@ class TrainingTypePlugin(ABC):
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
-        model_ref = self.lightning_module
-        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
+        self.lightning_module.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
