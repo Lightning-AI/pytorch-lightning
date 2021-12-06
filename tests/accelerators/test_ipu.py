@@ -188,7 +188,7 @@ def test_optimization(tmpdir):
 def test_mixed_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-            assert trainer.accelerator.model.precision == 16
+            assert trainer.training_type_plugin.model.precision == 16
             raise SystemExit
 
     model = IPUModel()
@@ -203,8 +203,8 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.accelerator.model.precision == 16
-            for param in trainer.accelerator.model.parameters():
+            assert trainer.training_type_plugin.model.precision == 16
+            for param in trainer.training_type_plugin.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
 
