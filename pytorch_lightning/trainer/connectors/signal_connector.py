@@ -98,7 +98,7 @@ class SignalConnector:
     def teardown(self) -> None:
         """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
-            if handler:
+            if handler is not None:
                 signal.signal(signum, handler)
         self._original_handlers = {}
 
@@ -139,7 +139,7 @@ class SignalConnector:
 
     @staticmethod
     def _has_already_handler(signum: Signals) -> bool:
-        return signal.getsignal(signum) is not signal.SIG_DFL
+        return signal.getsignal(signum) not in (None, signal.SIG_DFL)
 
     @staticmethod
     def _register_signal(signum: Signals, handlers: HandlersCompose) -> None:
