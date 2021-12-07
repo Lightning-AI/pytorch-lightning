@@ -179,9 +179,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-        # TODO: needed?
-        self.barrier()
-
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases

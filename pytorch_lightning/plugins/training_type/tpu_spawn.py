@@ -329,9 +329,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return xm.all_gather(tensor)
 
     def teardown(self) -> None:
-        super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)
+        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("teardown")
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.local_rank == 0:
+            time.sleep(2)
 
     @property
     def should_rank_save_checkpoint(self) -> bool:
@@ -348,14 +351,3 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
-
-    # TODO: still needed?
-    @staticmethod
-    def _clean_logger(trainer: "pl.Trainer") -> None:
-        loggers = trainer.logger._logger_iterable if isinstance(trainer.logger, LoggerCollection) else [trainer.logger]
-        for logger in loggers:
-            if isinstance(logger, TensorBoardLogger) and logger._experiment is not None:
-                # the experiment class of `TensorBoard` holds a multiprocessing queue which can make ours hang.
-                # we want to make sure these are closed before we spawn our own threads.
-                # assuming nothing else references the experiment object, python should instantly `__del__` it.
-                logger._experiment = None
