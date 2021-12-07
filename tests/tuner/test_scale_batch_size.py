@@ -165,7 +165,6 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
         def train_dataloader(self):
             return DataLoader(self.random_train, batch_size=self.batch_size)
 
-
     datamodule_fit = HparamsBatchSizeDataModule(data_dir=tmpdir, batch_size=before_batch_size)
     model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
     model = model_class(**hparams)
