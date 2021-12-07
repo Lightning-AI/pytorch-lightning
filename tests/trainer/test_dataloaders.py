@@ -988,7 +988,6 @@ def test_inf_dataloader_raise_error_with_partial_batch_limits(tmpdir, stage, dat
 
     with pytest.raises(MisconfigurationException, match=r"using an IterableDataset .* must be `0.0`, `1.0`"):
         getattr(trainer, trainer_fn)(model)
-        trainer.fit(model)
 
 
 def test_dataloaders_load_only_once(tmpdir):
