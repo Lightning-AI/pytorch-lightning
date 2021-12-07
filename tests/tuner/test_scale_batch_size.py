@@ -24,7 +24,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
-from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 
 
@@ -146,6 +145,10 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     before_batch_size = hparams.get("batch_size")
 
     class HparamsBatchSizeModel(BatchSizeModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.save_hyperparameters()
+
         def dataloader(self, *args, **kwargs):
             # artificially set batch_size so we can get a dataloader
             # remove it immediately after, because we want only self.hparams.batch_size
@@ -154,8 +157,16 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
             del self.batch_size
             return dataloader
 
-    datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+    class HparamsBatchSizeDataModule(BoringDataModule):
+        def __init__(self, data_dir, batch_size):
+            super().__init__(data_dir)
+            self.batch_size = batch_size
 
+        def train_dataloader(self):
+            return DataLoader(self.random_train, batch_size=self.batch_size)
+
+
+    datamodule_fit = HparamsBatchSizeDataModule(data_dir=tmpdir, batch_size=before_batch_size)
     model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
     model = model_class(**hparams)
 
