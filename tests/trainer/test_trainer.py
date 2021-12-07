@@ -62,9 +62,10 @@ from tests.helpers.simple_models import ClassificationModel
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 
-ProcessRaisedException = Exception
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.multiprocessing import ProcessRaisedException
+else:
+    ProcessRaisedException = Exception
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
