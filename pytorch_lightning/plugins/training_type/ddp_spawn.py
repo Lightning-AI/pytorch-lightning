@@ -168,6 +168,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         )
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
+
         # move the model to the correct device
         self.model_to_device()
 
