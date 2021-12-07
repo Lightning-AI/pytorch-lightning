@@ -1454,9 +1454,7 @@ class Trainer(
         .. deprecated:: v1.6
             The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.
         """
-        rank_zero_deprecation(
-            "The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8."
-        )
+        rank_zero_deprecation("The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.")
         pl_module = self.lightning_module or pl_module
         if pl_module:
             prev_fx_name = pl_module._current_fx_name
@@ -1505,7 +1503,6 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
         return output
-
 
     def _call_lightning_module_hook(
         self,
