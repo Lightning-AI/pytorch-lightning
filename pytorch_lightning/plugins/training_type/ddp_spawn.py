@@ -333,6 +333,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
+            self.checkpoint_io.remove_checkpoint(last_path)
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
