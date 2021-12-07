@@ -282,6 +282,8 @@ Customize Checkpointing
 
 .. warning:: The Checkpoint IO API is experimental and subject to change.
 
+|
+
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
 that is managed by the ``TrainingTypePlugin``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded rather than
