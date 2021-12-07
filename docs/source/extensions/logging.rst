@@ -137,7 +137,7 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name
     (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
-* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_step=True``.
+* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_epoch=True``.
     This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
 * ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which
     would produce a deadlock as not all processes would perform this log call.
