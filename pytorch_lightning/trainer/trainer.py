@@ -1452,7 +1452,7 @@ class Trainer(
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ):
+    ) -> Any:
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
@@ -1460,7 +1460,7 @@ class Trainer(
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
-            return None
+            return
 
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
@@ -1479,16 +1479,15 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
-        output = None
+    ) -> None:
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    output = fn(self, *args, **kwargs)
-            return output
+                    fn(self, *args, **kwargs)
+            return
 
         pl_module = self.lightning_module
         if pl_module:
@@ -1500,19 +1499,17 @@ class Trainer(
             fn = getattr(self, hook_name)
             if callable(fn):
                 with self.profiler.profile(hook_name):
-                    output = fn(*args, **kwargs)
+                    fn(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
                     with self.profiler.profile(hook_name):
-                        output = fn(self, self.lightning_module, *args, **kwargs)
+                        fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-        return output
 
     # TODO: rename to _call_strategy_hook and eventually no longer need this
     def _call_ttp_hook(
@@ -1520,13 +1517,20 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> Any:
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
         fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
+
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
@@ -1536,14 +1540,20 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
-        self.lightning_module._current_fx_name = hook_name
-        fn = getattr(self.training_type_plugin, hook_name)
+    ) -> Any:
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
+        fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
+
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
