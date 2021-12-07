@@ -1479,13 +1479,8 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-<<<<<<< HEAD
-    ) -> Optional[Any]:
-        output = None
-        # TODO: remove if block in v1.8
-=======
     ) -> None:
->>>>>>> 99adc45af136089abae8a1f6dc5a09e041d68605
+        # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
