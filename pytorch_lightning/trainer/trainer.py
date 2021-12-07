@@ -1228,9 +1228,7 @@ class Trainer(
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
-        Callback.
-
-        Those are handled by :meth:`_call_teardown_hook`.
+        Callback; those are handled by :meth:`_call_teardown_hook`.
         """
         self.training_type_plugin.post_dispatch(self)
         self.accelerator.teardown()
