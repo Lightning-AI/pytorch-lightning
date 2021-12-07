@@ -15,6 +15,7 @@ import os
 from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -34,6 +35,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
+        accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -41,7 +43,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
 
         self.debug = debug
         self.tpu_local_core_rank = 0

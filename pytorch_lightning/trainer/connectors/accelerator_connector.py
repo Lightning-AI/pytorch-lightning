@@ -163,6 +163,10 @@ class AcceleratorConnector:
         else:
             self.set_distributed_mode()
 
+        self._validate_accelerator_type()
+        self._set_devices_if_none()
+        self.accelerator = self.select_accelerator()
+
         self.handle_given_plugins()
         self._set_distrib_type_if_training_type_plugin_passed()
 
@@ -170,12 +174,7 @@ class AcceleratorConnector:
 
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
-
-        self._validate_accelerator_type()
-        self._set_devices_if_none()
-
         self._training_type_plugin_resolved = False
-        self.accelerator = self.select_accelerator()
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -698,10 +697,10 @@ class AcceleratorConnector:
         ):
             plugin = self.distributed_backend.training_type_plugin
         elif self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Plugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment,)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
+                accelerator=self.accelerator, cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices,
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
@@ -740,19 +739,19 @@ class AcceleratorConnector:
                 ddp_plugin_cls = DDPPlugin
 
             plugin = ddp_plugin_cls(
-                parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
+                accelerator=self.accelerator, parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment,
             )
         elif self.use_dp:
-            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+            plugin = DataParallelPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
         elif self.use_horovod:
-            plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+            plugin = HorovodPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.use_ipu:
-            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
+            plugin = IPUPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDevicePlugin(accelerator=self.accelerator, device=(torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu")),)
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
