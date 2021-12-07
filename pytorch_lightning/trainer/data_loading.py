@@ -170,7 +170,7 @@ class TrainerDataLoadingMixin(ABC):
         if self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                    "You seem to have configured a sampler in your DataLoader. This will be replaced"
                     " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp=False` if you want to use your custom sampler."
@@ -323,7 +323,7 @@ class TrainerDataLoadingMixin(ABC):
         module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = (
+                orig_num_batches = (
                     len(dataloader)
                     if has_len_all_ranks(dataloader, self.training_type_plugin, module)
                     else float("inf")
@@ -335,9 +335,9 @@ class TrainerDataLoadingMixin(ABC):
 
                 # limit num batches either as a percent or num steps
                 if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
-                    num_batches = min(num_batches, int(limit_eval_batches))
-                elif num_batches != float("inf"):
-                    num_batches = int(num_batches * limit_eval_batches)
+                    num_batches = min(orig_num_batches, int(limit_eval_batches))
+                elif orig_num_batches != float("inf"):
+                    num_batches = int(orig_num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
@@ -349,7 +349,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
-                        f" {limit_eval_batches}*{num_batches} < 1. Please increase the"
+                        f" {limit_eval_batches}*{orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
                     )
