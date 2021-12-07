@@ -99,6 +99,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - All spawn-based plugins (`DDPSpawnPlugin`, `TPUSpawnPlugin`, etc.) now spawn processes immediately upon calling `Trainer.{fit,validate,test,predict}` ([#10896](https://github.com/PyTorchLightning/pytorch-lightning/pull/10896))
 
 
+- The `setup` and `teardown` hooks/callbacks now run under initialized process group for spawn-based plugins just like their non-spawn counterparts ([#10896](https://github.com/PyTorchLightning/pytorch-lightning/pull/10896))
+
 ### Deprecated
 
 - Deprecated `ClusterEnvironment.master_{address,port}` in favor of `ClusterEnvironment.main_{address,port}` ([#10103](https://github.com/PyTorchLightning/pytorch-lightning/issues/10103))

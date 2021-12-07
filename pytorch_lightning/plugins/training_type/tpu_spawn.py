@@ -23,7 +23,6 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
