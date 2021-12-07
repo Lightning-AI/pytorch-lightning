@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raised an error if the `batch_size` cannot be inferred from the current batch if it contained a string or was a custom batch object ([#10541](https://github.com/PyTorchLightning/pytorch-lightning/pull/10541))
 
 
--
+- Update ImageClassification Task to the new DataModule API ([#1025](https://github.com/PyTorchLightning/pytorch-lightning/pull/1025))
 
 
 -
