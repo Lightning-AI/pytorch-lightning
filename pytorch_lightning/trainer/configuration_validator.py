@@ -299,11 +299,9 @@ def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_init_start", instance=callback):
             rank_zero_deprecation(
-                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8. "
-                "You can use the `setup` callback hook as a good alternative."
+                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
             )
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation(
-                "The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.
-                "You can use the `setup` callback hook as a good alternative."
+                "The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8."
             )
