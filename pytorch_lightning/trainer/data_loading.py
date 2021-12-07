@@ -323,7 +323,7 @@ class TrainerDataLoadingMixin(ABC):
         module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                orig_num_batches = (
+                orig_num_batches = num_batches = (
                     len(dataloader)
                     if has_len_all_ranks(dataloader, self.training_type_plugin, module)
                     else float("inf")
@@ -335,9 +335,9 @@ class TrainerDataLoadingMixin(ABC):
 
                 # limit num batches either as a percent or num steps
                 if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
-                    num_batches = min(orig_num_batches, int(limit_eval_batches))
-                elif orig_num_batches != float("inf"):
-                    num_batches = int(orig_num_batches * limit_eval_batches)
+                    num_batches = min(num_batches, int(limit_eval_batches))
+                elif num_batches != float("inf"):
+                    num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
