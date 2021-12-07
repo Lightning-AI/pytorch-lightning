@@ -41,7 +41,7 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, accelerator: Accelerator, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self, accelerator: Optional[Accelerator] = None, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
         self._accelerator = accelerator
         self._model: Optional[Module] = None
@@ -55,6 +55,12 @@ class TrainingTypePlugin(ABC):
     @property
     def accelerator(self) -> Accelerator:
         return self._accelerator
+
+    @accelerator.setter
+    def accelerator(self, accelerator: Accelerator) -> None:
+        if self._accelerator is not None:
+            raise ValueError("Accelerator already set.")
+        self._accelerator = accelerator
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
