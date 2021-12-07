@@ -58,8 +58,7 @@ def test_v1_8_0_on_init_start_end(tmpdir):
     trainer = Trainer(
         callbacks=[TestCallback()],
         max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
+        fast_dev_run=True,
         enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
