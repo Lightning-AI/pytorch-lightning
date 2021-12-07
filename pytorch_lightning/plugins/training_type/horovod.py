@@ -24,6 +24,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
@@ -52,6 +53,7 @@ class HorovodPlugin(ParallelPlugin):
             precision_plugin=precision_plugin,
         )
         rank_zero_only.rank = self.global_rank
+        self._exit_stack: Optional[ExitStack] = None
 
     @property
     def global_rank(self) -> int:
@@ -110,32 +112,13 @@ class HorovodPlugin(ParallelPlugin):
 
         self.optimizers = self._wrap_optimizers(optimizers)
 
-    def start_training(self, trainer):
-        with ExitStack() as stack:
-            for optimizer in trainer.optimizers:
+
+        self._exit_stack = ExitStack()
+        self._exit_stack.__enter__()
+        if trainer.state.fn == TrainerFn.FITTING:
+            for optimizer in optimizers:
                 # Synchronization will be performed explicitly following backward()
-                stack.enter_context(optimizer.skip_synchronize())
-
-            # set up training routine
-            self._results = trainer.run_stage()
-
-        # Make sure all workers have finished training before returning to the user
-        self.join()
-
-    def start_evaluating(self, trainer):
-        with ExitStack():
-            self._results = trainer.run_stage()
-
-        # Make sure all workers have finished training before returning to the user
-        self.join()
-
-    def start_predicting(self, trainer):
-        with ExitStack():
-            # set up training routine
-            self._results = trainer.run_stage()
-
-        # Make sure all workers have finished training before returning to the user
-        self.join()
+                self._exit_stack.enter_context(optimizer.skip_synchronize())
 
     def barrier(self, *args, **kwargs):
         if distributed_available():
@@ -218,6 +201,10 @@ class HorovodPlugin(ParallelPlugin):
 
     def teardown(self) -> None:
         super().teardown()
+        self._exit_stack.__exit__(None, None, None)
+        self._exit_stack = None
+        # Make sure all workers have finished training before returning to the user
+        self.join()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()
