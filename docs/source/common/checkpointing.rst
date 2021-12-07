@@ -66,8 +66,8 @@ and :meth:`~pytorch_lightning.core.saving.ModelIO.load_from_checkpoint`.
     new_model = MyLightningModule.load_from_checkpoint(checkpoint_path="example.ckpt")
 
 
-Manual Saving with Strategies
-=============================
+Manual Saving with Distributed Training Strategies
+==================================================
 
 Lightning also handles strategies where multiple processes are running, such as DDP. For example, when using the DDP strategy our training script is running across multiple devices at the same time.
 Lightning automatically ensures that the model is saved only on the main process, whilst other processes do not interfere with saving checkpoints. This requires no code changes as seen below:
