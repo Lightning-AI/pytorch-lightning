@@ -10,7 +10,7 @@
 Saving and Loading Checkpoints
 ##############################
 
-Lightning provides functio to save and load checkpoints.
+Lightning provides functions to save and load checkpoints.
 
 Checkpointing your training allows you to resume a training process in case it was interrupted, fine-tune a model or use a pre-trained model for inference without having to retrain the model.
 
@@ -21,7 +21,7 @@ Checkpoint Saving
 
 A Lightning checkpoint has everything needed to restore a training session including:
 
-- 16-bit scaling factor (if using APEX mixed-precision)
+- 16-bit scaling factor (if using 16-bit precision training)
 - Current epoch
 - Global step
 - Model state_dict
@@ -280,9 +280,10 @@ and Lightning Team would be happy to integrate/help integrate it.
 Customize Checkpointing
 ***********************
 
-.. warning:: The Checkpoint IO API is experimental and subject to change.
+.. warning::
 
-|
+    The Checkpoint IO API is experimental and subject to change.
+
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
 that is managed by the ``TrainingTypePlugin``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
