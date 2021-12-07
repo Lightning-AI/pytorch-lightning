@@ -48,7 +48,7 @@ class ModelCheckpoint(Callback):
     Save the model periodically by monitoring a quantity. Every metric logged with
     :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`weights_loading`.
+    :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
