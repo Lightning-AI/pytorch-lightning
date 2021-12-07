@@ -1125,7 +1125,8 @@ class Trainer(
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
-                        create accelerator                    ||
+                        setup accelerator                     ||
+                           and strategy                       ||
                                 |                             ||  LIGHTNING
                                 |                             ||
                          {self.run_stage}                     ||  FLOW
@@ -1137,8 +1138,6 @@ class Trainer(
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
         {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
-        Search for `start_training` or `start_evaluating` or `start_predicting` in
-        `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
         """
 
         # ----------------------------
@@ -1185,7 +1184,6 @@ class Trainer(
         if isinstance(self.training_type_plugin, DDPSpawnPlugin):
             results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
-        # TODO: The reslts no longer need to pass through _collect_rank_zero_results and can be returned directly here
         return results
 
     def _pre_dispatch(self):
