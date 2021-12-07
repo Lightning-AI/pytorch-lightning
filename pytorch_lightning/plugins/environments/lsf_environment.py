@@ -60,9 +60,9 @@ class LSFEnvironment(ClusterEnvironment):
         self._node_rank = self._get_node_rank()
         self._rep = (f'main_address={self._main_address},main_port={self._main_port},local_rank={self._local_rank},'
                      f'global_rank={self._global_rank},world_size={self._world_size},node_rank={self._node_rank}')
-        self.__set_environ_vars()
+        self._set_init_progress_group_env_vars()
 
-    def __set_environ_vars(self):
+    def _set_init_progress_group_env_vars(self):
         # set environment variables needed for initializing torch distributed process group
         os.environ["MASTER_ADDR"] = str(self._main_address)
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
