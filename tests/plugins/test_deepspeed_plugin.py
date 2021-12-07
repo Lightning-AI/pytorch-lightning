@@ -361,7 +361,7 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["synchronize_checkpoint_boundary"]
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
     """Ensure if we modify the activation checkpointing parameters, we pass these to
     deepspeed.checkpointing.configure correctly."""
