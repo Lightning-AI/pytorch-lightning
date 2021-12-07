@@ -28,6 +28,8 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
         model: The model to check the configuration.
 
     """
+    if trainer.state.fn is None:
+        raise ValueError("Unexpected: Trainer state fn must be set before validating loop configuration.")
     if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
@@ -221,7 +223,7 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
         )
 
 
-def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule"):
+def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
     """Check if the current `training_step` is requesting `dataloader_iter`."""
     training_step_fx = model.training_step
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):

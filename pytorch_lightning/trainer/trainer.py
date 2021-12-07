@@ -38,6 +38,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops.utilities import _parse_loop_limits
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DDPSpawnPlugin,
@@ -455,13 +456,11 @@ class Trainer(
         self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        fit_loop = FitLoop(
-            min_epochs=(1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs),
-            max_epochs=(
-                max_epochs if max_epochs is not None else (1000 if (max_steps == -1 and max_time is None) else -1)
-            ),
+        min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
+            min_steps, max_steps, min_epochs, max_epochs, max_time
         )
-        training_epoch_loop = TrainingEpochLoop(min_steps, max_steps)
+        fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
+        training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         training_batch_loop = TrainingBatchLoop()
         training_validation_loop = EvaluationLoop()
         training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
@@ -552,7 +551,7 @@ class Trainer(
             )
 
         self._terminate_on_nan = terminate_on_nan
-        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_val: Union[int, float] = gradient_clip_val
         self.gradient_clip_algorithm = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower())
             if gradient_clip_algorithm is not None
@@ -1184,7 +1183,7 @@ class Trainer(
         return results
 
     def _pre_dispatch(self):
-        self.accelerator.pre_dispatch(self)
+        self.training_type_plugin.pre_dispatch(self)
         self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
@@ -1225,9 +1224,9 @@ class Trainer(
             self.logger.save()
 
     def _post_dispatch(self):
-        self.accelerator.post_dispatch(self)
         # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
         # which need to happen before.
+        self.training_type_plugin.post_dispatch(self)
         self.accelerator.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
@@ -1243,7 +1242,7 @@ class Trainer(
             return self.training_type_plugin.start_training(self)
 
     def run_stage(self):
-        self.accelerator.dispatch(self)
+        self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
 
         if self.evaluating:
@@ -1510,7 +1509,7 @@ class Trainer(
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ):
+    ) -> Any:
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
@@ -1518,7 +1517,7 @@ class Trainer(
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
-            return None
+            return
 
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
@@ -1537,16 +1536,15 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
-        output = None
+    ) -> None:
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    output = fn(self, *args, **kwargs)
-            return output
+                    fn(self, *args, **kwargs)
+            return
 
         pl_module = self.lightning_module
         if pl_module:
@@ -1558,19 +1556,17 @@ class Trainer(
             fn = getattr(self, hook_name)
             if callable(fn):
                 with self.profiler.profile(hook_name):
-                    output = fn(*args, **kwargs)
+                    fn(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
                     with self.profiler.profile(hook_name):
-                        output = fn(self, self.lightning_module, *args, **kwargs)
+                        fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-        return output
 
     # TODO: rename to _call_strategy_hook and eventually no longer need this
     def _call_ttp_hook(
@@ -1578,13 +1574,20 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> Any:
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
         fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
+
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
@@ -1594,14 +1597,20 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
-        self.lightning_module._current_fx_name = hook_name
+    ) -> Any:
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
         fn = getattr(self.accelerator, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
+
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
