@@ -349,7 +349,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
-                        f" {limit_eval_batches}*{orig_num_batches} < 1. Please increase the"
+                        f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
                     )

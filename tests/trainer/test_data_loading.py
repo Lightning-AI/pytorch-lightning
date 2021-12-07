@@ -346,6 +346,7 @@ def test_error_raised_with_float_limited_eval_batches():
     trainer = Trainer(limit_val_batches=limit_val_batches)
     trainer._data_connector.attach_data(model)
     with pytest.raises(
-        MisconfigurationException, match=fr"{limit_val_batches}\*{dl_size} < 1. Please increase the `limit_val_batches`"
+        MisconfigurationException,
+        match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
         trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
