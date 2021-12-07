@@ -56,16 +56,15 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 ----------------
 
-Log GPU usage
--------------
-Logs (to a logger) the GPU usage for each GPU on the master machine.
-
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.log_gpu_memory`
-argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
+Log device stats
+----------------
+Monitor and log device stats during training with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`.
 
 .. testcode::
 
-    trainer = Trainer(log_gpu_memory=True)
+    from pytorch_lightning.callbacks import DeviceStatsMonitor
+
+    trainer = Trainer(callbacks=[DeviceStatsMonitor()])
 
 ----------------
 
@@ -80,10 +79,10 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and use the same training dataloader (with shuffle off) in val and test)
+    # use only 1% of training data (and turn off validation)
     trainer = Trainer(overfit_batches=0.01)
 
-    # similar, but with a fixed 10 batches no matter the size of the dataset
+    # similar, but with a fixed 10 batches
     trainer = Trainer(overfit_batches=10)
 
 With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler
@@ -95,11 +94,14 @@ Print a summary of your LightningModule
 ---------------------------------------
 Whenever the ``.fit()`` function gets called, the Trainer will print the weights summary for the LightningModule.
 By default it only prints the top-level modules. If you want to show all submodules in your network, use the
-`'full'` option:
+``max_depth`` option:
 
 .. testcode::
 
-    trainer = Trainer(weights_summary='full')
+    from pytorch_lightning.callbacks import ModelSummary
+
+    trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
+
 
 You can also display the intermediate input- and output sizes of all your layers by setting the
 ``example_input_array`` attribute in your LightningModule. It will print a table like this
@@ -115,8 +117,9 @@ You can also display the intermediate input- and output sizes of all your layers
 when you call ``.fit()`` on the Trainer. This can help you find bugs in the composition of your layers.
 
 See Also:
-    - :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_summary` Trainer argument
-    - :class:`~pytorch_lightning.core.memory.ModelSummary`
+    - :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
+    - :func:`~pytorch_lightning.utilities.model_summary.summarize`
+    - :class:`~pytorch_lightning.utilities.model_summary.ModelSummary`
 
 ----------------
 

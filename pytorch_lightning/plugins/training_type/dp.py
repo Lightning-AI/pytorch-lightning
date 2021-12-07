@@ -11,25 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
-from torch.nn import DataParallel
+from torch.nn import DataParallel, Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
 
 class DataParallelPlugin(ParallelPlugin):
-    """
-    Implements data-parallel training in a single process, i.e., the model gets replicated to each
-    device and each gets a split of the data.
-    """
+    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
+    each gets a split of the data."""
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]]):
-        super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+    distributed_backend = _StrategyType.DP
+
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
+    ):
+        super().__init__(
+            parallel_devices=parallel_devices,
+            cluster_environment=None,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+        )
 
     @property
     def global_rank(self) -> int:
@@ -47,43 +62,52 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self, model):
+    def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
-        model.to(self.root_device)
-        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
+        self.model_to_device()
+        self._model = self._setup_model(LightningParallelModule(self._model))
+        super().setup(trainer)
 
-    def reduce(self, tensor, *args, **kwargs):
-        """
-        Reduces a tensor from all parallel processes to one aggregated tensor.
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device.
+
+        The input and the output is the same type.
 
         Args:
-            tensor: the tensor to sync and reduce
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        return move_data_to_device(batch, device=device or self.root_device)
+
+    def _setup_model(self, model: Module) -> DataParallel:
+        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        return DataParallel(module=model, device_ids=self.parallel_devices)
+
+    def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
+        """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
+
+        Args:
+            collection: The collection of tensors to sync and reduce.
             *args: ignored for DP
             **kwargs: ignored for DP
 
         Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
+            Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
-        if isinstance(tensor, Result):
-            tensor.dp_reduce()
 
-        else:
+        def mean(t: torch.Tensor) -> torch.Tensor:
+            original_dtype = t.dtype
+            return t.float().mean().to(original_dtype)
 
-            def _reduce(t: torch.Tensor):
-                dtype_tensor = t.dtype
-                return t.float().mean().type(dtype_tensor)
-
-            tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
-
-        return tensor
+        return apply_to_collection(collection, torch.Tensor, mean)
 
     @property
     def root_device(self):
         return self.parallel_devices[0]
 
-    def model_to_device(self):
-        # no need to do anything when model is wrapped in torch.nn.DataParallel
-        pass
+    def model_to_device(self) -> None:
+        self._model.to(self.root_device)
 
     def barrier(self, *args, **kwargs):
         pass
@@ -94,23 +118,41 @@ class DataParallelPlugin(ParallelPlugin):
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
 
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("training_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output
 
     def validation_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("validation_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output
 
     def test_step_end(self, output):
-        return self.reduce(output)
+        if not is_overridden("test_step_end", self.lightning_module):
+            return self.reduce(output)
+        return output
+
+    def teardown(self) -> None:
+        super().teardown()
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()

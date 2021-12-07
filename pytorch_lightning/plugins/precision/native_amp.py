@@ -12,110 +12,104 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Dict, Generator, Optional, Union
 
 import torch
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch import autocast as new_autocast
+else:
+    from torch.cuda.amp import autocast as old_autocast
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
+    """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
-    def __init__(self) -> None:
+    Args:
+        precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
+        device: The device for ``torch.autocast``.
+        scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+    """
+
+    backend = AMPType.NATIVE
+
+    def __init__(
+        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+    ) -> None:
         super().__init__()
-        if not _NATIVE_AMP_AVAILABLE:
+        if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
             raise MisconfigurationException(
-                "You have asked for native AMP but your PyTorch version does not support it."
-                " Consider upgrading with `pip install torch>=1.6`."
+                "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
             )
+        if scaler is None and precision == 16:
+            scaler = torch.cuda.amp.GradScaler()
+        if scaler is not None and precision == "bf16":
+            raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
+        self.precision = precision
+        self.device = device
+        self.scaler = scaler
 
-        self.backend = AMPType.NATIVE
-        self.scaler = torch.cuda.amp.GradScaler()
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
+        if self.scaler is not None:
+            closure_loss = self.scaler.scale(closure_loss)
+        return super().pre_backward(model, closure_loss)
 
-    def backward(
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+        if self.scaler is not None:
+            tensor = self.scaler.scale(tensor)
+        super()._run_backward(tensor, model, *args, **kwargs)
+
+    def optimizer_step(
         self,
-        model: 'pl.LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: Optimizer,
-        opt_idx: int,
-        should_accumulate: bool,
-        *args: Any,
-        **kwargs: Any,
-    ) -> torch.Tensor:
-        """performs the actual backpropagation
-
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-            optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
-        """
-        closure_loss = self.scaler.scale(closure_loss)
-
-        closure_loss = super().backward(model, closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs)
-
-        # unscale gradient to allow analyze within `on_after_backward`
-        if not should_accumulate and model.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-
-        return closure_loss
-
-    def pre_optimizer_step(
-        self,
-        pl_module: 'pl.LightningModule',
+        model: Union["pl.LightningModule", Module],
         optimizer: Optimizer,
         optimizer_idx: int,
-        lambda_closure: Callable,
+        closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> bool:
-        """always called before the optimizer step.
-        Checks that the optimizer is not LBFGS, as this one is not supported by native amp
-        """
+    ) -> None:
+        if self.scaler is None:
+            # skip scaler logic, as bfloat16 does not require scaler
+            return super().optimizer_step(model, optimizer, optimizer_idx, closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
-                f"native PyTorch amp and lbfgs are not compatible (optimizer {optimizer_idx})."
-                " To request, please file a Github issue in PyTorch and tag @mcarilli"
+                f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
-        lambda_closure()
+        closure_result = closure()
+        # `unscale` after the closure is executed but before the `on_before_optimizer_step` hook.
+        self.scaler.unscale_(optimizer)
+        self._after_closure(model, optimizer, optimizer_idx)
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
+            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+            self.scaler.step(optimizer, **kwargs)
+            self.scaler.update()
 
-        if not pl_module.automatic_optimization:
-            self.scaler.unscale_(optimizer)
-            pl_module.trainer.call_hook("on_after_backward")
-
-        return False
-
-    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
-        """Updates the GradScaler"""
-        self.scaler.step(optimizer)
-        self.scaler.update()
-
-    @contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
-        with torch.cuda.amp.autocast():
-            yield
-
-    @contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
-        with torch.cuda.amp.autocast():
-            yield
+    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
+        if _TORCH_GREATER_EQUAL_1_10:
+            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+            # https://github.com/pytorch/pytorch/issues/67233
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()
 
     @contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
-        with torch.cuda.amp.autocast():
+    def forward_context(self) -> Generator[None, None, None]:
+        """Enable autocast context."""
+        with self.autocast_context_manager():
             yield
 
-    @contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
-        """Enable autocast context"""
-        with torch.cuda.amp.autocast():
-            yield
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()

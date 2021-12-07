@@ -18,6 +18,7 @@ from shutil import copyfile
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 
 KEYS_MAPPING = {
     "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
@@ -48,8 +49,9 @@ def upgrade_checkpoint(filepath):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Upgrade an old checkpoint to the current schema. \
-        This will also save a backup of the original file."
+        description=(
+            "Upgrade an old checkpoint to the current schema. This will also save a backup of the original file."
+        )
     )
     parser.add_argument("--file", help="filepath for a checkpoint to upgrade")
 
@@ -57,4 +59,5 @@ if __name__ == "__main__":
 
     log.info("Creating a backup of the existing checkpoint file before overwriting in the upgrade process.")
     copyfile(args.file, args.file + ".bak")
-    upgrade_checkpoint(args.file)
+    with pl_legacy_patch():
+        upgrade_checkpoint(args.file)

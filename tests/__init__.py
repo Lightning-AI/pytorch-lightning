@@ -18,14 +18,14 @@ import numpy as np
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
-_TEMP_PATH = os.path.join(_PROJECT_ROOT, 'test_temp')
-PATH_DATASETS = os.path.join(_PROJECT_ROOT, 'Datasets')
-PATH_LEGACY = os.path.join(_PROJECT_ROOT, 'legacy')
+_TEMP_PATH = os.path.join(_PROJECT_ROOT, "test_temp")
+_PATH_DATASETS = os.path.join(_PROJECT_ROOT, "Datasets")
+_PATH_LEGACY = os.path.join(_PROJECT_ROOT, "legacy")
 
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
-if _PROJECT_ROOT not in os.getenv('PYTHONPATH', ""):
+if _PROJECT_ROOT not in os.getenv("PYTHONPATH", ""):
     splitter = ":" if os.environ.get("PYTHONPATH", "") else ""
-    os.environ['PYTHONPATH'] = f'{_PROJECT_ROOT}{splitter}{os.environ.get("PYTHONPATH", "")}'
+    os.environ["PYTHONPATH"] = f'{_PROJECT_ROOT}{splitter}{os.environ.get("PYTHONPATH", "")}'
 
 # generate a list of random seeds for each test
 RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))

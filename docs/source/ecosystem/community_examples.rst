@@ -1,16 +1,19 @@
 Community Examples
 ==================
 
-- `Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>`_
+
+- `Lightning Bolts: Deep Learning components for extending PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html>`_.
+- `Lightning Flash: Your PyTorch AI Factory - Flash enables you to easily configure and run complex AI recipes <https://github.com/PyTorchLightning/lightning-flash>`_.
+- `Contextual Emotion Detection (DoubleDistilBert) <https://github.com/juliusberner/emotion_transformer>`_
 - `Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>`_
-- `FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>`_
+- `FasterRCNN object detection + Hydra <https://github.com/Erlemar/wheat>`_
 - `Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>`_
 - `MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>`_
 - `NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>`_
-- `NeuralTexture (CVPR) <https://github.com/PyTorchLightning/neuraltexture>`_
-- `Recurrent Attentive Neural Process <https://github.com/PyTorchLightning/attentive-neural-processes>`_
-- `Siamese Nets for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>`_
-- `Speech Transformers <https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning>`_
+- `NeuralTexture (CVPR) <https://github.com/henzler/neuraltexture>`_
+- `Recurrent Attentive Neural Process <https://github.com/3springs/attentive-neural-processes>`_
+- `Siamese Nets for One-shot Image Recognition <https://github.com/bhiziroglu/Siamese-Neural-Networks>`_
+- `Speech Transformers <https://github.com/tongjinle123/speech-transformer-pytorch_lightning>`_
 - `Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
 - `Transformers text classification <https://github.com/ricardorei/lightning-text-classification>`_
 - `VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>`_

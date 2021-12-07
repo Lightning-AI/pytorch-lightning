@@ -32,7 +32,7 @@ def test_unrepeated_distributed_sampler(shuffle, tmpdir):
     for rank in range(world_size):
         samplers.append(UnrepeatedDistributedSampler(dataset, rank=rank, num_replicas=world_size, shuffle=shuffle))
 
-    indices = [[v for v in s] for s in samplers]
+    indices = [list(s) for s in samplers]
     assert len(indices[0]) == 26
     assert len(indices[1]) == 26
     assert len(indices[2]) == 26
@@ -54,9 +54,7 @@ def test_index_batch_sampler(tmpdir):
     assert batch_sampler.batch_size == index_batch_sampler.batch_size
     assert batch_sampler.drop_last == index_batch_sampler.drop_last
     assert batch_sampler.sampler is sampler
-
-    for batch in index_batch_sampler:
-        assert index_batch_sampler.batch_indices == batch
+    assert list(index_batch_sampler) == index_batch_sampler.seen_batch_indices
 
 
 def test_index_batch_sampler_methods():

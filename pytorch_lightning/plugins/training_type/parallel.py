@@ -19,30 +19,34 @@ from typing import Any, List, Optional
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
-    """ Plugin for training with multiple processes in parallel. """
+    """Plugin for training with multiple processes in parallel."""
 
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__()
+        super().__init__(checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
-        raise NotImplementedError
+        """Return the root device."""
 
     @property
     def on_gpu(self) -> bool:
@@ -53,8 +57,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
-    def lightning_module(self):
-        return unwrap_lightning_module(self._model)
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        return unwrap_lightning_module(self._model) if self._model is not None else None
 
     @property
     def global_rank(self) -> int:
@@ -81,8 +85,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    def reconciliate_processes(self, trace: str):
+        """Function to re-conciliate processes on failure."""
+
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
+        """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
@@ -99,9 +106,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
-        """
-        Add global batchnorm for a model spread across multiple GPUs and nodes.
+    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
+        """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
         of the whole world or use a different sync_bn like `apex`'s version.
@@ -112,13 +118,12 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Return:
             LightningModule with batchnorm layers synchronized between process groups
         """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
+        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):
-        """
-        Blocks ddp sync gradients behaviour on backwards pass.
+        """Blocks ddp sync gradients behaviour on backwards pass.
+
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
@@ -129,9 +134,5 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             yield None
 
     def teardown(self) -> None:
-        if self.on_gpu:
-            # GPU teardown
-            self.lightning_module.cpu()
-            # clean up memory
-            with torch.cuda.device(self.root_device):
-                torch.cuda.empty_cache()
+        self.cluster_environment.teardown()
+        super().teardown()

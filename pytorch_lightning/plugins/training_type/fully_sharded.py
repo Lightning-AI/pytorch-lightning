@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional
 
 import torch
-from torch import Tensor
-from torch.nn import Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -29,6 +32,8 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
+
+    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
 
     def __init__(
         self,
@@ -42,10 +47,11 @@ class DDPFullyShardedPlugin(DDPPlugin):
         min_num_params: int = 1e8,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: ClusterEnvironment = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        """
-        Plugin for Fully Sharded Data Parallel provided by FairScale.
+        """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
@@ -94,6 +100,8 @@ class DDPFullyShardedPlugin(DDPPlugin):
         super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -118,11 +126,10 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
-        torch.cuda.set_device(self.root_device)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        precision = self.lightning_module.trainer.precision
+        precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
@@ -134,7 +141,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=precision == "mixed",
+            mixed_precision=(precision == PrecisionType.MIXED),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -142,15 +149,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
             state_dict_device=self.state_dict_device,
         ):
             yield
-
-    def connect(self, model: Module) -> None:
-        super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-        if not model_call_configure_sharded_model_hook:
-            # if model has not called configure sharded model, we reset
-            # the training type plugin's call_configure_sharded_model_hook
-            # to give trainer a chance to configure.
-            self.call_configure_sharded_model_hook = True
 
     def configure_ddp(self) -> None:
         if not self.cpu_offload:
@@ -161,48 +159,41 @@ class DDPFullyShardedPlugin(DDPPlugin):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
-        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
+        self.setup_optimizers(self.lightning_module.trainer)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        self._move_optimizer_state()
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
         self.barrier()
+        self.setup_optimizers(trainer)
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        # Currently it is same as default TrainingTypePlugin, i.e. return
-        # the full state dict for FSDP, in the future, we will provide sharded
-        # state dict.
-        return super().lightning_module_state_dict()
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        # Setup optimizers after the Fully Sharded Model has been made
-        return True
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
-            "fsdp",
-            cls,
-            description="Fully sharded training with checkpointing the full state dict.",
+            "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )
