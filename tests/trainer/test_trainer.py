@@ -52,7 +52,6 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.datamodules import ClassifDataModule
@@ -69,12 +68,18 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", str(tmpdir))
 
-    model = EvalModelTemplate()
+    class CustomModel(BoringModel):
+        def __init__(self, lr=1e-2):
+            super().__init__()
+            self.save_hyperparameters()
+
+    lr = 1e-3
+    model = CustomModel(lr=lr)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, logger=logger)
     # fit model
     trainer.fit(model)
     # training complete
@@ -96,42 +101,8 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         if url_ckpt
         else new_weights_path
     )
-    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path)
-    model_2.eval()
-
-
-@pytest.mark.parametrize("url_ckpt", [True, False])
-def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
-    """Tests use case where trainer saves the model, and user loads it from tags independently."""
-    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
-    monkeypatch.setenv("TORCH_HOME", tmpdir)
-
-    model = EvalModelTemplate()
-
-    # logger file to get meta
-    logger = tutils.get_default_logger(tmpdir)
-
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
-    trainer.fit(model)
-
-    # training complete
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    # save model
-    new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
-    trainer.save_checkpoint(new_weights_path)
-
-    # load new model
-    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    hparams_path = os.path.join(hparams_path, "hparams.yaml")
-    ckpt_path = (
-        f"http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}"
-        if url_ckpt
-        else new_weights_path
-    )
-    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path)
-    model_2.eval()
+    model_2 = CustomModel.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path)
+    assert model_2.hparams.lr == lr
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -140,15 +111,15 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     # Extra layer
-    model.c_d3 = torch.nn.Linear(model.hidden_dim, model.hidden_dim)
+    model.c_d3 = torch.nn.Linear(10, 12)
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, logger=logger)
     trainer.fit(model)
 
     # training complete
@@ -168,7 +139,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     )
 
     try:
-        EvalModelTemplate.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path)
+        BoringModel.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path)
     # todo: specify the possible exception
     except Exception:
         failed = True
@@ -179,7 +150,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     failed = False
     try:
-        EvalModelTemplate.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False)
+        BoringModel.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False)
     # todo: specify the possible exception
     except Exception:
         failed = True
@@ -274,9 +245,11 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
 def test_loading_meta_tags(tmpdir):
     """test for backward compatibility to meta_tags.csv."""
-    tutils.reset_seed()
-
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = {
+        "batch_size": 32,
+        "learning_rate": 0.001 * 8,
+        "optimizer_name": "adam",
+    }
 
     # save tags
     logger = tutils.get_default_logger(tmpdir)
@@ -299,9 +272,11 @@ def test_loading_meta_tags(tmpdir):
 
 
 def test_loading_yaml(tmpdir):
-    tutils.reset_seed()
-
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = {
+        "batch_size": 32,
+        "learning_rate": 0.001 * 8,
+        "optimizer_name": "adam",
+    }
 
     # save tags
     logger = tutils.get_default_logger(tmpdir)
@@ -314,7 +289,7 @@ def test_loading_yaml(tmpdir):
     hparams_path = os.path.join(path_expt_dir, "hparams.yaml")
     tags = load_hparams_from_yaml(hparams_path)
 
-    assert tags["batch_size"] == 32 and tags["hidden_dim"] == 1000
+    assert tags["batch_size"] == 32 and tags["optimizer_name"] == "adam"
 
 
 @pytest.mark.parametrize(
@@ -370,19 +345,21 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 def test_model_checkpoint_only_weights(tmpdir):
     """Tests use case where ModelCheckpoint is configured to save only model weights, and user tries to load
     checkpoint to resume training."""
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_weights_only=True)],
+        limit_train_batches=1,
+        limit_val_batches=1,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_weights_only=True)],
     )
     # fit model
     trainer.fit(model)
     # training complete
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
+    checkpoint_path = trainer.checkpoint_callback.best_model_path
 
     # assert saved checkpoint has no trainer data
     checkpoint = torch.load(checkpoint_path)
@@ -390,7 +367,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     assert "lr_schedulers" not in checkpoint, "checkpoint should contain only model weights"
 
     # assert loading model works when checkpoint has only weights
-    assert EvalModelTemplate.load_from_checkpoint(checkpoint_path=checkpoint_path)
+    assert BoringModel.load_from_checkpoint(checkpoint_path=checkpoint_path)
 
     # directly save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -406,9 +383,16 @@ def test_model_checkpoint_only_weights(tmpdir):
 
 
 def test_model_freeze_unfreeze():
-    model = EvalModelTemplate()
+    model = BoringModel()
     model.freeze()
+    assert not model.training
+    for param in model.parameters():
+        assert not param.requires_grad
+
     model.unfreeze()
+    assert model.training
+    for param in model.parameters():
+        assert param.requires_grad
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -553,14 +537,21 @@ def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_do
 
 def test_trainer_min_steps_and_epochs(tmpdir):
     """Verify model trains according to specified min steps."""
-    model = EvalModelTemplate()
-    num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
+    num_train_samples = math.floor(len(BoringModel().train_dataloader()) * 0.5)
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            # try to force stop right after first step
+            if self.global_step > 0:
+                self.trainer.should_step = True
+
+            return super().training_step(*args, **kwargs)
+
+    model = CustomModel()
 
     trainer_kwargs = {
         "limit_train_batches": 0.5,
         "default_root_dir": tmpdir,
-        # define callback for stopping the model
-        "callbacks": [EarlyStopping(monitor="early_stop_on", min_delta=1.0)],
         "val_check_interval": 2,
         "min_epochs": 1,
         "max_epochs": 7,
@@ -645,8 +636,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
 def test_benchmark_option(tmpdir):
     """Verify benchmark option."""
 
-    model = EvalModelTemplate()
-    model.val_dataloader = model.val_dataloader__multiple
+    model = BoringModel()
 
     # verify torch.backends.cudnn.benchmark is not turned on
     assert not torch.backends.cudnn.benchmark
@@ -844,7 +834,7 @@ def test_disabled_training(tmpdir):
 def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         validation_step_invoked = False
         validation_epoch_end_invoked = False
@@ -857,8 +847,7 @@ def test_disabled_validation(tmpdir):
             self.validation_epoch_end_invoked = True
             return super().validation_epoch_end(*args, **kwargs)
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(**hparams)
+    model = CurrentModel()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -879,7 +868,7 @@ def test_disabled_validation(tmpdir):
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
     # check that limit_val_batches has no influence when fast_dev_run is turned on
-    model = CurrentModel(**hparams)
+    model = CurrentModel()
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
@@ -1098,9 +1087,16 @@ def test_gpu_choice(tmpdir):
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """Test that the number of sanity check batches is clipped to `limit_val_batches`."""
-    model = EvalModelTemplate()
-    model.validation_step = model.validation_step__multiple_dataloaders
-    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+
+    class CustomModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomModel()
+    model.validation_epoch_end = None
     num_sanity_val_steps = 4
 
     trainer = Trainer(
@@ -1111,14 +1107,19 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     )
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
+    class CustomModelMixedVal(CustomModel):
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64), batch_size=8), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomModelMixedVal()
+    model.validation_epoch_end = None
+
     with patch.object(
         trainer.fit_loop.epoch_loop.val_loop.epoch_loop,
         "_evaluation_step",
         wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
-        val_dataloaders = model.val_dataloader__multiple_mixed_length()
-        trainer.fit(model, val_dataloaders=val_dataloaders)
-
+        trainer.fit(model)
         assert mocked.call_count == sum(
             min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
         )
@@ -1128,9 +1129,16 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as limited by
     `limit_val_batches` Trainer argument."""
-    model = EvalModelTemplate()
-    model.validation_step = model.validation_step__multiple_dataloaders
-    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+
+    class CustomModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomModel()
+    model.validation_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir, num_sanity_val_steps=-1, limit_val_batches=limit_val_batches, max_steps=1
     )
@@ -1141,7 +1149,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         "_evaluation_step",
         wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
-        val_dataloaders = model.val_dataloader__multiple()
+        val_dataloaders = model.val_dataloader()
         trainer.fit(model, val_dataloaders=val_dataloaders)
 
         assert mocked.call_count == sum(trainer.num_val_batches)
@@ -1239,7 +1247,7 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
 
 
 def test_trainer_subclassing():
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     # First way of pulling out args from signature is to list them
     class TrainerSubclass(Trainer):
@@ -1515,14 +1523,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-
-    def run(expected_plugin, **trainer_kwargs):
-        trainer = Trainer(**trainer_kwargs, fast_dev_run=True)
-        assert isinstance(trainer.training_type_plugin, expected_plugin)
-        with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
-            trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
-
-    run(DDPSpawnPlugin, accelerator=accelerator, strategy="ddp_spawn", devices=2)
+    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
+        trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
 @pytest.mark.parametrize("return_predictions", [None, False, True])
@@ -1880,11 +1884,9 @@ def test_module_current_fx_attributes_reset(tmpdir):
 
     trainer.fit(model)
     assert model._current_fx_name is None
-    assert model._current_dataloader_idx is None
 
     trainer.test(model)
     assert model._current_fx_name is None
-    assert model._current_dataloader_idx is None
 
 
 def test_exception_when_lightning_module_is_not_set_on_trainer():
