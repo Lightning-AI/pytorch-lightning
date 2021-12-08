@@ -31,7 +31,6 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -85,7 +84,7 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Optional["pl.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -97,6 +96,7 @@ class DDPPlugin(ParallelPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,

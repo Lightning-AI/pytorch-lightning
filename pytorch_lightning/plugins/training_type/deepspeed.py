@@ -88,6 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -273,6 +274,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,

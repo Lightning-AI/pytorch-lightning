@@ -54,6 +54,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -62,7 +63,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
-            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin,
         )
         self.debug = debug
         self.tpu_local_core_rank = 0
