@@ -899,10 +899,11 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         max_epochs=2,
-        enable_model_summary=False,  # we expect the second epoch to be skipped
+        enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
+    # we expect the second epoch to be skipped
     assert trainer.current_epoch == 1
 
 

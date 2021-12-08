@@ -14,6 +14,7 @@
 
 import os
 import socket
+from typing import Dict, List
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -44,7 +45,7 @@ class LSFEnvironment(ClusterEnvironment):
       The global rank for the task. This environment variable is set by ``jsrun``
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # TODO: remove in 1.7
         if hasattr(self, "is_using_lsf") and callable(self.is_using_lsf):
@@ -138,7 +139,7 @@ class LSFEnvironment(ClusterEnvironment):
         return required_env_vars.issubset(os.environ.keys())
 
     def world_size(self):
-        """World size is read from the environment variable ``JSM_NAMESPACE_SIZE``."""
+        """The world size is read from the environment variable ``JSM_NAMESPACE_SIZE``."""
         return self._world_size
 
     def _get_world_size(self):
@@ -158,7 +159,7 @@ class LSFEnvironment(ClusterEnvironment):
         log.debug("LSFEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     def global_rank(self):
-        """World size is read from the environment variable ``JSM_NAMESPACE_RANK``."""
+        """The world size is read from the environment variable ``JSM_NAMESPACE_RANK``."""
         return self._global_rank
 
     def _get_global_rank(self):
@@ -179,7 +180,7 @@ class LSFEnvironment(ClusterEnvironment):
         log.debug("LSFEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self):
-        """World size is read from the environment variable ``JSM_NAMESPACE_LOCAL_RANK``."""
+        """The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`."""
         return self._local_rank
 
     def _get_local_rank(self):
@@ -196,7 +197,7 @@ class LSFEnvironment(ClusterEnvironment):
         return int(local_rank)
 
     def node_rank(self):
-        """Node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
+        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
         ``LSB_DJOB_RANKFILE``."""
         return self._node_rank
 

@@ -144,12 +144,10 @@ class Closure(AbstractClosure[ClosureResult]):
                 )
 
             if self._zero_grad_fn is not None:
-                with self._profiler.profile("zero_grad"):
-                    self._zero_grad_fn()
+                self._zero_grad_fn()
 
             if self._backward_fn is not None and step_output.closure_loss is not None:
-                with self._profiler.profile("backward"):
-                    self._backward_fn(step_output.closure_loss)
+                self._backward_fn(step_output.closure_loss)
 
         return step_output
 
@@ -320,7 +318,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             return None
 
         def backward_fn(loss: Tensor) -> None:
-            self.trainer.accelerator.backward(loss, optimizer, opt_idx)
+            self.trainer._call_ttp_hook("backward", loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer._terminate_on_nan:
@@ -362,8 +360,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default called by the optimizer (if possible)
         """
-        lightning_module = self.trainer.lightning_module
-
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         # wraps into LightningOptimizer only for running step
         optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
@@ -371,7 +367,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
-        lightning_module.optimizer_step(
+        self.trainer._call_lightning_module_hook(
+            "optimizer_step",
             self.trainer.current_epoch,
             batch_idx,
             optimizer,
@@ -391,7 +388,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
         """
         self.optim_progress.optimizer.zero_grad.increment_ready()
-        self.trainer.call_hook("on_before_zero_grad", optimizer)
+        self.trainer._call_callback_hooks("on_before_zero_grad", optimizer)
+        self.trainer._call_lightning_module_hook("on_before_zero_grad", optimizer)
         self.optim_progress.optimizer.zero_grad.increment_started()
 
     def _optimizer_zero_grad(self, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int) -> None:
@@ -402,7 +400,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        self.trainer._call_ttp_hook("optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
     def _training_step(self, split_batch: Any, batch_idx: int, opt_idx: int) -> ClosureResult:
@@ -426,14 +424,14 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             )
 
             # manually capture logged metrics
-            lightning_module._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.training_type_plugin.post_training_step()
+            training_step_output = self.trainer._call_ttp_hook("training_step", *step_kwargs.values())
+            self.trainer.training_type_plugin.post_training_step()
 
             del step_kwargs
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+            ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
+            training_step_output = ttp_output if model_output is None else model_output
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 

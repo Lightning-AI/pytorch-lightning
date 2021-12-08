@@ -19,9 +19,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
@@ -30,37 +29,37 @@ def _do_nothing_closure() -> None:
 
 
 class _LiteOptimizer:
-    def __init__(self, optimizer: Optimizer, accelerator: Accelerator) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: TrainingTypePlugin) -> None:
         """LiteOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
-        step calls to the accelerator/strategy plugin.
+        step calls to the strategy plugin.
 
         The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
 
         Args:
             optimizer: The optimizer to wrap
-            accelerator: Reference to the accelerator for handling the optimizer step
+            strategy: Reference to the strategy for handling the optimizer step
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_LiteOptimizer
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
-        self._accelerator = accelerator
+        self._strategy = strategy
 
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
 
     def state_dict(self) -> Dict[str, Tensor]:
-        return self._accelerator.optimizer_state(self.optimizer)
+        return self._strategy.optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
-        self._accelerator.optimizer_step(
+        self._strategy.optimizer_step(
             self.optimizer,
             opt_idx=0,
             closure=closure,
-            model=self._accelerator.model,
+            model=self._strategy.model,
         )
 
 

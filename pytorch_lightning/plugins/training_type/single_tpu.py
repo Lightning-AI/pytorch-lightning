@@ -14,6 +14,7 @@
 import os
 from typing import Any, Dict, Optional
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -50,7 +51,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def is_distributed(self) -> bool:
         return False
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         if is_overridden("on_post_move_to_device", self.lightning_module):
@@ -58,10 +59,13 @@ class SingleTPUPlugin(SingleDevicePlugin):
         else:
             set_shared_parameters(self.model, shared_params)
 
+        super().setup(trainer)
+
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
