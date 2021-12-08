@@ -19,9 +19,12 @@ import pytest
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -334,3 +337,27 @@ def test_pre_made_batches():
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
+
+
+@pytest.mark.parametrize(
+    "val_dl",
+    [
+        DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+        CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)),
+        CombinedLoader(
+            [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
+        ),
+        CombinedLoader(
+            {
+                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            }
+        ),
+    ],
+)
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
+    trainer = Trainer()
+    model = BoringModel()
+    trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
+    with pytest.warns(PossibleUserWarning, match="recommended .* turn this off for val/test/predict"):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
