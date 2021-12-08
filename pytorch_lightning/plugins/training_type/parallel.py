@@ -20,7 +20,6 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -35,7 +34,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def __init__(
         self,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Optional["pl.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,

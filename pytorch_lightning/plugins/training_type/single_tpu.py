@@ -15,7 +15,6 @@ import os
 from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -35,7 +34,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Optional["pl.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,

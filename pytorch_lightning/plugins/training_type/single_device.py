@@ -16,7 +16,6 @@ from typing import Any, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -29,7 +28,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(
         self,
         device: torch.device,
-        accelerator: Optional[Accelerator] = None,
+        accelerator: Optional["pl.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
