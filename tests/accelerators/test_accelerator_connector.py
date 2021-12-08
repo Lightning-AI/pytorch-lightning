@@ -483,11 +483,11 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     else:
         with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
             trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
         trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
 
 
 @pytest.mark.parametrize(
