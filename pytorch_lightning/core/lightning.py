@@ -31,6 +31,7 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
@@ -1119,12 +1120,13 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self):
+    def configure_callbacks(self) -> Optional[Union[List[Callback], Callback]]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
-        gets called, the list returned here will be merged with the list of callbacks passed to the Trainer's
-        ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks already
-        present in the Trainer's callbacks list, it will take priority and replace them. In addition, Lightning
-        will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
+        gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
+        Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
+        already present in the Trainer's callbacks list, it will take priority and replace them. In addition,
+        Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        run last.
 
         Return:
             A list of callbacks which will extend the list of callbacks in the Trainer.
