@@ -201,3 +201,17 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
     trainer.fit(model)
 
     assert progress_update.call_count == expected_call_count
+
+
+@RunIf(rich=True)
+@mock.patch("pytorch_lightning.callbacks.progress.rich_progress._detect_light_colab_theme", return_value=True)
+def test_rich_progress_bar_colab_light_theme_update(*_):
+    theme = RichProgressBar().theme
+    assert theme.description == "black"
+    assert theme.batch_progress == "black"
+    assert theme.metrics == "black"
+
+    theme = RichProgressBar(theme=RichProgressBarTheme(description="blue", metrics="red")).theme
+    assert theme.description == "blue"
+    assert theme.batch_progress == "black"
+    assert theme.metrics == "red"
