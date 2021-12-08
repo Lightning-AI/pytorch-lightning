@@ -13,7 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import pytest
 import torch
@@ -288,13 +288,13 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises():
-    accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
+    training_type_plugin = TPUSpawnPlugin(accelerator=TPUAccelerator(), precision_plugin=Mock())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
-        training_type_plugin.setup(object())
+        training_type_plugin.setup(Mock())
 
-    accelerator = TPUAccelerator(TPUPrecisionPlugin(), DDPPlugin())
+    training_type_plugin = DDPPlugin(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
-        training_type_plugin.setup(object())
+        training_type_plugin.setup(Mock())
 
 
 def test_tpu_invalid_raises_set_precision_with_strategy():
