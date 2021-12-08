@@ -353,10 +353,10 @@ class ModelCheckpoint(Callback):
     ) -> None:
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
-        self.best_k_models = callback_state["best_k_models"]
-        self.kth_best_model_path = callback_state["kth_best_model_path"]
-        self.kth_value = callback_state["kth_value"]
-        self.last_model_path = callback_state["last_model_path"]
+        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+        self.kth_value = callback_state.get("kth_value", self.kth_value)
+        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
