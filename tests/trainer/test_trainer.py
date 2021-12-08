@@ -50,7 +50,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
@@ -1514,6 +1514,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
     assert len(predictions) == 8
 
 
+@pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
 @patch("torch.cuda.device_count", return_value=2)
 @patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("accelerator", ("cpu", "gpu"))
