@@ -260,7 +260,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
 
+        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         self.barrier("end-process")
+
+        # Ensure that the rank 0 process is the one exiting last
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if self.local_rank == 0:
             time.sleep(2)
@@ -328,11 +331,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def teardown(self) -> None:
         os.environ.pop("PT_XLA_DEBUG", None)
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        self.barrier("teardown")
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.local_rank == 0:
-            time.sleep(2)
 
     @property
     def should_rank_save_checkpoint(self) -> bool:
