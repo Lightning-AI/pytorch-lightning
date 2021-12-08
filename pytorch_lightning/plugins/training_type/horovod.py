@@ -112,7 +112,6 @@ class HorovodPlugin(ParallelPlugin):
 
         self.optimizers = self._wrap_optimizers(optimizers)
 
-
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
         if trainer.state.fn == TrainerFn.FITTING:
