@@ -59,8 +59,10 @@ class LSFEnvironment(ClusterEnvironment):
         self._global_rank = self._get_global_rank()
         self._world_size = self._get_world_size()
         self._node_rank = self._get_node_rank()
-        self._rep = (f'main_address={self._main_address},main_port={self._main_port},local_rank={self._local_rank},'
-                     f'global_rank={self._global_rank},world_size={self._world_size},node_rank={self._node_rank}')
+        self._rep = (
+            f"main_address={self._main_address},main_port={self._main_port},local_rank={self._local_rank},"
+            f"global_rank={self._global_rank},world_size={self._world_size},node_rank={self._node_rank}"
+        )
         self._set_init_progress_group_env_vars()
 
     def _set_init_progress_group_env_vars(self):
@@ -77,9 +79,9 @@ class LSFEnvironment(ClusterEnvironment):
     def _read_hosts(self):
         """Read compute hosts that are a part of the compute job.
 
-        LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM
-        from "launch" nodes. Each job is assigned a launch node. This launch node will be the first node
-        in the list contained in ``LSB_DJOB_RANKFILE``.
+        LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.
+        Each job is assigned a launch node. This launch node will be the first node in the list contained in
+        ``LSB_DJOB_RANKFILE``.
         """
         var = "LSB_DJOB_RANKFILE"
         try:
@@ -95,7 +97,8 @@ class LSFEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self):
-        """The main address is read from an OpenMPI host rank file in the environment variable ``LSB_DJOB_RANKFILE``"""
+        """The main address is read from an OpenMPI host rank file in the environment variable
+        ``LSB_DJOB_RANKFILE``"""
         return self._main_address
 
     def _get_main_address(self):
@@ -151,7 +154,7 @@ class LSFEnvironment(ClusterEnvironment):
         world_size = os.environ.get(var, None)
         if world_size is None:
             raise ValueError(
-                f'Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun'
+                f"Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun"
             )
         return int(world_size)
 
@@ -192,21 +195,20 @@ class LSFEnvironment(ClusterEnvironment):
         local_rank = os.environ.get(var)
         if local_rank is None:
             raise ValueError(
-                f'Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun'
+                f"Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun"
             )
         return int(local_rank)
 
     def node_rank(self):
-        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
-        ``LSB_DJOB_RANKFILE``."""
+        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored
+        in ``LSB_DJOB_RANKFILE``."""
         return self._node_rank
 
     def _get_node_rank(self):
         """A helper function for getting the node rank.
 
-        Node rank is determined by the position of the current node in the hosts
-        used in the job. This is calculated by reading all hosts from LSB_DJOB_RANKFILE
-        and finding this nodes hostname in the list.
+        Node rank is determined by the position of the current node in the hosts used in the job. This is calculated by
+        reading all hosts from LSB_DJOB_RANKFILE and finding this nodes hostname in the list.
         """
         hosts = self._read_hosts()
         count = dict()
