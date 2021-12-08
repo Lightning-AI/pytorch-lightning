@@ -80,12 +80,12 @@ Lightning automatically ensures that the model is saved only on the main process
     # Saves only on the main process
     trainer.save_checkpoint("example.ckpt")
 
-Not using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behaviour and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the trainer's save functionality.
-If using custom saving functions cannot be avoided, we recommend using :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` to ensure saving occurs only on the main process.
+Not using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
+If using custom saving functions cannot be avoided, we recommend using the :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` decorator to ensure saving occurs only on the main process.
 
 
-Modifying Checkpoint on Saving and Loading
-==========================================
+Modifying Checkpoint When Saving and Loading
+============================================
 
 You can add/delete/modify custom states in your checkpoints before they are being saved or loaded. For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule`` or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and
@@ -102,8 +102,8 @@ You can disable checkpointing by passing:
    trainer = Trainer(enable_checkpointing=False)
 
 
-Checkpointing Hyper-parameters
-==============================
+Checkpointing Hyperparameters
+=============================
 
 The Lightning checkpoint also saves the arguments passed into the LightningModule init
 under the ``"hyper_parameters"`` key in the checkpoint.
@@ -188,7 +188,7 @@ do the following:
 Conditional Checkpointing (ModelCheckpoint)
 *******************************************
 
-:class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback allows you to configure how & when checkpointing should happen. It follows the normal Callback hook structure so you can
+The :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback allows you to configure how & when checkpointing should happen. It follows the normal Callback hook structure so you can
 hack it around/override its methods for your use-cases as well. Following are some of the common use-cases along with the arguments you need to specify to configure it:
 
 -  You can customize the checkpointing behavior to monitor any quantity of your training or validation steps. For example, if you want to update your checkpoints based on your validation loss:
@@ -218,8 +218,7 @@ hack it around/override its methods for your use-cases as well. Following are so
         # 4. Add your callback to the callbacks list
         trainer = Trainer(callbacks=[checkpoint_callback])
 
-- It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using
-  :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
+- It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
 
 |
 
@@ -245,6 +244,7 @@ hack it around/override its methods for your use-cases as well. Following are so
 
         # saves top-K checkpoints based on "val_loss" metric
         checkpoint_callback = ModelCheckpoint(
+            save_top_k=10,
             monitor="val_loss",
             mode="min",
             dirpath="my/path/",
@@ -254,6 +254,7 @@ hack it around/override its methods for your use-cases as well. Following are so
         # saves last-K checkpoints based on "global_step" metric
         # make sure you log it inside your LightningModule
         checkpoint_callback = ModelCheckpoint(
+            save_top_k=10,
             monitor="global_step",
             mode="max",
             dirpath="my/path/",
@@ -261,16 +262,14 @@ hack it around/override its methods for your use-cases as well. Following are so
         )
 
 - When using iterative training which doesn't have an epoch, you can checkpoint at every ``N`` training steps by specifying ``every_n_training_steps=N``.
-- In case your training is interrupted for some reason, you can specify ``save_last=True`` to ensure that a checkpoint is being created at the end so that you can
-  resume it or use it for :doc:`fault-tolerant training <../advanced/fault_tolerant_training>`.
 - You can also control the interval of epochs between checkpoints using ``every_n_epochs`` between checkpoints, to avoid slowdowns.
-- By default ``ModelCheckpoint`` callback saves model weights, optimizer states, etc., but in case you have limited disk space or just need the model weights to be saved you can specify ``save_weights_only=True``.
-- Not just the training epoch/steps, you can checkpoint at regular time interval using ``train_time_interval`` argument.
+- By default, the ``ModelCheckpoint`` callback saves model weights, optimizer states, etc., but in case you have limited disk space or just need the model weights to be saved you can specify ``save_weights_only=True``.
+- You can checkpoint at a regular time interval using ``train_time_interval`` argument independent of the steps or epochs.
 
 |
 
-:class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback is preety robust and should cover 99% of the use-cases. In case you have a use-case that is not configured yet, feel free to open an issue with a feature-request on GitHub
-and Lightning Team would be happy to integrate/help integrate it.
+The :class:`~pytorch_lightning.callbacks.ModelCheckpoint` callback is very robust and should cover 99% of the use-cases. If you find a use-case that is not configured yet, feel free to open an issue with a feature request on GitHub
+and the Lightning Team will be happy to integrate/help integrate it.
 
 
 -----------
@@ -309,12 +308,10 @@ Built-in Checkpoint IO Plugins
 
 Custom Checkpoint IO Plugin
 ===========================
+
 ``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``TrainingTypePlugin`` as shown below:
 
 .. code-block:: python
-
-    from pathlib import Path
-    from typing import Any, Dict, Optional, Union
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import ModelCheckpoint
@@ -322,15 +319,13 @@ Custom Checkpoint IO Plugin
 
 
     class CustomCheckpointIO(CheckpointIO):
-        def save_checkpoint(
-            self, checkpoint: Dict[str, Any], path: Union[str, Path], storage_options: Optional[Any] = None
-        ) -> None:
+        def save_checkpoint(self, checkpoint, path, storage_options=None):
             ...
 
-        def load_checkpoint(self, path: Union[str, Path], storage_options: Optional[Any] = None) -> Dict[str, Any]:
+        def load_checkpoint(self, path, storage_options=None):
             ...
 
-        def remove_checkpoint(self, path: _PATH) -> None:
+        def remove_checkpoint(self, path):
             ...
 
 
@@ -355,4 +350,4 @@ Custom Checkpoint IO Plugin
 
 .. note::
 
-    Some ``TrainingTypePlugins`` for eg. ``DeepSpeedPlugin`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some ``TrainingTypePlugins`` like ``DeepSpeedPlugin`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.

@@ -1877,7 +1877,7 @@ class Trainer(
         Runs routine to create a checkpoint.
 
         Args:
-            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
+            filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
 
         """
