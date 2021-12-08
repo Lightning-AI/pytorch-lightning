@@ -16,6 +16,7 @@
 import pytest
 import torch
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -41,3 +42,15 @@ def test_v1_8_0_deprecated_torchtext_batch():
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
+
+
+def test_v1_8_0_deprecated_call_hook():
+    trainer = Trainer(
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
+        trainer.call_hook("test_hook")
