@@ -191,7 +191,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def barrier(self, name: Optional[str] = None) -> None:
         if self.is_distributed:
             rendezvous(name)
-            
+
     def __collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_info("Finalizing the TPU spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
