@@ -82,6 +82,9 @@ class HorovodPlugin(ParallelPlugin):
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         super().pre_dispatch(trainer)
+        self._exit_stack = ExitStack()
+        self._exit_stack.__enter__()
+
         if not self.lightning_module.trainer.training:
             # no need to setup optimizers
             return
@@ -111,13 +114,9 @@ class HorovodPlugin(ParallelPlugin):
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
         self.optimizers = self._wrap_optimizers(optimizers)
-
-        self._exit_stack = ExitStack()
-        self._exit_stack.__enter__()
-        if trainer.state.fn == TrainerFn.FITTING:
-            for optimizer in self.optimizers:
-                # Synchronization will be performed explicitly following backward()
-                self._exit_stack.enter_context(optimizer.skip_synchronize())
+        for optimizer in self.optimizers:
+            # Synchronization will be performed explicitly following backward()
+            self._exit_stack.enter_context(optimizer.skip_synchronize())
 
     def barrier(self, *args, **kwargs):
         if distributed_available():
