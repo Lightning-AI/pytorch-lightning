@@ -58,7 +58,11 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     load_model = TestModelLoad()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
 
-    with pytest.deprecated_call(match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(save_model)
-    with pytest.deprecated_call(match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(load_model)
