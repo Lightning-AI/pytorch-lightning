@@ -56,7 +56,7 @@ def test_v1_8_0_deprecated_call_hook():
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
 
-        
+
 def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     class TestModelSave(BoringModel):
         def on_hpc_save(self):
