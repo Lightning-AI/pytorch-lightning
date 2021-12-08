@@ -1592,29 +1592,6 @@ class Trainer(
 
         return output
 
-    # TODO: eventually no longer need this
-    def _call_accelerator_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        pl_module = self.lightning_module
-        prev_fx_name = pl_module._current_fx_name
-        pl_module._current_fx_name = hook_name
-
-        fn = getattr(self.accelerator, hook_name)
-        if not callable(fn):
-            return
-
-        with self.profiler.profile(hook_name):
-            output = fn(*args, **kwargs)
-
-        # restore current_fx when nested context
-        pl_module._current_fx_name = prev_fx_name
-
-        return output
-
     @staticmethod
     def _parse_devices(
         gpus: Optional[Union[List[int], str, int]],
