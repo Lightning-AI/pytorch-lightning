@@ -204,6 +204,7 @@ def _detect_light_colab_theme() -> bool:
             return output.eval_js('document.documentElement.matches("[theme=light]")')
         except ModuleNotFoundError:
             return False
+    return False
 
 
 class RichProgressBar(ProgressBarBase):
