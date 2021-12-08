@@ -306,7 +306,7 @@ def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
 
-            
+
 # TODO: Delete _check_on_hpc_hooks in v1.8
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
