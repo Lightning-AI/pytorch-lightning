@@ -50,7 +50,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
