@@ -243,7 +243,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         }
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
-        # TODO: this todo is unclear, does it still apply?
         # todo: precision pluging is call in accelerator setup and should be moved
         if "XLA_USE_BF16" in os.environ:
             del os.environ["XLA_USE_BF16"]
