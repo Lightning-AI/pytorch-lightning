@@ -238,7 +238,7 @@ class ModelIO:
 
         .. deprecated:: v1.6
             This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use `model.on_load_checkpoint` instead.
+            Please use ``model.on_load_checkpoint`` instead.
         """
 
 
