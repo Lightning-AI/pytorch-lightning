@@ -1537,6 +1537,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
@@ -1551,7 +1552,7 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if statement in v1.7
+        # TODO: remove if block in v1.7
         if hook_name in ("on_train_batch_start", "on_train_batch_end"):
             fn = getattr(self, hook_name)
             if callable(fn):
