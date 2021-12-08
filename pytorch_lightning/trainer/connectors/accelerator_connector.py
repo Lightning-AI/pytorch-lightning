@@ -156,16 +156,13 @@ class AcceleratorConnector:
 
         self._warn_if_devices_flag_ignored()
 
+        self.set_distributed_mode()
+        self.accelerator = self.select_accelerator()
+        self.select_training_type_plugin()
+
         self.select_accelerator_type()
-
-        if self.strategy is not None:
-            self._set_training_type_plugin()
-        else:
-            self.set_distributed_mode()
-
         self._validate_accelerator_type()
         self._set_devices_if_none()
-        self.accelerator = self.select_accelerator()
 
         self.handle_given_plugins()
         self._set_distrib_type_if_training_type_plugin_passed()
@@ -395,11 +392,15 @@ class AcceleratorConnector:
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
-        if self._training_type_plugin_resolved:
-            # avoid calling `resolve_training_type_plugin` multiple times
-            return self._training_type_plugin
         if self._training_type_plugin is None:
-            self._training_type_plugin = self.select_training_type_plugin()
+            raise TypeError("Tried to access TTP before initialization finished")
+        return self._training_type_plugin
+
+    def select_training_type_plugin(self):
+        self._set_training_type_plugin()
+
+        if self._training_type_plugin is None:
+            self._training_type_plugin = self.create_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
@@ -407,8 +408,6 @@ class AcceleratorConnector:
         precision_plugin = self.precision_plugin
         if precision_plugin is not None:
             self._training_type_plugin._precision_plugin = precision_plugin
-        self._training_type_plugin_resolved = True
-
         return self._training_type_plugin
 
     @property
@@ -690,13 +689,8 @@ class AcceleratorConnector:
 
         raise RuntimeError("No precision set")
 
-    def select_training_type_plugin(self) -> TrainingTypePlugin:
-        if (
-            isinstance(self.distributed_backend, Accelerator)
-            and self.distributed_backend.training_type_plugin is not None
-        ):
-            plugin = self.distributed_backend.training_type_plugin
-        elif self.use_ddp2:
+    def create_training_type_plugin(self) -> TrainingTypePlugin:
+        if self.use_ddp2:
             plugin = DDP2Plugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment,)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
@@ -796,10 +790,7 @@ class AcceleratorConnector:
         else:
             acc_cls = CPUAccelerator
 
-        accelerator = acc_cls(precision_plugin=None, training_type_plugin=self.training_type_plugin)
-        # transfer ownership of the plugins to the accelerator
-        self._training_type_plugin = proxy(self.training_type_plugin)
-
+        accelerator = acc_cls()
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:

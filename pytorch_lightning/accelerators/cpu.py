@@ -23,6 +23,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
+    @property
+    def root_device(self):
+        return torch.device("cpu")
+
     def setup(self, trainer: "pl.Trainer") -> None:
         """
         Raises:

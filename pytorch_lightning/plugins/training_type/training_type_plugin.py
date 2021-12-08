@@ -23,7 +23,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -41,7 +40,7 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, accelerator: Optional[Accelerator] = None, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self, accelerator: Optional["pl.Accelerator"] = None, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
         self._accelerator = accelerator
         self._model: Optional[Module] = None
@@ -53,11 +52,11 @@ class TrainingTypePlugin(ABC):
         self.optimizer_frequencies: List[int] = []
 
     @property
-    def accelerator(self) -> Accelerator:
+    def accelerator(self) -> "pl.Accelerator":
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: Accelerator) -> None:
+    def accelerator(self, accelerator: "pl.Accelerator") -> None:
         if self._accelerator is not None:
             raise ValueError("Accelerator already set.")
         self._accelerator = accelerator

@@ -1628,11 +1628,11 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
-        return self._accelerator_connector.accelerator
+        return self.training_type_plugin.accelerator
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
-        return self.accelerator.training_type_plugin
+        return self._accelerator_connector.training_type_plugin
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -1703,7 +1703,7 @@ class Trainer(
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
-        return self.accelerator.lightning_module
+        return self.training_type_plugin.lightning_module
 
     @property
     def optimizers(self) -> List[Optimizer]:
