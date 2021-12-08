@@ -239,7 +239,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `HorovodPlugin.start_{training,evaluating,predicting}` hooks ([#10989](https://github.com/PyTorchLightning/pytorch-lightning/pull/10989))
 
 
-- Removed `Trainer._call_accelerator_hook` ([#10999](https://github.com/PyTorchLightning/pytorch-lightning/pull/10999))
+- Removed `Accelerator.on_train_start` ([#10999](https://github.com/PyTorchLightning/pytorch-lightning/pull/10999))
 
 ### Fixed
 
