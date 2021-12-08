@@ -190,6 +190,22 @@ class RichProgressBarTheme:
     metrics: Union[str, Style] = "white"
 
 
+def _detect_light_colab_theme() -> bool:
+    """Detect if it's light theme in Colab."""
+    try:
+        get_ipython  # type: ignore
+    except NameError:
+        return False
+    ipython = get_ipython()  # noqa: F821
+    if "google.colab" in str(ipython.__class__):
+        try:
+            from google.colab import output
+
+            return output.eval_js('document.documentElement.matches("[theme=light]")')
+        except ModuleNotFoundError:
+            return False
+
+
 class RichProgressBar(ProgressBarBase):
     """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
 
@@ -243,6 +259,7 @@ class RichProgressBar(ProgressBarBase):
         self._metric_component = None
         self._progress_stopped: bool = False
         self.theme = theme
+        self._update_for_light_colab_theme()
 
     @property
     def refresh_rate(self) -> float:
@@ -255,12 +272,6 @@ class RichProgressBar(ProgressBarBase):
     @property
     def is_disabled(self) -> bool:
         return not self.is_enabled
-
-    def disable(self) -> None:
-        self._enabled = False
-
-    def enable(self) -> None:
-        self._enabled = True
 
     @property
     def sanity_check_description(self) -> str:
@@ -277,6 +288,19 @@ class RichProgressBar(ProgressBarBase):
     @property
     def predict_description(self) -> str:
         return "Predicting"
+
+    def _update_for_light_colab_theme(self) -> None:
+        if _detect_light_colab_theme():
+            attributes = ["description", "batch_progress", "metrics"]
+            for attr in attributes:
+                if getattr(self.theme, attr) == "white":
+                    setattr(self.theme, attr, "black")
+
+    def disable(self) -> None:
+        self._enabled = False
+
+    def enable(self) -> None:
+        self._enabled = True
 
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
