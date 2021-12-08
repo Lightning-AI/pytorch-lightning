@@ -227,7 +227,7 @@ class ModelIO:
 
         .. deprecated:: v1.6
             This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use `model.on_save_checkpoint` instead.
+            Please use ``model.on_save_checkpoint`` instead.
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
