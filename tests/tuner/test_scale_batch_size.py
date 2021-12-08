@@ -23,9 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
-from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 
 
@@ -78,7 +76,7 @@ def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after scaling batch size."""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BatchSizeModel(batch_size=2)
 
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -101,7 +99,7 @@ def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after scaling batch size."""
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BatchSizeModel(batch_size=2)
 
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -127,9 +125,8 @@ def test_trainer_reset_correctly(tmpdir):
 def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """Test possible values for 'batch size auto scaling' Trainer argument."""
     tutils.reset_seed()
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    before_batch_size = hparams.get("batch_size")
+    before_batch_size = 2
+    model = BatchSizeModel(batch_size=before_batch_size)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg, gpus=1)
     trainer.tune(model)
     after_batch_size = model.batch_size
@@ -144,10 +141,14 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     """Test that new batch size gets written to the correct hyperparameter attribute."""
     tutils.reset_seed()
 
-    hparams = EvalModelTemplate.get_default_hparams()
+    hparams = {"batch_size": 2}
     before_batch_size = hparams.get("batch_size")
 
-    class HparamsEvalModelTemplate(EvalModelTemplate):
+    class HparamsBatchSizeModel(BatchSizeModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.save_hyperparameters()
+
         def dataloader(self, *args, **kwargs):
             # artificially set batch_size so we can get a dataloader
             # remove it immediately after, because we want only self.hparams.batch_size
@@ -156,9 +157,16 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
             del self.batch_size
             return dataloader
 
-    datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+    class HparamsBatchSizeDataModule(BoringDataModule):
+        def __init__(self, data_dir, batch_size):
+            super().__init__(data_dir)
+            self.batch_size = batch_size
 
-    model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
+        def train_dataloader(self):
+            return DataLoader(self.random_train, batch_size=self.batch_size)
+
+    datamodule_fit = HparamsBatchSizeDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+    model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
     model = model_class(**hparams)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, gpus=1)
@@ -192,10 +200,9 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     """Test that calling the trainer method itself works."""
     tutils.reset_seed()
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    before_batch_size = 2
+    model = BatchSizeModel(batch_size=before_batch_size)
 
-    before_batch_size = hparams.get("batch_size")
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
@@ -211,7 +218,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     fit."""
 
     # only train passed to fit
-    model = EvalModelTemplate()
+    model = BatchSizeModel(batch_size=2)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -219,7 +226,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         limit_train_batches=0.2,
         auto_scale_batch_size="power",
     )
-    fit_options = dict(train_dataloaders=model.dataloader(train=True))
+    fit_options = dict(train_dataloaders=model.train_dataloader())
 
     with pytest.raises(
         MisconfigurationException,
@@ -230,14 +237,14 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
 @RunIf(min_gpus=1)
 def test_auto_scale_batch_size_with_amp(tmpdir):
-    model = EvalModelTemplate()
-    batch_size_before = model.batch_size
+    before_batch_size = 2
+    model = BatchSizeModel(batch_size=before_batch_size)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True, gpus=1, precision=16)
     trainer.tune(model)
-    batch_size_after = model.batch_size
+    after_batch_size = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE
     assert trainer.scaler is not None
-    assert batch_size_after != batch_size_before
+    assert after_batch_size != before_batch_size
 
 
 def test_scale_batch_size_no_trials(tmpdir):
