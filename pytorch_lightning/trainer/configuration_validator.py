@@ -298,12 +298,12 @@ def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.Ligh
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
         rank_zero_deprecation(
-            "Method `model.on_hpc_save` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `model.on_save_checkpoint` instead."
+            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
         )
 
     if is_overridden("on_hpc_load", model):
         rank_zero_deprecation(
-            "Method `model.on_hpc_load` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `model.on_load_checkpoint` instead."
+            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
         )

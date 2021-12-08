@@ -1364,17 +1364,11 @@ load_from_checkpoint
 on_hpc_save
 ~~~~~~~~~~~
 
-.. warning:: ``on_hpc_save`` is deprecated in v1.6 and will be removed in v1.8.
-    Please use ``model.on_save_checkpoint()`` instead.
-
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_hpc_save
     :noindex:
 
 on_hpc_load
 ~~~~~~~~~~~
-
-.. warning:: ``on_hpc_load`` is deprecated in v1.6 and will be removed in v1.8.
-    Please use ``model.on_load_checkpoint()`` instead.
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_hpc_load
     :noindex:
