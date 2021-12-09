@@ -75,7 +75,7 @@ class LSFEnvironment(ClusterEnvironment):
         """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
         return True
 
-    def _read_hosts(self) -> list:
+    def _read_hosts(self) -> List[str]:
         """Read compute hosts that are a part of the compute job.
 
         LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.
@@ -119,7 +119,7 @@ class LSFEnvironment(ClusterEnvironment):
         Use the LSF job ID so all ranks can compute the master port
         """
         # check for user-specified master port
-        port = os.environ.get("MASTER_PORT")
+        port = int(os.environ.get("MASTER_PORT"))
         if not port:
             var = "LSB_JOBID"
             jobid = os.environ.get(var, None)
@@ -210,7 +210,7 @@ class LSFEnvironment(ClusterEnvironment):
         reading all hosts from LSB_DJOB_RANKFILE and finding this nodes hostname in the list.
         """
         hosts = self._read_hosts()
-        count = dict()
+        count: Dict[str, int] = {}
         for host in hosts:
             if host not in count:
                 count[host] = len(count)
