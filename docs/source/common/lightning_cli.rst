@@ -757,14 +757,14 @@ Instantiation links are used to automatically determine the order of instantiati
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
 
 
-Variable interpolation
+Variable Interpolation
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The linking of arguments is intended for things which are meant to be non-configurable. This improves the CLI user
+The linking of arguments is intended for things that are meant to be non-configurable. This improves the CLI user
 experience since it avoids the need for providing more parameters. A related concept is
 variable interpolation which in contrast keeps things being configurable.
 
-The yaml standard defines anchors and aliases which is a way reuse content in multiple places of the yaml. This is
+The YAML standard defines anchors and aliases which is a way to reuse the content in multiple places of the YAML. This is
 supported in the ``LightningCLI`` though it has limitations. Support for OmegaConf's more powerful `variable
 interpolation <https://omegaconf.readthedocs.io/en/2.1_branch/usage.html#variable-interpolation>`__ will be available
 out of the box if this package is installed. To install it run :code:`pip install omegaconf`. Then to enable the use
@@ -774,7 +774,7 @@ of OmegaConf in a ``LightningCLI``, when instantiating a parameter needs to be g
 
     cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
 
-With the encoder-decoder example model above a possible yaml that uses variable interpolation could be the following:
+With the encoder-decoder example model above a possible YAML that uses variable interpolation could be the following:
 
 .. code-block:: yaml
 
@@ -960,8 +960,8 @@ You can also pass the class path directly, for example, if the optimizer hasn't 
 Troubleshooting
 ^^^^^^^^^^^^^^^
 
-The standard behavior for CLIs when they fail is to terminate the process with a non-zero exit code and a short message
-to hint the user about the cause. This is problematic while developing the CLI since there is not information to track
+The standard behavior for CLIs, when they fail, is to terminate the process with a non-zero exit code and a short message
+to hint the user about the cause. This is problematic while developing the CLI since there is no information to track
 down the root of the problem. A simple change in the instantiation of the ``LightningCLI`` can be used such that when
 there is a failure an exception is raised and the full stack trace printed.
 
@@ -972,7 +972,7 @@ there is a failure an exception is raised and the full stack trace printed.
 .. note::
 
     When asking about problems and reporting issues please set the ``error_handler`` to ``None`` and include the stack
-    trace in you description. With this it is more likely for people to help out identifying the cause without needing
+    trace in your description. With this, it is more likely for people to help out identifying the cause without needing
     to create a reproducible script.
 
 
