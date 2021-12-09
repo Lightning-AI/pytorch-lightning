@@ -1126,7 +1126,7 @@ class Trainer(
                                 |                             ||
                          spawn processes                      ||
               {self.accelerator.setup_environment()}          ||
-                                |                             ||  
+                                |                             ||
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
                                 |                             ||
