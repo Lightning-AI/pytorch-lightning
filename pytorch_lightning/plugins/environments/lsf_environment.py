@@ -14,6 +14,7 @@
 
 import os
 import socket
+from typing import Dict, List
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
