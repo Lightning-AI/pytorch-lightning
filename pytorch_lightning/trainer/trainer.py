@@ -1128,7 +1128,7 @@ class Trainer(
                            and strategy                       ||
                                 |                             ||  LIGHTNING
                                 |                             ||
-                         {self.run_stage}                     ||  FLOW
+                         {self._run_stage}                     ||  FLOW
                                 |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
@@ -1163,7 +1163,7 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        results = self.run_stage()
+        results = self._run_stage()
         self._teardown()
 
         # ----------------------------
@@ -1236,7 +1236,14 @@ class Trainer(
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def run_stage(self):
+    def run_stage(self) -> None:
+        rank_zero_deprecation(
+            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
+            " `Trainer.{fit,validate,test,predict}` instead."
+        )
+        return self._run_stage()
+
+    def _run_stage(self):
         self.training_type_plugin.barrier("run-stage")
         self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
