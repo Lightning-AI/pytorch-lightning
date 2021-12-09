@@ -14,6 +14,7 @@
 
 import os
 import re
+import logging
 from typing import Any, Dict, Optional
 
 import torch
@@ -33,6 +34,9 @@ from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRE
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
+
+
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class CheckpointConnector:
@@ -74,6 +78,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
+            log.verbose("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")

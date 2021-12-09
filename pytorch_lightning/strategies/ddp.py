@@ -102,6 +102,7 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
+        log.verbose(f"Initializing DDP: {self.__class__.__name__}")
         self.interactive_ddp_procs = []
         self._num_nodes = 1
         self.sync_batchnorm = False
@@ -243,6 +244,7 @@ class DDPStrategy(ParallelStrategy):
         self._rank_0_has_called_call_children_scripts = True
 
     def setup_distributed(self):
+        log.verbose(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
         # determine which process we are and world size
@@ -350,6 +352,7 @@ class DDPStrategy(ParallelStrategy):
         _convert_to_lightning_optimizers(trainer)
 
     def configure_ddp(self) -> None:
+        log.verbose(f"{self.__class__.__name__}: configuring DDP...")
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
@@ -380,6 +383,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
+        log.verbose(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
@@ -500,6 +504,7 @@ class DDPStrategy(ParallelStrategy):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
+        log.verbose(f"{self.__class__.__name__}: tearing down plugin...")
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
@@ -509,6 +514,7 @@ class DDPStrategy(ParallelStrategy):
 
         if self.on_gpu:
             # GPU teardown
+            log.verbose(f"{self.__class__.__name__}: moving model to CPU...")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
