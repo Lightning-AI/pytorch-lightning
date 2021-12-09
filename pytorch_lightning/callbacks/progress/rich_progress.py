@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
@@ -298,6 +299,12 @@ class RichProgressBar(ProgressBarBase):
     def refresh(self) -> None:
         if self.progress:
             self.progress.refresh()
+
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        if trainer.is_global_zero:
+            self.enable()
+        else:
+            self.disable()
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)

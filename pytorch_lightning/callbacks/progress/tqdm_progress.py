@@ -25,6 +25,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm as _tqdm
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.distributed import rank_zero_debug
 
@@ -205,6 +206,12 @@ class TQDMProgressBar(ProgressBarBase):
             file=sys.stdout,
         )
         return bar
+
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        if trainer.is_global_zero:
+            self.enable()
+        else:
+            self.disable()
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
