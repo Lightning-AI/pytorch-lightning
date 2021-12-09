@@ -1638,7 +1638,7 @@ class Trainer(
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and isinstance(self.accelerator, GPUAccelerator):
+        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
                 category=PossibleUserWarning,
