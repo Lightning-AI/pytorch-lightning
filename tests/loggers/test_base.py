@@ -56,9 +56,54 @@ def test_logger_collection():
     mock2.finalize.assert_called_once()
 
 
+def test_logger_collection_unique_names():
+    unique_name = "name1"
+    logger1 = CustomLogger(name=unique_name)
+    logger2 = CustomLogger(name=unique_name)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.name == unique_name
+
+
+def test_logger_collection_names_order():
+    logger1 = CustomLogger(name="name1")
+    logger2 = CustomLogger(name="name2")
+    logger3 = CustomLogger(name="name1")
+    logger4 = CustomLogger(name="name3")
+
+    logger = LoggerCollection([logger1, logger2, logger3, logger4])
+
+    assert logger.name == f"{logger1.name}_{logger2.name}_{logger4.name}"
+
+
+def test_logger_collection_unique_versions():
+    unique_version = "1"
+    logger1 = CustomLogger(version=unique_version)
+    logger2 = CustomLogger(version=unique_version)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.version == unique_version
+
+
+def test_logger_collection_versions_order():
+    logger1 = CustomLogger(version="1")
+    logger2 = CustomLogger(version="2")
+    logger3 = CustomLogger(version="1")
+    logger4 = CustomLogger(version="3")
+
+    logger = LoggerCollection([logger1, logger2, logger3, logger4])
+
+    assert logger.version == f"{logger1.version}_{logger2.version}_{logger4.version}"
+
+
 class CustomLogger(LightningLoggerBase):
-    def __init__(self):
+    def __init__(self, experiment: str = "test", name: str = "name", version: str = "1"):
         super().__init__()
+        self._experiment = experiment
+        self._name = name
+        self._version = version
         self.hparams_logged = None
         self.metrics_logged = {}
         self.finalized = False
@@ -66,7 +111,7 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        return "test"
+        return self._experiment
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -88,11 +133,11 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def name(self):
-        return "name"
+        return self._name
 
     @property
     def version(self):
-        return "1"
+        return self._version
 
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
