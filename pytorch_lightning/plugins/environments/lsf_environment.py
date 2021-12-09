@@ -120,21 +120,21 @@ class LSFEnvironment(ClusterEnvironment):
         Use the LSF job ID so all ranks can compute the master port
         """
         # check for user-specified master port
-        port = os.environ.get("MASTER_PORT")
+        port = os.environ.get("MASTER_PORT", None)
         if not port:
             var = "LSB_JOBID"
             jobid = os.environ.get(var, None)
             if not jobid:
                 raise ValueError("Could not find job id -- expected in environment variable %s" % var)
             else:
-                port = int(jobid)
+                port = int(jobid) # type: ignore
                 # all ports should be in the 10k+ range
-                port = int(port) % 1000 + 10000
+                port = (port % 1000) + 10000 # type: ignore
             log.debug("calculated master port")
         else:
             log.debug("using externally specified master port")
-            port = int(port)
-        return port
+            port = int(port) # type: ignore
+        return port # type: ignore
 
     @staticmethod
     def detect() -> bool:
