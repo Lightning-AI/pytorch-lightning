@@ -1224,3 +1224,9 @@ def test_model_checkpoint_attributes(tmpdir):
 
     for k in ("best_k_models", "kth_best_model_path", "kth_value", "last_model_path"):
         assert checkpoint[k] == getattr(checkpoint_callback, k)
+    
+    restored_callback = ModelCheckpoint(dirpath=tmpdir, monitor=None, save_top_k=-1, save_last=True)
+    restored_callback.on_load_checkpoint('','', checkpoint)
+
+    for k in ("best_k_models", "kth_best_model_path", "kth_value", "last_model_path"):
+        assert checkpoint[k] == getattr(restored_callback, k)
