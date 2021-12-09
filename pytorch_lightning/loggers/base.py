@@ -460,7 +460,7 @@ class LoggerCollection(LightningLoggerBase):
     def version(self) -> str:
         """Returns the unique experiment versions for all the loggers in the logger collection joined by an
         underscore."""
-        return "_".join(list(dict.fromkeys(str(logger.version) for logger in self._logger_iterable)))
+        return "_".join(dict.fromkeys(str(logger.version) for logger in self._logger_iterable))
 
 
 class DummyExperiment:
