@@ -127,14 +127,14 @@ class LSFEnvironment(ClusterEnvironment):
             if not jobid:
                 raise ValueError("Could not find job id -- expected in environment variable %s" % var)
             else:
-                port = int(jobid) # type: ignore
+                port = int(jobid)  # type: ignore
                 # all ports should be in the 10k+ range
-                port = (port % 1000) + 10000 # type: ignore
+                port = (port % 1000) + 10000  # type: ignore
             log.debug("calculated master port")
         else:
             log.debug("using externally specified master port")
-            port = int(port) # type: ignore
-        return port # type: ignore
+            port = int(port)  # type: ignore
+        return port  # type: ignore
 
     @staticmethod
     def detect() -> bool:
