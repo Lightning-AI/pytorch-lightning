@@ -772,7 +772,7 @@ of OmegaConf in a ``LightningCLI``, when instantiating a parameter needs to be g
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, parser_kwargs={'parser_mode': 'omegaconf'})
+    cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
 
 With the encoder-decoder example model above a possible yaml that uses variable interpolation could be the following:
 
@@ -967,7 +967,7 @@ there is a failure an exception is raised and the full stack trace printed.
 
 .. testcode::
 
-    cli = LightningCLI(MyModel, parser_kwargs={'error_handler': None})
+    cli = LightningCLI(MyModel, parser_kwargs={"error_handler": None})
 
 .. note::
 
