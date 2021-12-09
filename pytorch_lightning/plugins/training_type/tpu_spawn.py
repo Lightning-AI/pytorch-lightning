@@ -64,7 +64,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,
-            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin,
+            parallel_devices=parallel_devices,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.debug = debug
         self.tpu_local_core_rank = 0

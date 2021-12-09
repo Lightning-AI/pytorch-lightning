@@ -691,10 +691,16 @@ class AcceleratorConnector:
 
     def create_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
-            plugin = DDP2Plugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment,)
+            plugin = DDP2Plugin(
+                accelerator=self.accelerator,
+                parallel_devices=self.parallel_devices,
+                cluster_environment=self.cluster_environment,
+            )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                accelerator=self.accelerator, cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices,
+                accelerator=self.accelerator,
+                cluster_environment=self.select_cluster_environment(),
+                parallel_devices=self.parallel_devices,
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
@@ -733,7 +739,9 @@ class AcceleratorConnector:
                 ddp_plugin_cls = DDPPlugin
 
             plugin = ddp_plugin_cls(
-                accelerator=self.accelerator, parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment,
+                accelerator=self.accelerator,
+                parallel_devices=self.parallel_devices,
+                cluster_environment=self.cluster_environment,
             )
         elif self.use_dp:
             plugin = DataParallelPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
@@ -745,7 +753,10 @@ class AcceleratorConnector:
             plugin = IPUPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(accelerator=self.accelerator, device=(torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu")),)
+            plugin = SingleDevicePlugin(
+                accelerator=self.accelerator,
+                device=(torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu")),
+            )
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
