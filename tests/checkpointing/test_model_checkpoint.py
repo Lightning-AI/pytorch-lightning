@@ -1202,3 +1202,25 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
+
+def test_model_checkpoint_attributes(tmpdir):
+    seed_everything()
+    model = LogInTwoMethods()
+
+    epochs = 2
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor=None, save_top_k=-1, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        limit_train_batches=10,
+        limit_val_batches=10,
+        max_epochs=epochs,
+        logger=False,
+    )
+
+    trainer.fit(model)
+
+    checkpoint = torch.load(os.path.join(tmpdir, 'last.ckpt'))['callbacks'][checkpoint_callback.state_key]
+
+    for k in ("best_k_models", "kth_best_model_path", "kth_value", "last_model_path"):
+        assert checkpoint[k] == getattr(checkpoint_callback, k)
