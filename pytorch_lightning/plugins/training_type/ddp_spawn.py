@@ -34,7 +34,6 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -268,16 +267,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.get_from_queue(trainer, spawn_output.extra)
 
     def barrier(self, *args, **kwargs) -> None:
-        if not distributed_available():
-            return
         if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        if not distributed_available():
-            return obj
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
