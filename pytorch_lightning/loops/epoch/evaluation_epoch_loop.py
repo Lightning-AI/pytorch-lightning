@@ -218,9 +218,9 @@ class EvaluationEpochLoop(Loop):
             the outputs of the step
         """
         if self.trainer.testing:
-            output = self.trainer._call_accelerator_hook("test_step", *kwargs.values())
+            output = self.trainer._call_ttp_hook("test_step", *kwargs.values())
         else:
-            output = self.trainer._call_accelerator_hook("validation_step", *kwargs.values())
+            output = self.trainer._call_ttp_hook("validation_step", *kwargs.values())
 
         return output
 

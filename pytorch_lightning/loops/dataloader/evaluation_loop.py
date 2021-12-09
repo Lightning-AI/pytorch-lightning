@@ -186,11 +186,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
-        model_ref = self.trainer.lightning_module
         if self.trainer.testing:
-            model_ref.on_test_model_train()
+            self.trainer._call_lightning_module_hook("on_test_model_train")
         else:
-            model_ref.on_validation_model_train()
+            self.trainer._call_lightning_module_hook("on_validation_model_train")
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""

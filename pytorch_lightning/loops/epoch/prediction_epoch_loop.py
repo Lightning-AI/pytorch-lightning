@@ -130,7 +130,7 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_started()
 
-        predictions = self.trainer._call_accelerator_hook("predict_step", *step_kwargs.values())
+        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 

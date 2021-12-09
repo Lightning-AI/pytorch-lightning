@@ -65,9 +65,6 @@ class Accelerator:
         """
         raise NotImplementedError
 
-    def on_train_start(self) -> None:
-        """Called when train begins."""
-
     @staticmethod
     @abstractmethod
     def auto_device_count() -> int:

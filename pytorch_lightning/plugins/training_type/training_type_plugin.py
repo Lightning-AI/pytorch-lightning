@@ -28,8 +28,10 @@ from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
@@ -50,6 +52,11 @@ class TrainingTypePlugin(ABC):
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
+        if is_overridden("post_dispatch", self, parent=TrainingTypePlugin):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
+                f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
+            )
 
     @property
     def accelerator(self) -> "pl.Accelerator":
@@ -170,8 +177,7 @@ class TrainingTypePlugin(ABC):
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
-        model_ref = self.lightning_module
-        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
+        self.lightning_module.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -313,18 +319,6 @@ class TrainingTypePlugin(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the training loop
-        return trainer.run_stage()
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the test loop
-        return trainer.run_stage()
-
-    def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the predicting loop
-        return trainer.run_stage()
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
@@ -500,5 +494,9 @@ class TrainingTypePlugin(ABC):
         self.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction starts."""
-        self.precision_plugin.post_dispatch()
+        r"""
+        .. deprecated::
+            v1.6 This method has been deprecated in v1.6 and will be removed in v1.7. Use :meth:`teardown` instead.
+
+        Hook to do something after the training/evaluation/prediction finishes.
+        """
