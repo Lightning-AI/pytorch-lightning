@@ -1124,9 +1124,11 @@ class Trainer(
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
+                         spawn processes                      ||
+              {self.accelerator.setup_environment()}          ||
+                                |                             ||  
                         setup accelerator                     ||
-                           and strategy                       ||
-                                |                             ||  LIGHTNING
+                           and strategy                       ||  LIGHTNING
                                 |                             ||
                          {self.run_stage}                     ||  FLOW
                                 |                             ||
