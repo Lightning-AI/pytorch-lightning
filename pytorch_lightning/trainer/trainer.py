@@ -1644,7 +1644,7 @@ class Trainer(
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and isinstance(self.accelerator, TPUAccelerator):
+        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
