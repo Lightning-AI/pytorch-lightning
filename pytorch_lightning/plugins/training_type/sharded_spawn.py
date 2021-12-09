@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput, DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -114,12 +114,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
         if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
             self._precision_plugin.scaler = ShardedGradScaler()
-        return super().new_process(trainer)
+        return super().pre_dispatch(trainer)
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
