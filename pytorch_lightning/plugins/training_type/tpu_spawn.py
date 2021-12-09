@@ -170,8 +170,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if self.is_distributed:
-            rendezvous(name)
+        rendezvous(name)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_warn("cleaning up tpu spawn environment...")
@@ -201,8 +200,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        if not self.is_distributed:
-            return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
