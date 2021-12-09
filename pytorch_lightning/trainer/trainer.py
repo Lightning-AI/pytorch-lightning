@@ -1125,7 +1125,7 @@ class Trainer(
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
                          spawn processes                      ||
-              {self.accelerator.setup_environment()}          ||
+               {self.accelerator.setup_environment}           ||
                                 |                             ||
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
