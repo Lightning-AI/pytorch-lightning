@@ -85,7 +85,6 @@ def test_accelerator_tpu():
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
 
-    assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
     with pytest.raises(
@@ -99,7 +98,6 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
     trainer = Trainer(accelerator="cpu", tpu_cores=8)
 
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -108,7 +106,6 @@ def test_accelerator_tpu_with_auto():
 
     trainer = Trainer(accelerator="auto", tpu_cores=8)
 
-    assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
@@ -127,7 +124,7 @@ def test_accelerator_auto_with_devices_tpu():
 
     trainer = Trainer(accelerator="auto", devices=8)
 
-    assert trainer._device_type == "tpu"
+    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.tpu_cores == 8
 
 

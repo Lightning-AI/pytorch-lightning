@@ -73,7 +73,6 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerSta
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
-    _AcceleratorType,
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
@@ -1706,9 +1705,9 @@ class Trainer(
     def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 
-    @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
+    # @property
+    # def _device_type(self) -> _AcceleratorType:
+    #     return self._accelerator_connector._device_type
 
     @property
     def num_nodes(self) -> int:
