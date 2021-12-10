@@ -80,10 +80,7 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
     trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
-    accelerator = MyAccelerator(
-        precision_plugin=CustomPrecisionPlugin(),
-        training_type_plugin=CustomDDPPlugin(),
-    )
+    accelerator = MyAccelerator()
     trainer = Trainer(accelerator=accelerator)
 
 
