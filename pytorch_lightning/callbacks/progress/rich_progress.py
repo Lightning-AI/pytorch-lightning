@@ -301,10 +301,7 @@ class RichProgressBar(ProgressBarBase):
             self.progress.refresh()
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if trainer.is_global_zero:
-            self.enable()
-        else:
-            self.disable()
+        self.enable() if trainer.is_global_zero else self.disable()
 
     def on_train_start(self, trainer, pl_module):
         super().on_train_start(trainer, pl_module)

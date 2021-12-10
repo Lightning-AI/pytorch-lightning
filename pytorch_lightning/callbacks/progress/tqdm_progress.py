@@ -208,10 +208,7 @@ class TQDMProgressBar(ProgressBarBase):
         return bar
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if trainer.is_global_zero:
-            self.enable()
-        else:
-            self.disable()
+        self.enable() if trainer.is_global_zero else self.disable()
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
