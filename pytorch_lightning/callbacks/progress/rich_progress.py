@@ -327,8 +327,7 @@ class RichProgressBar(ProgressBarBase):
 
     def __setstate__(self, state):
         self.__dict__ = state
-        if self._console_kwargs is not None:
-            state["_console"] = Console(**self._console_kwargs)
+       self._console = Console(**self._console_kwargs)
 
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
