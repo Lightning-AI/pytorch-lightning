@@ -68,7 +68,7 @@ while ensuring that no task-specific accuracy is lost compared to full precision
 FP16 Mixed Precision
 ====================
 
-In most cases, mixed precision uses FP16. Supported torch operations automatically run in FP16, saving memory and improving throughput on the supported accelerators.
+In most cases, mixed precision uses FP16. Supported `PyTorch operations <https://pytorch.org/docs/stable/amp.html#op-specific-behavior>`__ automatically run in FP16, saving memory and improving throughput on the supported accelerators.
 
 
 .. note::
@@ -84,7 +84,7 @@ In most cases, mixed precision uses FP16. Supported torch operations automatical
 PyTorch Native
 --------------
 
-With the PyTorch 1.6 release, it introduced mixed precision functionality into their core as the AMP package, `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`__. It is more flexible and intuitive compared to `NVIDIA APEX <https://github.com/NVIDIA/apex>`__.
+PyTorch 1.6 release introduced mixed precision functionality into their core as the AMP package, `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`__. It is more flexible and intuitive compared to `NVIDIA APEX <https://github.com/NVIDIA/apex>`__.
 Since computation happens in FP16, there is a chance of numerical instability during training. This is handled internally by a dynamic grad scaler which skips invalid steps and adjusts the scaler to ensure subsequent steps fall within a finite range. For more information `see the autocast docs <https://pytorch.org/docs/stable/amp.html#gradient-scaling>`__.
 Lightning uses native amp by default with ``precision=16|"bf16"``. You can also set it using:
 
