@@ -451,6 +451,7 @@ class Trainer(
             amp_level,
             plugins,
         )
+        self._accelerator_connector.training_type_plugin
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
@@ -1106,7 +1107,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
-        self.accelerator.setup_environment()
+        self.training_type_plugin.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1114,7 +1115,7 @@ class Trainer(
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
-        self.accelerator.setup(self)
+        self.training_type_plugin.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1124,7 +1125,7 @@ class Trainer(
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
                          spawn processes                      ||
-               {self.accelerator.setup_environment}           ||
+               {self.training_type_plugin.setup_environment}           ||
                                 |                             ||
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
@@ -1231,7 +1232,7 @@ class Trainer(
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.training_type_plugin.post_dispatch(self)
-        self.accelerator.teardown()
+        self.training_type_plugin.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
@@ -1806,7 +1807,7 @@ class Trainer(
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
-        return self.accelerator.model
+        return self.training_type_plugin.model
 
     @model.setter
     def model(self, model: torch.nn.Module) -> None:
@@ -1817,7 +1818,7 @@ class Trainer(
             model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
                 on the backend.
         """
-        self.accelerator.model = model
+        self.training_type_plugin.model = model
 
     """
     General properties

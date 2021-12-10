@@ -156,13 +156,12 @@ class AcceleratorConnector:
 
         self._warn_if_devices_flag_ignored()
 
-        self.set_distributed_mode()
-        self.accelerator = self.select_accelerator()
-        self.select_training_type_plugin()
-
         self.select_accelerator_type()
-        self._validate_accelerator_type()
-        self._set_devices_if_none()
+
+        if self.strategy is not None:
+            self._set_training_type_plugin()
+        else:
+            self.set_distributed_mode()
 
         self.handle_given_plugins()
         self._set_distrib_type_if_training_type_plugin_passed()
@@ -171,7 +170,13 @@ class AcceleratorConnector:
 
         self.update_device_type_if_ipu_plugin()
         self.update_device_type_if_training_type_plugin_passed()
+
+        self._validate_accelerator_type()
+        self._set_devices_if_none()
+
         self._training_type_plugin_resolved = False
+        self.training_type_plugin = self.final_training_type_plugin()
+        self.accelerator = self.training_type_plugin.accelerator
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -390,17 +395,12 @@ class AcceleratorConnector:
             self._precision_plugin = self.select_precision_plugin()
         return self._precision_plugin
 
-    @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
+    def final_training_type_plugin(self) -> TrainingTypePlugin:
+        if self._training_type_plugin_resolved:
+            # avoid calling `resolve_training_type_plugin` multiple times
+            return self._training_type_plugin
         if self._training_type_plugin is None:
-            raise TypeError("Tried to access TTP before initialization finished")
-        return self._training_type_plugin
-
-    def select_training_type_plugin(self):
-        self._set_training_type_plugin()
-
-        if self._training_type_plugin is None:
-            self._training_type_plugin = self.create_training_type_plugin()
+            self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
@@ -408,6 +408,9 @@ class AcceleratorConnector:
         precision_plugin = self.precision_plugin
         if precision_plugin is not None:
             self._training_type_plugin._precision_plugin = precision_plugin
+        self._training_type_plugin_resolved = True
+
+        self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
 
     @property
@@ -689,18 +692,17 @@ class AcceleratorConnector:
 
         raise RuntimeError("No precision set")
 
-    def create_training_type_plugin(self) -> TrainingTypePlugin:
-        if self.use_ddp2:
-            plugin = DDP2Plugin(
-                accelerator=self.accelerator,
-                parallel_devices=self.parallel_devices,
-                cluster_environment=self.cluster_environment,
-            )
+    def select_training_type_plugin(self) -> TrainingTypePlugin:
+        if (
+            isinstance(self.distributed_backend, Accelerator)
+            and self.distributed_backend.training_type_plugin is not None
+        ):
+            plugin = self.distributed_backend.training_type_plugin
+        elif self.use_ddp2:
+            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                accelerator=self.accelerator,
-                cluster_environment=self.select_cluster_environment(),
-                parallel_devices=self.parallel_devices,
+                cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
@@ -739,24 +741,19 @@ class AcceleratorConnector:
                 ddp_plugin_cls = DDPPlugin
 
             plugin = ddp_plugin_cls(
-                accelerator=self.accelerator,
-                parallel_devices=self.parallel_devices,
-                cluster_environment=self.cluster_environment,
+                parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
-            plugin = DataParallelPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
+            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
-            plugin = HorovodPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
+            plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.use_ipu:
-            plugin = IPUPlugin(accelerator=self.accelerator, parallel_devices=self.parallel_devices)
+            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(
-                accelerator=self.accelerator,
-                device=(torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu")),
-            )
+            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
@@ -802,6 +799,9 @@ class AcceleratorConnector:
             acc_cls = CPUAccelerator
 
         accelerator = acc_cls()
+        # transfer ownership of the plugins to the accelerator
+        # self._training_type_plugin = proxy(self.training_type_plugin)
+
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
@@ -998,14 +998,13 @@ class AcceleratorConnector:
             self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
 
     def _is_slurm_managing_tasks(self) -> bool:
-        """Returns whether we let SLURM manage the processes or not.
+        """Returns whether we let SLURM manage the processes or not. Returns ``True`` if and only if these
+        conditions match:
 
-        Returns ``True`` if and only if these conditions match:
-
-            - A SLURM cluster is detected
-            - A distributed plugin is being used
-            - The process is not launching in interactive mode
-            - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
+        - A SLURM cluster is detected
+        - A distributed plugin is being used
+        - The process is not launching in interactive mode
+        - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
         """
         if (
             (not self.use_ddp and not self.use_ddp2)

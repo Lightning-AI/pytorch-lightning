@@ -67,8 +67,8 @@ class TrainingTypePlugin(ABC):
 
     @accelerator.setter
     def accelerator(self, accelerator: "pl.Accelerator") -> None:
-        if self._accelerator is not None:
-            raise ValueError("Accelerator already set.")
+        # if self._accelerator is not None:
+        #     raise ValueError("Accelerator already set.")
         self._accelerator = accelerator
 
     @property
@@ -454,7 +454,7 @@ class TrainingTypePlugin(ABC):
 
     def on_train_start(self) -> None:
         """Called when train begins."""
-        self.accelerator.on_train_start()
+        pass
 
     def on_validation_start(self) -> None:
         """Called when validation begins."""

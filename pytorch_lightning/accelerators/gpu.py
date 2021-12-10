@@ -21,7 +21,8 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+# from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 _log = logging.getLogger(__name__)
@@ -30,16 +31,15 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
 
-    def setup_environment(self) -> None:
-        """
-        Raises:
-            MisconfigurationException:
-                If the selected device is not GPU.
-        """
-        super().setup_environment()
-        if "cuda" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
-        torch.cuda.set_device(self.root_device)
+    # def setup_environment(self) -> None:
+    #     """
+    #     Raises:
+    #         MisconfigurationException:
+    #             If the selected device is not GPU.
+    #     """
+    #     if "cuda" not in str(self.root_device):
+    #         raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+    #     torch.cuda.set_device(self.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.set_nvidia_flags(trainer.local_rank)

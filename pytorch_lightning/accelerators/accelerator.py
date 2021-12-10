@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import abstractmethod
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 import torch
-from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 
 
 class Accelerator:
@@ -32,13 +29,6 @@ class Accelerator:
     - TPU
     - IPU
     """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    @property
-    def root_device(self):
-        return None
 
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
