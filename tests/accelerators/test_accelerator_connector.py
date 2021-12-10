@@ -397,7 +397,14 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 
 @mock.patch.dict(
     os.environ,
-    {"SLURM_NTASKS": "2", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+    {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
@@ -408,28 +415,29 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Prec(PrecisionPlugin):
         pass
 
-    class TrainTypePlugin(SingleDevicePlugin):
+    class TrainTypePlugin(DDPPlugin):
         pass
 
+    ttp = TrainTypePlugin(
+        device=torch.device("cpu"),
+        accelerator=Accel(),
+        precision_plugin=Prec()
+    )
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
+    assert isinstance(trainer.accelerator, Accel)
+    assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
+    assert isinstance(trainer.precision_plugin, Prec)
+    assert trainer._accelerator_connector.training_type_plugin is ttp
 
-#     ttp = TrainTypePlugin(device=torch.device("cpu"))
-#     accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-#     trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
-#     assert isinstance(trainer.accelerator, Accel)
-#     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
-#     assert isinstance(trainer.precision_plugin, Prec)
-#     assert trainer._accelerator_connector.training_type_plugin is ttp
+    class DistributedPlugin(DDPPlugin):
+        pass
 
-#     class DistributedPlugin(DDPPlugin):
-#         pass
-
-#     ttp = DistributedPlugin()
-#     accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-#     trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
-#     assert isinstance(trainer.accelerator, Accel)
-#     assert isinstance(trainer.training_type_plugin, DistributedPlugin)
-#     assert isinstance(trainer.precision_plugin, Prec)
-#     assert trainer._accelerator_connector.training_type_plugin is ttp
+    ttp = DistributedPlugin(accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
+    assert isinstance(trainer.accelerator, Accel)
+    assert isinstance(trainer.training_type_plugin, DistributedPlugin)
+    assert isinstance(trainer.precision_plugin, Prec)
+    assert trainer._accelerator_connector.training_type_plugin is ttp
 
 
 @mock.patch.dict(

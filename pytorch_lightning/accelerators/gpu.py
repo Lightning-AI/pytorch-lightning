@@ -41,6 +41,7 @@ class GPUAccelerator(Accelerator):
         torch.cuda.set_device(root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
         # clear cache before training
         torch.cuda.empty_cache()

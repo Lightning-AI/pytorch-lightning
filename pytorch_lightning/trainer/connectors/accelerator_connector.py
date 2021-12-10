@@ -178,6 +178,8 @@ class AcceleratorConnector:
         self.training_type_plugin = self.final_training_type_plugin()
         self.accelerator = self.training_type_plugin.accelerator
 
+        self._check_tpu_mis_config()
+
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
         torch.backends.cudnn.benchmark = self.benchmark
@@ -405,12 +407,19 @@ class AcceleratorConnector:
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        precision_plugin = self.precision_plugin
-        if precision_plugin is not None:
-            self._training_type_plugin._precision_plugin = precision_plugin
+        if (
+            (hasattr(self.strategy, "precision_plugin") and self.precision_plugin is None)
+            or not hasattr(self.strategy, "precision_plugin")
+        ):
+            precision_plugin = self.precision_plugin
+            if precision_plugin is not None:
+                self._training_type_plugin._precision_plugin = precision_plugin
         self._training_type_plugin_resolved = True
-
-        self._training_type_plugin.accelerator = self.select_accelerator()
+        if (
+            (hasattr(self.strategy, "accelerator") and self.strategy.accelerator is None)
+            or not hasattr(self.strategy, "accelerator")
+        ):
+            self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
 
     @property
@@ -1016,3 +1025,18 @@ class AcceleratorConnector:
         total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
+
+    def _check_tpu_mis_config(self) -> None:
+        # TODO moved from TPUAccelerator when refactor accelerator. Revisit when refactor
+        # accelerator_connector @four4fish
+        if isinstance(self.accelerator, TPUAccelerator):
+            if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
+                raise ValueError(
+                    f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                    f" found: {self.training_type_plugin.precision_plugin}."
+                )
+            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
+                raise ValueError(
+                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin,"
+                    f" found {self.training_type_plugin}."
+                )
