@@ -100,7 +100,10 @@ def test_quantize_torchscript(tmpdir):
     qmodel(qmodel.quant(batch[0]))
 
     tsmodel = qmodel.to_torchscript()
-    tsmodel(tsmodel.quant(batch[0]))
+    res1 = tsmodel(tsmodel.quant(batch[0]))
+    assert res1.is_quantized
+    res2 = tsmodel(batch[0])
+    assert not res2.is_quantized
 
 
 @RunIf(quantization=True)

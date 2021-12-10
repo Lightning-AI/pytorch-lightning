@@ -18,6 +18,7 @@ Quantization
 """
 import copy
 import functools
+import inspect
 from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
@@ -79,6 +80,90 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
         return data
 
     return wrapper
+
+
+def _is_quantize_forward_context_wrapped(model):
+    wrapping = wrap_quantize_forward_context
+    fn = inspect.getsourcefile(wrapping)
+    lines, first_line = inspect.getsourcelines(wrapping)
+    last_line = first_line + len(lines) - 1
+
+    fw_method = model.forward
+    while True:
+        if first_line <= fw_method.__code__.co_firstlineno <= last_line and fw_method.__code__.co_filename == fn:
+            return True
+        fw_method = getattr(fw_method, "__wrapped__", None)
+        if fw_method is None:
+            return False
+
+
+def _fixup_quantization_torchscript(script_module):
+    # We do a bit of surgery here. We have quant and dequant submodules, but they are not
+    # called in the scripted forward function by default if you torch.jit.script the model.
+    # So we add these calls.
+    # But for backward compat, we only do so if the input is not quantized yet.
+    # note that this changes the script_module in-place.
+
+    # We get the quant and dequant modules. In the JIT, scripted modules (and function) are their own types.
+    type_quant = list(script_module.quant.graph.inputs())[0].type()
+    type_dequant = list(script_module.dequant.graph.inputs())[0].type()
+
+    fw_graph = script_module.forward.graph  # .copy()
+    input_to_quantize = list(fw_graph.inputs())[1]
+
+    # Two instructions to get "not x.is_quantized" and store it in is_not_quant_node.output()
+    is_quant_node = fw_graph.create("prim::is_quantized", [input_to_quantize])
+    is_quant_node.output().setType(torch.jit.annotations.BoolType.get())
+    is_quant_node.insertBefore(next(fw_graph.nodes()))
+    is_not_quant_node = fw_graph.create("aten::__not__", [is_quant_node.output()])
+    is_not_quant_node.output().setType(torch.jit.annotations.BoolType.get())
+    is_not_quant_node.insertAfter(is_quant_node)
+
+    # if the input was not quantized, we quantize it. So we add an If block here.
+    if_node = fw_graph.create("prim::If", [is_not_quant_node.output()])
+    if_node.insertAfter(is_not_quant_node)
+    bl_if = if_node.addBlock()
+
+    # get the quant module
+    mod_node = fw_graph.create("prim::GetAttr", list(fw_graph.inputs())[:1])
+    mod_node.s_("name", "quant")
+    mod_node.output().setType(type_quant)
+    mod_node.insertBefore(bl_if.returnNode())
+    # call quant.forward
+    call_node = fw_graph.create("prim::CallMethod", [mod_node.output(), input_to_quantize])
+    call_node.s_("name", "forward")
+    call_node.insertAfter(mod_node)
+    bl_if.registerOutput(call_node.output())
+    # in the else block (input was quantized), we do nothing
+    bl_else = if_node.addBlock()
+    bl_else.registerOutput(input_to_quantize)
+
+    # finally, we replace the use of the input with the quantized-if-needed output of the if_node.
+    input_to_quantize.replaceAllUsesAfterNodeWith(if_node, if_node.output())
+
+    orig_output = next(fw_graph.outputs())
+
+    # now we dequant the output if we did quantize the input
+    if_node = fw_graph.create("prim::If", [is_not_quant_node.output()])
+    if_node.insertBefore(fw_graph.return_node())
+    bl_if = if_node.addBlock()
+    # get the dequent module
+    mod_node = fw_graph.create("prim::GetAttr", list(fw_graph.inputs())[:1])
+    mod_node.s_("name", "dequant")
+    mod_node.output().setType(type_dequant)
+    mod_node.insertBefore(bl_if.returnNode())
+    # call dequant.forward
+    call_node = fw_graph.create("prim::CallMethod", [mod_node.output(), orig_output])
+    call_node.s_("name", "forward")
+    call_node.insertAfter(mod_node)
+    bl_if.registerOutput(call_node.output())
+
+    # in the else block (input was quantized), we do nothing to the output)
+    bl_else = if_node.addBlock()
+    bl_else.registerOutput(orig_output)
+
+    # finally replace the output with the "dequantized-if-needed" output
+    orig_output.replaceAllUsesAfterNodeWith(if_node, if_node.output())
 
 
 def _recursive_hasattr(obj: Any, attribs: str, state: bool = True) -> bool:

@@ -32,6 +32,8 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress import base as progress_base
+from pytorch_lightning.callbacks.quantization import _fixup_quantization_torchscript
+
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -1874,6 +1876,9 @@ class LightningModule(
 
         if method == "script":
             torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            # Add quant and dequant calls to scripted forward. This is usually done via a wrapper,
+            # but the JIT doesn't see it.
+            _fixup_quantization_torchscript(torchscript_module)
         elif method == "trace":
             # if no example inputs are provided, try to see if model has example_input_array set
             if example_inputs is None:
