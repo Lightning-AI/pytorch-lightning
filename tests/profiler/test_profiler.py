@@ -311,9 +311,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    expected = {"validation_step"}
+    expected = {"BoringModel.validation_step"}
     if not _KINETO_AVAILABLE:
-        expected |= {"training_step_and_backward", "training_step", "backward"}
+        expected |= {"training_step_and_backward", "BoringModel.training_step", "BoringModel.backward"}
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -343,7 +343,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name == "SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -351,8 +351,6 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 @pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
@@ -365,7 +363,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
     getattr(trainer, fn)(model)
 
-    assert sum(e.name == f"{step_name}_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name.endswith(f"{step_name}_step") for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -373,8 +371,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"{fn}-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_nested(tmpdir):
@@ -418,11 +414,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-
     # Wrap the logger in a list so it becomes a LoggerCollection
     logger = [TensorBoardLogger(save_dir=tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
     assert look_for_trace(tmpdir)

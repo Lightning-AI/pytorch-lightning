@@ -132,7 +132,8 @@ class ScheduleWrapper:
     @property
     def is_training(self) -> bool:
         return self._current_action is not None and (
-            self._current_action.startswith("optimizer_step_with_closure_") or self._current_action == "training_step"
+            self._current_action.startswith("optimizer_step_with_closure_")
+            or self._current_action.endswith("training_step")
         )
 
     @property
@@ -340,11 +341,11 @@ class PyTorchProfiler(BaseProfiler):
         trainer = self._lightning_module.trainer
         if self._schedule.is_training:
             return trainer.num_training_batches
-        if self._schedule._current_action == "validation_step":
+        if self._schedule._current_action.endswith("validation_step"):
             return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
-        if self._schedule._current_action == "test_step":
+        if self._schedule._current_action.endswith("test_step"):
             return sum(trainer.num_test_batches)
-        if self._schedule._current_action == "predict_step":
+        if self._schedule._current_action.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
 
     def _should_override_schedule(self) -> bool:
@@ -373,8 +374,7 @@ class PyTorchProfiler(BaseProfiler):
         return activities
 
     def start(self, action_name: str) -> None:
-        if self.profiler is None and action_name in self._record_functions_start:
-
+        if self.profiler is None and any(action_name.endswith(func) for func in self._record_functions_start):
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
             try:
@@ -405,7 +405,10 @@ class PyTorchProfiler(BaseProfiler):
 
         if (
             self.profiler is not None
-            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
+            and (
+                any(action_name.endswith(func) for func in self._record_functions)
+                or action_name.startswith(self.RECORD_FUNCTION_PREFIX)
+            )
             and action_name not in self._recording_map
         ):
 
@@ -422,7 +425,8 @@ class PyTorchProfiler(BaseProfiler):
             return
 
         if self.profiler is not None and (
-            action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
+            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
+            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
         ):
 
             if self._schedule is not None:
