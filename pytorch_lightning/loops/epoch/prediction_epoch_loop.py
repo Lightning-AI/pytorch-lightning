@@ -96,7 +96,7 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx)
+        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
