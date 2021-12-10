@@ -16,7 +16,7 @@ import operator
 from abc import ABC
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
-from copy import Error, copy, deepcopy
+from copy import copy, deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
