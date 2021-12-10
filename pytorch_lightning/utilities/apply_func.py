@@ -16,7 +16,7 @@ import operator
 from abc import ABC
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
-from copy import copy, deepcopy
+from copy import Error, copy, deepcopy
 from functools import partial
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -146,7 +146,7 @@ def apply_to_collection(
                 v = getattr(data, field_name)
             try:
                 setattr(result, field_name, v)
-            except:
+            except Exception:
                 raise dataclasses.FrozenInstanceError("Cannot apply function to Frozen dataclass instance")
         return result
 
