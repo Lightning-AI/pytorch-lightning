@@ -211,6 +211,7 @@ class RichProgressBar(ProgressBarBase):
             Set it to ``0`` to disable the display.
         leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
+        console_kwargs: Args for constructing a `Console`
 
     Raises:
         ModuleNotFoundError:
