@@ -407,17 +407,15 @@ class AcceleratorConnector:
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        if (
-            (hasattr(self.strategy, "precision_plugin") and self.precision_plugin is None)
-            or not hasattr(self.strategy, "precision_plugin")
+        if (hasattr(self.strategy, "precision_plugin") and self.precision_plugin is None) or not hasattr(
+            self.strategy, "precision_plugin"
         ):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
                 self._training_type_plugin._precision_plugin = precision_plugin
         self._training_type_plugin_resolved = True
-        if (
-            (hasattr(self.strategy, "accelerator") and self.strategy.accelerator is None)
-            or not hasattr(self.strategy, "accelerator")
+        if (hasattr(self.strategy, "accelerator") and self.strategy.accelerator is None) or not hasattr(
+            self.strategy, "accelerator"
         ):
             self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
