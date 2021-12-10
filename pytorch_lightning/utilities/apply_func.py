@@ -146,7 +146,7 @@ def apply_to_collection(
                 v = getattr(data, field_name)
             try:
                 setattr(result, field_name, v)
-            except Exception:
+            except dataclasses.FrozenInstanceError:
                 raise dataclasses.FrozenInstanceError("Cannot apply function to Frozen dataclass instance")
         return result
 
