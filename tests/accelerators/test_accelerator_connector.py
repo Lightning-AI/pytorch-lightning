@@ -411,6 +411,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class TrainTypePlugin(SingleDevicePlugin):
         pass
 
+
 #     ttp = TrainTypePlugin(device=torch.device("cpu"))
 #     accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
 #     trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
