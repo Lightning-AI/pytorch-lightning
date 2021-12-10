@@ -238,7 +238,7 @@ class RichProgressBar(ProgressBarBase):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
-        self._console_kwargs = console_kwargs
+        self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
         self.val_sanity_progress_bar_id: Optional[int] = None
