@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from multiprocessing.queues import SimpleQueue
 from typing import Dict, Generator, List, Optional, Tuple
 
 import torch
@@ -115,12 +114,12 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer", mp_queue: SimpleQueue) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         # Ensure that the scaler points to the correct process group
         # which is re-initialized in a new process
         if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
             self._precision_plugin.scaler = ShardedGradScaler()
-        return super().new_process(trainer, mp_queue)
+        return super().pre_dispatch(trainer)
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

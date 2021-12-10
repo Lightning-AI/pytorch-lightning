@@ -28,9 +28,11 @@ from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PATH, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -43,13 +45,17 @@ class TrainingTypePlugin(ABC):
         self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
         self._model: Optional[Module] = None
-        self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
+        if is_overridden("post_dispatch", self, parent=TrainingTypePlugin):
+            rank_zero_deprecation(
+                f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
+                f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
+            )
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -95,8 +101,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
+        self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
     def setup_precision_plugin(self) -> None:
@@ -159,8 +164,7 @@ class TrainingTypePlugin(ABC):
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
-        model_ref = self.lightning_module
-        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
+        self.lightning_module.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -291,18 +295,6 @@ class TrainingTypePlugin(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return unwrap_lightning_module(self._model) if self._model is not None else None
 
-    @property
-    def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        """Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run.
-
-        The result is
-        cached instead of returned directly, because some plugins require transmitting the results from one
-        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
-        start-method send the result to the main process through a
-        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
-        """
-        return self._results
-
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
@@ -315,32 +307,40 @@ class TrainingTypePlugin(ABC):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: "pl.Trainer") -> None:
-        # double dispatch to initiate the training loop
-        self._results = trainer.run_stage()
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        """The actual training step.
 
-    def start_evaluating(self, trainer: "pl.Trainer") -> None:
-        # double dispatch to initiate the test loop
-        self._results = trainer.run_stage()
-
-    def start_predicting(self, trainer: "pl.Trainer") -> None:
-        # double dispatch to initiate the predicting loop
-        self._results = trainer.run_stage()
-
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        """
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual validation step.
 
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        """
+        with self.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        """The actual test step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        """
+        with self.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        """The actual predict step.
+
+        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        """
+        with self.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -361,17 +361,6 @@ class TrainingTypePlugin(ABC):
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
         return trainer.init_optimizers(model)
-
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        """Override to delay setting optimizers and schedulers till after dispatch. This is useful when the
-        `TrainingTypePlugin` requires operating on the wrapped accelerator model. However this may break certain
-        precision plugins such as APEX which require optimizers to be set.
-
-        Returns:
-            If True, delay setup optimizers till pre_dispatch, else call within setup.
-        """
-        return False
 
     @property
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
@@ -482,11 +471,18 @@ class TrainingTypePlugin(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
+        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something at trainer run_stage starts."""
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
+        r"""
+        .. deprecated::
+            v1.6 This method has been deprecated in v1.6 and will be removed in v1.7. Use :meth:`teardown` instead.
+
+        Hook to do something after the training/evaluation/prediction finishes.
+        """

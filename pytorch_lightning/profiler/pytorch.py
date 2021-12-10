@@ -335,9 +335,24 @@ class PyTorchProfiler(BaseProfiler):
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
         self._profiler_kwargs["with_stack"] = with_stack
 
+    @property
+    def _total_steps(self) -> int:
+        trainer = self._lightning_module.trainer
+        if self._schedule.is_training:
+            return trainer.num_training_batches
+        if self._schedule._current_action == "validation_step":
+            return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
+        if self._schedule._current_action == "test_step":
+            return sum(trainer.num_test_batches)
+        if self._schedule._current_action == "predict_step":
+            return sum(trainer.num_predict_batches)
+
     def _should_override_schedule(self) -> bool:
-        return (self._lightning_module is not None and self._lightning_module.trainer.limit_train_batches < 5) and (
-            self._schedule is not None and self._schedule._schedule == self._default_schedule()
+        return (
+            self._lightning_module is not None
+            and self._schedule is not None
+            and self._total_steps < 5
+            and self._schedule._schedule == self._default_schedule()
         )
 
     @staticmethod
@@ -410,6 +425,9 @@ class PyTorchProfiler(BaseProfiler):
             action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
         ):
 
+            if self._schedule is not None:
+                self._schedule.pre_step(action_name)
+
             # the default schedule requires a minimum of 5 steps to properly work: `wait=1, warmup=1, active=3`.
             # otherwise, this will raise a `segmentation fault`.
             if self._should_override_schedule():
@@ -419,9 +437,6 @@ class PyTorchProfiler(BaseProfiler):
                 )
                 self._schedule = None
                 self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
-
-            if self._schedule is not None:
-                self._schedule.pre_step(action_name)
 
             def on_trace_ready(profiler):
                 if self.dirpath is not None:

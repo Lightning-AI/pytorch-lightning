@@ -14,7 +14,6 @@
 
 import logging
 import os
-from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
@@ -45,8 +44,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ["MASTER_ADDR"] = "127.0.0.1"
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
-        main_address = os.environ.get("MASTER_ADDR")
-        return main_address
+        return os.environ["MASTER_ADDR"]
 
     @property
     def main_port(self) -> int:
@@ -55,8 +53,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
             os.environ["MASTER_PORT"] = "12910"
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        port = int(os.environ.get("MASTER_PORT"))
-        return port
+        return int(os.environ["MASTER_PORT"])
 
     @staticmethod
     def detect() -> bool:
@@ -64,9 +61,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
         required_env_vars = {"RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
         return required_env_vars.issubset(os.environ.keys())
 
-    def world_size(self) -> Optional[int]:
-        world_size = os.environ.get("WORLD_SIZE")
-        return int(world_size) if world_size is not None else world_size
+    def world_size(self) -> int:
+        return int(os.environ["WORLD_SIZE"])
 
     def set_world_size(self, size: int) -> None:
         log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
