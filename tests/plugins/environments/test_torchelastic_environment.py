@@ -27,7 +27,9 @@ def test_default_attributes():
     assert env.creates_processes_externally
     assert env.main_address == "127.0.0.1"
     assert env.main_port == 12910
-    assert env.world_size() is None
+    with pytest.raises(KeyError):
+        # world size is required to be passed as env variable
+        env.world_size()
     with pytest.raises(KeyError):
         # local rank is required to be passed as env variable
         env.local_rank()
