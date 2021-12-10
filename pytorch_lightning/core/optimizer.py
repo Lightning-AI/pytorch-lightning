@@ -149,6 +149,7 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
+        # is separating optimizer_step_without_closure and optimizer_step_with_closure still needed?
         if closure is None:
             closure = do_nothing_closure
             profiler_action = "optimizer_step_without_closure"
