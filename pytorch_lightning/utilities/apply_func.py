@@ -144,7 +144,10 @@ def apply_to_collection(
                 )
             if not field_init or (not include_none and v is None):  # retain old value
                 v = getattr(data, field_name)
-            object.__setattr__(result, field_name, v)
+            try:
+                setattr(result, field_name, v)
+            except:
+                raise dataclasses.FrozenInstanceError("Cannot apply function to Frozen dataclass instance")
         return result
 
     # data is neither of dtype, nor a collection
