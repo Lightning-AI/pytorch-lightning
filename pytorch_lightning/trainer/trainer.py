@@ -1561,7 +1561,7 @@ class Trainer(
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    with self.profiler.profile(f"{callback.__class__.__name__}.{hook_name}"):
+                    with self.profiler.profile(f"{callback.__class__.__name__}.{callback.state_key}.{hook_name}"):
                         fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:

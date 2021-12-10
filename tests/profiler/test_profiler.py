@@ -22,7 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
+from pytorch_lightning.callbacks import StochasticWeightAveraging, EarlyStopping
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
@@ -546,3 +546,25 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
         getattr(trainer, trainer_fn)(model)
         assert trainer.profiler._schedule is None
         warning_cache.clear()
+
+
+def test_profile_callbacks(tmpdir):
+    """Checks is profiling callbacks works correctly, specifically when there are two of the same callback type."""
+
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        profiler=pytorch_profiler,
+        callbacks=[EarlyStopping("val_loss"), EarlyStopping("train_loss")],
+    )
+    trainer.fit(model)
+    assert sum(
+        e.name == "EarlyStopping.EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )
+    assert sum(
+        e.name == "EarlyStopping.EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )
