@@ -21,7 +21,7 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
     """Native AMP for Fully Sharded Training."""
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
-        # see https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html
+        # see https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html
         # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect
         # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
         # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to

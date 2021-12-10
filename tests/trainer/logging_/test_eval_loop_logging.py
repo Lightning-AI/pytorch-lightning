@@ -23,7 +23,6 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -394,8 +393,8 @@ def test_log_works_in_test_callback(tmpdir):
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
-                if pl_module._current_dataloader_idx is not None:
-                    dl_idx = pl_module._current_dataloader_idx
+                dl_idx = pl_module.trainer._results.dataloader_idx
+                if dl_idx is not None:
                     num_dl_ext = f"/dataloader_idx_{dl_idx}"
                     func_name += num_dl_ext
 
@@ -472,13 +471,13 @@ def test_log_works_in_test_callback(tmpdir):
     assert cb.funcs_called_count["on_test_batch_end"] == 4
     assert cb.funcs_called_count["on_test_epoch_end"] == 1
 
-    callback_metrics_keys = list(trainer.callback_metrics)
-    for func_name in cb.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
+    callback_metrics = trainer.callback_metrics
+    for func_name in cb.callback_funcs_called:
+        for key in callback_metrics:
+            if func_name in key:
+                break
+        else:
+            assert False, (func_name, list(callback_metrics))
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
@@ -676,32 +675,6 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(
-    ["kwargs", "expected"],
-    [
-        ({"dl_idx": 0, "metrics": {"acc": 123}}, {"acc": 123}),
-        (
-            {"dl_idx": 0, "metrics": {"acc/dataloader_idx_0": 123, "acc/dataloader_idx_1": 321}},
-            {"acc/dataloader_idx_0": 123},
-        ),
-        (
-            {"dl_idx": 10, "metrics": {"acc/dataloader_idx_1": 123, "acc/dataloader_idx_10": 321}},
-            {"acc/dataloader_idx_10": 321},
-        ),
-        (
-            {"dl_idx": 3, "metrics": {"top_3_acc/dataloader_idx_0": 123, "top_3_acc/dataloader_idx_3": 321}},
-            {"top_3_acc/dataloader_idx_3": 321},
-        ),
-        # theoretical case, as `/dataloader_idx_3` would have been added
-        ({"dl_idx": 3, "metrics": {"top_3_acc": 123}}, {"top_3_acc": 123}),
-    ],
-)
-def test_filter_metrics_for_dataloader(kwargs, expected):
-    """Logged metrics should only include metrics from the concerned dataloader."""
-    actual = LoggerConnector._filter_metrics_for_dataloader(**kwargs)
-    assert actual == expected
-
-
 @RunIf(min_gpus=1)
 def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     class TestModel(BoringModel):
@@ -723,3 +696,45 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
     trainer.validate(model, verbose=False)
+
+
+def test_logging_results_with_no_dataloader_idx(tmpdir):
+    num_dataloaders = 2
+    log_common_same_val = {"test_log_common": 789}
+    log_common_diff_val = "test_log_common_diff_value"
+    log_key_no_dl_idx = "test_log_no_dl_idx_{}"
+    log_key_dl0 = {"test_log_a_class": 123}
+    log_key_dl1 = {"test_log_b_class": 456}
+
+    class CustomBoringModel(BoringModel):
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            self.log_dict(log_common_same_val)
+            self.log(log_common_diff_val, dataloader_idx + 1)
+            self.log(
+                log_key_no_dl_idx.format(dataloader_idx),
+                321 * (dataloader_idx + 1),
+                add_dataloader_idx=False,
+            )
+            self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
+
+    model = CustomBoringModel()
+    model.test_epoch_end = None
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    results = trainer.test(model)
+
+    assert len(results) == num_dataloaders
+    assert results[0] == {
+        "test_log_common/dataloader_idx_0": 789.0,
+        "test_log_common_diff_value/dataloader_idx_0": 1.0,
+        "test_log_no_dl_idx_0": 321,
+        "test_log_a_class": 123.0,
+    }
+    assert results[1] == {
+        "test_log_common/dataloader_idx_1": 789.0,
+        "test_log_common_diff_value/dataloader_idx_1": 2.0,
+        "test_log_no_dl_idx_1": 321 * 2,
+        "test_log_b_class": 456.0,
+    }
