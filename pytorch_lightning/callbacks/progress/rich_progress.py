@@ -284,8 +284,7 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            if self._console_kwargs is not None:
-                self._console: Console = Console(**self._console_kwargs)
+            self._console = Console(**self._console_kwargs)
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(
