@@ -418,11 +418,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class TrainTypePlugin(DDPPlugin):
         pass
 
-    ttp = TrainTypePlugin(
-        device=torch.device("cpu"),
-        accelerator=Accel(),
-        precision_plugin=Prec()
-    )
+    ttp = TrainTypePlugin(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
     trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
@@ -1038,10 +1034,13 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16)
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16)
+
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
 
 
 def test_unsupported_ipu_choice(monkeypatch):
