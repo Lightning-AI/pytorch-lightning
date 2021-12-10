@@ -42,7 +42,10 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, accelerator: Optional["pl.Accelerator"] = None, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self,
+        accelerator: Optional["pl.Accelerator"] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self._accelerator = accelerator
         self._model: Optional[Module] = None
