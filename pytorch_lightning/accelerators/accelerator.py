@@ -30,7 +30,7 @@ class Accelerator:
     - IPU
     """
 
-    def setup_environment(self) -> None:
+    def setup_environment(self, root_device: torch.device) -> None:
         """Setup any processes or distributed connections.
 
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
