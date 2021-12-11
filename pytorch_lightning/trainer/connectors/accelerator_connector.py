@@ -174,10 +174,8 @@ class AcceleratorConnector:
         self._validate_accelerator_type()
         self._set_devices_if_none()
 
-        self._training_type_plugin_resolved = False
         self.training_type_plugin = self.final_training_type_plugin()
         self.accelerator = self.training_type_plugin.accelerator
-
         self._check_tpu_mis_config()
 
         # benchmarking
@@ -398,24 +396,22 @@ class AcceleratorConnector:
         return self._precision_plugin
 
     def final_training_type_plugin(self) -> TrainingTypePlugin:
-        if self._training_type_plugin_resolved:
-            # avoid calling `resolve_training_type_plugin` multiple times
-            return self._training_type_plugin
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        if (hasattr(self.strategy, "precision_plugin") and self.precision_plugin is None) or not hasattr(
-            self.strategy, "precision_plugin"
+        if (
+                (isinstance(self.strategy, TrainingTypePlugin) and self.strategy._precision_plugin is None)
+                or not isinstance(self.strategy, TrainingTypePlugin)
         ):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
-                self._training_type_plugin._precision_plugin = precision_plugin
-        self._training_type_plugin_resolved = True
-        if (hasattr(self.strategy, "accelerator") and self.strategy.accelerator is None) or not hasattr(
-            self.strategy, "accelerator"
+                self._training_type_plugin.precision_plugin = precision_plugin
+        if (
+                (isinstance(self.strategy, TrainingTypePlugin) and self.strategy.accelerator is None)
+                or not isinstance(self.strategy, TrainingTypePlugin)
         ):
             self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin

@@ -51,7 +51,7 @@ class TrainingTypePlugin(ABC):
         self._model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
-        self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
+        self._precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
@@ -67,8 +67,6 @@ class TrainingTypePlugin(ABC):
 
     @accelerator.setter
     def accelerator(self, accelerator: "pl.Accelerator") -> None:
-        # if self._accelerator is not None:
-        #     raise ValueError("Accelerator already set.")
         self._accelerator = accelerator
 
     @property
@@ -77,7 +75,11 @@ class TrainingTypePlugin(ABC):
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self._precision_plugin
+        return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+        self._precision_plugin = precision_plugin
 
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
