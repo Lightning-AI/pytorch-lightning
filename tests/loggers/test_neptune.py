@@ -397,9 +397,9 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         # given:
         SimpleCheckpoint = namedtuple("SimpleCheckpoint", ["dirpath"])
         test_input_data = [
-            ("key.ext", os.path.join("foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("foo", "bar"))),
+            ("key", os.path.join("foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("foo", "bar"))),
             (
-                "key/in/parts.ext",
+                "key/in/parts",
                 os.path.join("foo", "bar", "key/in/parts.ext"),
                 SimpleCheckpoint(dirpath=os.path.join("foo", "bar")),
             ),
