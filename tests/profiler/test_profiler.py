@@ -295,7 +295,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_gpus=2)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
@@ -311,9 +311,13 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    expected = {"LightningModel.BoringModel.validation_step"}
+    expected = {"LightningModule.BoringModel.validation_step"}
     if not _KINETO_AVAILABLE:
-        expected |= {"training_step_and_backward", "LightningModule.BoringModel.training_step", "LightningModule.BoringModel.backward"}
+        expected |= {
+            "training_step_and_backward",
+            "LightningModule.BoringModel.training_step",
+            "LightningModule.BoringModel.backward",
+        }
     print([e.name for e in pytorch_profiler.function_events])
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
@@ -344,7 +348,9 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "TrainingTypePlugin.SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events)
+    assert sum(
+        e.name == "TrainingTypePlugin.SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events
+    )
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
