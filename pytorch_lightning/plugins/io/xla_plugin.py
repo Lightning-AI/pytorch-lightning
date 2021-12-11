@@ -36,6 +36,8 @@ class XLACheckpointIO(TorchCheckpointIO):
             path: write-target path
             storage_options: Optional parameters when saving the model/training states.
         """
+        fs = get_filesystem(path)
+        fs.makedirs(os.path.dirname(path), exist_ok=True)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
         # Ref: https://github.com/pytorch/xla/issues/2773
         if _OMEGACONF_AVAILABLE:
