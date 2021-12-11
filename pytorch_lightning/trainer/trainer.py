@@ -655,6 +655,8 @@ class Trainer(
         self.num_val_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
         self.num_predict_batches = []
 
@@ -740,6 +742,8 @@ class Trainer(
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -1352,6 +1356,14 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
+    def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
+        self._last_train_dl_reload_epoch = self.current_epoch
+        return super().reset_train_dataloader(model=model)
+
+    def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
+        self._last_val_dl_reload_epoch = self.current_epoch
+        return super().reset_val_dataloader(model=model)
+
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
@@ -1883,11 +1895,17 @@ class Trainer(
         return self.progress_bar_metrics
 
     @property
-    def _should_reload_dl_epoch(self) -> bool:
-        """Check if dataloader should be reloaded in the current epoch."""
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
         n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and (not self.current_epoch % n_epochs)
+        return n_epochs and self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
 
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs
+        
     @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""

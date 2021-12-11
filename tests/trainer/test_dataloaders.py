@@ -1115,6 +1115,87 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
     assert tracker.mock_calls == expected_sequence
 
 
+@pytest.mark.parametrize("n", [3, 5])
+def test_dataloaders_load_every_n_epochs_infrequent_val(tmpdir, n):
+    train_reload_epochs, val_reload_epochs = [], []
+
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            train_reload_epochs.append(self.current_epoch)
+            return super().train_dataloader()
+
+        def val_dataloader(self):
+            val_reload_epochs.append(self.current_epoch)
+            return super().val_dataloader()
+    
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0.3,
+        limit_val_batches=0.3,
+        check_val_every_n_epoch=n,
+        reload_dataloaders_every_n_epochs=2,
+        max_epochs=10,
+    )
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    trainer.fit(model)
+    trainer.test(model)
+
+    # Verify epoch of reloads
+    if n == 3:
+        assert train_reload_epochs == [0, 2, 4, 6, 8]
+        assert val_reload_epochs == [0, 2, 5, 8]
+    if n == 5:
+        assert train_reload_epochs == [0, 2, 4, 6, 8]
+        assert val_reload_epochs == [0, 4, 9]
+
+    # Sanity check at epoch 0 creates a validation dataloader
+    # but val is checked every n epochs starting from epoch n-1
+
+    model.test_dataloader.assert_called_once()
+
+def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
+    train_reload_epochs, val_reload_epochs, val_check_epochs = [], [], []
+
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            train_reload_epochs.append(self.current_epoch)
+            return super().train_dataloader()
+
+        def val_dataloader(self):
+            val_reload_epochs.append(self.current_epoch)
+            return super().val_dataloader()
+
+        def validation_epoch_end(self, outputs):
+            val_check_epochs.append(self.current_epoch)
+            return super().validation_epoch_end(outputs)
+    
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0.3,
+        limit_val_batches=0.3,
+        val_check_interval=0.3,
+        reload_dataloaders_every_n_epochs=1,
+        max_epochs=3,
+    )
+    
+    model.test_dataloader = Mock(wraps=model.test_dataloader)
+
+    trainer.fit(model)
+    trainer.test(model)
+
+    # Verify epoch of reloads
+    assert train_reload_epochs == [0, 1, 2]
+    assert val_reload_epochs == [0, 1, 2]
+    model.test_dataloader.assert_called_once()
+
+    # Verify validation happens 3 times per epoch + 1 for sanity check
+    assert val_check_epochs == [0, 0, 0, 0, 1, 1, 1, 2, 2, 2]
+
 @pytest.mark.parametrize("n", ["test", -1])
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
 
