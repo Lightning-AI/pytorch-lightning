@@ -116,12 +116,32 @@ class AcceleratorConnector:
 
         self._init_deterministic(deterministic)
 
+        if num_processes:
+            rank_zero_deprecation(
+                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.6 and will be removed"
+                " in v1.8. Please use `Trainer(accelerator='cpu', devices={num_processes})` instead."
+            )
         self.num_processes = num_processes
         self.devices = devices
         # `gpus` is the input passed to the Trainer, whereas `gpu_ids` is a list of parsed gpu ids.
+        if gpus:
+            rank_zero_deprecation(
+                f"Setting `Trainer(gpus={gpus})` is deprecated in v1.6 and will be removed"
+                " in v1.8. Please use `Trainer(accelerator='gpu', devices={gpus})` instead."
+            )
         self.gpus = gpus
         self.parallel_device_ids = gpu_ids
+        if tpu_cores:
+            rank_zero_deprecation(
+                f"Setting `Trainer(tpu_cores={tpu_cores})` is deprecated in v1.6 and will be removed"
+                " in v1.8. Please use `Trainer(accelerator='tpu', devices={tpu_cores})` instead."
+            )
         self.tpu_cores = tpu_cores
+        if ipus:
+            rank_zero_deprecation(
+                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.6 and will be removed"
+                " in v1.8. Please use `Trainer(accelerator='ipu', devices={ipus})` instead."
+            )
         self.ipus = ipus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
