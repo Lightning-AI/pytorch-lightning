@@ -403,15 +403,13 @@ class AcceleratorConnector:
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
         if (
-                (isinstance(self.strategy, TrainingTypePlugin) and self.strategy._precision_plugin is None)
-                or not isinstance(self.strategy, TrainingTypePlugin)
-        ):
+            isinstance(self.strategy, TrainingTypePlugin) and self.strategy._precision_plugin is None
+        ) or not isinstance(self.strategy, TrainingTypePlugin):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
                 self._training_type_plugin.precision_plugin = precision_plugin
-        if (
-                (isinstance(self.strategy, TrainingTypePlugin) and self.strategy.accelerator is None)
-                or not isinstance(self.strategy, TrainingTypePlugin)
+        if (isinstance(self.strategy, TrainingTypePlugin) and self.strategy.accelerator is None) or not isinstance(
+            self.strategy, TrainingTypePlugin
         ):
             self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
