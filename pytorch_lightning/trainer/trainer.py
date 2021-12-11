@@ -1905,7 +1905,7 @@ class Trainer(
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs
-        
+
     @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""

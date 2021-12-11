@@ -1011,6 +1011,7 @@ def test_dataloaders_load_only_once(tmpdir):
 
     assert tracker.mock_calls == [call.val_dataloader(), call.train_dataloader()]
 
+
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
     model = BoringModel()
 
@@ -1047,7 +1048,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         def val_dataloader(self):
             val_reload_epochs.append(self.current_epoch)
             return super().val_dataloader()
-    
+
     model = TestModel()
 
     trainer = Trainer(
@@ -1071,7 +1072,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
     trainer.test(model)
 
     # Verify the sequence
-    expected_sequence = [call.val_dataloader(), call.train_dataloader()] # Sanity check first
+    expected_sequence = [call.val_dataloader(), call.train_dataloader()]  # Sanity check first
     if n == 1:
         expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 4
     elif n == 2:
@@ -1101,7 +1102,7 @@ def test_dataloaders_load_every_n_epochs_infrequent_val(tmpdir, n):
         def val_dataloader(self):
             val_reload_epochs.append(self.current_epoch)
             return super().val_dataloader()
-    
+
     model = TestModel()
 
     trainer = Trainer(
@@ -1146,7 +1147,7 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
         def validation_epoch_end(self, outputs):
             val_check_epochs.append(self.current_epoch)
             return super().validation_epoch_end(outputs)
-    
+
     model = TestModel()
 
     trainer = Trainer(
@@ -1157,7 +1158,7 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
         reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
     )
-    
+
     model.test_dataloader = Mock(wraps=model.test_dataloader)
 
     trainer.fit(model)
