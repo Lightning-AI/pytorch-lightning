@@ -43,6 +43,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning that shows when `max_epochs` in the `Trainer` is not set ([#10700](https://github.com/PyTorchLightning/pytorch-lightning/issues/10700))
 
 
+- Added a `PrecisionPlugin.teardown` method ([#????](https://github.com/PyTorchLightning/pytorch-lightning/issues/????))
+
+
+
 ### Changed
 
 - Raised exception in `init_dist_connection()` when torch distibuted is not available ([#10418](https://github.com/PyTorchLightning/pytorch-lightning/issues/10418))
@@ -272,6 +276,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed TypeError cause failure in `singal_connector` `teardown` method by adding None check ([#10961](https://github.com/PyTorchLightning/pytorch-lightning/pull/10961))
+
+
+- Fixed an issue with the `TPUSpawnPlugin` handling the `XLA_USE_BF16` environment variable incorrectly ([#????](https://github.com/PyTorchLightning/pytorch-lightning/pull/????))
 
 
 ## [1.5.4] - 2021-11-30
