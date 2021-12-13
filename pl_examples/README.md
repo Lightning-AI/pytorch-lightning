@@ -51,3 +51,9 @@ Contains implementations leveraging [loop customization](https://pytorch-lightni
 
 - [K-fold Cross Validation Loop](./loop_examples/kfold.py): Implementation of cross validation in a loop and special datamodule.
 - [Yield Loop](./loop_examples/yielding_training_step.py): Enables yielding from the training_step like in a Python generator. Useful for automatic optimization with multiple optimizers.
+
+______________________________________________________________________
+
+## Quantization
+
+- \[Intel Neural Compressor\] This folder contains quantization Image Classifier example with Intel Neural Compressor tool.

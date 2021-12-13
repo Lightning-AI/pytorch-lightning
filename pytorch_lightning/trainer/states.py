@@ -59,7 +59,7 @@ class RunningStage(LightningEnum):
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
     More than one running stage value can be set while a :class:`TrainerFn` is running:
 
-        - ``TrainerFn.FITTING`` - ``RunningStage.{SANITY_CHECKING,TRAINING,VALIDATING}``
+        - ``TrainerFn.FITTING`` - ``RunningStage.{SANITY_CHECKING,TRAINING,VALIDATING,QUANTIZING}``
         - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
         - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
@@ -72,6 +72,7 @@ class RunningStage(LightningEnum):
     TESTING = "test"
     PREDICTING = "predict"
     TUNING = "tune"
+    QUANTIZING = "quantize"
 
     @property
     def evaluating(self) -> bool:

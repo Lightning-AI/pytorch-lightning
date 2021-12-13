@@ -2462,6 +2462,17 @@ class Trainer(
         elif self.sanity_checking:
             self.state.stage = None
 
+    @property
+    def quantizing(self) -> bool:
+        return self.state.stage == RunningStage.QUANTIZING
+
+    @quantizing.setter
+    def quantizing(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.QUANTIZING
+        elif self.quantizing:
+            self.state.stage = None
+
     """
     Loop properties
     """

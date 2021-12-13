@@ -29,6 +29,7 @@ from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
+from pytorch_lightning.callbacks.intel_compressor import INCQuantization
 
 __all__ = [
     "BackboneFinetuning",
@@ -39,6 +40,7 @@ __all__ = [
     "GPUStatsMonitor",
     "XLAStatsMonitor",
     "GradientAccumulationScheduler",
+    "INCQuantization",
     "LambdaCallback",
     "LearningRateMonitor",
     "ModelCheckpoint",

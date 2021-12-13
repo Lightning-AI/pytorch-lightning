@@ -10,3 +10,4 @@ torchmetrics>=0.4.1
 pyDeprecate>=0.3.1, <0.4.0
 packaging>=17.0
 typing-extensions>=4.0.0
+neural-compressor>=1.8
