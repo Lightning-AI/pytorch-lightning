@@ -391,7 +391,7 @@ class DataHooks:
                     # don't do this
                     self.something = else
 
-                def setup(stage):
+                def setup(self, stage):
                     data = Load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
         """
