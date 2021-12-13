@@ -438,6 +438,7 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
+        self.precision_plugin.teardown()
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
