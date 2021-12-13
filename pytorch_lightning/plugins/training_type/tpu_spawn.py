@@ -243,6 +243,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         }
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
+        # todo: precision pluging is call in accelerator setup and should be moved
+        if "XLA_USE_BF16" in os.environ:
+            del os.environ["XLA_USE_BF16"]
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
