@@ -436,8 +436,7 @@ class NeptuneLogger(LightningLoggerBase):
                 f"Project {self._project_name} has not been migrated to the new structure."
                 " You can still integrate it with the Neptune logger using legacy Python API"
                 " available as part of neptune-contrib package:"
-                " https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n
-                "
+                " https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
             ) from e
 
     @rank_zero_only
