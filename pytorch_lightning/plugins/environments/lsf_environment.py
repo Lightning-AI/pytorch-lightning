@@ -84,12 +84,11 @@ class LSFEnvironment(ClusterEnvironment):
         ``LSB_DJOB_RANKFILE``.
         """
         var = "LSB_DJOB_RANKFILE"
-        try:
-            rankfile = os.environ[var]
-        except KeyError:
-            raise ValueError("Could not find environment variable LSB_DJOB_RANKFILE")
+        rankfile = os.environ.get(var)
+        if rankfile is None:
+            raise ValueError("Did not find the environment variable `LSB_DJOB_RANKFILE`")
         if not rankfile:
-            raise ValueError("Environment variable LSB_DJOB_RANKFILE is empty")
+            raise ValueError("The environment variable `LSB_DJOB_RANKFILE` is empty")
         with open(rankfile) as f:
             ret = [line.strip() for line in f]
         # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
@@ -120,16 +119,15 @@ class LSFEnvironment(ClusterEnvironment):
         Use the LSF job ID so all ranks can compute the master port
         """
         # check for user-specified master port
-        port = os.environ.get("MASTER_PORT", None)
+        port = os.environ.get("MASTER_PORT")
         if not port:
             var = "LSB_JOBID"
-            jobid = os.environ.get(var, None)
+            jobid = os.environ.get(var)
             if not jobid:
-                raise ValueError("Could not find job id -- expected in environment variable %s" % var)
-            else:
-                port = int(jobid)  # type: ignore
-                # all ports should be in the 10k+ range
-                port = (port % 1000) + 10000  # type: ignore
+                raise ValueError(f"Could not find job id. Expected in environment variable {var}")
+            port = int(jobid)  # type: ignore
+            # all ports should be in the 10k+ range
+            port = (port % 1000) + 10000  # type: ignore
             log.debug("calculated master port")
         else:
             log.debug("using externally specified master port")
@@ -152,7 +150,7 @@ class LSFEnvironment(ClusterEnvironment):
         Read this from the environment variable ``JSM_NAMESPACE_SIZE``
         """
         var = "JSM_NAMESPACE_SIZE"
-        world_size = os.environ.get(var, None)
+        world_size = os.environ.get(var)
         if world_size is None:
             raise ValueError(
                 f"Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun"
