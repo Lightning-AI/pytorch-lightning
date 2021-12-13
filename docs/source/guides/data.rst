@@ -239,7 +239,7 @@ Evaluate with Additional DataLoaders
 ====================================
 
 You can evaluate your models using additonal dataloaders even if the dataloader specific hooks hasn't been defined within your
-:class:`~pytorch_lightning.core.lightning.Lightning.LightningModule` instance. For example, this would be the case if your test data
+:class:`~pytorch_lightning.core.lightning.LightningModule` instance. For example, this would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
 .. code-block:: python
@@ -253,7 +253,7 @@ set is not available at the time your model was declared. Simply pass the test s
 --------------
 
 
-.. _sequences:
+.. _sequential-data:
 
 
 ***************
@@ -266,10 +266,12 @@ Lightning has built in support for dealing with sequential data.
 Packed Sequences as Inputs
 ==========================
 
-When using PackedSequence, do 2 things:
+When using :class:`~torch.nn.utils.rnn.PackedSequence`, do 2 things:
 
 1. Return either a padded tensor in dataset or a list of variable length tensors in the DataLoader's `collate_fn <https://pytorch.org/docs/stable/data.html#dataloader-collate-fn>`_ (example shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
+
+|
 
 .. testcode::
 
@@ -288,6 +290,7 @@ When using PackedSequence, do 2 things:
 
 Truncated Backpropagation Through Time (TBPTT)
 ==============================================
+
 There are times when multiple backwards passes are needed for each batch.
 For example, it may save memory to use ``Truncated Backpropagation Through Time`` when training RNNs.
 
