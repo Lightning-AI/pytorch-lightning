@@ -283,7 +283,7 @@ When using :class:`~torch.nn.utils.rnn.PackedSequence`, do 2 things:
 
 
     # In LightningModule
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x = rnn.pack_sequence(batch[0], enforce_sorted=False)
         y = rnn.pack_sequence(batch[1], enforce_sorted=False)
 
