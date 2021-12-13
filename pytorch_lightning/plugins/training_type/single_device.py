@@ -68,7 +68,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.device
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()

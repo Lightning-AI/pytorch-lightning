@@ -499,7 +499,7 @@ class LightningCLI:
 
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
-        self._model_class = model_class or LightningModule
+        self.model_class = model_class or LightningModule
         self.subclass_mode_model = (model_class is None) or subclass_mode_model
 
         self.datamodule_class = datamodule_class
@@ -567,7 +567,7 @@ class LightningCLI:
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
-        parser.add_lightning_class_args(self._model_class, "model", subclass_mode=self.subclass_mode_model)
+        parser.add_lightning_class_args(self.model_class, "model", subclass_mode=self.subclass_mode_model)
         if self.model_class is None and len(MODEL_REGISTRY):
             # did not pass a model and there are models registered
             parser.set_choices("model", MODEL_REGISTRY.classes)

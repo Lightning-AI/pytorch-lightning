@@ -102,7 +102,7 @@ class LightningLite(ABC):
         self._accelerator = self._accelerator_connector.accelerator
         self._strategy = self._accelerator.training_type_plugin
         self._precision_plugin = self._strategy.precision_plugin
-        self._models_setup: int = 0
+        self.models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
@@ -173,7 +173,7 @@ class LightningLite(ABC):
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin)
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
-        self._models_setup += 1
+        self.models_setup += 1
         if optimizers:
             # join both types in a list for API convenience
             return [model] + optimizers  # type: ignore
@@ -259,11 +259,11 @@ class LightningLite(ABC):
         module = model.module if model is not None else model
         if isinstance(self._strategy, DeepSpeedPlugin):
             if model is None:
-                if self._models_setup == 0:
+                if self.models_setup == 0:
                     raise MisconfigurationException(
                         "No models were setup for backward. Did you forget to call `self.setup()`?"
                     )
-                if self._models_setup > 1:
+                if self.models_setup > 1:
                     raise MisconfigurationException(
                         "When using multiple models + deepspeed, please provide the model used to perform"
                         " the optimization: `self.backward(loss, model=model)`"

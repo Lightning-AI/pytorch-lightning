@@ -64,7 +64,7 @@ class RegisterRecordFunction:
     """
 
     def __init__(self, model: nn.Module) -> None:
-        self._model = model
+        self.model = model
         self._records: Dict[str, record_function] = {}
         self._handles: Dict[str, List["RemovableHandle"]] = {}
 
@@ -79,7 +79,7 @@ class RegisterRecordFunction:
         return output
 
     def __enter__(self) -> None:
-        for module_name, module in self._model.named_modules():
+        for module_name, module in self.model.named_modules():
             if module_name:
                 full_name = f"{type(module).__module__}.{type(module).__name__}"
                 record_name = f"{full_name}: {module_name}"

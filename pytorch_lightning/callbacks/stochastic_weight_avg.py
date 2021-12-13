@@ -121,7 +121,7 @@ class StochasticWeightAveraging(Callback):
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
-        self._model_contains_batch_norm = None
+        self.model_contains_batch_norm = None
         self._average_model = None
 
     @property
@@ -154,10 +154,10 @@ class StochasticWeightAveraging(Callback):
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
-        self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
+        self.model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
         self._max_epochs = trainer.max_epochs
-        if self._model_contains_batch_norm:
+        if self.model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             trainer.fit_loop.max_epochs += 1
 
@@ -225,7 +225,7 @@ class StochasticWeightAveraging(Callback):
         trainer.fit_loop._skip_backward = False
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
+        if self.model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1

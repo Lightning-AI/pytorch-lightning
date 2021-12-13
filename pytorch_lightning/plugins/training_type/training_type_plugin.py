@@ -44,7 +44,7 @@ class TrainingTypePlugin(ABC):
     def __init__(
         self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
-        self._model: Optional[Module] = None
+        self.model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
@@ -284,16 +284,18 @@ class TrainingTypePlugin(ABC):
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
-        return self._model
+        rank_zero_deprecation("..")
+        return self.model
 
     @model.setter
     def model(self, new_model: Optional[Module]) -> None:
-        self._model = new_model
+        rank_zero_deprecation("..")
+        self.model = new_model
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model) if self._model is not None else None
+        return unwrap_lightning_module(self.model) if self.model is not None else None
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
