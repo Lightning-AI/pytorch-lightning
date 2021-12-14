@@ -307,18 +307,6 @@ class TrainingTypePlugin(ABC):
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the training loop
-        return trainer.run_stage()
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the test loop
-        return trainer.run_stage()
-
-    def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the predicting loop
-        return trainer.run_stage()
-
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 

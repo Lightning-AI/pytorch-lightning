@@ -53,6 +53,8 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     _check_dl_idx_in_on_train_batch_hooks(trainer, model)
     # TODO: Remove this in v1.8
     _check_on_init_start_end(trainer)
+    # TODO: Delete _check_on_hpc_hooks in v1.8
+    _check_on_hpc_hooks(model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -303,3 +305,18 @@ def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
             )
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
+
+
+# TODO: Delete _check_on_hpc_hooks in v1.8
+def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
+    if is_overridden("on_hpc_save", model):
+        rank_zero_deprecation(
+            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
+        )
+
+    if is_overridden("on_hpc_load", model):
+        rank_zero_deprecation(
+            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
+        )
