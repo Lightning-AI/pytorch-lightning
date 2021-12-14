@@ -31,13 +31,15 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
-if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.optionals import import_docstring_parse
+if not _JSONARGPARSE_AVAILABLE:
+    raise ModuleNotFoundError(
+        "`jsonargparse` is not installed but it is required for the CLI."
+        " Install it with `pip install -U jsonargparse[signatures]`."
+    )
+from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
+from jsonargparse.optionals import import_docstring_parse
 
-    set_config_read_mode(fsspec_enabled=True)
-else:
-    ArgumentParser = Namespace = object
+set_config_read_mode(fsspec_enabled=True)
 
 
 class _Registry(dict):
@@ -114,11 +116,6 @@ class LightningArgumentParser(ArgumentParser):
         For full details of accepted arguments see `ArgumentParser.__init__
         <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
         """
-        if not _JSONARGPARSE_AVAILABLE:
-            raise ModuleNotFoundError(
-                "`jsonargparse` is not installed but it is required for the CLI."
-                " Install it with `pip install -U jsonargparse[signatures]`."
-            )
         super().__init__(*args, **kwargs)
         self.add_argument(
             "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
