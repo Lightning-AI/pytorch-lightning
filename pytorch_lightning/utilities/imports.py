@@ -76,6 +76,7 @@ _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 # _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
+_BAGUA_AVAILABLE = _module_available("bagua")
 _DEEPSPEED_AVAILABLE = _module_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
@@ -108,6 +109,8 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
+if _BAGUA_AVAILABLE:
+    import bagua.torch_api
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
