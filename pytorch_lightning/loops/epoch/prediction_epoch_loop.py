@@ -96,13 +96,11 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("predict_batch_to_device"):
-            batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
-        with self.trainer.profiler.profile("predict_step"):
-            self._predict_step(batch, batch_idx, dataloader_idx)
+        self._predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
