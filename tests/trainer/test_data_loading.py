@@ -351,6 +351,7 @@ def test_error_raised_with_float_limited_eval_batches():
         MisconfigurationException,
         match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
 
 
 @pytest.mark.parametrize(
