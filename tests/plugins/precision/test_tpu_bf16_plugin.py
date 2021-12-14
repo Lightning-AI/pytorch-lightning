@@ -20,6 +20,6 @@ from pytorch_lightning.plugins import TPUBf16PrecisionPlugin
 def test_teardown():
     plugin = TPUBf16PrecisionPlugin()
     plugin.connect(Mock(), Mock(), Mock())
-    assert "XLA_USE_BF16" in os.environ
+    assert os.environ.get("XLA_USE_BF16") == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ
