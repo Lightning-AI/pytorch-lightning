@@ -956,26 +956,17 @@ for hooks that you might care about
 
 
     class MyPrintingCallback(Callback):
-        def on_init_start(self, trainer):
-            print("Starting to init trainer!")
-
-        def on_init_end(self, trainer):
-            print("Trainer is init now")
+        def on_train_start(self, trainer, pl_module):
+            print("Training is starting")
 
         def on_train_end(self, trainer, pl_module):
-            print("do something when training ends")
+            print("Training is ending")
 
 And pass the callbacks into the trainer
 
 .. testcode::
 
     trainer = Trainer(callbacks=[MyPrintingCallback()])
-
-.. testoutput::
-    :hide:
-
-    Starting to init trainer!
-    Trainer is init now
 
 .. tip::
     See full list of 12+ hooks in the :doc:`callbacks <../extensions/callbacks>`.

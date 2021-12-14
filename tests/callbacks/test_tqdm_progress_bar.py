@@ -81,9 +81,6 @@ def test_tqdm_progress_bar_totals(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     bar = trainer.progress_bar_callback
-    assert float("inf") == bar.total_train_batches
-    assert 0 == bar.total_val_batches
-    assert 0 == bar.total_test_batches
 
     trainer.fit(model)
 
@@ -584,7 +581,7 @@ def test_tqdm_progress_bar_main_bar_resume():
     trainer.num_val_batches = [3]
     trainer.fit_loop.epoch_loop.batch_progress.current.completed = 3
 
-    bar.on_init_end(trainer)
+    bar.setup(trainer, model)
     bar.on_train_start(trainer, model)
     bar.on_train_epoch_start(trainer, model)
 
