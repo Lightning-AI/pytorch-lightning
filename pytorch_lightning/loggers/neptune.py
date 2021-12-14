@@ -553,7 +553,10 @@ class NeptuneLogger(LightningLoggerBase):
         expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-        return model_path[len(expected_model_path) :]
+        # Remove extension from filepath
+        filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
+
+        return filepath
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
