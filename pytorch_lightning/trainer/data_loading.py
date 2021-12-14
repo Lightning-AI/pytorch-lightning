@@ -455,9 +455,11 @@ class TrainerDataLoadingMixin(ABC):
                         loader, SequentialSampler(loader.dataset), mode=mode
                     )
                 else:
-                    rank_zero_warn(
-                        f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                        "it is strongly recommended that you turn this off for val/test/predict dataloaders."
+                    apply_to_collection(
+                        loader.loaders if isinstance(loader, CombinedLoader) else loader,
+                        DataLoader,
+                        self._check_eval_shuffling,
+                        mode=mode,
                     )
 
         if any(dl is None for dl in dataloaders):
@@ -620,3 +622,16 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
 
         return dataloader
+
+    @staticmethod
+    def _check_eval_shuffling(dataloader, mode):
+        if (
+            hasattr(dataloader, "sampler")
+            and not isinstance(dataloader.sampler, SequentialSampler)
+            and not isinstance(dataloader.dataset, IterableDataset)
+        ):
+            rank_zero_warn(
+                f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
+                " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                category=UserWarning,
+            )

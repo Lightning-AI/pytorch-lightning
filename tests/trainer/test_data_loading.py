@@ -21,6 +21,7 @@ from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -363,4 +364,28 @@ def test_error_raised_with_float_limited_eval_batches():
         MisconfigurationException,
         match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
+
+
+@pytest.mark.parametrize(
+    "val_dl",
+    [
+        DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+        CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)),
+        CombinedLoader(
+            [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
+        ),
+        CombinedLoader(
+            {
+                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            }
+        ),
+    ],
+)
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
+    trainer = Trainer()
+    model = BoringModel()
+    trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
+    with pytest.warns(UserWarning, match="recommended .* turn this off for val/test/predict"):
         trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
