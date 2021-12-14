@@ -17,6 +17,7 @@ from abc import ABC
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -297,18 +298,16 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        for loader_i in range(len(dataloaders)):
-            loader = dataloaders[loader_i]
-
-            if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
-                rank_zero_warn(
-                    f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                    " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
-                    category=PossibleUserWarning,
-                )
-
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
+
+        for loader in dataloaders:
+            apply_to_collection(
+                loader.loaders if isinstance(loader, CombinedLoader) else loader,
+                DataLoader,
+                self._check_eval_shuffling,
+                mode=mode,
+            )
 
         # add samplers
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
@@ -459,3 +458,16 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
 
         return dataloader
+
+    @staticmethod
+    def _check_eval_shuffling(dataloader, mode):
+        if (
+            hasattr(dataloader, "sampler")
+            and not isinstance(dataloader.sampler, SequentialSampler)
+            and not isinstance(dataloader.dataset, IterableDataset)
+        ):
+            rank_zero_warn(
+                f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
+                " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                category=PossibleUserWarning,
+            )
