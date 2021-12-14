@@ -392,7 +392,7 @@ class DataHooks:
                     self.something = else
 
                 def setup(self, stage):
-                    data = Load_data(...)
+                    data = load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
         """
 
