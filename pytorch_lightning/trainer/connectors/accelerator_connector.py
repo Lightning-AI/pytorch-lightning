@@ -800,9 +800,6 @@ class AcceleratorConnector:
             acc_cls = CPUAccelerator
 
         accelerator = acc_cls()
-        # transfer ownership of the plugins to the accelerator
-        # self._training_type_plugin = proxy(self.training_type_plugin)
-
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
