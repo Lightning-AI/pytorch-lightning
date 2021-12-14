@@ -1120,7 +1120,7 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self) -> Optional[Union[Sequence[Callback], Callback]]:
+    def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
         gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
         Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
@@ -1129,7 +1129,7 @@ class LightningModule(
         run last.
 
         Return:
-            A list of callbacks which will extend the list of callbacks in the Trainer.
+            A callback or a list of callbacks which will extend the list of callbacks in the Trainer.
 
         Example::
 
