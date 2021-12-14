@@ -1097,7 +1097,7 @@ class Trainer(
         self._callback_connector._attach_model_callbacks()
         self._callback_connector._attach_model_logging_functions()
 
-        verify_loop_configurations(self, model)
+        verify_loop_configurations(self)
 
         # hook
         self._data_connector.prepare_data()
