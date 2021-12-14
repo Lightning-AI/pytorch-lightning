@@ -15,7 +15,6 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     Callback,
     GradientAccumulationScheduler,
@@ -256,12 +255,13 @@ class CallbackConnector:
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
 
-    def attach_model_logging_functions(self, model):
+    def attach_model_logging_functions(self):
+        lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
-            callback.log = model.log
-            callback.log_dict = model.log_dict
+            callback.log = lightning_module.log
+            callback.log_dict = lightning_module.log_dict
 
-    def _attach_model_callbacks(self, pl_module: "pl.LightningModule") -> None:
+    def _attach_model_callbacks(self) -> None:
         """Attaches the callbacks defined in the model.
 
         If a callback returned by the model's configure_callback method has the same type as one or several
@@ -269,7 +269,7 @@ class CallbackConnector:
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
         """
-        model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks", pl_module=pl_module)
+        model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks")
         if not model_callbacks:
             return
 
