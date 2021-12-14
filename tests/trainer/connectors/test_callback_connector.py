@@ -223,8 +223,7 @@ def test_attach_model_callbacks_support_logging(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def configure_callbacks(self):
-            cb = TempCallback()
-            return cb
+            return TempCallback()
 
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
