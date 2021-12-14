@@ -361,6 +361,36 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["synchronize_checkpoint_boundary"]
 
 
+@RunIf(min_gpus=1, deepspeed=True, standalone=True)
+def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
+    """Ensure if we modify the activation checkpointing parameters, we pass these to
+    deepspeed.checkpointing.configure correctly."""
+    ds = DeepSpeedPlugin(
+        partition_activations=True,
+        cpu_checkpointing=True,
+        contiguous_memory_optimization=True,
+        synchronize_checkpoint_boundary=True,
+    )
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        fast_dev_run=1,
+        strategy=ds,
+        precision=16,
+        gpus=1,
+    )
+    with mock.patch(
+        "deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure
+    ) as deepspeed_checkpointing_configure:
+        trainer.fit(model)
+
+    deepspeed_checkpointing_configure.assert_called_with(
+        mpu_=None, partition_activations=True, contiguous_checkpointing=True, checkpoint_in_cpu=True, profile=None
+    )
+
+
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
