@@ -73,11 +73,21 @@ class Callback(abc.ABC):
         pass
 
     def on_init_start(self, trainer: "pl.Trainer") -> None:
-        """Called when the trainer initialization begins, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+
+        Called when the trainer initialization begins, model has not yet been set.
+        """
         pass
 
     def on_init_end(self, trainer: "pl.Trainer") -> None:
-        """Called when the trainer initialization ends, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+
+        Called when the trainer initialization ends, model has not yet been set.
+        """
         pass
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
