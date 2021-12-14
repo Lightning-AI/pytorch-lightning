@@ -1095,7 +1095,7 @@ class Trainer(
         self.training_type_plugin.connect(model)
 
         self._callback_connector._attach_model_callbacks()
-        self._callback_connector.attach_model_logging_functions()
+        self._callback_connector._attach_model_logging_functions()
 
         verify_loop_configurations(self, model)
 

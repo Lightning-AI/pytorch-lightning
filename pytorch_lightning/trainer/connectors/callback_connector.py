@@ -255,7 +255,7 @@ class CallbackConnector:
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
 
-    def attach_model_logging_functions(self):
+    def _attach_model_logging_functions(self):
         lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
             callback.log = lightning_module.log
