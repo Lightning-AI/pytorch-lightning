@@ -272,7 +272,6 @@ class CallbackConnector:
         model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks")
         if not model_callbacks:
             return
-
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
