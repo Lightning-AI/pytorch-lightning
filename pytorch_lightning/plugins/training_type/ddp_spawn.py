@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
+    rank_zero_debug,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -219,7 +220,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
-        rank_zero_warn("cleaning up ddp environment...")
+        rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
