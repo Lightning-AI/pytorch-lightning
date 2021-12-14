@@ -1701,10 +1701,6 @@ class Trainer(
         return getattr(self.training_type_plugin, "world_size", 1)
 
     @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.training_type_plugin.should_rank_save_checkpoint
-
-    @property
     def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 

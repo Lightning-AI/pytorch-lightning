@@ -249,7 +249,7 @@ class ModelCheckpoint(Callback):
         )
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we build the ckpt dir on the fly."""
+        """When pretrain routine starts we resolve the ckpt dir on the fly."""
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
@@ -599,9 +599,6 @@ class ModelCheckpoint(Callback):
         ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
-
-        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
-            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
