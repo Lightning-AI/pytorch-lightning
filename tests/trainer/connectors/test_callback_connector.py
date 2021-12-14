@@ -214,18 +214,3 @@ def test_attach_model_callbacks_override_info(caplog):
         cb_connector._attach_model_callbacks(model)
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
-
-
-def test_attach_model_callbacks_support_logging(tmpdir):
-    class TempCallback(Callback):
-        def on_train_epoch_start(self, *args, **kwargs):
-            self.log("on_train_epoch_end", 7.0)
-
-    class CustomBoringModel(BoringModel):
-        def configure_callbacks(self):
-            return TempCallback()
-
-    model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    trainer.fit(model)
-    assert trainer.logged_metrics == {"on_train_epoch_end": 7.0}

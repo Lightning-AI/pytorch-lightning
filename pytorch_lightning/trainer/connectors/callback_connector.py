@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
@@ -273,8 +273,6 @@ class CallbackConnector:
         if not model_callbacks:
             return
 
-        model_callbacks = [model_callbacks] if not isinstance(model_callbacks, Sequence) else model_callbacks
-        model_callbacks = list(model_callbacks)
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
