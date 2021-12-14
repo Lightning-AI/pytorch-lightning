@@ -107,8 +107,7 @@ class EvaluationEpochLoop(Loop):
             raise StopIteration
 
         if not data_fetcher.store_on_device:
-            with self.trainer.profiler.profile("evaluation_batch_to_device"):
-                batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=(dataloader_idx or 0))
+            batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=(dataloader_idx or 0))
 
         self.batch_progress.increment_ready()
 
@@ -121,9 +120,9 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_started()
 
         # lightning module methods
-        with self.trainer.profiler.profile("evaluation_step_and_end"):
-            output = self._evaluation_step(**kwargs)
-            output = self._evaluation_step_end(output)
+
+        output = self._evaluation_step(**kwargs)
+        output = self._evaluation_step_end(output)
 
         self.batch_progress.increment_processed()
 
