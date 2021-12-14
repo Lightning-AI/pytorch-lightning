@@ -1037,9 +1037,7 @@ class Trainer(
         """
         Trainer._log_api_event("tune")
 
-        self.state.fn = TrainerFn.TUNING
         self.state.status = TrainerStatus.RUNNING
-        self.tuning = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -1058,7 +1056,11 @@ class Trainer(
 
         with isolate_rng():
             result = self.tuner._tune(
-                model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+                model,
+                train_dataloaders,
+                val_dataloaders,
+                datamodule,
+                scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
             )
 
         assert self.state.stopped

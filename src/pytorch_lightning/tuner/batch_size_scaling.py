@@ -39,6 +39,8 @@ def scale_batch_size(
     batch_arg_name: str = "batch_size",
 ) -> Optional[int]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
+    raise MisconfigurationException("this is gone")
+
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since fast_dev_run is enabled.")
         return

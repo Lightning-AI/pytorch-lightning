@@ -14,8 +14,8 @@
 from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.trainer.states import TrainerStatus
-from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -34,6 +34,9 @@ class Tuner:
     def _tune(
         self,
         model: "pl.LightningModule",
+        train_dataloaders,
+        val_dataloaders,
+        datamodule,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
@@ -55,7 +58,9 @@ class Tuner:
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, str):
                 scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
-            result["scale_batch_size"] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
+            result["scale_batch_size"] = self.fit(
+                model, train_dataloaders, val_dataloaders, datamodule, **scale_batch_size_kwargs
+            )
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
@@ -66,6 +71,7 @@ class Tuner:
 
         return result
 
+    # TODO: check if this is required
     def _run(self, *args: Any, **kwargs: Any) -> None:
         """`_run` wrapper to set the proper state during tuning, as this can be called multiple times."""
         self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
@@ -205,3 +211,9 @@ class Tuner:
         )
         self.trainer.auto_lr_find = False
         return result["lr_find"]
+
+    def fit(self, model, train_dataloaders, val_dataloaders, datamodule, **batch_size_scale_kwargs):
+        batch_size_finder = BatchSizeFinder(**batch_size_scale_kwargs)
+        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
+        self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
+        return batch_size_finder.optimal_batch_size
