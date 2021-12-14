@@ -376,7 +376,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        max_epochs=1,
+        fast_dev_run=1,
         strategy=ds,
         precision=16,
         gpus=1,
