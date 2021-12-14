@@ -29,7 +29,7 @@ There are a few different data containers used in Lightning:
    * - :class:`~torch.utils.data.DataLoader`
      - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a Dataset.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
-     -  A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of: train DataLoader(s), validation DataLoader(s), test DataLoader(s) and predict DataLoader(s), along with the matching transforms and data processing/downloads steps required.
+     -  A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of: training DataLoader(s), validation DataLoader(s), test DataLoader(s) and predict DataLoader(s), along with the matching transforms and data processing/downloads steps required.
 
 
 Why use LightningDataModule?
@@ -191,9 +191,9 @@ Multiple Validation/Test/Predict DataLoaders
 For validation, test and predict DataLoaders, you can pass a single DataLoader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. You can choose to pass
 the batches sequentially or simultaneously, as is done for the training step.
-The default mode for these DataLoaders is sequential. Note that when using sequential a sequence of dataloaders you need
+The default mode for these DataLoaders is sequential. Note that when using a sequence of dataloaders you need
 to add an additional argument ``dataloader_idx`` in their corresponding step specific hook. The corresponding loop will process
-the dataloaders in sequential order i.e. first dataloader will be processed first completely, then the second one, and so on.
+the dataloaders in sequential order, i.e., the first dataloader will be processed completely, then the second one, and so on.
 
 See the following for more details for the default sequential option:
 
@@ -215,7 +215,7 @@ See the following for more details for the default sequential option:
 
 To combine batches of multiple DataLoaders simultaneously, one
 needs to wrap the DataLoaders with :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
-Here you don't need to add any additional ``dataloader_idx`` argument here.
+Here you don't need to add any additional ``dataloader_idx`` argument.
 
 .. testcode::
 
@@ -238,8 +238,8 @@ Here you don't need to add any additional ``dataloader_idx`` argument here.
 Evaluate with Additional DataLoaders
 ====================================
 
-You can evaluate your models using additonal dataloaders even if the dataloader specific hooks hasn't been defined within your
-:class:`~pytorch_lightning.core.lightning.LightningModule` instance. For example, this would be the case if your test data
+You can evaluate your models using additonal dataloaders even if the dataloader specific hooks haven't been defined within your
+:class:`~pytorch_lightning.core.lightning.LightningModule`. For example, this would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
 .. code-block:: python
@@ -292,7 +292,7 @@ Truncated Backpropagation Through Time (TBPTT)
 ==============================================
 
 There are times when multiple backwards passes are needed for each batch.
-For example, it may save memory to use ``Truncated Backpropagation Through Time`` when training RNNs.
+For example, it may save memory to use **Truncated Backpropagation Through Time** when training RNNs.
 
 Lightning can handle TBPTT automatically via this flag.
 
@@ -348,7 +348,7 @@ option when using sequential data.
         seq_data = ["A", "long", "time", "ago", "in", "a", "galaxy", "far", "far", "away"]
         iterable_dataset = CustomDataset(seq_data)
 
-        dataloader = DataLoader(data=iterable_dataset, batch_size=5)
+        dataloader = DataLoader(dataset=iterable_dataset, batch_size=5)
         return dataloader
 
 
