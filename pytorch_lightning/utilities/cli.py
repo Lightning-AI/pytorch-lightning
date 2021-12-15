@@ -37,8 +37,8 @@ if _JSONARGPARSE_AVAILABLE:
 
     set_config_read_mode(fsspec_enabled=True)
 else:
-    locals()['ArgumentParser'] = object
-    locals()['Namespace'] = object
+    locals()["ArgumentParser"] = object
+    locals()["Namespace"] = object
 
 
 class _Registry(dict):
