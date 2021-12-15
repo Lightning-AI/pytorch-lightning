@@ -1129,7 +1129,7 @@ class Trainer(
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
                                 |                             ||
-                         {self._run_stage}                     ||  FLOW
+                        {self._run_stage}                     ||  FLOW
                                 |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
