@@ -114,6 +114,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _is_single_process_single_device(self):
         return True
 
+    def setup_environment(self) -> None:
+        self._setup_distributed()
+
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)
@@ -122,8 +125,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
-    def set_world_ranks(self, process_idx: int = 0) -> None:
-        self._local_rank = process_idx
+    def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
@@ -155,18 +157,10 @@ class DDPSpawnPlugin(ParallelPlugin):
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
-        self._worker_setup(process_idx)
+        self._local_rank = process_idx
         result = function(*args, **kwargs)
         if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
-
-    def _worker_setup(self, process_idx: int):
-        reset_seed()
-        self.set_world_ranks(process_idx)
-        rank_zero_only.rank = self.global_rank
-        init_dist_connection(
-            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
-        )
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         super().pre_dispatch(trainer)
@@ -381,6 +375,14 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+    def _setup_distributed(self):
+        reset_seed()
+        self.set_world_ranks()
+        rank_zero_only.rank = self.global_rank
+        init_dist_connection(
+            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        )
 
 
 class _FakeQueue(UserList):

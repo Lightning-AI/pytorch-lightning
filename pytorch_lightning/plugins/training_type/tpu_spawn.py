@@ -160,10 +160,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         pass
 
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
-    def set_world_ranks(self, process_idx: int = 0) -> None:
+    def set_world_ranks(self) -> None:
         pass
 
     def model_to_device(self) -> None:
@@ -254,7 +251,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def _wrapped_function(
         self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
     ) -> None:
-        self._worker_setup(process_idx)
         result = function(*args, **kwargs)
         if self.local_rank == 0:
             return_queue.put(move_data_to_device(result, "cpu"))
@@ -266,12 +262,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if self.local_rank == 0:
             time.sleep(2)
-
-    def _worker_setup(self, process_idx: int):
-        reset_seed()
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
-        rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
@@ -346,3 +336,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+
+    def _setup_distributed(self) -> None:
+        reset_seed()
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
+        rank_zero_only.rank = self.global_rank

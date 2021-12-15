@@ -398,17 +398,17 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._accelerator.setup_environment()
-
-        # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_sharded_context, run_method)
+        # wrap the real run method with setup logic for accelerator/strategy
+        run_method = partial(self._run_with_accelerator_setup, run_method)
 
         if isinstance(self._strategy, DDPSpawnPlugin):
             return self._strategy.spawn(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_accelerator_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._accelerator.setup_environment()
+        # apply sharded context to prevent OOM
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 
