@@ -717,7 +717,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -1037,7 +1037,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -1091,17 +1091,16 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        verify_loop_configurations(self, model)
-
-        # attach model log function to callback
-        self._callback_connector.attach_model_logging_functions(model)
-
         # attach model to the training type plugin
         self.training_type_plugin.connect(model)
 
+        self._callback_connector._attach_model_callbacks()
+        self._callback_connector._attach_model_logging_functions()
+
+        verify_loop_configurations(self)
+
         # hook
         self._data_connector.prepare_data()
-        self._callback_connector._attach_model_callbacks()
 
         # ----------------------------
         # SET UP TRAINING
@@ -1124,9 +1123,11 @@ class Trainer(
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
+                         spawn processes                      ||
+               {self.accelerator.setup_environment}           ||
+                                |                             ||
                         setup accelerator                     ||
-                           and strategy                       ||
-                                |                             ||  LIGHTNING
+                           and strategy                       ||  LIGHTNING
                                 |                             ||
                          {self.run_stage}                     ||  FLOW
                                 |                             ||
@@ -1442,13 +1443,70 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
+    def call_hook(
+        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
+    ) -> Any:
+        r"""
+        .. deprecated:: v1.6
+            The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.")
+        pl_module = self.lightning_module or pl_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = hook_name
+
+        # always profile hooks
+        with self.profiler.profile(hook_name):
+
+            # first call trainer hook
+            callback_fx = getattr(self, hook_name, None)
+            if callable(callback_fx):
+                callback_fx(*args, **kwargs)
+
+            # next call hook in lightningModule
+            output = None
+            model_fx = getattr(pl_module, hook_name, None)
+            if callable(model_fx):
+                output = model_fx(*args, **kwargs)
+
+            # *Bad code alert*
+            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
+            # The following logic selectively chooses which hooks are called on each object.
+            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
+            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
+            # All of this should be fixed by #8506
+
+            # call the accelerator hook
+            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
+                accelerator_hook = getattr(self.accelerator, hook_name)
+                accelerator_output = accelerator_hook(*args, **kwargs)
+                # Rely on the accelerator output if lightningModule hook returns nothing
+                # Required for cases such as DataParallel where we reduce the output for the user
+                # todo: move this data parallel logic into the data parallel plugin
+                output = accelerator_output if output is None else output
+
+            # call the ttp hook
+            if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(
+                self.training_type_plugin, hook_name
+            ):
+                ttp_hook = getattr(self.training_type_plugin, hook_name)
+                ttp_output = ttp_hook(*args, **kwargs)
+                output = ttp_output if output is None else output
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
+        return output
+
     def _call_lightning_module_hook(
         self,
         hook_name: str,
         *args: Any,
         pl_module: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
-    ):
+    ) -> Any:
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
@@ -1456,7 +1514,7 @@ class Trainer(
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
-            return None
+            return
 
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
@@ -1475,40 +1533,38 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ) -> Optional[Any]:
-        output = None
+    ) -> None:
+        # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
             # we also don't profile bc profiler hasn't been set yet
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    output = fn(self, *args, **kwargs)
-            return output
+                    fn(self, *args, **kwargs)
+            return
 
         pl_module = self.lightning_module
         if pl_module:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if statement in v1.7
+        # TODO: remove if block in v1.7
         if hook_name in ("on_train_batch_start", "on_train_batch_end"):
             fn = getattr(self, hook_name)
             if callable(fn):
                 with self.profiler.profile(hook_name):
-                    output = fn(*args, **kwargs)
+                    fn(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
                     with self.profiler.profile(hook_name):
-                        output = fn(self, self.lightning_module, *args, **kwargs)
+                        fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-        return output
 
     # TODO: rename to _call_strategy_hook and eventually no longer need this
     def _call_ttp_hook(
@@ -1516,30 +1572,20 @@ class Trainer(
         hook_name: str,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> Any:
+        pl_module = self.lightning_module
+        prev_fx_name = pl_module._current_fx_name
+        pl_module._current_fx_name = hook_name
+
         fn = getattr(self.training_type_plugin, hook_name)
         if not callable(fn):
-            return None
+            return
 
         with self.profiler.profile(hook_name):
             output = fn(*args, **kwargs)
 
-        return output
-
-    # TODO: eventually no longer need this
-    def _call_accelerator_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Optional[Any]:
-        self.lightning_module._current_fx_name = hook_name
-        fn = getattr(self.training_type_plugin, hook_name)
-        if not callable(fn):
-            return None
-
-        with self.profiler.profile(hook_name):
-            output = fn(*args, **kwargs)
+        # restore current_fx when nested context
+        pl_module._current_fx_name = prev_fx_name
 
         return output
 
@@ -1652,10 +1698,6 @@ class Trainer(
     def world_size(self) -> int:
         # some training types define a world size
         return getattr(self.training_type_plugin, "world_size", 1)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> _StrategyType:

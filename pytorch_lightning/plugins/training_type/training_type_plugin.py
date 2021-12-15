@@ -164,8 +164,7 @@ class TrainingTypePlugin(ABC):
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients."""
-        model_ref = self.lightning_module
-        model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
+        self.lightning_module.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -307,18 +306,6 @@ class TrainingTypePlugin(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the training loop
-        return trainer.run_stage()
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the test loop
-        return trainer.run_stage()
-
-    def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        # double dispatch to initiate the predicting loop
-        return trainer.run_stage()
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.

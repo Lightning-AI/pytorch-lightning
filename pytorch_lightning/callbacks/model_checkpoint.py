@@ -248,14 +248,13 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_init_end(self, trainer: "pl.Trainer") -> None:
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """When pretrain routine starts we resolve the ckpt dir on the fly."""
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we build the ckpt dir on the fly."""
         self.__resolve_ckpt_dir(trainer)
         if trainer.is_global_zero:
             self.__warn_if_dir_not_empty(self.dirpath)
@@ -479,14 +478,6 @@ class ModelCheckpoint(Callback):
         if less_than_k_models:
             return True
 
-        if not isinstance(current, torch.Tensor):
-            rank_zero_warn(
-                f"{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly."
-                f" HINT: check the value of {self.monitor} in your validation loop",
-                RuntimeWarning,
-            )
-            current = torch.tensor(current)
-
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
@@ -600,9 +591,6 @@ class ModelCheckpoint(Callback):
         ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
-
-        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
-            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
