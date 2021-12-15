@@ -107,7 +107,7 @@ class Loop(ABC, Generic[T]):
         the parent.
 
         Args:
-            **loops: A ``Loop`` subclass or instance. The name used should match the loop attribute name you want to
+            **loops: ``Loop`` subclasses or instances. The name used should match the loop attribute name you want to
                 replace.
 
         Raises:
@@ -130,7 +130,7 @@ class Loop(ABC, Generic[T]):
                     )
                 # instantiate the loop
                 kwargs = {p: getattr(old_loop, p) for p in old_parameters if p != "self"}
-                loop = type_or_object(**kwargs)
+                loop = type_or_object(**kwargs)  # type: ignore[call-arg]
             else:
                 loop = type_or_object
 
