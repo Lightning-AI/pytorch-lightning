@@ -44,7 +44,7 @@ class TrainingTypePlugin(ABC):
     def __init__(
         self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
     ) -> None:
-        self.model: Optional[Module] = None
+        self._model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
         self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
@@ -284,13 +284,11 @@ class TrainingTypePlugin(ABC):
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
-        rank_zero_deprecation("..")
-        return self.model
+        return self._model
 
     @model.setter
     def model(self, new_model: Optional[Module]) -> None:
-        rank_zero_deprecation("..")
-        self.model = new_model
+        self._model = new_model
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
