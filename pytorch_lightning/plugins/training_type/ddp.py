@@ -48,7 +48,7 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_10,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import distributed_available, _revert_sync_batchnorm
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
