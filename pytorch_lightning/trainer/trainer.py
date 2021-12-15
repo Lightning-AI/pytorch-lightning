@@ -717,7 +717,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -1037,7 +1037,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -1091,17 +1091,16 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        verify_loop_configurations(self, model)
-
-        # attach model log function to callback
-        self._callback_connector.attach_model_logging_functions(model)
-
         # attach model to the training type plugin
         self.training_type_plugin.connect(model)
 
+        self._callback_connector._attach_model_callbacks()
+        self._callback_connector._attach_model_logging_functions()
+
+        verify_loop_configurations(self)
+
         # hook
         self._data_connector.prepare_data()
-        self._callback_connector._attach_model_callbacks()
 
         # ----------------------------
         # SET UP TRAINING
@@ -1699,10 +1698,6 @@ class Trainer(
     def world_size(self) -> int:
         # some training types define a world size
         return getattr(self.training_type_plugin, "world_size", 1)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> _StrategyType:
