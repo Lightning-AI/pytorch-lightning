@@ -13,10 +13,12 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
 import os
+from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
@@ -25,6 +27,7 @@ from pytorch_lightning.callbacks.progress import ProgressBar, TQDMProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.plugins import SingleDevicePlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -540,3 +543,12 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
 
     with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         sampler.batch_indices = []
+
+
+def test_v1_7_0_post_dispatch_hook():
+    class CustomPlugin(SingleDevicePlugin):
+        def post_dispatch(self, trainer):
+            pass
+
+    with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
+        CustomPlugin(torch.device("cpu"))

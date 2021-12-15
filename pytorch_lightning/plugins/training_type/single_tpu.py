@@ -59,14 +59,13 @@ class SingleTPUPlugin(SingleDevicePlugin):
         else:
             set_shared_parameters(self.model, shared_params)
 
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
+        super().setup(trainer)
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
@@ -75,9 +74,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-
-    def save(self, state_dict: Dict, path: _PATH) -> None:
-        xm.save(state_dict, path)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

@@ -5,6 +5,19 @@ orbs:
   go: circleci/go@1.3.0
   codecov: codecov/codecov@1.1.0
 
+trigger:
+  tags:
+    include:
+      - '*'
+  branches:
+    include:
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
+pr:
+  - "master"
+  - "release/*"
+
 # Workflow Steps:
 #  1. Checkout
 #  2. Install GO
