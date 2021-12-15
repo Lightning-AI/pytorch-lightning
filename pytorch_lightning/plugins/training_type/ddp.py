@@ -108,7 +108,7 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        self.model_averaging_period = model_averaging_period
+        self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False
@@ -287,7 +287,7 @@ class DDPPlugin(ParallelPlugin):
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         optimizers = self.lightning_module.trainer.optimizers
-        if self.model_averaging_period is None:
+        if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
             )
@@ -297,7 +297,7 @@ class DDPPlugin(ParallelPlugin):
             import torch.distributed.algorithms.model_averaging.averagers as averagers
             from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
-        averager = averagers.PeriodicModelAverager(period=self.model_averaging_period, warmup_steps=warmup_steps)
+        averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
         for x, optimizer in enumerate(optimizers):
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
