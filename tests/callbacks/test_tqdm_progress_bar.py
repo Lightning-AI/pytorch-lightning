@@ -634,6 +634,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
         limit_test_batches=2,
         max_epochs=2,
         enable_model_summary=False,
+        enable_checkpointing=False,
         log_every_n_steps=1,
         callbacks=pbar,
     )
