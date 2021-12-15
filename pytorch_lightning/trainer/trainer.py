@@ -1701,7 +1701,9 @@ class Trainer(
 
     @property
     def should_rank_save_checkpoint(self) -> bool:
-        rank_zero_deprecation("`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5)
+        rank_zero_deprecation(
+            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5
+        )
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
