@@ -15,6 +15,7 @@
 
 import pytest
 import torch
+from unittest import mock
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -114,13 +115,12 @@ def test_v1_8_0_deprecated_num_processes(tmpdir):
         _ = Trainer(default_root_dir=tmpdir, num_processes=2)
 
 
-@RunIf(gpu=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_v1_8_0_deprecated_gpus(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v1.8."):
         _ = Trainer(default_root_dir=tmpdir, gpus=2)
 
 
-@RunIf(tpu=True)
 def test_v1_8_0_deprecated_tpu_cores(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v1.8."):
         _ = Trainer(default_root_dir=tmpdir, tpu_cores=1)
