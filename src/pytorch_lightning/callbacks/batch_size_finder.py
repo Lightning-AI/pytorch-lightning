@@ -18,7 +18,6 @@ BatchSizeFinder
 Finds optimal batch size
 """
 
-import logging
 import os
 import uuid
 from typing import Optional, Tuple
@@ -31,12 +30,11 @@ from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len_all_ranks
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.warnings import rank_zero_warn
-
-log = logging.getLogger(__name__)
 
 
 class BatchSizeFinder(Callback):
@@ -124,11 +122,16 @@ class BatchSizeFinder(Callback):
         """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
         for _ in range(self.max_trials):
             garbage_collection_cuda()
-            changed = False
 
             try:
                 self._try_loop_run(trainer)
                 new_size, changed = self._adjust_batch_size(trainer, factor=2.0, desc="succeeded")
+
+                if changed:
+                    # Force the dataloaders to reset as the batch size has changed
+                    self._reset_dataloaders(trainer, pl_module)
+                else:
+                    break
             except RuntimeError as exception:
                 if is_oom_error(exception):
                     garbage_collection_cuda()
@@ -136,12 +139,6 @@ class BatchSizeFinder(Callback):
                     break
                 else:
                     raise  # some other error not memory related
-
-            if changed:
-                # Force the train dataloader to reset as the batch size has changed
-                self._reset_dataloaders(trainer, pl_module)
-            else:
-                break
 
         return new_size
 
@@ -156,7 +153,6 @@ class BatchSizeFinder(Callback):
         count = 0
         while True:
             garbage_collection_cuda()
-            trainer.fit_loop.global_step = 0  # reset after each try
             try:
                 # Try fit
                 self._try_loop_run(trainer)
@@ -174,7 +170,7 @@ class BatchSizeFinder(Callback):
                     new_size, changed = self._adjust_batch_size(trainer, factor=2.0, desc="succeeded")
 
                 if changed:
-                    # Force the train dataloader to reset as the batch size has changed
+                    # Force the dataloaders to reset as the batch size has changed
                     self._reset_dataloaders(trainer, pl_module)
                 else:
                     break
@@ -287,7 +283,7 @@ class BatchSizeFinder(Callback):
                 new batch size
             value: if a value is given, will override the batch size with this value.
                 Note that the value of `factor` will not have an effect in this case
-            desc: either `succeeded` or `failed`. Used purely for logging
+            desc: either ``"succeeded"`` or ``"failed"``. Used purely for logging
 
         Returns:
             The new batch size for the next trial and a bool that signals whether the
@@ -297,7 +293,7 @@ class BatchSizeFinder(Callback):
         batch_size = lightning_getattr(model, self.batch_arg_name)
         new_size = value if value is not None else int(batch_size * factor)
         if desc:
-            log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
+            rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
         # TODO improve this for CombinedLoader
         if trainer.state.fn == TrainerFn.FITTING:
