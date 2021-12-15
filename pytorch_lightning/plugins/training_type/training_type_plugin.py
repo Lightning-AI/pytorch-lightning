@@ -397,8 +397,8 @@ class TrainingTypePlugin(ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        if self.should_rank_save_checkpoint:
-            return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        if self.is_global_zero:
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -406,8 +406,8 @@ class TrainingTypePlugin(ABC):
         Args:
             filepath: Path to checkpoint
         """
-        if self.should_rank_save_checkpoint:
-            return self.checkpoint_io.remove_checkpoint(filepath)
+        if self.is_global_zero:
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -429,11 +429,6 @@ class TrainingTypePlugin(ABC):
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
         pass
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        """Returns whether the checkpoint should be saved (rank based)"""
-        return self.is_global_zero
 
     def on_train_start(self) -> None:
         """Called when train begins."""

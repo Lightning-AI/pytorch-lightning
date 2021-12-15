@@ -82,7 +82,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def teardown(self) -> None:
         # TPU teardown
