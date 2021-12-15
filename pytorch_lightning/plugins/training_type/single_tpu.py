@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -22,7 +22,6 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -74,15 +73,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-        """
-        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def teardown(self) -> None:
         # TPU teardown
