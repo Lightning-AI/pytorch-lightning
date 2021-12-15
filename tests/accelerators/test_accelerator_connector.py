@@ -403,7 +403,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
         "SLURM_PROCID": "0",
-        "SLURM_LOCALID": "0",
+        "SLURM_LOCALID": "0"
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
