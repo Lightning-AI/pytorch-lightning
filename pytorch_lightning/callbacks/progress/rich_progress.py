@@ -328,7 +328,9 @@ class RichProgressBar(ProgressBarBase):
 
     def on_sanity_check_end(self, trainer, pl_module):
         super().on_sanity_check_end(trainer, pl_module)
-        self._update(self.val_sanity_progress_bar_id, visible=False)
+        if self.progress is not None:
+            self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
+            self.progress.refresh()
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
