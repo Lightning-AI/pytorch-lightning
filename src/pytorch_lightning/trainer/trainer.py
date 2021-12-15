@@ -1036,8 +1036,9 @@ class Trainer(
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
         """
         Trainer._log_api_event("tune")
-
+        self.state.fn = TrainerFn.TUNING
         self.state.status = TrainerStatus.RUNNING
+        self.tuning = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):

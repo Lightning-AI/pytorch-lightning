@@ -11,6 +11,7 @@ from pytorch_lightning.loggers.logger import DummyLogger
 
 
 @pytest.mark.parametrize("tuner_alg", ["batch size scaler", "learning rate finder"])
+@pytest.mark.skip(reason="Temperory skip")
 def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
     """Test that tuner algorithms are skipped if fast dev run is enabled."""
 
