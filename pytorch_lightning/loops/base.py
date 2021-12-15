@@ -103,7 +103,7 @@ class Loop(ABC, Generic[T]):
         """Optionally replace one or multiple of this loop's sub-loops.
 
         This methods takes care of instantiating the class (if necessary) with all existing arguments, connecting all
-        sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and conneting the new loop to
+        sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and connecting the new loop to
         the parent.
 
         Args:
