@@ -176,7 +176,7 @@ class AcceleratorConnector:
 
         self.training_type_plugin = self.final_training_type_plugin()
         self.accelerator = self.training_type_plugin.accelerator
-        self._check_tpu_mis_config()
+        self._check_plugin_compatibility()
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -1015,7 +1015,12 @@ class AcceleratorConnector:
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
 
-    def _check_tpu_mis_config(self) -> None:
+    def _check_plugin_compatibility(self) -> None:
+        """Checks that selected plugins are compatible with each other.
+
+        Raises:
+            ValueError: If an invalid combination of Accelerator, TrainingTypePlugin, PrecisionPlugin is found.
+        """
         # TODO moved from TPUAccelerator when refactor accelerator. Revisit when refactor
         # accelerator_connector @four4fish
         if isinstance(self.accelerator, TPUAccelerator):
