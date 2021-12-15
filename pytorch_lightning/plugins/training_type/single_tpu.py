@@ -38,7 +38,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
-
         device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
