@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
 from deprecate import void
@@ -18,15 +18,15 @@ class PredictionEpochLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.return_predictions: bool = False
+        self.return_predictions = False
         self.predictions: List[Any] = []
         self.current_batch_indices: List[int] = []
         self.batch_progress = Progress()
 
-        self._dl_max_batches: Optional[int] = None
-        self._num_dataloaders: Optional[int] = None
+        self._dl_max_batches = 0
+        self._num_dataloaders = 0
         self._warning_cache = WarningCache()
-        self._all_batch_indices: List[int] = []
+        self._seen_batch_indices: List[List[int]] = []
 
     @property
     def done(self) -> bool:
@@ -44,11 +44,11 @@ class PredictionEpochLoop(Loop):
 
     def reset(self) -> None:
         """Resets the loops internal state."""
-        self._all_batch_indices: List[int] = []
-        self.predictions: List[Any] = []
+        self._seen_batch_indices = []
+        self.predictions = []
         self.batch_progress.reset_on_run()
 
-    def on_run_start(
+    def on_run_start(  # type: ignore[override]
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -68,9 +68,10 @@ class PredictionEpochLoop(Loop):
         void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         self.return_predictions = return_predictions
 
-    def advance(
+    def advance(  # type: ignore[override]
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -88,24 +89,23 @@ class PredictionEpochLoop(Loop):
             return_predictions: whether to return the obtained predictions
         """
         batch_idx, batch = next(dataloader_iter)
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
+        # we need to truncate the list of batch indicies due to prefetching in the dataloader and Lightning
+        self._seen_batch_indices = self._seen_batch_indices[: (self.batch_progress.current.completed + 1)]
+
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("predict_batch_to_device"):
-            batch = self.trainer.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
-        with self.trainer.profiler.profile("predict_step"):
-            self._predict_step(batch, batch_idx, dataloader_idx)
+        self._predict_step(batch, batch_idx, dataloader_idx)
 
-    def on_run_end(self) -> Tuple[List[Any], List[int]]:
+    def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
-        predictions = self.predictions
-        all_batch_indices = self._all_batch_indices
-        # free memory
-        self.predictions = []
-        self._all_batch_indices = []
+        predictions, all_batch_indices = self.predictions, self._seen_batch_indices
+        self.predictions, self._seen_batch_indices = [], []  # free memory
         return predictions, all_batch_indices
 
     def _predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -121,23 +121,22 @@ class PredictionEpochLoop(Loop):
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         # extract batch_indices and store them
-        self._store_batch_indices(dataloader_idx)
+        self.current_batch_indices = self._seen_batch_indices[batch_idx] if self._seen_batch_indices else []
 
-        model_ref = self.trainer.lightning_module
-
-        self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        self.trainer._call_callback_hooks("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        self.trainer._call_lightning_module_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_started()
 
-        model_ref._current_fx_name = "predict_step"
-        predictions = self.trainer.accelerator.predict_step(step_kwargs)
+        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        self.trainer._call_callback_hooks("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        self.trainer._call_lightning_module_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
 
@@ -160,12 +159,12 @@ class PredictionEpochLoop(Loop):
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
 
-    def _store_batch_indices(self, dataloader_idx: int) -> None:
-        """Stores the batch indices if the predictions should be stored."""
+    def _get_batch_indices(self, dataloader_idx: int) -> List[List[int]]:
+        """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
+        :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
-        if isinstance(batch_sampler, IndexBatchSamplerWrapper):
-            self.current_batch_indices = batch_sampler.batch_indices
-            if self.should_store_predictions:
-                self._all_batch_indices.append(batch_sampler.batch_indices)
-        else:
-            warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
+        if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
+            return batch_sampler.seen_batch_indices
+
+        warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
+        return []

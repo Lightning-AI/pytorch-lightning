@@ -139,37 +139,31 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_batch_start(self, dataloader_idx: int, num_dataloaders: int) -> None:
-        model = self.trainer.lightning_module
-        # set dataloader_idx only if multiple ones
-        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
     def update_eval_step_metrics(self) -> None:
+        assert not self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
         # logs user requested information to logger
-        assert not self._epoch_end_reached
         self.log_metrics(self.metrics["log"], step=self._eval_log_step)
 
         # increment the step even if nothing was logged
         self._increment_eval_log_step()
 
-    @staticmethod
-    def _filter_metrics_for_dataloader(
-        dl_idx: int, metrics: _OUT_DICT, metric_prefix: str = "dataloader_idx"
-    ) -> _OUT_DICT:
-        return {k: v for k, v in metrics.items() if metric_prefix not in k or k.endswith(f"{metric_prefix}_{dl_idx}")}
-
-    def _prepare_eval_loop_results(self, metrics: _OUT_DICT) -> None:
+    def _prepare_eval_loop_results(self) -> None:
         if self.trainer.sanity_checking:
             return
 
+        on_step = not self._epoch_end_reached
         num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        for dl_idx in range(self.trainer._evaluation_loop.num_dataloaders):
-            # remove callback metrics that don't belong to this dataloader
-            callback_metrics = self._filter_metrics_for_dataloader(dl_idx, metrics)
+        assert self.trainer._evaluation_loop._results is not None
+        for dl_idx in range(num_dataloaders):
+            metrics = self.trainer._evaluation_loop._results.metrics(
+                on_step, dataloader_idx=dl_idx if num_dataloaders > 1 else None
+            )
+            callback_metrics = metrics["callback"]
+
             if has_been_initialized:
                 self.eval_loop_results[dl_idx].update(callback_metrics)
             else:
@@ -183,7 +177,7 @@ class LoggerConnector:
             # log all the metrics as a single dict
             self.log_metrics(metrics["log"])
 
-        self._prepare_eval_loop_results(metrics["callback"])
+        self._prepare_eval_loop_results()
 
         # log results of evaluation
         if (
@@ -213,7 +207,7 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, split_idx: int, split_batch: Any) -> None:
+    def on_train_split_start(self, split_idx: int) -> None:
         self._split_idx = split_idx
 
     def update_train_step_metrics(self) -> None:
@@ -260,23 +254,29 @@ class LoggerConnector:
     def on_epoch_start(self) -> None:
         self._epoch_end_reached = False
 
-    def on_batch_start(self, batch_idx: int, batch: Any) -> None:
+    def on_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> None:
         self._batch_idx = batch_idx
         self._epoch_end_reached = False
 
-        assert self.trainer._results is not None
+        results = self.trainer._results
+        assert results is not None
         # attach reference to the new batch and remove the cached batch_size
-        self.trainer._results.batch = batch
-        self.trainer._results.batch_size = None
+        results.batch = batch
+        results.batch_size = None
+        results.dataloader_idx = dataloader_idx
 
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
         self._split_idx = None
-        assert self.trainer._results is not None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
+        results = self.trainer._results
+        assert results is not None
+        # we need to reset this index before the `self.metrics` call below
+        results.dataloader_idx = None
+
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
@@ -309,8 +309,9 @@ class LoggerConnector:
         self._callback_metrics = {}
 
     def reset_results(self) -> None:
-        if self.trainer._results is not None:
-            self.trainer._results.reset()
+        results = self.trainer._results
+        if results is not None:
+            results.reset()
 
         self._batch_idx = None
         self._split_idx = None

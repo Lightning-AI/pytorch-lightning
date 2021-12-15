@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
+from unittest.mock import Mock
+
 import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -38,11 +41,11 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, queue) -> None:
         queue.put("test_val")
         return super().add_to_queue(queue)
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, queue) -> None:
         self.test_val = queue.get()
         return super().get_from_queue(queue)
 
@@ -77,18 +80,17 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
 
 
 class TestDDPSpawnPlugin(DDPSpawnPlugin):
-    def add_to_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
 
-    def get_from_queue(self, trainer: Trainer, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, trainer: Trainer, queue) -> None:
         self.new_test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
@@ -104,8 +106,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert ddp_spawn_plugin.new_test_val == "new_test_val"
 
@@ -131,7 +132,7 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn plugin."""
     trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
@@ -142,3 +143,30 @@ def test_ddp_spawn_configure_ddp(tmpdir):
     trainer.validate(model, dataloaders=model.val_dataloader())
     trainer.test(model, dataloaders=model.test_dataloader())
     trainer.predict(model, dataloaders=model.predict_dataloader())
+
+
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
+def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
+    """Tests that the spawn plugin transfers the new weights to the main process and deletes the temporary file."""
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    plugin = DDPSpawnPlugin()
+    plugin.model = model
+    trainer = Trainer(default_root_dir=tmpdir)
+    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
+    temp_file = Path(tmpdir, ".temp.ckpt")
+
+    assert not temp_file.exists()
+    spawn_output = plugin._collect_rank_zero_results(trainer, {})
+
+    model.state_dict.assert_called_once()
+    if trainer_fn == TrainerFn.FITTING:
+        assert spawn_output.weights_path == str(temp_file)
+        assert temp_file.exists()
+    else:
+        assert spawn_output.weights_path is None
+        assert not temp_file.exists()
+
+    # <-- here would normally be the multiprocessing boundary
+    plugin._recover_results_in_main_process(spawn_output, trainer)
+    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
+    assert not temp_file.exists()

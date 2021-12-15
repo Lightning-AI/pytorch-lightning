@@ -81,6 +81,7 @@ def test_loops_state_dict_structure():
             "epoch_loop.val_loop._results": {
                 "batch": None,
                 "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
                 "device": None,
                 "items": {},
@@ -88,6 +89,7 @@ def test_loops_state_dict_structure():
             "epoch_loop._results": {
                 "batch": None,
                 "batch_size": None,
+                "dataloader_idx": None,
                 "training": True,
                 "device": None,
                 "items": {},
@@ -109,6 +111,7 @@ def test_loops_state_dict_structure():
             "_results": {
                 "batch": None,
                 "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
                 "device": None,
                 "items": {},
@@ -126,6 +129,7 @@ def test_loops_state_dict_structure():
             "_results": {
                 "batch": None,
                 "batch_size": None,
+                "dataloader_idx": None,
                 "training": False,
                 "device": None,
                 "items": {},

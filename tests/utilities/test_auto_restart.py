@@ -34,10 +34,12 @@ from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, Se
 from torch.utils.data._utils.worker import get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.sampler import Sampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _collect_states_on_rank_zero_over_collection,
@@ -48,6 +50,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _SingleProcessDataLoaderIterStateful,
     _SupportsStateDict,
     _teardown_dataloader_get_iterators,
+    _validate_fault_tolerant_automatic,
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
@@ -174,9 +177,8 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [6, 7, 8]
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="todo (tchaton) Need more investigation")
 def test_fast_forward_on_random_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrived the right next
+    """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrieved the right next
     batch on restart."""
     seed = 42
     seed_everything(42)
@@ -252,8 +254,9 @@ class RangeIterableDataset(IterableDataset):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 30 sec and should be skipped in Azure CI")
-@pytest.mark.parametrize("num_workers", [0, 1, 2])
+@pytest.mark.parametrize(
+    "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
+)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
@@ -365,8 +368,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
     assert sampler.state_dict(num_yielded)[0]["current_iteration"] == 16
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 25 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -635,14 +637,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 45 sec and should be skipped in Azure CI")
+@RunIf(slow=True)
 def test_fast_forward_sampler_iterative_dataset():
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.skipif(torch.cuda.is_available(), reason="This test takes around 55 sec and should be skipped in Azure CI")
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -665,8 +666,9 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
-def test_data_loading_wraps_dataset_and_samplers(use_fault_tolerant, tmpdir):
+def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
@@ -767,7 +769,7 @@ class RandomGetItemDataset(Dataset):
         # RandomGeneratorGetItemDataset,
     ],
 )
-@pytest.mark.parametrize("num_workers", [0])
+@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
@@ -893,6 +895,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
+@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     "dataset_classes",
@@ -908,7 +911,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
-def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, multiple_trainloader_mode):
+def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, multiple_trainloader_mode):
     """Test that the Trainer can resume from a failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -1180,6 +1183,108 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert "dataloader_state_dict" in state_dict
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_validate_fault_tolerant(tmpdir):
+    def data():
+        return range(10)
+
+    def dataloader():
+        return DataLoader(data())
+
+    _validate_fault_tolerant_automatic(dataloader(), RunningStage.TRAINING)
+
+    dataloaders = CombinedLoader([dataloader(), dataloader()])
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = CombinedLoader([dataloader(), dataloader()], mode="max_size_cycle")
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [dataloader(), dataloader()]
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
+
+    dataloaders = [DataLoader(data(), sampler=DistributedSampler(data(), num_replicas=2, rank=0, shuffle=True))]
+    with pytest.raises(TypeError, match="A `DistributedSampler` sampler shuffle attribute is set to True."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [DataLoader(data(), sampler=DistributedSampler(data(), num_replicas=2, rank=0, shuffle=False))]
+    _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataset = SequentialGetItemDataset(2)
+    dataloaders = [
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+    ]
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single dataloader."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=True)),
+        DataLoader(dataset, sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=False)),
+    ]
+    with pytest.raises(ValueError, match="Fault-tolerance supports only a single."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.TRAINING)
+
+    dataloaders = [
+        DataLoader(dataset, sampler=RandomSampler(dataset)),
+        DataLoader(dataset, sampler=SequentialSampler(dataset)),
+    ]
+
+    with pytest.raises(TypeError, match="Only `SequentialSampler` is supported."):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
+
+    class CustomRandomSampler(RandomSampler):
+        pass
+
+    dl = DataLoader(data(), sampler=CustomRandomSampler(data()))
+    with pytest.raises(TypeError, match="RandomSampler"):
+        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
+
+    class CustomBatchSampler(BatchSampler):
+        pass
+
+    sampler = Sampler(data())
+    batch_sampler = CustomBatchSampler(sampler, 2, False)
+    dl = DataLoader(data(), batch_sampler=batch_sampler)
+    with pytest.raises(TypeError, match="BatchSampler"):
+        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
+
+    class CustomIterable(IterableDataset):
+        pass
+
+    iterable_dataloader = DataLoader(CustomIterable())
+    with pytest.raises(AttributeError, match="without `__next__` method"):
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
+
+    class CustomIterable(IterableDataset):
+        def __next__(self):
+            return torch.tensor(0)
+
+    iterable_dataloader = DataLoader(CustomIterable())
+    with pytest.raises(TypeError, match="IterableDataset without a sampler as attribute"):
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
+
+    class CustomIterable(IterableDataset):
+        def __init__(self):
+            super().__init__()
+            self.sampler = CustomRandomSampler(data())
+
+        def __next__(self):
+            return torch.tensor(0)
+
+    iterable_dataloader = DataLoader(CustomIterable())
+    with pytest.raises(TypeError, match="RandomSampler"):
+        _validate_fault_tolerant_automatic(iterable_dataloader, RunningStage.TRAINING)
+
+    dataloaders = [iterable_dataloader, DataLoader(CustomIterable())]
+    with pytest.raises(TypeError, match="RandomSampler"):
+        _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
+
+
 def test_rotate_worker_indices():
     """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
     state_dict = {0: 0, 1: 1}
@@ -1274,10 +1379,10 @@ def test_collect_states_with_collection():
     assert generated == [{"a": {0: state}, "b": [{"a": {0: state}}]}]
 
 
-@pytest.mark.parametrize("num_workers", [0])
+# FIXME(@tchaton): >0 num_workers failing
+@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=[RunIf(slow=True), pytest.mark.xfail()])])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
-
     seed_everything(42)
 
     _get_iterator_fn = DataLoader._get_iterator

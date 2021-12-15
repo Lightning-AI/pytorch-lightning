@@ -1,5 +1,3 @@
-# this jobs runs `pytest` over the source directory. It does not install any extra dependencies.
-# this is useful to catch errors where an import has been added which is not part of the basic dependencies.
 name: Test
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
@@ -10,21 +8,20 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 jobs:
-  source:
+  slow:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
-        # this will install stable torch
-        python-version: [3.9]
+        os: [ubuntu-latest, macOS-latest]
+        # same config as '.azure-pipelines/gpu-tests.yml'
+        python-version: ["3.7"]
+        pytorch-version: ["1.8"]
 
-    # lower timeout as this should run very quickly
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -32,8 +29,6 @@ jobs:
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
       id: times
 
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Get pip cache
       id: pip-cache
       run: |
@@ -43,29 +38,30 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
       run: |
-        python --version
-        python -m pip install --upgrade --user pip
-        pip --version
+        # adjust versions according installed Torch version
+        python ./requirements/adjust_versions.py requirements.txt ${{ matrix.pytorch-version }}
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt
         pip list
       shell: bash
 
-    - name: Test Package [only]
+    - name: Tests
       run: |
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+      env:
+        PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
       if: failure()
 
     - name: Statistics
@@ -76,12 +72,12 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
-      if: always()
+      if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
-        flags: cpu,pytest
-        name: Base-coverage
+        flags: cpu,pytest,torch${{ matrix.pytorch-version }}
+        name: CPU-coverage
         fail_ci_if_error: false

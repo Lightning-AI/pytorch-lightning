@@ -118,7 +118,7 @@ class DataConnector:
         data_fetcher.setup(
             dataloader,
             stage=stage,
-            batch_to_device=partial(self.trainer.accelerator.batch_to_device, dataloader_idx=dataloader_idx),
+            batch_to_device=partial(self.trainer.training_type_plugin.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
@@ -159,7 +159,7 @@ class DataConnector:
                     " Move `prepare_data_per_node` setting to LightningModule property."
                 )
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                self.trainer.call_hook("prepare_data")
+                self.trainer._call_lightning_module_hook("prepare_data")
                 self.trainer._is_data_prepared = True
 
     def attach_data(
@@ -288,7 +288,7 @@ class _DataLoaderSource:
             return self.instance
 
         if isinstance(self.instance, LightningModule):
-            return self.instance.trainer.call_hook(self.name, pl_module=self.instance)
+            return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
 
         if isinstance(self.instance, LightningDataModule):
             method = getattr(self.instance, self.name)

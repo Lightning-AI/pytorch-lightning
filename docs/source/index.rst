@@ -43,6 +43,18 @@ PyTorch Lightning
    common/trainer
 
 .. toctree::
+   :maxdepth: 2
+   :name: docs
+   :caption: Optional Extensions
+
+   extensions/accelerators
+   extensions/callbacks
+   extensions/datamodules
+   extensions/logging
+   extensions/plugins
+   extensions/loops
+
+.. toctree::
    :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
@@ -67,25 +79,13 @@ PyTorch Lightning
    common/optimizers
    advanced/profiler
    advanced/plugins_registry
-   advanced/sequences
+   common/remote_fs
    common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
    common/test_set
-
-.. toctree::
-   :maxdepth: 2
-   :name: docs
-   :caption: Optional extensions
-
-   extensions/accelerators
-   extensions/callbacks
-   extensions/datamodules
-   extensions/logging
-   extensions/plugins
-   extensions/loops
 
 .. toctree::
    :maxdepth: 1

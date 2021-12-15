@@ -473,7 +473,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
-            # Lighting does not always guarantee.
+            # Lightning does not always guarantee.
             self.experiment[key].log(val)
 
     @rank_zero_only
@@ -523,6 +523,16 @@ class NeptuneLogger(LightningLoggerBase):
             file_names.add(model_name)
             self.experiment[f"{checkpoints_namespace}/{model_name}"].upload(key)
 
+        # log best model path and checkpoint
+        if checkpoint_callback.best_model_path:
+            self.experiment[
+                self._construct_path_with_prefix("model/best_model_path")
+            ] = checkpoint_callback.best_model_path
+
+            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
+            file_names.add(model_name)
+            self.experiment[f"{checkpoints_namespace}/{model_name}"].upload(checkpoint_callback.best_model_path)
+
         # remove old models logged to experiment if they are not part of best k models at this point
         if self.experiment.exists(checkpoints_namespace):
             exp_structure = self.experiment.get_structure()
@@ -531,11 +541,7 @@ class NeptuneLogger(LightningLoggerBase):
             for file_to_drop in list(uploaded_model_names - file_names):
                 del self.experiment[f"{checkpoints_namespace}/{file_to_drop}"]
 
-        # log best model path and best model score
-        if checkpoint_callback.best_model_path:
-            self.experiment[
-                self._construct_path_with_prefix("model/best_model_path")
-            ] = checkpoint_callback.best_model_path
+        # log best model score
         if checkpoint_callback.best_model_score:
             self.experiment[self._construct_path_with_prefix("model/best_model_score")] = (
                 checkpoint_callback.best_model_score.cpu().detach().numpy()
@@ -544,10 +550,13 @@ class NeptuneLogger(LightningLoggerBase):
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
         """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
-        expected_model_path = f"{checkpoint_callback.dirpath}/"
+        expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-        return model_path[len(expected_model_path) :]
+        # Remove extension from filepath
+        filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
+
+        return filepath
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
