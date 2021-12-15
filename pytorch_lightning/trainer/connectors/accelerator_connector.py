@@ -757,9 +757,7 @@ class AcceleratorConnector:
         elif self.use_ipu:
             plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         elif self.use_bagua:
-            plugin = BaguaPlugin(
-                parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
-            )
+            plugin = BaguaPlugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
@@ -819,10 +817,8 @@ class AcceleratorConnector:
         if self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
-        if self._is_bagua_managing_tasks():
-            return BaguaEnvironment()
 
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
                 return env_type()
 
@@ -1028,9 +1024,3 @@ class AcceleratorConnector:
         total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
-    
-    def _is_bagua_managing_tasks(self) -> bool:
-        if not self.use_bagua:
-            return False
-
-        return "BAGUA_SERVICE_PORT" in os.environ

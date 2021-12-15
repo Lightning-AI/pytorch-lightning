@@ -1,27 +1,26 @@
+import enum
 import logging
 import os
-import enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.environments.bagua_environment import BaguaEnvironment
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
-    from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as DistributedDataParallel
+    from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 
 
 log = logging.getLogger(__name__)
@@ -51,11 +50,11 @@ class BaguaPlugin(DDPPlugin):
     def __init__(
         self,
         algorithm: Union[BaguaDistributedAlgorithm, str] = BaguaDistributedAlgorithm.GradientAllReduce,
+        gradient_as_bucket_view: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        gradient_as_bucket_view: bool = True,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
 
@@ -72,10 +71,6 @@ class BaguaPlugin(DDPPlugin):
         self._bagua_algorithm = algorithm
         self._bagua_gradient_as_bucket_view = gradient_as_bucket_view
         self._bagua_kwargs = kwargs
-        if isinstance(cluster_environment, BaguaEnvironment):
-            self._bagua_service_port = cluster_environment.service_port
-        else:
-            self._bagua_service_port = None
 
     def setup_environment(self) -> None:
         # start the other scripts
@@ -93,9 +88,6 @@ class BaguaPlugin(DDPPlugin):
         self._init_bagua_distributed()
 
     def _init_bagua_distributed(self):
-        # TODO
-        if self._bagua_service_port is None:
-            self._bagua_service_port = 23574
 
         self._set_node_environment_variables()
         log.info(
@@ -114,7 +106,6 @@ class BaguaPlugin(DDPPlugin):
         os.environ["NODE_RANK"] = str(self.node_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
-        os.environ["BAGUA_SERVICE_PORT"] = str(self._bagua_service_port)
 
     def pre_dispatch(self):
         # move the model to the correct device
@@ -153,7 +144,7 @@ class BaguaPlugin(DDPPlugin):
         else:
             raise MisconfigurationException("Unsupport Bagua algorithm.")
 
-        self._model = DistributedDataParallel(
+        self._model = BaguaDistributedDataParallel(
             module=model,
             optimizers=self.optimizers,
             algorithm=algorithm,
@@ -173,7 +164,7 @@ class BaguaPlugin(DDPPlugin):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         model = self._model
-        if isinstance(model, DistributedDataParallel):
+        if isinstance(model, BaguaDistributedDataParallel):
             model = model.module
         return unwrap_lightning_module(model) if model is not None else None
 
