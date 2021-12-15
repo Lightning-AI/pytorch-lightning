@@ -112,6 +112,58 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
+    @property
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
+
+    @property
+    def on_gpu(self) -> bool:
+        return False
+
+    @property
+    def root_device(self) -> torch.device:
+        pass
+
+    @property
+    def is_global_zero(self) -> bool:
+        return True
+    
+    @property
+    def replication_factor(self) -> int:
+        if not self.lightning_module or not self.poptorch_models:
+            # The plugin has been passed in by the user and has not been connected to the Trainer.
+            # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
+            # In this scenario we prioritize the training options.
+            if self._training_opts:
+                return self._training_opts.replication_factor
+            if self._inference_opts:
+                return self._inference_opts.replication_factor
+
+            return len(self.parallel_devices)
+
+        stage = self.lightning_module.trainer.state.stage
+        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
+
+    @property
+    def training_opts(self) -> "poptorch.Options":
+        if self._training_opts is None:
+            self._training_opts = self._create_opts(training=True)
+        return self._training_opts
+
+    @property
+    def inference_opts(self) -> "poptorch.Options":
+        if self._inference_opts is None:
+            self._inference_opts = self._create_opts(training=False)
+        return self._inference_opts
+
+    @property
+    def _n_replicate(self):
+        opts = self.training_opts if self.lightning_module.training else self.inference_opts
+        accumulate_grad_batches = opts.Training.gradient_accumulation
+        device_iterations = opts.device_iterations
+        replication_factor = opts.replication_factor
+        return replication_factor * device_iterations * accumulate_grad_batches
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
         self._handle_gradient_accumulation_steps()
@@ -162,22 +214,6 @@ class IPUPlugin(ParallelPlugin):
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
 
-    @property
-    def replication_factor(self) -> int:
-        if not self.lightning_module or not self.poptorch_models:
-            # The plugin has been passed in by the user and has not been connected to the Trainer.
-            # Check if the user has passed in custom poptorch.Options to infer number of IPUs being used.
-            # In this scenario we prioritize the training options.
-            if self._training_opts:
-                return self._training_opts.replication_factor
-            if self._inference_opts:
-                return self._inference_opts.replication_factor
-
-            return len(self.parallel_devices)
-
-        stage = self.lightning_module.trainer.state.stage
-        return self.poptorch_models[stage]._options.toDict()["replication_factor"]
-
     def _create_opts(self, training: bool) -> "poptorch.Options":
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
@@ -188,22 +224,6 @@ class IPUPlugin(ParallelPlugin):
         if os.environ.get("PL_GLOBAL_SEED"):
             opts.randomSeed(int(os.environ["PL_GLOBAL_SEED"]))
         return opts
-
-    @property
-    def training_opts(self) -> "poptorch.Options":
-        if self._training_opts is None:
-            self._training_opts = self._create_opts(training=True)
-        return self._training_opts
-
-    @property
-    def inference_opts(self) -> "poptorch.Options":
-        if self._inference_opts is None:
-            self._inference_opts = self._create_opts(training=False)
-        return self._inference_opts
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
@@ -231,14 +251,6 @@ class IPUPlugin(ParallelPlugin):
 
         # TODO(@tchaton): Add support for accumulate_grad_batches being a dictionary
         accumulation_scheduler.scheduling.update({0: 1})
-
-    @property
-    def _n_replicate(self):
-        opts = self.training_opts if self.lightning_module.training else self.inference_opts
-        accumulate_grad_batches = opts.Training.gradient_accumulation
-        device_iterations = opts.device_iterations
-        replication_factor = opts.replication_factor
-        return replication_factor * device_iterations * accumulate_grad_batches
 
     def _prepare_input(self, args: Any):
         def to_tuple(x):
@@ -333,20 +345,8 @@ class IPUPlugin(ParallelPlugin):
         optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
-    @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
-    def root_device(self) -> torch.device:
-        pass
-
     def model_to_device(self) -> None:
         pass
-
-    @property
-    def is_global_zero(self) -> bool:
-        return True
 
     def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
         return tensor

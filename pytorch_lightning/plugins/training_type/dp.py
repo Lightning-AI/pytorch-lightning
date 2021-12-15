@@ -62,6 +62,10 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
+    @property
+    def root_device(self):
+        return self.parallel_devices[0]
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
@@ -101,10 +105,6 @@ class DataParallelPlugin(ParallelPlugin):
             return t.float().mean().to(original_dtype)
 
         return apply_to_collection(collection, torch.Tensor, mean)
-
-    @property
-    def root_device(self):
-        return self.parallel_devices[0]
 
     def model_to_device(self) -> None:
         self._model.to(self.root_device)

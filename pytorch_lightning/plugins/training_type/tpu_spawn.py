@@ -85,6 +85,27 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def root_device(self) -> torch.device:
         return xm.xla_device()
 
+    @property
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+
+    @property
+    def is_distributed(self) -> bool:
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
@@ -140,15 +161,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _setup_model(self, model: Module) -> Module:
         return model
-
-    @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-
-    @property
-    def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
@@ -331,18 +343,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def teardown(self) -> None:
         os.environ.pop("PT_XLA_DEBUG", None)
 
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.local_rank == 0
-
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")

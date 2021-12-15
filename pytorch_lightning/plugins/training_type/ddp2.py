@@ -32,6 +32,19 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
+    @property
+    def root_device(self):
+        return self.parallel_devices[0]
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
+        return distributed_sampler_kwargs
+
+    @property
+    def _is_single_process_single_device(self) -> bool:
+        return False
+
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor. In DDP2,
         the reduction here is only across local devices within the node.
@@ -51,22 +64,9 @@ class DDP2Plugin(DDPPlugin):
 
         return apply_to_collection(collection, torch.Tensor, mean)
 
-    @property
-    def root_device(self):
-        return self.parallel_devices[0]
-
     def model_to_device(self):
         # no need to do anything when model is wrapped in torch.nn.DataParallel
         pass
-
-    @property
-    def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
-        return distributed_sampler_kwargs
-
-    @property
-    def _is_single_process_single_device(self) -> bool:
-        return False
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:

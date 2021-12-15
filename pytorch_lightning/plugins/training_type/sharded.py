@@ -39,6 +39,15 @@ class DDPShardedPlugin(DDPPlugin):
     distributed_backend = _StrategyType.DDP_SHARDED
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
+    @property
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPShardedPlugin` requires `fairscale` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
+        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
+
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
         if "reduce_buffer_size" not in self._ddp_kwargs:
@@ -99,15 +108,6 @@ class DDPShardedPlugin(DDPPlugin):
         :meth:`consolidate_state_dict`.
         """
         return optimizer.state_dict()
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
-            raise MisconfigurationException(
-                "`DDPShardedPlugin` requires `fairscale` to be installed."
-                " Install it by running `pip install fairscale`."
-            )
-        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass

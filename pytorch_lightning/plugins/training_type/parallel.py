@@ -85,6 +85,13 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def torch_distributed_backend(self):
+        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+        if torch_backend is None:
+            torch_backend = "nccl" if self.on_gpu else "gloo"
+        return torch_backend
+
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""
 
@@ -97,13 +104,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
-
-    @property
-    def torch_distributed_backend(self):
-        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-        if torch_backend is None:
-            torch_backend = "nccl" if self.on_gpu else "gloo"
-        return torch_backend
 
     @staticmethod
     def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":

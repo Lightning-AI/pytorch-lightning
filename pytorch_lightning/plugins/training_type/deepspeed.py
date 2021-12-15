@@ -327,6 +327,57 @@ class DeepSpeedPlugin(DDPPlugin):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
+    @property
+    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+        return True
+
+    @property
+    def lightning_module(self):
+        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
+        module = getattr(self.model, "module", self.model)
+        return module.module if isinstance(module, LightningDeepSpeedModule) else module
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
+        return distributed_sampler_kwargs
+
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
+    @property
+    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        # managed by DeepSpeed
+        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            rank_zero_warn(
+                "A single checkpoint file has been given. This means optimizer states and "
+                "scheduler states can not be restored. If you'd like to restore these states, you must "
+                "provide a path to the originally saved DeepSpeed checkpoint."
+            )
+        return False
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, plugin: CheckpointIO) -> None:
+        raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
+
+    @property
+    def deepspeed_engine(self):
+        return self.model
+
+    @property
+    def zero_stage_3(self) -> bool:
+        return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
+
+    @property
+    def _multi_device(self) -> bool:
+        return self.num_processes > 1 or self.num_nodes > 1
+
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
@@ -369,10 +420,6 @@ class DeepSpeedPlugin(DDPPlugin):
         os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
-
-    @property
-    def restore_checkpoint_after_pre_dispatch(self) -> bool:
-        return True
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         self._move_optimizer_state()
@@ -474,10 +521,6 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
-    @property
-    def zero_stage_3(self) -> bool:
-        return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
-
     def _initialize_deepspeed_train(self, model):
         if "optimizer" in self.config:
             optimizer, lr_scheduler = None, _get_default_scheduler_config()
@@ -568,27 +611,11 @@ class DeepSpeedPlugin(DDPPlugin):
         )
         self.model = model
 
-    @property
-    def lightning_module(self):
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
-        module = getattr(self.model, "module", self.model)
-        return module.module if isinstance(module, LightningDeepSpeedModule) else module
-
-    @property
-    def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
-        return distributed_sampler_kwargs
-
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
         return [], [], []  # empty optimizers, schedulers and frequencies
-
-    @property
-    def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
-        return True
 
     def _format_config(self):
         if self.config is None:
@@ -723,14 +750,6 @@ class DeepSpeedPlugin(DDPPlugin):
             cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
-    @property
-    def deepspeed_engine(self):
-        return self.model
-
-    @property
-    def _multi_device(self) -> bool:
-        return self.num_processes > 1 or self.num_nodes > 1
-
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -772,17 +791,6 @@ class DeepSpeedPlugin(DDPPlugin):
                 "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
             )
         return client_state
-
-    @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
-        # managed by DeepSpeed
-        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must "
-                "provide a path to the originally saved DeepSpeed checkpoint."
-            )
-        return False
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
@@ -870,14 +878,6 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
