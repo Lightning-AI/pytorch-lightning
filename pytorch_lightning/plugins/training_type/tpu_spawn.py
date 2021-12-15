@@ -321,7 +321,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             filepath: Path to checkpoint
         """
         if self.local_rank == 0:
-            return self.checkpoint_io.remove_checkpoint(filepath)
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
