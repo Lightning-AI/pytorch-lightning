@@ -330,13 +330,11 @@ class RichProgressBar(ProgressBarBase):
         self._console = Console(**self._console_kwargs)
 
     def on_sanity_check_start(self, trainer, pl_module):
-        super().on_sanity_check_start(trainer, pl_module)
         self._init_progress(trainer)
         self.val_sanity_progress_bar_id = self._add_task(trainer.num_sanity_val_steps, self.sanity_check_description)
         self.refresh()
 
     def on_sanity_check_end(self, trainer, pl_module):
-        super().on_sanity_check_end(trainer, pl_module)
         if self.progress is not None:
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
@@ -381,18 +379,18 @@ class RichProgressBar(ProgressBarBase):
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: int, current: int, total: int, visible: bool = True) -> None:
-        if self.progress is not None and self._should_update(current, total):
+    def _update(self, progress_bar_id: int, idx: int, visible: bool = True) -> None:
+        if self.progress is not None and self._should_update(idx):
             self.progress.update(progress_bar_id, advance=self.refresh_rate, visible=visible)
             self.refresh()
 
-    def _should_update(self, current: int, total: int) -> bool:
-        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+    def _should_update(self, idx: int) -> bool:
+        return self.is_enabled and (idx % self.refresh_rate == 0)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         super().on_validation_epoch_end(trainer, pl_module)
         if self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
+            self._update(self.val_progress_bar_id, self.val_batch_idx, visible=False)
 
     def on_test_epoch_start(self, trainer, pl_module):
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
@@ -405,29 +403,29 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-        self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)
+        self._update(self.main_progress_bar_id, self.train_batch_idx)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches)
+            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
-                self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
-            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
+                self._update(self.main_progress_bar_id, self.val_batch_idx)
+            self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
+        self._update(self.test_progress_bar_id, self.test_batch_idx)
         self.refresh()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        self._update(self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches)
+        self._update(self.predict_progress_bar_id, self.predict_batch_idx)
         self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:
