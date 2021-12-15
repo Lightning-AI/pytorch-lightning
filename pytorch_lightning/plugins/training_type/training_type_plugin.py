@@ -46,8 +46,8 @@ class TrainingTypePlugin(ABC):
     ) -> None:
         self._model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
-        self._checkpoint_io = checkpoint_io
-        self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
+        self.checkpoint_io = checkpoint_io
+        self.precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
@@ -58,16 +58,20 @@ class TrainingTypePlugin(ABC):
             )
 
     @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @property
     def precision_plugin(self) -> PrecisionPlugin:
         return self._precision_plugin
 
+    @precision_plugin.setter
+    def precision_plugin(self, plugin: PrecisionPlugin) -> None:
+        self._precision_plugin = plugin
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        return self._checkpoint_io
+
     @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        self._checkpoint_io = plugin
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        self._checkpoint_io = io
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""

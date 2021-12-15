@@ -34,7 +34,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
@@ -88,10 +88,8 @@ class SingleTPUPlugin(SingleDevicePlugin):
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("TPU Plugin currently does not support custom checkpoint plugins.")
+    @SingleDevicePlugin.checkpoint_io.setter
+    def checkpoint_io(self, io: CheckpointIO) -> None:
+        if not isinstance(io, XLACheckpointIO):
+            raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
+        self._checkpoint_io = io

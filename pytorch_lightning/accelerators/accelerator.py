@@ -51,7 +51,7 @@ class Accelerator:
         self.training_type_plugin = training_type_plugin
 
         if precision_plugin is not None:
-            self.training_type_plugin._precision_plugin = precision_plugin
+            self.training_type_plugin.precision_plugin = precision_plugin
 
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
