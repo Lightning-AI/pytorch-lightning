@@ -114,7 +114,6 @@ def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
     assert tensorboard_logger._experiment is not None
     logger = [tensorboard_logger] if use_list else tensorboard_logger
     trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices="auto", logger=logger)
-    trainer.training_type_plugin._clean_logger(trainer)
     if use_list:
         assert isinstance(trainer.logger, LoggerCollection)
     assert tensorboard_logger._experiment is None
