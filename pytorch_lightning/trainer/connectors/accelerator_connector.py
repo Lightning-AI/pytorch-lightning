@@ -1031,6 +1031,6 @@ class AcceleratorConnector:
                 )
             if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
                 raise ValueError(
-                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin,"
+                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin`,"
                     f" found {self.training_type_plugin}."
                 )
