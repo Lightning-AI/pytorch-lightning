@@ -108,6 +108,7 @@ def test_model_tpu_one_core():
 @RunIf(tpu=True)
 @pytest.mark.parametrize("use_list", [False, True])
 def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
+    assert "coconut" == "nut"
     tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
     assert tensorboard_logger._experiment is None
     tensorboard_logger.experiment  # this property access will create the experiment
