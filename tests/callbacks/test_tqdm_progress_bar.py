@@ -621,12 +621,17 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
             self.log("b", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
             return super().validation_step(batch, batch_idx)
 
+        def test_step(self, batch, batch_idx):
+            self.log("c", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
+            return super().test_step(batch, batch_idx)
+
     model = MyModel()
     pbar = MockedProgressBar()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
+        limit_test_batches=2,
         max_epochs=2,
         enable_model_summary=False,
         log_every_n_steps=1,
@@ -648,4 +653,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     ]
 
     trainer.validate(model, verbose=False)
-    assert pbar.calls["validate"] == [("validate", 1, 4, {"b": 4})]
+    assert pbar.calls["validate"] == []
+
+    trainer.test(model, verbose=False)
+    assert pbar.calls["test"] == []
