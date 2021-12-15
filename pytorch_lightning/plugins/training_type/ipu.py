@@ -62,7 +62,7 @@ class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        accelerator: Optional["pl.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,

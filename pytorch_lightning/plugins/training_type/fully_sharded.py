@@ -37,7 +37,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     def __init__(
         self,
-        accelerator: Optional["pl.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         cpu_offload: bool = False,
         flatten_parameters: bool = True,
         reshard_after_forward: bool = True,

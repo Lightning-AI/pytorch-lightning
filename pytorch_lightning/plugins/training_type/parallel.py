@@ -34,7 +34,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,

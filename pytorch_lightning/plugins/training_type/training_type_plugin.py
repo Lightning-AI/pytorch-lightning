@@ -43,7 +43,7 @@ class TrainingTypePlugin(ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
@@ -62,11 +62,11 @@ class TrainingTypePlugin(ABC):
             )
 
     @property
-    def accelerator(self) -> "pl.Accelerator":
+    def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: "pl.Accelerator") -> None:
+    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
         self._accelerator = accelerator
 
     @property

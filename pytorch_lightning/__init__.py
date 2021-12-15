@@ -13,13 +13,12 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(logging.StreamHandler())
     _logger.propagate = False
 
-from pytorch_lightning.accelerators import Accelerator  # noqa: E402
 from pytorch_lightning.callbacks import Callback  # noqa: E402
 from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa: E402
 from pytorch_lightning.trainer import Trainer  # noqa: E402
 from pytorch_lightning.utilities.seed import seed_everything  # noqa: E402
 
-__all__ = ["Accelerator", "Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
+__all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)

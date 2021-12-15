@@ -34,7 +34,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
-        accelerator: Optional["pl.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
