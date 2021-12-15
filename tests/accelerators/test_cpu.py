@@ -22,7 +22,6 @@ def test_restore_checkpoint_after_pre_dispatch_default():
         precision_plugin=PrecisionPlugin()
     )
     assert not plugin.restore_checkpoint_after_pre_dispatch
-    assert not plugin.restore_checkpoint_after_pre_dispatch
 
 
 @pytest.mark.parametrize("restore_after_pre_dispatch", [True, False])
