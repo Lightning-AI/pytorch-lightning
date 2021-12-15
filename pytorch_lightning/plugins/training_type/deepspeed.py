@@ -527,8 +527,8 @@ class DeepSpeedPlugin(DDPPlugin):
             deepspeed.checkpointing.configure(
                 mpu_=None,
                 partition_activations=checkpoint_config.get("partition_activations"),
-                contiguous_checkpointing=checkpoint_config.get("contiguous_checkpointing"),
-                checkpoint_in_cpu=checkpoint_config.get("checkpoint_in_cpu"),
+                contiguous_checkpointing=checkpoint_config.get("contiguous_memory_optimization"),
+                checkpoint_in_cpu=checkpoint_config.get("cpu_checkpointing"),
                 profile=checkpoint_config.get("profile"),
             )
 
