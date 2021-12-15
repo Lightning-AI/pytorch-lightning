@@ -179,7 +179,7 @@ class ModelSummary:
     """
 
     def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:
-        self.model = model
+        self._model = model
 
         if not isinstance(max_depth, int) or max_depth < -1:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
@@ -188,7 +188,7 @@ class ModelSummary:
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
-        precision = self.model.precision if isinstance(self.model.precision, int) else 32
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
@@ -198,9 +198,9 @@ class ModelSummary:
             mods = []
         elif self._max_depth == 1:
             # the children are the top-level modules
-            mods = list(self.model.named_children())
+            mods = list(self._model.named_children())
         else:
-            mods = self.model.named_modules()
+            mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
         return mods
 
@@ -226,12 +226,12 @@ class ModelSummary:
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self.model.parameters())
+        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
         return sum(
-            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self.model.parameters() if p.requires_grad
+            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
         )
 
     @property
@@ -241,7 +241,7 @@ class ModelSummary:
 
     def summarize(self) -> Dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
-        if self.model.example_input_array is not None:
+        if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
             layer.detach_hook()
@@ -255,8 +255,8 @@ class ModelSummary:
 
     def _forward_example_input(self) -> None:
         """Run the example input through each layer to get input- and output sizes."""
-        model = self.model
-        trainer = self.model.trainer
+        model = self._model
+        trainer = self._model.trainer
 
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)
@@ -291,7 +291,7 @@ class ModelSummary:
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
         ]
-        if self.model.example_input_array is not None:
+        if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
