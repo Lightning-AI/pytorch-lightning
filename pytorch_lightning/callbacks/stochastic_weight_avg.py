@@ -316,10 +316,10 @@ class StochasticWeightAveraging(Callback):
         if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
             # If we're not within the SWA epochs then when loading checkpoint data we would want
             # to use parameters from the underlying model rather than the SWA parameters.
-            return None
+            return
         return list(self._average_model.parameters())
 
-    def _load_average_model_parameters(self, parameter_state: Any):
+    def _load_average_model_parameters(self, parameter_state: Any) -> None:
         if self._average_model is None or parameter_state is None:
             return
         for p_swa, p_checkpoint in zip(self._average_model.parameters(), parameter_state):
