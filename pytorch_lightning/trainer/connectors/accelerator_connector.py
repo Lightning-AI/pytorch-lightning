@@ -1021,8 +1021,6 @@ class AcceleratorConnector:
         Raises:
             ValueError: If an invalid combination of Accelerator, TrainingTypePlugin, PrecisionPlugin is found.
         """
-        # TODO moved from TPUAccelerator when refactor accelerator. Revisit when refactor
-        # accelerator_connector @four4fish
         if isinstance(self.accelerator, TPUAccelerator):
             if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
                 raise ValueError(
