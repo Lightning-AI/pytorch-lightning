@@ -107,7 +107,10 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     ):
         trainer.fit(load_model)
 
+
 def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
     trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8."):
+    with pytest.deprecated_call(
+        match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8."
+    ):
         _ = trainer.should_rank_save_checkpoint
