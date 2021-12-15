@@ -88,16 +88,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def num_nodes(self) -> int:
-        return self._num_nodes
-
-    @num_nodes.setter
-    def num_nodes(self, num_nodes: int) -> None:
-        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
-        self._num_nodes = num_nodes
-        self.set_world_ranks()
-
-    @property
     def local_rank(self) -> int:
         return self._local_rank
 
@@ -109,6 +99,16 @@ class DDPSpawnPlugin(ParallelPlugin):
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+        self.set_world_ranks()
 
     @property
     def _is_single_process_single_device(self):

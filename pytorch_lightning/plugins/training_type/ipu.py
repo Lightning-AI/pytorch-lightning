@@ -127,7 +127,7 @@ class IPUPlugin(ParallelPlugin):
     @property
     def is_global_zero(self) -> bool:
         return True
-    
+
     @property
     def replication_factor(self) -> int:
         if not self.lightning_module or not self.poptorch_models:
