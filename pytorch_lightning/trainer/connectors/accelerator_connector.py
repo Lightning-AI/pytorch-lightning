@@ -996,13 +996,14 @@ class AcceleratorConnector:
             self._distrib_type = getattr(self._training_type_plugin, "distributed_backend", None)
 
     def _is_slurm_managing_tasks(self) -> bool:
-        """Returns whether we let SLURM manage the processes or not. Returns ``True`` if and only if these
-        conditions match:
+        """Returns whether we let SLURM manage the processes or not.
 
-        - A SLURM cluster is detected
-        - A distributed plugin is being used
-        - The process is not launching in interactive mode
-        - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
+        Returns ``True`` if and only if these conditions match:
+
+            - A SLURM cluster is detected
+            - A distributed plugin is being used
+            - The process is not launching in interactive mode
+            - The number of tasks in SLURM matches the requested number of devices and nodes in the Trainer
         """
         if (
             (not self.use_ddp and not self.use_ddp2)
