@@ -1700,6 +1700,13 @@ class Trainer(
         return getattr(self.training_type_plugin, "world_size", 1)
 
     @property
+    def should_rank_save_checkpoint(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5
+        )
+        return self.training_type_plugin.should_rank_save_checkpoint
+
+    @property
     def _distrib_type(self) -> _StrategyType:
         return self._accelerator_connector._distrib_type
 

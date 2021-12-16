@@ -293,7 +293,7 @@ class TrainingTypePlugin(ABC):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model) if self._model is not None else None
+        return unwrap_lightning_module(self.model) if self.model is not None else None
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()

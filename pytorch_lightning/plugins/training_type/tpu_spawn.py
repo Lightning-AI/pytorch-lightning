@@ -132,7 +132,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         self.setup_optimizers(trainer)
-        self.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self.model, None, None)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"

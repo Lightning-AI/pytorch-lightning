@@ -65,7 +65,7 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        self._model = self._setup_model(LightningParallelModule(self._model))
+        self.model = self._setup_model(LightningParallelModule(self.model))
         super().setup(trainer)
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
@@ -107,7 +107,7 @@ class DataParallelPlugin(ParallelPlugin):
         return self.parallel_devices[0]
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def barrier(self, *args, **kwargs):
         pass

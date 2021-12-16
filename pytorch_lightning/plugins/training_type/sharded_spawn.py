@@ -41,7 +41,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
-        self._model, optimizers = self._setup_model_and_optimizers(
+        self.model, optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
@@ -106,7 +106,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
+        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
