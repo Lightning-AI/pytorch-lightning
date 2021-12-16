@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import math
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
-import copy
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
