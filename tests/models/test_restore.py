@@ -272,8 +272,15 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     for before, after in zip(callbacks_before_resume, callback_capture.callbacks):
         if isinstance(before, ModelCheckpoint):
-            assert before.best_model_path == after.best_model_path
-            assert before.best_model_score == after.best_model_score
+            for attribute in (
+                "best_model_path",
+                "best_model_score",
+                "best_k_models",
+                "kth_best_model_path",
+                "kth_value",
+                "last_model_path",
+            ):
+                assert getattr(before, attribute) == getattr(after, attribute)
 
 
 def test_callbacks_references_fit_ckpt_path(tmpdir):
