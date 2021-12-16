@@ -174,8 +174,9 @@ class AcceleratorConnector:
         self._validate_accelerator_type()
         self._set_devices_if_none()
 
-        self._training_type_plugin_resolved = False
-        self.accelerator = self.select_accelerator()
+        self.training_type_plugin = self.final_training_type_plugin()
+        self.accelerator = self.training_type_plugin.accelerator
+        self._check_plugin_compatibility()
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
@@ -394,22 +395,23 @@ class AcceleratorConnector:
             self._precision_plugin = self.select_precision_plugin()
         return self._precision_plugin
 
-    @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
-        if self._training_type_plugin_resolved:
-            # avoid calling `resolve_training_type_plugin` multiple times
-            return self._training_type_plugin
+    def final_training_type_plugin(self) -> TrainingTypePlugin:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        precision_plugin = self.precision_plugin
-        if precision_plugin is not None:
-            self._training_type_plugin._precision_plugin = precision_plugin
-        self._training_type_plugin_resolved = True
-
+        if (
+            isinstance(self.strategy, TrainingTypePlugin) and self.strategy._precision_plugin is None
+        ) or not isinstance(self.strategy, TrainingTypePlugin):
+            precision_plugin = self.precision_plugin
+            if precision_plugin is not None:
+                self._training_type_plugin.precision_plugin = precision_plugin
+        if (isinstance(self.strategy, TrainingTypePlugin) and self.strategy.accelerator is None) or not isinstance(
+            self.strategy, TrainingTypePlugin
+        ):
+            self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
 
     @property
@@ -797,10 +799,7 @@ class AcceleratorConnector:
         else:
             acc_cls = CPUAccelerator
 
-        accelerator = acc_cls(precision_plugin=None, training_type_plugin=self.training_type_plugin)
-        # transfer ownership of the plugins to the accelerator
-        self._training_type_plugin = proxy(self.training_type_plugin)
-
+        accelerator = acc_cls()
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:
@@ -1016,3 +1015,21 @@ class AcceleratorConnector:
         total_requested_devices = (self.num_gpus or self.num_processes) * self.num_nodes
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
+
+    def _check_plugin_compatibility(self) -> None:
+        """Checks that selected plugins are compatible with each other.
+
+        Raises:
+            ValueError: If an invalid combination of Accelerator, TrainingTypePlugin, PrecisionPlugin is found.
+        """
+        if isinstance(self.accelerator, TPUAccelerator):
+            if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
+                raise ValueError(
+                    f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                    f" found: {self.training_type_plugin.precision_plugin}."
+                )
+            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
+                raise ValueError(
+                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin`,"
+                    f" found {self.training_type_plugin}."
+                )
