@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -69,7 +70,7 @@ class TrainingTypePlugin(ABC):
 
     @property
     def checkpoint_io(self) -> Optional[CheckpointIO]:
-        return self._checkpoint_io
+        return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
 
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
