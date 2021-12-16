@@ -248,7 +248,7 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
         # because the attributes are part of the state_key which needs to be fully defined before reloading.
         if self._save_on_train_epoch_end is None:
