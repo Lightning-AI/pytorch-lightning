@@ -16,6 +16,7 @@ from unittest.mock import ANY, call, Mock
 import pytest
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -111,6 +112,7 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
 
 def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
     """Test partial support for CombinedLoader: prediction works but sample indices don't get tracked."""
+    pl.loops.epoch.prediction_epoch_loop.warning_cache.clear()
 
     class PredictionModel(BoringModel):
         def predict_dataloader(self):
