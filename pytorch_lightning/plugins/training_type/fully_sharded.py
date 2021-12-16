@@ -37,6 +37,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         cpu_offload: bool = False,
         flatten_parameters: bool = True,
         reshard_after_forward: bool = True,
@@ -98,6 +99,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         """
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,

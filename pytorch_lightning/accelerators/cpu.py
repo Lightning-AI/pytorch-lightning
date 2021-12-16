@@ -15,7 +15,6 @@ from typing import Any, Dict, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -23,18 +22,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup_environment(self, root_device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not CPU.
         """
-        if "cpu" not in str(self.training_type_plugin.root_device):
-            raise MisconfigurationException(
-                f"Device should be CPU, got {self.training_type_plugin.root_device} instead."
-            )
-
-        return super().setup(trainer)
+        if "cpu" not in str(root_device):
+            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """CPU device stats aren't supported yet."""
