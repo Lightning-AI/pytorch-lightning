@@ -46,7 +46,6 @@ def test_hpc_hook_calls(tmpdir):
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(model)
-    connector = trainer.checkpoint_connector
     # simulate snapshot on slurm
     saved_filepath = trainer.checkpoint_connector.hpc_save_path(tmpdir)
     trainer.save_checkpoint(saved_filepath)
