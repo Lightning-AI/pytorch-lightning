@@ -21,7 +21,8 @@ from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
-Task, Style = None, None
+Task, Style, Console = None, None, None
+
 if _RICH_AVAILABLE:
     from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
