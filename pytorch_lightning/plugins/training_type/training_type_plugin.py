@@ -69,7 +69,7 @@ class TrainingTypePlugin(ABC):
         self._accelerator = accelerator
 
     @property
-    def checkpoint_io(self) -> Optional[CheckpointIO]:
+    def checkpoint_io(self) -> CheckpointIO:
         return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
 
     @checkpoint_io.setter
