@@ -12,7 +12,8 @@ Precision
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
-Lower precision, such as the 16-bit floating-point, requires less memory, enabling the training and deployment of larger neural networks. Second, they require less memory bandwidth, thereby speeding up data transfer operations. Third, math operations run much faster in reduced precision, especially on GPUs with Tensor Core support for that precision.
+Lower precision, such as the 16-bit floating-point, requires less memory, enabling the training and deployment of larger neural networks. Second, they require less memory bandwidth, thereby speeding up data transfer operations. Third, math
+operations run much faster in reduced precision, especially on GPUs with Tensor Core support for that precision [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 Higher precision, such as the 64-bit floating-point, offers <TODO add something>
 
@@ -57,7 +58,7 @@ Most deep learning frameworks, including PyTorch, train with 32-bit floating-poi
 by performing operations in half-precision format while storing minimal information in single-precision to retain as much information as possible in critical parts of the network. Since the introduction of Tensor Cores in the Volta and Turing architectures, significant
 training speedups are experienced by switching to mixed precision. It combines both FP32 and lower bit floating-points (such as FP16) to reduce memory footprint during model
 training/evaluation, resulting in improved performance. It does so by identifying the steps that require full precision and using a 32-bit floating-point for only those steps while using a 16-bit floating-point everywhere else. Mixed precision training achieves all these benefits
-while ensuring that no task-specific accuracy is lost compared to full precision training.
+while ensuring that no task-specific accuracy is lost compared to full precision training [`2 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 .. note::
 
