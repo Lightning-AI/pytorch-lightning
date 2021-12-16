@@ -48,7 +48,7 @@ class ModelCheckpoint(Callback):
     Save the model periodically by monitoring a quantity. Every metric logged with
     :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`weights_loading`.
+    :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -102,8 +102,7 @@ class ModelCheckpoint(Callback):
             ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
         save_weights_only: if ``True``, then only the model's weights will be
-            saved (``model.save_weights(filepath)``), else the full model
-            is saved (``model.save(filepath)``).
+            saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
             If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
