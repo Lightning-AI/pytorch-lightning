@@ -114,6 +114,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed duplicated file extension when uploading model checkpoints with `NeptuneLogger` ([#11015](https://github.com/PyTorchLightning/pytorch-lightning/pull/11015))
 
 
+- Changed the `console_kwargs` arg of `RichProgressBar` to accept `Console` object ([#11100](https://github.com/PyTorchLightning/pytorch-lightning/pull/11100))
+
 
 ### Deprecated
 
