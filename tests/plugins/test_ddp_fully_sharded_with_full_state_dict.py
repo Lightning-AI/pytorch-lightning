@@ -23,8 +23,8 @@ def test_invalid_on_cpu(tmpdir):
         MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
-        assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-        trainer.accelerator.setup_environment()
+        assert isinstance(trainer.training_type_plugin, DDPFullyShardedPlugin)
+        trainer.training_type_plugin.setup_environment()
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})

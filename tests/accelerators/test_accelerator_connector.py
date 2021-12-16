@@ -397,7 +397,14 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 
 @mock.patch.dict(
     os.environ,
-    {"SLURM_NTASKS": "2", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+    {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
@@ -411,9 +418,8 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class TrainTypePlugin(SingleDevicePlugin):
         pass
 
-    ttp = TrainTypePlugin(device=torch.device("cpu"))
-    accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-    trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
+    ttp = TrainTypePlugin(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
     assert isinstance(trainer.precision_plugin, Prec)
@@ -422,9 +428,8 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class DistributedPlugin(DDPPlugin):
         pass
 
-    ttp = DistributedPlugin()
-    accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-    trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
+    ttp = DistributedPlugin(accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, DistributedPlugin)
     assert isinstance(trainer.precision_plugin, Prec)
@@ -483,11 +488,11 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     else:
         with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
             trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
         trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
 
 
 @pytest.mark.parametrize(
@@ -1029,10 +1034,13 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16)
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16)
+
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
 
 
 def test_unsupported_ipu_choice(monkeypatch):
