@@ -478,14 +478,6 @@ class ModelCheckpoint(Callback):
         if less_than_k_models:
             return True
 
-        if not isinstance(current, torch.Tensor):
-            rank_zero_warn(
-                f"{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly."
-                f" HINT: check the value of {self.monitor} in your validation loop",
-                RuntimeWarning,
-            )
-            current = torch.tensor(current)
-
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
