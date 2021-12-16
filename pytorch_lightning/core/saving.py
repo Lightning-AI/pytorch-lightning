@@ -90,7 +90,7 @@ class ModelIO:
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
                 ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict. Default: ``True``.
+                returned by this module's state dict.
             kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
