@@ -89,7 +89,11 @@ def run_model_test(
             )
 
         # test HPC saving
-        trainer.checkpoint_connector.hpc_save(save_dir, logger)
+        # save logger to make sure we get all the metrics
+        if logger:
+            logger.finalize("finished")
+        hpc_save_path = trainer.checkpoint_connector.hpc_save_path(save_dir)
+        trainer.save_checkpoint(hpc_save_path)
         # test HPC loading
         checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(save_dir)
         trainer.checkpoint_connector.restore(checkpoint_path)

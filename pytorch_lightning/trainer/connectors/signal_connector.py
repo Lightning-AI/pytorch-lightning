@@ -61,7 +61,11 @@ class SignalConnector:
         if self.trainer.is_global_zero:
             # save weights
             log.info("handling SIGUSR1")
-            self.trainer.checkpoint_connector.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
+            # save logger to make sure we get all the metrics
+            if self.trainer.logger:
+                self.trainer.logger.finalize("finished")
+            hpc_save_path = self.trainer.checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
+            self.trainer.save_checkpoint(hpc_save_path)
 
             # find job id
             job_id = os.environ["SLURM_JOB_ID"]

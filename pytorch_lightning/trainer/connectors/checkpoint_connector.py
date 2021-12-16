@@ -22,6 +22,7 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
@@ -299,39 +300,11 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger: Optional[LightningLoggerBase]) -> str:
-        # make sure the checkpoint folder exists
+    def hpc_save_path(self, folderpath: str) -> str:
         folderpath = str(folderpath)  # because the tests pass a path object
-        fs = get_filesystem(folderpath)
-        fs.makedirs(folderpath, exist_ok=True)
-
-        # save logger to make sure we get all the metrics
-        if logger:
-            logger.finalize("finished")
-
         max_suffix = self.max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
-
-        fs.makedirs(folderpath, exist_ok=True)
         filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
-
-        # give model a chance to do something on hpc_save
-        model = self.trainer.lightning_module
-        checkpoint = self.dump_checkpoint()
-
-        # TODO: remove this in v1.8.
-        model.on_hpc_save(checkpoint)
-
-        # do the actual save
-        # TODO: fix for anything with multiprocess DP, DDP, DDP2
-        try:
-            atomic_save(checkpoint, filepath)
-        except AttributeError as err:
-            if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn(f"warning, `hyper_parameters` dropped from checkpoint. An attribute is not picklable {err}")
-            atomic_save(checkpoint, filepath)
-
         return filepath
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
@@ -412,6 +385,11 @@ class CheckpointConnector:
         model.on_save_checkpoint(checkpoint)
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
+
+        # TODO: remove this in v1.8.
+        environment = self.trainer._accelerator_connector.cluster_environment
+        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
+            model.on_hpc_save(checkpoint)
 
         return checkpoint
 
