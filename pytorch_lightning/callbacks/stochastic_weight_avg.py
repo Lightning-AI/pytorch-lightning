@@ -197,6 +197,14 @@ class StochasticWeightAveraging(Callback):
             if self._scheduler_step_count is not None:
                 # Restore scheduler step count from checkpoint
                 self._swa_scheduler._step_count = self._scheduler_step_count
+            elif trainer.current_epoch != self.swa_start:
+                # Log a warning if we're initializing after start without any checkpoint data,
+                # as behaviour will be different compared to having checkpoint data.
+                rank_zero_warn(
+                    "SWA is initializing after swa_start without any checkpoint data. "
+                    "This may be caused by loading a checkpoint from an older version of PyTorch Lightning."
+                )
+
             default_scheduler_cfg = _get_default_scheduler_config()
             assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
             default_scheduler_cfg["scheduler"] = self._swa_scheduler
