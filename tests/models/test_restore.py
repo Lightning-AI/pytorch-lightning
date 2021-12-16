@@ -243,11 +243,7 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
     callback_capture = CaptureCallbacksBeforeTraining()
 
     def get_trainer_args():
-        # save_on_train_epoch_end must be set explicitly since otherwise it will be
-        # changed internally causing the state_key to not match anymore upon loading
-        # and thus not loading the callbacks state (this is desired behavior, it just
-        # conflicts with the place where CaptureCallbacksBeforeTraining intercepts)
-        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True, save_on_train_epoch_end=False)
+        checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
             limit_train_batches=1,
