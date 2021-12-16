@@ -20,27 +20,12 @@ from pytorch_lightning.utilities.seed import reset_seed
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
+    from bagua.torch_api.algorithms import Algorithm
+    from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 
 
 log = logging.getLogger(__name__)
-
-
-class BaguaDistributedAlgorithm(enum.Enum):
-    GradientAllReduce = "gradient_allreduce"
-    ByteGrad = "bytegrad"
-    Decentralized = "decentralized"
-    LowPrecisionDecentralized = "low_prec_decentralized"
-    QAdam = "qadam"
-    AsyncModelAverage = "async"
-
-    @staticmethod
-    def from_str(val: str):
-        if not isinstance(val, str):
-            raise ValueError("BaguaDistributedAlgorithm name must be a string, but got: {}".format(val))
-
-        reverse_dict = {e.value: e for e in BaguaDistributedAlgorithm}
-        return reverse_dict[val]
 
 
 class BaguaPlugin(DDPPlugin):
@@ -49,7 +34,7 @@ class BaguaPlugin(DDPPlugin):
 
     def __init__(
         self,
-        algorithm: Union[BaguaDistributedAlgorithm, str] = BaguaDistributedAlgorithm.GradientAllReduce,
+        algorithm: str = "gradient_allreduce",
         gradient_as_bucket_view: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
@@ -64,9 +49,6 @@ class BaguaPlugin(DDPPlugin):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-
-        if isinstance(algorithm, str):
-            algorithm = BaguaDistributedAlgorithm.from_str(algorithm)
 
         self._bagua_algorithm = algorithm
         self._bagua_gradient_as_bucket_view = gradient_as_bucket_view
@@ -114,35 +96,21 @@ class BaguaPlugin(DDPPlugin):
         model = LightningDistributedModule(self.model)
         self.configure_bagua_ddp(model)
 
+    def _check_qadam_optimizer(self):
+
+        trainer = self.lightning_module.trainer
+        has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in trainer.optimizers])
+
+        if not has_qadam_optimizer or len(trainer.optimizers) > 1 or len(trainer.lr_schedulers) > 1:
+            raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
+
     def configure_bagua_ddp(self, model: Module):
 
-        # TODO: format kwargs
-        if self._bagua_algorithm == BaguaDistributedAlgorithm.GradientAllReduce:
-            from bagua.torch_api.algorithms.gradient_allreduce import GradientAllReduceAlgorithm
+        if self._bagua_algorithm == "qadam":
+            self._check_qadam_optimizer()
+            self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
 
-            algorithm = GradientAllReduceAlgorithm(**self._bagua_kwargs)
-        elif self._bagua_algorithm == BaguaDistributedAlgorithm.ByteGrad:
-            from bagua.torch_api.algorithms.bytegrad import ByteGradAlgorithm
-
-            algorithm = ByteGradAlgorithm(**self._bagua_kwargs)
-        elif self._bagua_algorithm == BaguaDistributedAlgorithm.Decentralized:
-            from bagua.torch_api.algorithms.decentralized import DecentralizedAlgorithm
-
-            algorithm = DecentralizedAlgorithm(**self._bagua_kwargs)
-        elif self._bagua_algorithm == BaguaDistributedAlgorithm.LowPrecisionDecentralized:
-            from bagua.torch_api.algorithms.decentralized import LowPrecisionDecentralizedAlgorithm
-
-            algorithm = LowPrecisionDecentralizedAlgorithm(**self._bagua_kwargs)
-        elif self._bagua_algorithm == BaguaDistributedAlgorithm.QAdam:
-            from bagua.torch_api.algorithms.q_adam import QAdamAlgorithm
-
-            algorithm = QAdamAlgorithm(**self._bagua_kwargs)
-        elif self._bagua_algorithm == BaguaDistributedAlgorithm.AsyncModelAverage:
-            from bagua.torch_api.algorithms.async_model_average import AsyncModelAverageAlgorithm
-
-            algorithm = AsyncModelAverageAlgorithm(**self._bagua_kwargs)
-        else:
-            raise MisconfigurationException("Unsupport Bagua algorithm.")
+        algorithm = Algorithm.init(self._bagua_algorithm, **self._bagua_kwargs)
 
         self._model = BaguaDistributedDataParallel(
             module=model,
@@ -152,13 +120,13 @@ class BaguaPlugin(DDPPlugin):
         )
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
-        if self._bagua_algorithm == BaguaDistributedAlgorithm.AsyncModelAverage:
+        if self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)
 
         return trainer.run_stage()
 
     def post_dispatch(self, trainer: "pl.Trainer"):
-        if self._bagua_algorithm == BaguaDistributedAlgorithm.AsyncModelAverage:
+        if self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)
 
     @property
