@@ -17,9 +17,7 @@ from tests.helpers.boring_model import BoringModel
 def test_restore_checkpoint_after_pre_dispatch_default():
     """Assert default for restore_checkpoint_after_pre_dispatch is False."""
     plugin = SingleDevicePlugin(
-        accelerator=CPUAccelerator(),
-        device=torch.device("cpu"),
-        precision_plugin=PrecisionPlugin()
+        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
     )
     assert not plugin.restore_checkpoint_after_pre_dispatch
 
@@ -55,7 +53,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
         accelerator=CPUAccelerator(),
         precision_plugin=PrecisionPlugin(),
         device=torch.device("cpu"),
-        checkpoint_io=TorchCheckpointIO()
+        checkpoint_io=TorchCheckpointIO(),
     )
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
 
