@@ -312,7 +312,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        # xm.save needs to be called on all ranks. It internally checks if the local rank is 0
+        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
         self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
