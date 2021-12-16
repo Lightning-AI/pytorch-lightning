@@ -28,10 +28,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(
         self,
         device: torch.device,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__(checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.device: torch.device = device
         self.global_rank = 0
         self.local_rank = 0
