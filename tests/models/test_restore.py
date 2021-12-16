@@ -258,13 +258,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     # initial training
     trainer = Trainer(**get_trainer_args())
-    # with pytest.deprecated_call(match="The `on_init_end` callback hook "):
     trainer.fit(model, datamodule=dm)
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
     trainer = Trainer(**get_trainer_args())
-    # with pytest.deprecated_call(match="The `on_init_end` callback hook "):
     trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
