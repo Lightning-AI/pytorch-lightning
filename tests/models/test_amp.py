@@ -70,11 +70,7 @@ class AMPTestModel(BoringModel):
 @RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
     "strategy",
-    [
-        None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
-        "ddp_spawn",
-    ],
+    [None, pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")), "ddp_spawn"],  # TODO
 )
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("num_processes", [1, 2])
@@ -83,7 +79,15 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
     tutils.reset_seed()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, num_processes=num_processes, max_epochs=1, strategy=strategy, precision=precision
+        default_root_dir=tmpdir,
+        num_processes=num_processes,
+        max_epochs=1,
+        strategy=strategy,
+        precision=precision,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     model = AMPTestModel()
@@ -102,7 +106,17 @@ def test_amp_gpus(tmpdir, strategy, precision, gpus):
     """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=gpus, strategy=strategy, precision=precision)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=gpus,
+        strategy=strategy,
+        precision=precision,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     model = AMPTestModel()
     trainer.fit(model)
@@ -146,6 +160,8 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         precision=16,
         callbacks=[checkpoint],
         logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -169,7 +185,15 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
     assert trainer.amp_backend is None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        amp_backend="apex",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert trainer.amp_backend is None
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -195,7 +219,17 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     model = CustomModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        precision=16,
+        amp_backend="apex",
+        gpus=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"

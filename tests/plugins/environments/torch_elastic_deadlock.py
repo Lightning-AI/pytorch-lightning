@@ -23,7 +23,16 @@ if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1" and os.getenv("PL_RECONCILE_
     model = Model()
 
     trainer = Trainer(
-        default_root_dir=".", max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, strategy="ddp"
+        default_root_dir=".",
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        gpus=2,
+        strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
 

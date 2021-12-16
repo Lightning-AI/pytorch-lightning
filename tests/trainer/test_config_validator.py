@@ -24,7 +24,14 @@ def test_wrong_train_setting(tmpdir):
     * Test that an error is thrown when no `train_dataloader()` is defined
     * Test that an error is thrown when no `training_step()` is defined
     """
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match=r"No `train_dataloader\(\)` method defined."):
         model = BoringModel()
@@ -39,7 +46,14 @@ def test_wrong_train_setting(tmpdir):
 
 def test_wrong_configure_optimizers(tmpdir):
     """Test that an error is thrown when no `configure_optimizers()` is defined."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match=r"No `configure_optimizers\(\)` method defined."):
         model = BoringModel()
@@ -49,7 +63,14 @@ def test_wrong_configure_optimizers(tmpdir):
 
 def test_fit_val_loop_config(tmpdir):
     """When either val loop or val data are missing raise warning."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # no val data has val loop
     with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
@@ -66,7 +87,14 @@ def test_fit_val_loop_config(tmpdir):
 
 def test_eval_loop_config(tmpdir):
     """When either eval step or eval data is missing."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # has val step but no val data
     model = BoringModel()

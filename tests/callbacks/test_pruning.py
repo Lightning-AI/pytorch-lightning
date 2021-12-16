@@ -304,7 +304,13 @@ def test_permanent_when_model_is_saved_multiple_times(
     ckpt_callback = ModelCheckpoint(
         monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
     )
-    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, enable_progress_bar=False)
+    trainer = Trainer(
+        callbacks=[pruning_callback, ckpt_callback],
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
     with caplog.at_level(INFO):
         trainer.fit(model)
 

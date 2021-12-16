@@ -58,6 +58,9 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         strategy="ddp",
         gpus=1,
         num_nodes=2,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -105,6 +108,9 @@ def test__validation_step__log(tmpdir):
         strategy="ddp",
         gpus=1,
         num_nodes=2,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 

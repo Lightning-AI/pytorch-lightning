@@ -85,9 +85,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(neptune.init.call_count, 1)
         self.assertEqual(created_run_mock.__getitem__.call_count, 1)
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
-        created_run_mock.__getitem__.assert_called_once_with(
-            "sys/name",
-        )
+        created_run_mock.__getitem__.assert_called_once_with("sys/name")
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -155,7 +153,15 @@ class TestNeptuneLogger(unittest.TestCase):
         run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
     def _fit_and_test(self, logger, model):
-        trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
+        trainer = Trainer(
+            default_root_dir=self.tmpdir,
+            max_epochs=1,
+            limit_train_batches=0.05,
+            logger=logger,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+        )
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
         trainer.fit(model)
         trainer.test(model)
@@ -168,10 +174,7 @@ class TestNeptuneLogger(unittest.TestCase):
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
         # when
-        self._fit_and_test(
-            logger=logger,
-            model=BoringModel(),
-        )
+        self._fit_and_test(logger=logger, model=BoringModel())
 
         # then
         assert run_instance_mock.stop.call_count == 0
@@ -188,10 +191,7 @@ class TestNeptuneLogger(unittest.TestCase):
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
         # when
-        self._fit_and_test(
-            logger=logger,
-            model=LoggingModel(),
-        )
+        self._fit_and_test(logger=logger, model=LoggingModel())
 
         # then
         run_instance_mock.__getitem__.assert_any_call("training/some/key")
@@ -217,10 +217,7 @@ class TestNeptuneLogger(unittest.TestCase):
             run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
 
     def test_log_metrics(self, neptune):
-        metrics = {
-            "foo": 42,
-            "bar": 555,
-        }
+        metrics = {"foo": 42, "bar": 555}
         test_variants = [
             ({}, ("training/foo", "training/bar")),
             ({"prefix": "custom_prefix"}, ("custom_prefix/foo", "custom_prefix/bar")),

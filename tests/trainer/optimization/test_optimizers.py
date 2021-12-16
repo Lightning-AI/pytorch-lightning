@@ -30,7 +30,15 @@ def test_optimizer_with_scheduling(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, val_check_interval=0.5
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        val_check_interval=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -61,7 +69,16 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     model = TestModel()
     model.training_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -222,7 +239,16 @@ def test_optimizer_return_options(tmpdir):
 def test_none_optimizer(tmpdir):
     model = BoringModel()
     model.configure_optimizers = lambda: None
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.warns(UserWarning, match="will run with no optimizer"):
         trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -298,7 +324,16 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
     model = DummyModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_val_batches=1,
+        limit_train_batches=5,
+        max_epochs=max_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -371,6 +406,9 @@ def test_multiple_optimizers_callbacks(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -384,7 +422,15 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     max_epochs = 1 if complete_epoch else None
     max_steps = -1 if complete_epoch else 1
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        max_steps=max_steps,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     model.configure_optimizers = lambda: {
         "optimizer": optimizer,
@@ -569,6 +615,10 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
         limit_val_batches=2,
         check_val_every_n_epoch=check_val_every_n_epoch,
         max_epochs=epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert mocked_sched.call_count == expected_steps
@@ -587,6 +637,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
         limit_train_batches=batches,
         limit_val_batches=1,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=every_n_train_steps)],
+        enable_model_summary=False,
     )
 
     class TestModel(BoringModel):
@@ -623,6 +674,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
         limit_train_batches=batches,
         limit_val_batches=1,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=save_on_train_epoch_end)],
+        enable_model_summary=False,
     )
 
     class TestModel(BoringModel):

@@ -129,6 +129,9 @@ def train_with_swa(
         strategy=strategy,
         gpus=gpus,
         num_processes=num_processes,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
@@ -269,10 +272,6 @@ def test_swa_multiple_lrs(tmpdir):
 
     model = TestModel()
     swa_callback = StochasticWeightAveraging(swa_lrs=swa_lrs)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=swa_callback,
-        fast_dev_run=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=swa_callback, fast_dev_run=1)
     trainer.fit(model)
     assert model.on_train_epoch_start_called

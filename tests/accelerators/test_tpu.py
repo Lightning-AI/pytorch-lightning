@@ -52,7 +52,14 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8)
+    trainer = Trainer(
+        max_epochs=1,
+        tpu_cores=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -63,7 +70,14 @@ def test_resume_training_on_cpu(tmpdir):
     assert weight_tensor.device == torch.device("cpu")
 
     # Verify that training is resumed on CPU
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, ckpt_path=model_path)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -75,7 +89,16 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(
+        max_epochs=1,
+        tpu_cores=8,
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
 
@@ -215,6 +238,10 @@ def test_manual_optimization_tpus(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         tpu_cores=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -249,7 +276,16 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        tpu_cores=8,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
@@ -281,7 +317,16 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
     model = NestedModule()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        tpu_cores=8,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))

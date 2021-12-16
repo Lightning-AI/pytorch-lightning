@@ -695,10 +695,7 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
             }
 
         def training_step(self, batch, batch_idx):
-            assert batch == {
-                "a": [ANY, ANY, ANY],
-                "b": ANY,
-            }
+            assert batch == {"a": [ANY, ANY, ANY], "b": ANY}
 
         def validation_step(self, batch, batch_idx):
             assert isinstance(batch, torch.Tensor)
@@ -726,7 +723,16 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
         model = TestModel()
         model.training_epoch_end = None
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=1,
+            callbacks=Check(),
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         trainer.fit(model)
 
 
@@ -1018,6 +1024,10 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
             max_epochs=1,
             val_check_interval=val_check_interval,
             num_sanity_val_steps=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         if should_fail:
             with pytest.raises(CustomException):
@@ -1514,9 +1524,7 @@ class RandomFaultTolerantSampler(RandomSampler):
 
 @pytest.mark.parametrize(
     ["train_dataset_cls", "val_dataset_cls"],
-    [
-        ([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset]),
-    ],
+    [([RandomFaultTolerantDataset, RandomFaultTolerantDataset], [RandomFaultTolerantDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
@@ -1573,7 +1581,15 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     total_batches = model.batches
     total_weight = deepcopy(model.layer.weight)
@@ -1581,7 +1597,15 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel(should_fail=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with suppress(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
@@ -1593,7 +1617,15 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, ckpt_path=checkpoint_path)
     trainer.train_dataloader = None
     restart_batches = model.batches

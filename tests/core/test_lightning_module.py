@@ -112,7 +112,15 @@ def test_params_groups_and_state_are_accessible(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, accumulate_grad_batches=1
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        limit_val_batches=1,
+        accumulate_grad_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -178,7 +186,15 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2, limit_val_batches=0
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        accumulate_grad_batches=2,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -278,7 +294,16 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        accumulate_grad_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.fit(model)
 
@@ -313,12 +338,7 @@ class BoringModelWithShardedTensor(BoringModel):
 
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
-    spec = dist._sharding_spec.ChunkShardingSpec(
-        dim=0,
-        placements=[
-            "rank:0/cpu",
-        ],
-    )
+    spec = dist._sharding_spec.ChunkShardingSpec(dim=0, placements=["rank:0/cpu"])
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
@@ -353,7 +373,15 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        gradient_clip_val=1e-4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -377,7 +405,15 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        gradient_clip_val=1e-4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.raises(
         MisconfigurationException,
@@ -398,6 +434,10 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         limit_train_batches=2,
         limit_val_batches=0,
         gradient_clip_algorithm="norm",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.raises(
         MisconfigurationException,

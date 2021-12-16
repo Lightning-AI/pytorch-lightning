@@ -53,7 +53,16 @@ class BatchSizeModel(BoringModel):
 @pytest.mark.parametrize(["model_bs", "dm_bs"], [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_bs):
     """Test the tuner method `Tuner.scale_batch_size` with a datamodule."""
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     tuner = Tuner(trainer)
 
     model = BatchSizeModel(model_bs)
@@ -79,7 +88,14 @@ def test_model_reset_correctly(tmpdir):
     model = BatchSizeModel(batch_size=2)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     before_state_dict = deepcopy(model.state_dict())
 
@@ -102,7 +118,14 @@ def test_trainer_reset_correctly(tmpdir):
     model = BatchSizeModel(batch_size=2)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     changed_attributes = [
         "callbacks",
@@ -127,7 +150,16 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     tutils.reset_seed()
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg, gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=scale_arg,
+        gpus=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
@@ -169,7 +201,16 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
     model = model_class(**hparams)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert trainer.datamodule == datamodule_fit
@@ -189,7 +230,16 @@ def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
             self.save_hyperparameters()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, max_epochs=1000, auto_scale_batch_size=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        max_epochs=1000,
+        auto_scale_batch_size=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
         trainer.tune(model)
@@ -204,7 +254,14 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     model = BatchSizeModel(batch_size=before_batch_size)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size
@@ -225,12 +282,15 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
         auto_scale_batch_size="power",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     fit_options = dict(train_dataloaders=model.train_dataloader())
 
     with pytest.raises(
-        MisconfigurationException,
-        match="The batch scaling feature cannot be used with dataloaders passed directly",
+        MisconfigurationException, match="The batch scaling feature cannot be used with dataloaders passed directly"
     ):
         trainer.tune(model, **fit_options)
 
@@ -239,7 +299,17 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 def test_auto_scale_batch_size_with_amp(tmpdir):
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True, gpus=1, precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+        precision=16,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE
@@ -250,7 +320,15 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
 def test_scale_batch_size_no_trials(tmpdir):
     """Check the result is correct even when no trials are run."""
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_val_batches=1, limit_train_batches=1, auto_scale_batch_size="power"
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=1,
+        limit_train_batches=1,
+        auto_scale_batch_size="power",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     model = BatchSizeModel(batch_size=2)
     result = trainer.tuner.scale_batch_size(model, max_trials=0)
@@ -272,6 +350,10 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         limit_val_batches=1,
         limit_train_batches=1,
         auto_scale_batch_size="ThisModeDoesNotExist",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with pytest.raises(ValueError, match="could either be `power` or `binsearch`"):
@@ -286,7 +368,14 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     model = BatchSizeModel(batch_size=16)
     scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4, "mode": scale_method}
 
-    trainer = Trainer(max_epochs=2, auto_scale_batch_size=True)
+    trainer = Trainer(
+        max_epochs=2,
+        auto_scale_batch_size=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size

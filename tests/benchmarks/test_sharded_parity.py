@@ -137,7 +137,17 @@ def plugin_parity_test(
     ddp_model = model_cls()
     use_cuda = gpus > 0
 
-    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_spawn")
+    trainer = Trainer(
+        fast_dev_run=True,
+        max_epochs=1,
+        gpus=gpus,
+        precision=precision,
+        strategy="ddp_spawn",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
 
@@ -145,7 +155,17 @@ def plugin_parity_test(
     seed_everything(seed)
     custom_plugin_model = model_cls()
 
-    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_sharded_spawn")
+    trainer = Trainer(
+        fast_dev_run=True,
+        max_epochs=1,
+        gpus=gpus,
+        precision=precision,
+        strategy="ddp_sharded_spawn",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert isinstance(trainer.training_type_plugin, DDPSpawnShardedPlugin)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(

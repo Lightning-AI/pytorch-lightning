@@ -40,7 +40,14 @@ def test_lightning_optimizer(tmpdir, auto):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -88,7 +95,14 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
     model.training_step_end = None
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -160,7 +174,14 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=20, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=20,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
@@ -205,6 +226,9 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -229,7 +253,14 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
@@ -304,7 +335,16 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
             del self.trainer._lightning_optimizers
             gc.collect()  # not necessary, just in case
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=4, limit_val_batches=1, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     model = TestModel()
     trainer.fit(model)
     assert model.count_on_train_batch_start == 4

@@ -569,6 +569,8 @@ def test_model_saving_loading(tmpdir):
         logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -623,6 +625,8 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
         limit_val_batches=2,
         logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -663,6 +667,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         limit_val_batches=2,
         logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

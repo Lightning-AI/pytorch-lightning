@@ -81,6 +81,8 @@ def test__training_step__log(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
+        enable_progress_bar=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -118,6 +120,9 @@ def test__training_step__epoch_end__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -158,6 +163,9 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -196,6 +204,9 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
         limit_val_batches=batches,
         max_epochs=2,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -235,6 +246,9 @@ def test_different_batch_types_for_sizing(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -325,6 +339,10 @@ def test_log_works_in_train_callback(tmpdir):
         num_sanity_val_steps=0,
         max_epochs=1,
         callbacks=[cb],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -411,6 +429,9 @@ def test_logging_sync_dist_true(tmpdir, devices):
         strategy="ddp_spawn" if use_multiple_devices else None,
         accelerator="auto",
         devices=devices,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -460,6 +481,9 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         strategy="ddp",
         gpus=2,
         profiler="pytorch",
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -538,6 +562,9 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         callbacks=[LoggingCallback()],
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -585,6 +612,9 @@ def test_metric_are_properly_reduced(tmpdir):
         limit_train_batches=5,
         limit_val_batches=32,
         callbacks=[early_stop, checkpoint],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -682,7 +712,15 @@ def test_sanity_metrics_are_reset(tmpdir):
             return loss
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=2, num_sanity_val_steps=2
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        num_sanity_val_steps=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(TestModel())
 
@@ -696,12 +734,7 @@ def test_move_metrics_to_cpu(tmpdir):
             assert loss.device.type == "cuda"
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        amp_backend="native",
-        precision=16,
-        move_metrics_to_cpu=True,
-        gpus=1,
+        default_root_dir=tmpdir, fast_dev_run=True, amp_backend="native", precision=16, move_metrics_to_cpu=True, gpus=1
     )
     trainer.fit(TestModel())
 
@@ -741,6 +774,9 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
         limit_val_batches=3,
         num_sanity_val_steps=3,
         max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)

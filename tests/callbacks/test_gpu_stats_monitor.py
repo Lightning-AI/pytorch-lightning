@@ -44,6 +44,9 @@ def test_gpu_stats_monitor(tmpdir):
         gpus=1,
         callbacks=[gpu_stats],
         logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
@@ -68,10 +71,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor(
-            memory_utilization=False,
-            gpu_utilization=False,
-            intra_step_time=True,
-            inter_step_time=True,
+            memory_utilization=False, gpu_utilization=False, intra_step_time=True, inter_step_time=True
         )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -81,6 +81,10 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
         log_every_n_steps=1,
         gpus=1,
         callbacks=[gpu_stats],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
         trainer.fit(model)
@@ -108,7 +112,16 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, gpus=1, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[gpu_stats],
+        max_epochs=1,
+        gpus=1,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
@@ -121,7 +134,16 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_steps=1, gpus=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[gpu_stats],
+        max_steps=1,
+        gpus=None,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="not running on GPU"):
         trainer.fit(model)

@@ -79,7 +79,15 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        overfit_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -191,7 +199,15 @@ def test_explicit_missing_args_hparams(tmpdir):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        overfit_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -325,7 +341,15 @@ def test_collect_init_arguments(tmpdir, cls):
         assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        overfit_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
@@ -422,7 +446,14 @@ def test_load_past_checkpoint(tmpdir, past_key):
     model = CustomBoringModel()
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -459,7 +490,14 @@ class UnpickleableArgsBoringModel(BoringModel):
 
 def test_hparams_pickle_warning(tmpdir):
     model = UnpickleableArgsBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
         trainer.fit(model)
     assert "pickle_me" not in model.hparams
@@ -513,7 +551,14 @@ def test_model_nohparams_train_test(tmpdir, cls):
     """Test models that do not take any argument in init."""
 
     model = cls()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     train_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
     trainer.fit(model, train_loader)
@@ -534,7 +579,14 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
     assert model.hparams.batch_size == 15
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # verify that we can overwrite whatever we want
@@ -560,7 +612,14 @@ def test_args(tmpdir):
     """Test for inheritance: super class takes positional arg, subclass takes varargs."""
     hparams = dict(test=1)
     model = SubClassVarArgs(hparams)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
@@ -583,7 +642,15 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     assert model.hparams.running_arg == -1
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -601,7 +668,15 @@ class UnsafeParamModel(BoringModel):
 def test_model_with_fsspec_as_parameter(tmpdir):
     model = UnsafeParamModel(LocalFileSystem(tmpdir))
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.test()
@@ -635,6 +710,8 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
             limit_val_batches=10,
             max_epochs=epochs,
             logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
         )
         trainer.fit(model)
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
@@ -657,7 +734,15 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
         assert arg not in model.hparams
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        overfit_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -754,7 +839,14 @@ def test_adding_datamodule_hparams(tmpdir, model, data):
     org_data_hparams = copy.deepcopy(data.hparams_initial)
 
     mock_logger = _get_mock_logger(tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=mock_logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model, datamodule=data)
 
     # Hparams of model and data were not modified
@@ -775,7 +867,14 @@ def test_no_datamodule_for_hparams(tmpdir):
     data.setup()
 
     mock_logger = _get_mock_logger(tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=mock_logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model, datamodule=data)
 
     # Merged hparams were logged
@@ -787,6 +886,13 @@ def test_colliding_hparams(tmpdir):
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)

@@ -22,6 +22,10 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
         auto_scale_batch_size=(tuner_alg == "batch size scaler"),
         auto_lr_find=(tuner_alg == "learning rate finder"),
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     expected_message = f"Skipping {tuner_alg} since fast_dev_run is enabled."
     with pytest.warns(UserWarning, match=expected_message):

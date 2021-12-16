@@ -40,7 +40,14 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     model = CustomBoringModel(lr=1e-2)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="only works with single optimizer"):
         trainer.tuner.lr_find(model)
@@ -52,7 +59,14 @@ def test_model_reset_correctly(tmpdir):
     model = BoringModel()
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     before_state_dict = deepcopy(model.state_dict())
 
@@ -74,7 +88,14 @@ def test_trainer_reset_correctly(tmpdir):
     model = BoringModel()
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     changed_attributes = [
         "accumulate_grad_batches",
@@ -111,7 +132,15 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
 
     before_lr = 1e-2
     model = CustomBoringModel(lr=before_lr)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_lr_find=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        auto_lr_find=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.tune(model)
     if use_hparams:
@@ -142,7 +171,15 @@ def test_trainer_arg_str(tmpdir, use_hparams):
 
     before_lr = 1e-2
     model = CustomBoringModel(my_fancy_lr=before_lr)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_lr_find="my_fancy_lr")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        auto_lr_find="my_fancy_lr",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.tune(model)
     if use_hparams:
@@ -174,7 +211,14 @@ def test_call_to_trainer_method(tmpdir, opt):
 
     before_lr = 1e-2
     model = CustomBoringModel(1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     lrfinder = trainer.tuner.lr_find(model, mode="linear")
     after_lr = lrfinder.suggestion()
@@ -195,7 +239,14 @@ def test_datamodule_parameter(tmpdir):
 
     before_lr = model.lr
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     after_lr = lrfinder.suggestion()
@@ -239,7 +290,14 @@ def test_suggestion_parameters_work(tmpdir):
 
     # logger file to get meta
     model = CustomBoringModel(lr=1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     lrfinder = trainer.tuner.lr_find(model)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
@@ -264,7 +322,14 @@ def test_suggestion_with_non_finite_values(tmpdir):
             return optimizer
 
     model = CustomBoringModel(lr=1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     lrfinder = trainer.tuner.lr_find(model)
     before_lr = lrfinder.suggestion()
@@ -278,7 +343,15 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """Test that tune fails if the model does not have a lr BEFORE running lr find."""
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        auto_lr_find=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.raises(MisconfigurationException, match="should have one of these fields"):
         trainer.tune(BoringModel())
 
@@ -296,7 +369,16 @@ def test_lr_find_with_bs_scale(tmpdir):
     before_lr = model.hparams.learning_rate
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, auto_lr_find=True, auto_scale_batch_size=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        auto_lr_find=True,
+        auto_scale_batch_size=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     result = trainer.tune(model)
     bs = result["scale_batch_size"]
     after_lr = result["lr_find"].suggestion()
@@ -348,7 +430,14 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     seed_everything(1)
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
     assert all(

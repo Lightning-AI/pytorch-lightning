@@ -24,7 +24,9 @@ from tests.helpers.runif import RunIf
 
 def test_disabled_checkpointing(tmpdir):
     # no callback
-    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
+    trainer = Trainer(
+        max_epochs=3, enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False, logger=False
+    )
     assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
     assert not trainer.checkpoint_callbacks
@@ -44,6 +46,8 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         val_check_interval=val_check_interval,
         limit_val_batches=1,
         enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -77,6 +81,8 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
         max_epochs=epochs,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
+        enable_progress_bar=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -118,6 +124,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         gpus=2,
         limit_train_batches=64,
         limit_val_batches=32,
+        logger=False,
     )
     trainer.fit(model)
     if os.getenv("LOCAL_RANK") == "0":

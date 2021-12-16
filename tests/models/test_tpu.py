@@ -188,6 +188,9 @@ def test_model_tpu_early_stop(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         tpu_cores=8,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.test(dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
@@ -239,15 +242,20 @@ def test_dataloaders_passed_to_fit(tmpdir):
     tutils.reset_seed()
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id"],
-    [(1, None), (8, None), ([1], 1), ([8], 8)],
-)
+@pytest.mark.parametrize(["tpu_cores", "expected_tpu_id"], [(1, None), (8, None), ([1], 1), ([8], 8)])
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected."""
@@ -319,8 +327,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 
 
 @pytest.mark.parametrize(
-    ["cli_args", "expected"],
-    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    ["cli_args", "expected"], [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})]
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
@@ -396,7 +403,16 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
+    trainer = Trainer(
+        max_epochs=1,
+        tpu_cores=8,
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 

@@ -108,7 +108,15 @@ def test_custom_logger(tmpdir):
 
     logger = CustomLogger()
     model = CustomModel()
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_steps=2,
+        log_every_n_steps=1,
+        logger=logger,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
@@ -129,7 +137,15 @@ def test_multiple_loggers(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=[logger1, logger2], default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_steps=2,
+        log_every_n_steps=1,
+        logger=[logger1, logger2],
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -186,6 +202,9 @@ def test_adding_step_key(tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -297,7 +316,15 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 
     model = TestModel("pytorch", "lightning")
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0.1, num_sanity_val_steps=0
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -335,6 +362,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=False,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
     # the lightning module and data module
@@ -359,6 +387,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
@@ -376,6 +405,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)

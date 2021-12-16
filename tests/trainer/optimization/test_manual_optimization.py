@@ -119,6 +119,9 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         log_every_n_steps=1,
         enable_model_summary=False,
         **kwargs,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     if kwargs.get("amp_backend") == "native":
@@ -160,6 +163,9 @@ def test_multiple_optimizers_manual_return(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -187,6 +193,9 @@ def test_multiple_optimizers_manual_log(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -210,6 +219,9 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         enable_model_summary=False,
         precision=16,
         gpus=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -297,6 +309,10 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         amp_backend="native",
         strategy="ddp_spawn",
         gpus=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -384,6 +400,10 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         precision=16,
         amp_backend="native",
         gpus=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -468,6 +488,9 @@ def test_multiple_optimizers_step(tmpdir):
         amp_backend="native",
         gpus=1,
         track_grad_norm=2,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -538,6 +561,10 @@ def test_step_with_optimizer_closure(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -594,6 +621,10 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward) as bwd_mock:
@@ -645,6 +676,10 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -719,6 +754,10 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -832,6 +871,10 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         log_every_n_steps=1,
         gpus=2,
         strategy=strategy,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -939,7 +982,15 @@ def test_lr_schedulers(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -978,7 +1029,15 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
     model = TestModel(scheduler_as_dict=scheduler_as_dict)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     if scheduler_as_dict:
@@ -1010,7 +1069,15 @@ def test_lr_scheduler_step_not_called(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
         trainer.fit(model)
@@ -1076,6 +1143,9 @@ def test_multiple_optimizers_logging(precision, tmpdir):
         enable_model_summary=False,
         gpus=1,
         precision=precision,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

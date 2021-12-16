@@ -62,6 +62,8 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     with pytest.deprecated_call(
         match="The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8"
@@ -80,6 +82,8 @@ def test_v1_8_0_deprecated_call_hook():
         limit_train_batches=0.2,
         enable_progress_bar=False,
         logger=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
@@ -96,7 +100,15 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
 
     save_model = TestModelSave()
     load_model = TestModelLoad()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.deprecated_call(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."

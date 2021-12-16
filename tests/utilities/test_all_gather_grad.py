@@ -105,6 +105,10 @@ def test_all_gather_collection(tmpdir):
         accumulate_grad_batches=2,
         gpus=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

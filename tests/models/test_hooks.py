@@ -35,7 +35,15 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
 
     model = CurrentTestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=max_steps,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert 0 == model.on_before_zero_grad_called
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
@@ -63,7 +71,15 @@ def test_training_epoch_end_metrics_collection(tmpdir):
             )
 
     model = CurrentModel()
-    trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2)
+    trainer = Trainer(
+        max_epochs=num_epochs,
+        default_root_dir=tmpdir,
+        overfit_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     metrics = trainer.progress_bar_callback.get_metrics(trainer, model)
@@ -105,7 +121,15 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     not_overridden_model = NotOverriddenModel()
     not_overridden_model.training_epoch_end = None
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, overfit_batches=2)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        overfit_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.fit(overridden_model)
     assert overridden_model.len_outputs == overridden_model.num_train_batches
@@ -204,6 +228,9 @@ def test_transfer_batch_hook_ddp(tmpdir):
         enable_model_summary=False,
         strategy="ddp",
         gpus=2,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -483,6 +510,8 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         callbacks=[callback],
         track_grad_norm=1,
         **kwargs,
+        enable_checkpointing=False,
+        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -589,6 +618,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[HookedCallback([])],
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
@@ -609,6 +640,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_model_summary=False,
         callbacks=[callback],
         track_grad_norm=1,
+        enable_checkpointing=False,
+        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -693,6 +726,8 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[callback],
+        enable_checkpointing=False,
+        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -737,7 +772,13 @@ def test_trainer_model_hook_system_predict(tmpdir):
     callback = HookedCallback(called)
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
+        default_root_dir=tmpdir,
+        limit_predict_batches=batches,
+        enable_progress_bar=False,
+        callbacks=[callback],
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -862,6 +903,8 @@ def test_trainer_datamodule_hook_system(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         reload_dataloaders_every_n_epochs=1,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     called = []

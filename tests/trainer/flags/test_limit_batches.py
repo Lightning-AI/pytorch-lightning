@@ -23,7 +23,16 @@ def test_num_dataloader_batches(tmpdir):
     """Tests that the correct number of batches are allocated."""
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = BoringModel()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        limit_val_batches=100,
+        limit_train_batches=100,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 64
@@ -34,7 +43,16 @@ def test_num_dataloader_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = BoringModel()
-    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        limit_val_batches=7,
+        limit_train_batches=7,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 64
@@ -46,11 +64,7 @@ def test_num_dataloader_batches(tmpdir):
 
 @pytest.mark.parametrize(
     ["stage", "mode"],
-    [
-        (RunningStage.VALIDATING, "val"),
-        (RunningStage.TESTING, "test"),
-        (RunningStage.PREDICTING, "predict"),
-    ],
+    [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
 )
 @pytest.mark.parametrize("limit_batches", [0.1, 10])
 def test_eval_limit_batches(stage, mode, limit_batches):

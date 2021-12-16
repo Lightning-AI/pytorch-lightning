@@ -245,6 +245,9 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         strategy="horovod",
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -308,6 +311,8 @@ def test_result_reduce_horovod(tmpdir):
             log_every_n_steps=1,
             enable_model_summary=False,
             logger=False,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
         )
 
         trainer.fit(model)
@@ -388,7 +393,15 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
         # fit model
         trainer = Trainer(
-            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, strategy="horovod"
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_val_batches=0.5,
+            limit_train_batches=0.2,
+            strategy="horovod",
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         trainer.fit(model)
 

@@ -34,7 +34,15 @@ def test_lr_monitor_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -72,6 +80,10 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -98,6 +110,10 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -120,7 +136,15 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -157,6 +181,10 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -182,6 +210,10 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -197,7 +229,15 @@ def test_lr_monitor_no_logger(tmpdir):
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        callbacks=[lr_monitor],
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
         trainer.fit(model)
@@ -233,6 +273,10 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -276,6 +320,10 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -311,7 +359,15 @@ def test_lr_monitor_param_groups(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -336,6 +392,8 @@ def test_lr_monitor_custom_name(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["my_logging_name"]
@@ -357,6 +415,8 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["lr-SGD/linear"]
@@ -394,6 +454,8 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with pytest.raises(
@@ -486,6 +548,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
+        logger=False,
     )
     model = TestModel()
     model.training_epoch_end = None
@@ -527,10 +590,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
             return x
 
         def configure_optimizers(self):
-            param_groups = [
-                {"params": list(self.linear_a.parameters())},
-                {"params": list(self.linear_b.parameters())},
-            ]
+            param_groups = [{"params": list(self.linear_a.parameters())}, {"params": list(self.linear_b.parameters())}]
             optimizer = torch.optim.Adam(param_groups, lr=self.hparams.lr, betas=self.hparams.momentum)
             return optimizer
 
@@ -543,6 +603,8 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     lr = 1e-2

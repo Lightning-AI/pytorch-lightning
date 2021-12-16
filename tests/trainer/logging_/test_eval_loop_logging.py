@@ -54,6 +54,9 @@ def test__validation_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -92,6 +95,9 @@ def test__validation_step__epoch_end__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -120,6 +126,9 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -152,6 +161,9 @@ def test_eval_float_logging(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -184,6 +196,9 @@ def test_eval_logging_auto_reduce(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -213,6 +228,9 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
         limit_test_batches=batches,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     results = trainer.test(model)
 
@@ -247,6 +265,9 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     results = trainer.test(model)
 
@@ -333,6 +354,10 @@ def test_log_works_in_val_callback(tmpdir):
         num_sanity_val_steps=0,
         max_epochs=1,
         callbacks=[cb],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -462,7 +487,15 @@ def test_log_works_in_test_callback(tmpdir):
     model.test_epoch_end = None
     cb = TestCallback()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, num_sanity_val_steps=0, max_epochs=2, callbacks=[cb]
+        default_root_dir=tmpdir,
+        limit_test_batches=2,
+        num_sanity_val_steps=0,
+        max_epochs=2,
+        callbacks=[cb],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.test(model)
 
@@ -542,6 +575,9 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
 
     # Train the model ⚡
@@ -550,12 +586,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     # hp_metric + 2 steps + epoch + 2 steps + epoch
     expected_num_calls = 1 + 2 + 1 + 2 + 1
 
-    assert set(trainer.callback_metrics) == {
-        "train_loss",
-        "valid_loss_0_epoch",
-        "valid_loss_0",
-        "valid_loss_1",
-    }
+    assert set(trainer.callback_metrics) == {"train_loss", "valid_loss_0_epoch", "valid_loss_0", "valid_loss_1"}
     assert len(mock_log_metrics.mock_calls) == expected_num_calls
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
@@ -588,9 +619,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert get_metrics_at_idx(6)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
 
     results = trainer.test(model)
-    assert set(trainer.callback_metrics) == {
-        "test_loss",
-    }
+    assert set(trainer.callback_metrics) == {"test_loss"}
     assert set(results[0]) == {"test_loss"}
 
 
@@ -599,10 +628,7 @@ def test_logging_dict_on_validation_step(tmpdir):
         def validation_step(self, batch, batch_idx):
             loss = super().validation_step(batch, batch_idx)
             loss = loss["x"]
-            metrics = {
-                "loss": loss,
-                "loss_1": loss,
-            }
+            metrics = {"loss": loss, "loss_1": loss}
             self.log("val_metrics", metrics)
 
         validation_epoch_end = None
@@ -614,6 +640,10 @@ def test_logging_dict_on_validation_step(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -671,6 +701,9 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         max_epochs=3,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -694,7 +727,16 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
             assert self.trainer.callback_metrics["foo"].device.type == "cpu"
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_val_batches=2,
+        move_metrics_to_cpu=True,
+        gpus=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.validate(model, verbose=False)
 
 
@@ -710,11 +752,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log_dict(log_common_same_val)
             self.log(log_common_diff_val, dataloader_idx + 1)
-            self.log(
-                log_key_no_dl_idx.format(dataloader_idx),
-                321 * (dataloader_idx + 1),
-                add_dataloader_idx=False,
-            )
+            self.log(log_key_no_dl_idx.format(dataloader_idx), 321 * (dataloader_idx + 1), add_dataloader_idx=False)
             self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
 
         def test_dataloader(self):

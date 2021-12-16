@@ -120,7 +120,15 @@ def test_warning_if_ipus_not_used(tmpdir):
 @RunIf(ipu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUPlugin(training_opts=poptorch.Options()))
+        Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            strategy=IPUPlugin(training_opts=poptorch.Options()),
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
     assert len(record) == 0
 
 
@@ -153,7 +161,15 @@ def test_optimization(tmpdir):
     dm = ClassifDataModule(length=1024)
     model = IPUClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, ipus=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        ipus=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # fit model
     trainer.fit(model, dm)

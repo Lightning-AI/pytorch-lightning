@@ -126,13 +126,29 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     """Test that a legacy checkpoint that didn't use a state key before can still be loaded."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        callbacks=[callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
@@ -145,6 +161,10 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback0, callback1],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -153,6 +173,10 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1],  # one callback is missing!
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.warns(UserWarning, match=escape(f"Please add the following callbacks: [{repr(callback0.state_key)}]")):
         trainer.fit(model, ckpt_path=ckpt_path)
@@ -161,6 +185,10 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1, callback0],  # all callbacks here, order switched
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with no_warning_call(UserWarning, match="Please add the following callbacks:"):
         trainer.fit(model, ckpt_path=ckpt_path)

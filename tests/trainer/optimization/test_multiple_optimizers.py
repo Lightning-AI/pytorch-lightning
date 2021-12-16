@@ -45,7 +45,14 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
 
     # Initialize a trainer
     trainer = pl.Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, limit_val_batches=5, enable_model_summary=False
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -78,6 +85,9 @@ def test_multiple_optimizers(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -117,7 +127,14 @@ def test_multiple_optimizers_manual(tmpdir):
     model.val_dataloader = None
 
     trainer = pl.Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, max_epochs=1, log_every_n_steps=1, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -190,6 +207,9 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert len(model.training_step_called) == len(model.optimizer_step_called) == len(model.optimizers())

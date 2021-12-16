@@ -23,10 +23,7 @@ from pytorch_lightning.utilities import grad_norm
 @pytest.mark.parametrize(
     "norm_type,expected",
     [
-        (
-            1,
-            {"grad_1.0_norm/param0": 1 + 2 + 3, "grad_1.0_norm/param1": 4 + 5, "grad_1.0_norm_total": 15.0},
-        ),
+        (1, {"grad_1.0_norm/param0": 1 + 2 + 3, "grad_1.0_norm/param1": 4 + 5, "grad_1.0_norm_total": 15.0}),
         (
             2,
             {

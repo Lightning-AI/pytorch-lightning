@@ -73,6 +73,9 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=RichProgressBar(),
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -133,11 +136,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
         "pytorch_lightning.callbacks.progress.rich_progress.Progress.stop", autospec=True
     ) as mock_progress_stop:
         progress_bar = RichProgressBar()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            callbacks=progress_bar,
-        )
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=progress_bar)
 
         trainer.fit(model)
     mock_progress_stop.assert_called_once()
@@ -177,6 +176,9 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
             limit_train_batches=1,
             max_epochs=6,
             callbacks=progress_bar,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count
@@ -196,6 +198,9 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
         limit_val_batches=6,
         max_epochs=1,
         callbacks=RichProgressBar(refresh_rate=refresh_rate),
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -218,6 +223,9 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
         limit_val_batches=limit_val_batches,
         max_epochs=1,
         callbacks=progress_bar,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

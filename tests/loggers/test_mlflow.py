@@ -132,7 +132,16 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert logger.name == "exp-id"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=1, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / "checkpoints")
@@ -171,6 +180,9 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         max_epochs=1,
         limit_train_batches=limit_batches,
         limit_val_batches=limit_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}

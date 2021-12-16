@@ -37,7 +37,14 @@ def test_models(tmpdir, data_class, model_class):
     """Test simple models."""
     dm = data_class() if data_class else data_class
     model = model_class()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.fit(model, datamodule=dm)
 

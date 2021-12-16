@@ -43,7 +43,14 @@ def test_tensorboard_hparams_reload(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_steps=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
@@ -210,14 +217,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
 @RunIf(omegaconf=True)
 def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
-    hparams = {
-        "float": 0.3,
-        "int": 1,
-        "string": "abc",
-        "bool": True,
-        "dict": {"a": {"b": "c"}},
-        "list": [1, 2, 3],
-    }
+    hparams = {"float": 0.3, "int": 1, "string": "abc", "bool": True, "dict": {"a": {"b": "c"}}, "list": [1, 2, 3]}
     hparams = OmegaConf.create(hparams)
 
     metrics = {"abc": torch.tensor([0.54])}
@@ -275,6 +275,9 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
         accumulate_grad_batches=2,
         logger=[logger_0],
         log_every_n_steps=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -298,7 +301,14 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
 def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     model = BoringModel()
     logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer = Trainer(
+        max_steps=1,
+        default_root_dir=tmpdir,
+        logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 

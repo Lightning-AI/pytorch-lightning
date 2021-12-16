@@ -60,14 +60,7 @@ def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, p
     plugin = None
     if custom_plugin:
         plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
-    trainer = Trainer(
-        fast_dev_run=True,
-        precision=16,
-        amp_backend=amp,
-        gpus=gpus,
-        strategy=strategy,
-        plugins=plugin,
-    )
+    trainer = Trainer(fast_dev_run=True, precision=16, amp_backend=amp, gpus=gpus, strategy=strategy, plugins=plugin)
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
@@ -154,6 +147,9 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         log_every_n_steps=1,
         accumulate_grad_batches=accum,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 

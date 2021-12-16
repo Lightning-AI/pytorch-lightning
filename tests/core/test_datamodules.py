@@ -162,7 +162,14 @@ def test_train_loop_only(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -180,7 +187,14 @@ def test_train_val_loop_only(tmpdir):
     model.validation_step_end = None
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -213,6 +227,8 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         limit_val_batches=1,
         enable_model_summary=False,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
+        enable_progress_bar=False,
+        logger=False,
     )
 
     # fit model
@@ -236,7 +252,15 @@ def test_full_loop(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_model_summary=False,
+        deterministic=True,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     # fit model
     trainer.fit(model, dm)
@@ -345,7 +369,16 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        limit_train_batches=2,
+        reload_dataloaders_every_n_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, dm)
 
 

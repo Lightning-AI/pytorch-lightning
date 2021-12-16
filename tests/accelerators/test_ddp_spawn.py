@@ -78,6 +78,9 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_val_batches=0.2,
         gpus=[0, 1],
         strategy="ddp_spawn",
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."

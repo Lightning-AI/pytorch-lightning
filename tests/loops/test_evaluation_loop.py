@@ -30,7 +30,14 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

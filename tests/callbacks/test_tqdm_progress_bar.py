@@ -80,7 +80,14 @@ def test_tqdm_progress_bar_totals(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     bar = trainer.progress_bar_callback
 
     trainer.fit(model)
@@ -204,6 +211,9 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
             limit_train_batches=1.0,
             num_sanity_val_steps=2,
             max_epochs=3,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
         )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
@@ -252,6 +262,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
         callbacks=[progress_bar],
         logger=False,
         enable_checkpointing=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -332,6 +343,7 @@ def test_main_progress_bar_update_amount(
         callbacks=[progress_bar],
         logger=False,
         enable_checkpointing=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     if train_batches > 0:
@@ -352,6 +364,7 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
         callbacks=[progress_bar],
         logger=False,
         enable_checkpointing=False,
+        enable_model_summary=False,
     )
     trainer.test(model)
     progress_bar.test_progress_bar.update.assert_has_calls([call(delta) for delta in test_deltas])
@@ -368,7 +381,13 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(TestModel())
 
@@ -430,6 +449,10 @@ def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.test(model)
@@ -456,6 +479,10 @@ def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.validate(model)
@@ -484,6 +511,10 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     bar.disable()
     trainer.fit(model)
@@ -498,7 +529,15 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
 
 def test_tqdm_progress_bar_can_be_pickled():
     bar = TQDMProgressBar()
-    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    trainer = Trainer(
+        fast_dev_run=True,
+        callbacks=[bar],
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     model = BoringModel()
 
     pickle.dumps(bar)
@@ -531,6 +570,9 @@ def test_progress_bar_max_val_check_interval(
         val_check_interval=val_check_interval,
         gpus=world_size,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
@@ -554,11 +596,7 @@ def test_get_progress_bar_metrics(tmpdir: str):
             return items
 
     progress_bar = TestProgressBar()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[progress_bar],
-        fast_dev_run=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[progress_bar], fast_dev_run=True)
     model = BoringModel()
     trainer.fit(model)
     model.truncated_bptt_steps = 2
@@ -637,6 +675,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
         enable_checkpointing=False,
         log_every_n_steps=1,
         callbacks=pbar,
+        logger=False,
     )
 
     trainer.fit(model)

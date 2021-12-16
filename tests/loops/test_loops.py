@@ -108,7 +108,14 @@ def test_replace_loops():
         def __init__(self, foo):
             super().__init__()
 
-    trainer = Trainer(min_steps=123, max_steps=321)
+    trainer = Trainer(
+        min_steps=123,
+        max_steps=321,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(
         MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
@@ -325,6 +332,10 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
         limit_train_batches=1,
         limit_val_batches=n_batches,
         num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     # simulate a failure
@@ -409,6 +420,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         enable_progress_bar=False,
         logger=False,
         enable_checkpointing=False,
+        enable_model_summary=False,
     )
 
     # simulate a failure
@@ -607,6 +619,8 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         accumulate_grad_batches=accumulate_grad_batches,
         enable_progress_bar=False,
         logger=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -650,12 +664,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "processed": n_epochs * n_batches,
                 "completed": n_epochs * n_batches,
             },
-            "current": {
-                "ready": n_batches,
-                "started": n_batches,
-                "processed": n_batches,
-                "completed": n_batches,
-            },
+            "current": {"ready": n_batches, "started": n_batches, "processed": n_batches, "completed": n_batches},
             "is_last_batch": True,
         },
         "epoch_loop.scheduler_progress": {
@@ -673,10 +682,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                         "ready": n_epochs * n_batches * n_optimizers,
                         "completed": n_epochs * n_batches * n_optimizers,
                     },
-                    "current": {
-                        "ready": n_batches * n_optimizers,
-                        "completed": n_batches * n_optimizers,
-                    },
+                    "current": {"ready": n_batches * n_optimizers, "completed": n_batches * n_optimizers},
                 },
                 "zero_grad": {
                     "total": {
@@ -709,11 +715,7 @@ def test_fit_loop_reset(tmpdir):
 
     # generate checkpoints at end of epoch and mid-epoch
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir,
-        every_n_train_steps=2,
-        save_top_k=-1,
-    )
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=2, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=4,
@@ -722,6 +724,7 @@ def test_fit_loop_reset(tmpdir):
         callbacks=[checkpoint_callback],
         logger=False,
         enable_model_summary=False,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -835,6 +838,9 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -873,6 +879,9 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.raises(CustomException):
         # will stop during validation
@@ -924,6 +933,9 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)
 
@@ -994,6 +1006,10 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         limit_val_batches=2,
         max_epochs=max_epochs,
         callbacks=TestCallback() if should_fail else None,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     if should_fail:

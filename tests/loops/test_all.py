@@ -84,6 +84,10 @@ def test_callback_batch_on_device(tmpdir):
         limit_predict_batches=1,
         gpus=1,
         callbacks=[batch_callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.validate(model)

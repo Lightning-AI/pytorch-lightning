@@ -69,10 +69,7 @@ def test_model_saves_with_example_output(tmpdir):
 
 @pytest.mark.parametrize(
     ["modelclass", "input_sample"],
-    [
-        (BoringModel, torch.randn(1, 32)),
-        (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10))),
-    ],
+    [(BoringModel, torch.randn(1, 32)), (UnorderedModel, (torch.rand(2, 3), torch.rand(2, 10)))],
 )
 def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     """Test that ONNX model saves with example_input_array and size is greater than 3 MB."""

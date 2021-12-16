@@ -36,6 +36,9 @@ def test_no_depre_without_epoch_end(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with warnings.catch_warnings(record=True) as w:

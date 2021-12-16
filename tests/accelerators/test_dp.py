@@ -194,5 +194,9 @@ def test_dp_training_step_dict(tmpdir):
         limit_test_batches=1,
         gpus=2,
         strategy="dp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)

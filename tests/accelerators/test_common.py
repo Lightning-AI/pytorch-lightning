@@ -40,7 +40,15 @@ def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        **trainer_kwargs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model, datamodule=dm)
@@ -68,7 +76,16 @@ def test_model_parallel_setup_called(tmpdir):
             self.layer = torch.nn.Linear(32, 2)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert model.configure_sharded_model_called

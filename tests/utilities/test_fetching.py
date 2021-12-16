@@ -259,7 +259,14 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
 
@@ -314,7 +321,14 @@ class AsyncBoringModel(BoringModel):
 
 def test_training_step_with_dataloader_access(tmpdir) -> None:
     """A baseline functional test for `training_step` with dataloader access."""
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     m = AsyncBoringModel()
     trainer.fit(m)
     assert m.num_batches_processed == DATASET_LEN, f"Expect all {DATASET_LEN} batches to be processed."
@@ -342,7 +356,14 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
                 return DataLoader(RandomDataset(BATCH_SIZE, 2 * EXPECT_NUM_BATCHES_PROCESSED))
             return DataLoader(RandomDataset(BATCH_SIZE, EXPECT_NUM_BATCHES_PROCESSED))
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     m = TestModel(trigger_stop_iteration)
     trainer.fit(m)
     expected = EXPECT_NUM_BATCHES_PROCESSED
@@ -359,7 +380,14 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
         def on_train_batch_start(self, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     m = InvalidModel()
     with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
         trainer.fit(m)
@@ -373,7 +401,14 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     m = InvalidModel()
     with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
         trainer.fit(m)
@@ -388,7 +423,14 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
             super().__init__()
             self.truncated_bptt_steps = 2
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     m = InvalidModel()
     with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
         trainer.fit(m)
@@ -435,7 +477,15 @@ def test_transfer_hooks_with_unpacking(tmpdir):
             x, _ = batch
             return super().validation_step(x, batch_idx)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, num_sanity_val_steps=0)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     dm = BoringDataModule()
     trainer.fit(TestModel(), datamodule=dm)
     assert dm.count_called_on_before_batch_transfer == 4

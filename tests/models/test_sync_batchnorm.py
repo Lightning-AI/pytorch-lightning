@@ -123,6 +123,10 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model, dm)

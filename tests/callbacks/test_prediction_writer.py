@@ -47,7 +47,14 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
 
     model = BoringModel()
     cb = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(
+        limit_predict_batches=4,
+        callbacks=cb,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     results = trainer.predict(model, dataloaders=dataloader)
     assert len(results) == 4
     assert cb.write_on_batch_end.call_count == 4
@@ -57,7 +64,14 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(
+        limit_predict_batches=4,
+        callbacks=cb,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 4
     assert cb.write_on_epoch_end.call_count == 1
@@ -66,7 +80,14 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("batch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(
+        limit_predict_batches=4,
+        callbacks=cb,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 4
     assert cb.write_on_epoch_end.call_count == 0
@@ -75,7 +96,14 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(
+        limit_predict_batches=4,
+        callbacks=cb,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 0
     assert cb.write_on_epoch_end.call_count == 1
@@ -89,7 +117,14 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
     dataloader = DataLoader(RandomDataset(32, 64), batch_size=4, num_workers=num_workers)
     model = BoringModel()
     writer = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=writer)
+    trainer = Trainer(
+        limit_predict_batches=4,
+        callbacks=writer,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.predict(model, dataloaders=dataloader)
 
     writer.write_on_batch_end.assert_has_calls(
@@ -102,7 +137,5 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
     )
 
     writer.write_on_epoch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
-        ]
+        [call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]])]
     )

@@ -102,7 +102,14 @@ def test_wandb_pickle(wandb, tmpdir):
     wandb.init.return_value = Experiment()
     logger = WandbLogger(id="the_id", offline=True)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, "missing experiment"
     assert trainer.log_dir == logger.save_dir
@@ -142,7 +149,16 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
     version = logger.version
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
@@ -162,7 +178,16 @@ def test_wandb_log_model(wandb, tmpdir):
     logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
 
@@ -172,7 +197,16 @@ def test_wandb_log_model(wandb, tmpdir):
     logger = WandbLogger(log_model="all")
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
 
@@ -182,7 +216,16 @@ def test_wandb_log_model(wandb, tmpdir):
     logger = WandbLogger(log_model=False)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     assert not wandb.init().log_artifact.called
 
@@ -196,7 +239,16 @@ def test_wandb_log_model(wandb, tmpdir):
     logger = pl_wandb.WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
     wandb.Artifact.assert_called_once_with(
         name="model-1",
@@ -239,11 +291,7 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.init().log.reset_mock()
     df = 'pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})'  # TODO: incompatible numpy/pandas versions in test env
     logger.log_text(key="samples", dataframe=df)
-    wandb.Table.assert_called_once_with(
-        columns=None,
-        data=None,
-        dataframe=df,
-    )
+    wandb.Table.assert_called_once_with(columns=None, data=None, dataframe=df)
     wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
 
     # test log_image
@@ -271,11 +319,7 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.Table.reset_mock()
     wandb.init().log.reset_mock()
     logger.log_table(key="samples", columns=columns, data=data, dataframe=df, step=5)
-    wandb.Table.assert_called_once_with(
-        columns=columns,
-        data=data,
-        dataframe=df,
-    )
+    wandb.Table.assert_called_once_with(columns=columns, data=data, dataframe=df)
     wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
 
 

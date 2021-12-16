@@ -155,10 +155,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("precision", [16, "mixed"])
-@pytest.mark.parametrize(
-    "amp_backend",
-    ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
-)
+@pytest.mark.parametrize("amp_backend", ["native", pytest.param("apex", marks=RunIf(amp_apex=True))])
 def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
@@ -374,12 +371,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        fast_dev_run=1,
-        strategy=ds,
-        precision=16,
-        gpus=1,
+        default_root_dir=tmpdir, enable_progress_bar=False, fast_dev_run=1, strategy=ds, precision=16, gpus=1
     )
     with mock.patch(
         "deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure
@@ -411,6 +403,9 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         precision=16,
         gpus=1,
         callbacks=[TestCallback()],
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -611,6 +606,10 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
         precision=16,
         accumulate_grad_batches=accumulate_grad_batches,
         callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -681,6 +680,10 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         gpus=1,
         precision=16,
         callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     initial_trainer.fit(initial_model, datamodule=dm)
 
@@ -765,6 +768,9 @@ def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimiz
         precision=16,
         accumulate_grad_batches=2,
         callbacks=[verification_callback],
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     assert trainer.limit_train_batches % trainer.accumulate_grad_batches != 0, "leftover batches should be tested"
     trainer.fit(model, datamodule=dm)
@@ -929,10 +935,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(logging_level=logging.INFO),
-        gpus=1,
-        fast_dev_run=True,
+        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(logging_level=logging.INFO), gpus=1, fast_dev_run=True
     )
     dm = TestSetupIsCalledDataModule()
     with mock.patch("deepspeed.utils.logging.logger.warning", autospec=True) as mock_object:
@@ -961,10 +964,7 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {"scheduler": scheduler, "interval": interval},
-            }
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": interval}}
 
     model = TestModel()
     trainer = Trainer(
@@ -974,6 +974,10 @@ def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
         max_epochs=max_epoch,
         gpus=1,
         strategy="deepspeed",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     if interval == "epoch":
@@ -995,12 +999,7 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
                 self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=1,
-        strategy="deepspeed",
-        fast_dev_run=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="deepspeed", fast_dev_run=True)
     with pytest.warns(UserWarning, match="handles gradient clipping internally"):
         trainer.fit(model)
 
@@ -1009,12 +1008,7 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
 def test_deepspeed_gradient_clip_by_value(tmpdir):
     """Test to ensure that an exception is raised when using `gradient_clip_algorithm='value'`."""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=1,
-        strategy="deepspeed",
-        gradient_clip_algorithm="value",
-    )
+    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="deepspeed", gradient_clip_algorithm="value")
     with pytest.raises(MisconfigurationException, match="does not support clipping gradients by value"):
         trainer.fit(model)
 
@@ -1036,11 +1030,7 @@ def test_specific_gpu_device_id(tmpdir):
             assert model.device.index == 1
 
         def on_train_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            batch_idx: int,
+            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
         ) -> None:
             assert batch.device.index == 1
 
@@ -1048,12 +1038,7 @@ def test_specific_gpu_device_id(tmpdir):
             assert model.device.index == 1
 
         def on_test_batch_start(
-            self,
-            trainer: Trainer,
-            pl_module: LightningModule,
-            batch: Any,
-            batch_idx: int,
-            dataloader_idx: int,
+            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
             assert batch.device.index == 1
 

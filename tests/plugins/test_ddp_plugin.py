@@ -70,7 +70,16 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, strategy="ddp")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        gpus=gpus,
+        strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 
@@ -87,10 +96,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="ddp",
-        num_processes=2,
-        plugins=[WronglyImplementedEnvironment()],
+        default_root_dir=tmpdir, strategy="ddp", num_processes=2, plugins=[WronglyImplementedEnvironment()]
     )
     with pytest.raises(
         RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
@@ -106,6 +112,10 @@ def test_ddp_configure_ddp():
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_plugin,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
@@ -121,6 +131,10 @@ def test_ddp_configure_ddp():
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_plugin,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.training_type_plugin.connect(model)

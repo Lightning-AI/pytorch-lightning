@@ -72,7 +72,16 @@ def test_finetuning_callback(tmpdir):
     model = FinetuningBoringModel()
     callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
-    trainer = Trainer(limit_train_batches=4, default_root_dir=tmpdir, callbacks=[callback], max_epochs=8)
+    trainer = Trainer(
+        limit_train_batches=4,
+        default_root_dir=tmpdir,
+        callbacks=[callback],
+        max_epochs=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert model.backbone.has_been_used
@@ -124,11 +133,22 @@ def test_finetuning_callback_warning(tmpdir):
     callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
-        trainer = Trainer(limit_train_batches=1, default_root_dir=tmpdir, callbacks=[callback, chk], max_epochs=2)
+        trainer = Trainer(
+            limit_train_batches=1,
+            default_root_dir=tmpdir,
+            callbacks=[callback, chk],
+            max_epochs=2,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         trainer.fit(model)
 
     assert model.backbone.has_been_used
-    trainer = Trainer(max_epochs=3)
+    trainer = Trainer(
+        max_epochs=3, enable_progress_bar=False, enable_model_summary=False, enable_checkpointing=False, logger=False
+    )
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
@@ -246,7 +266,16 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
     cb = OnEpochLayerFinetuning()
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     model = FreezeModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=1, callbacks=[cb, chk])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=5,
+        limit_train_batches=1,
+        callbacks=[cb, chk],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert len(cb._internal_optimizer_metadata[0]) == 6
     assert cb._internal_optimizer_metadata[0][0]["params"] == ["layer.0.weight"]
@@ -258,7 +287,14 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
-    trainer = Trainer(max_epochs=10, callbacks=[cb])
+    trainer = Trainer(
+        max_epochs=10,
+        callbacks=[cb],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.raises(IndexError, match="index 6 is out of range"):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
@@ -426,6 +462,8 @@ def test_callbacks_restore_backbone(tmpdir):
         max_epochs=2,
         enable_progress_bar=False,
         callbacks=[ckpt, BackboneFinetuning(unfreeze_backbone_at_epoch=1)],
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(BackboneBoringModel())
 
@@ -437,5 +475,8 @@ def test_callbacks_restore_backbone(tmpdir):
         max_epochs=3,
         enable_progress_bar=False,
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)

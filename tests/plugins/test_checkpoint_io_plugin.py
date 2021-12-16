@@ -52,6 +52,9 @@ def test_checkpoint_plugin_called(tmpdir):
         strategy=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -72,6 +75,9 @@ def test_checkpoint_plugin_called(tmpdir):
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 

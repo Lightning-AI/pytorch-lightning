@@ -108,11 +108,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
             items.pop("v_num", None)
             return items
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=None,
-        fast_dev_run=True,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=None, fast_dev_run=True)
     test_model = TestModel()
     with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
         trainer.fit(test_model)
@@ -219,6 +215,8 @@ def test_v1_7_0_on_interrupt(tmpdir):
         enable_progress_bar=False,
         logger=False,
         default_root_dir=tmpdir,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     with pytest.deprecated_call(
         match="The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7"
@@ -295,12 +293,27 @@ def test_v1_7_0_old_on_train_batch_start(tmpdir):
             ...
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        callbacks=OldSignature(),
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
     model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
@@ -315,12 +328,30 @@ def test_v1_7_0_old_on_train_batch_end(tmpdir):
             ...
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        callbacks=OldSignature(),
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
     model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        callbacks=OldSignature(),
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
         trainer.fit(model)
 
@@ -332,7 +363,15 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=5,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.deprecated_call(
         match=r"Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7"
@@ -406,7 +445,13 @@ def test_v1_7_0_progress_bar():
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
-        _ = Trainer(max_steps=None)
+        _ = Trainer(
+            max_steps=None,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
 
     trainer = Trainer()
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
@@ -417,13 +462,29 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v1.7 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     callback = OldStatefulCallback(state=222)
     with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_steps=2,
+            callbacks=[callback],
+            resume_from_checkpoint=ckpt_path,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
     with pytest.deprecated_call(
         match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
     ):
@@ -448,7 +509,7 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
 
-    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
+    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=,) path
     model = BoringModel()
     with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
         trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
@@ -466,15 +527,7 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
         assert lr_monitor.lr_sch_names == ["lr-SGD"]
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        KubeflowEnvironment,
-        LightningEnvironment,
-        SLURMEnvironment,
-        TorchElasticEnvironment,
-    ],
-)
+@pytest.mark.parametrize("cls", [KubeflowEnvironment, LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment])
 def test_v1_7_0_cluster_environment_master_address(cls):
     class MyClusterEnvironment(cls):
         def master_address(self):
@@ -486,15 +539,7 @@ def test_v1_7_0_cluster_environment_master_address(cls):
         MyClusterEnvironment()
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        KubeflowEnvironment,
-        LightningEnvironment,
-        SLURMEnvironment,
-        TorchElasticEnvironment,
-    ],
-)
+@pytest.mark.parametrize("cls", [KubeflowEnvironment, LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment])
 def test_v1_7_0_cluster_environment_master_port(cls):
     class MyClusterEnvironment(cls):
         def master_port(self):

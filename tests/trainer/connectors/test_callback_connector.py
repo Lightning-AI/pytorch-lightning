@@ -121,6 +121,9 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
             callback1,
             callback2,
         ],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -170,8 +173,7 @@ def test_attach_model_callbacks():
 
     # same callback type twice, different instance
     trainer = _attach_callbacks(
-        trainer_callbacks=[progress_bar, EarlyStopping(monitor="foo")],
-        model_callbacks=[early_stopping],
+        trainer_callbacks=[progress_bar, EarlyStopping(monitor="foo")], model_callbacks=[early_stopping]
     )
     assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping]
 

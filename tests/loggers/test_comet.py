@@ -151,7 +151,16 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     logger.experiment.project_name = "test"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 

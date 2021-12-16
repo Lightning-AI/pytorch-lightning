@@ -139,6 +139,9 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         limit_val_batches=1,
         log_every_n_steps=1,
         default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     trainer.test()
@@ -278,7 +281,9 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     # test pickling loggers
     pickle.dumps(logger)
 
-    trainer = Trainer(max_epochs=1, logger=logger)
+    trainer = Trainer(
+        max_epochs=1, logger=logger, enable_progress_bar=False, enable_model_summary=False, enable_checkpointing=False
+    )
     pkl_bytes = pickle.dumps(trainer)
 
     trainer2 = pickle.loads(pkl_bytes)
@@ -355,6 +360,9 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         num_processes=2,
         max_steps=1,
         callbacks=[RankZeroLoggerCheck()],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"

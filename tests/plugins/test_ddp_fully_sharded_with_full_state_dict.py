@@ -94,7 +94,17 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="fsdp", precision=16, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
@@ -104,7 +114,18 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     _run_multiple_stages(trainer, model)
 
 

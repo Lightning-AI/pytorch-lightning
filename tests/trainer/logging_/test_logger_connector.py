@@ -249,6 +249,10 @@ def test_fx_validator_integration(tmpdir):
         limit_test_batches=1,
         limit_predict_batches=1,
         callbacks=callback,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
         trainer.fit(model)
@@ -334,7 +338,16 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        strategy="dp",
+        gpus=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.test(model)
@@ -517,6 +530,8 @@ def test_metrics_reset(tmpdir):
         enable_progress_bar=False,
         num_sanity_val_steps=2,
         enable_checkpointing=False,
+        enable_model_summary=False,
+        logger=False,
     )
 
     trainer.fit(model)

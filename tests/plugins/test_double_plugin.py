@@ -133,16 +133,22 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
 
 @pytest.mark.parametrize(
     "boring_model",
-    [
-        DoublePrecisionBoringModel,
-        DoublePrecisionBoringModelNoForward,
-        DoublePrecisionBoringModelComplexBuffer,
-    ],
+    [DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward, DoublePrecisionBoringModelComplexBuffer],
 )
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
 
-    trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision=64, log_every_n_steps=1)
+    trainer = Trainer(
+        max_epochs=2,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        precision=64,
+        log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
@@ -160,6 +166,10 @@ def test_double_precision_ddp(tmpdir):
         fast_dev_run=2,
         precision=64,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 

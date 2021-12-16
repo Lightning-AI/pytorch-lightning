@@ -34,7 +34,14 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
                 self.val_epoch_calls += 1
 
     model = TestModel()
-    trainer = Trainer(max_epochs=max_epochs, val_check_interval=1 / denominator, logger=False)
+    trainer = Trainer(
+        max_epochs=max_epochs,
+        val_check_interval=1 / denominator,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
 
     assert model.train_epoch_calls == max_epochs

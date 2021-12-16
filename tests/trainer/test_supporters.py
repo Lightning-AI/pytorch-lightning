@@ -220,9 +220,7 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
             torch.utils.data.DataLoader(TestIterableDataset(20), batch_size=2),
         ]
     else:
-        loaders = [
-            torch.utils.data.DataLoader(TestIterableDataset(10), batch_size=2),
-        ]
+        loaders = [torch.utils.data.DataLoader(TestIterableDataset(10), batch_size=2)]
 
     combined_loader = CombinedLoader(loaders, mode)
 
@@ -388,17 +386,14 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
 
     dataloader = CombinedLoader(
-        {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
+        {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)}
     )
     dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader) == 4 if replace_sampler_ddp else 8
 
     for a_length in [6, 8, 10]:
         dataloader = CombinedLoader(
-            {
-                "a": DataLoader(range(a_length), batch_size=1),
-                "b": DataLoader(range(8), batch_size=1),
-            },
+            {"a": DataLoader(range(a_length), batch_size=1), "b": DataLoader(range(8), batch_size=1)},
             mode="max_size_cycle",
         )
 
@@ -421,10 +416,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
                 yield 1
 
     dataloader = CombinedLoader(
-        {
-            "a": DataLoader(InfiniteDataset(), batch_size=1),
-            "b": DataLoader(range(8), batch_size=1),
-        },
+        {"a": DataLoader(InfiniteDataset(), batch_size=1), "b": DataLoader(range(8), batch_size=1)},
         mode="max_size_cycle",
     )
     assert get_len(dataloader) == float("inf")

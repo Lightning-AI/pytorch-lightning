@@ -233,7 +233,15 @@ def _model_builder(model_param: int) -> Model:
 def _trainer_builder(
     limit_train_batches: int, fast_dev_run: bool = False, callbacks: Optional[Union[List[Callback], Callback]] = None
 ) -> Trainer:
-    return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
+    return Trainer(
+        limit_train_batches=limit_train_batches,
+        fast_dev_run=fast_dev_run,
+        callbacks=callbacks,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
 
 @pytest.mark.parametrize(["trainer_class", "model_class"], [(Trainer, Model), (_trainer_builder, _model_builder)])
@@ -580,11 +588,7 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (
-        dict(strategy="ddp_spawn"),
-        dict(strategy="ddp"),
-        pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
-    ),
+    (dict(strategy="ddp_spawn"), dict(strategy="ddp"), pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True))),
 )
 def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(

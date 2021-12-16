@@ -64,7 +64,16 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
     model = TestModel()
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=2,
+            limit_val_batches=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         if terminate_gracefully and not register_handler:
             with pytest.raises(ExitGracefullyException):
                 trainer.fit(model)

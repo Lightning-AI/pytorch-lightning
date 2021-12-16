@@ -96,7 +96,15 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
+        trainer = Trainer(
+            gpus=1,
+            strategy="horovod",
+            max_epochs=1,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 

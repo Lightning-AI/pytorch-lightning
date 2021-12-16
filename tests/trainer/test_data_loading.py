@@ -87,7 +87,14 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model.test_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, strategy="ddp_find_unused_parameters_false", num_processes=1
+        default_root_dir=tmpdir,
+        limit_test_batches=2,
+        strategy="ddp_find_unused_parameters_false",
+        num_processes=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.test(model)
 
@@ -345,7 +352,13 @@ def test_error_raised_with_float_limited_eval_batches():
     model = BoringModel()
     dl_size = len(model.val_dataloader())
     limit_val_batches = 1 / (dl_size + 2)
-    trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer = Trainer(
+        limit_val_batches=limit_val_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer._data_connector.attach_data(model)
     with pytest.raises(
         MisconfigurationException,

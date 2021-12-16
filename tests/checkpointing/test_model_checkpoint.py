@@ -152,6 +152,8 @@ def test_model_checkpoint_score_and_ckpt(
         limit_val_batches=limit_val_batches,
         max_epochs=max_epochs,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
@@ -250,6 +252,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         val_check_interval=val_check_interval,
         enable_progress_bar=False,
         num_sanity_val_steps=0,
+        enable_model_summary=False,
+        logger=False,
     )
     calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
@@ -305,7 +309,15 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
     max_epochs = 2
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint],
+        overfit_batches=0.20,
+        max_epochs=max_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
 
@@ -324,7 +336,15 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint],
+        overfit_batches=0.20,
+        max_epochs=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
@@ -341,7 +361,15 @@ def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], ex
     model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        overfit_batches=0.2,
+        max_epochs=2,
+        logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     trainer.fit(model)
 
     ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
@@ -400,6 +428,9 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -466,7 +497,14 @@ def test_model_checkpoint_file_extension(tmpdir):
     model_checkpoint = ModelCheckpointExtensionTest(
         monitor="early_stop_on", dirpath=tmpdir, save_top_k=1, save_last=True
     )
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[model_checkpoint], max_steps=1, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[model_checkpoint],
+        max_steps=1,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
     expected = ["epoch=0-step=0.tpkc", "last.tpkc"]
@@ -487,6 +525,8 @@ def test_model_checkpoint_save_last(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     last_filename = model_checkpoint._format_checkpoint_name(
@@ -575,6 +615,8 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
         limit_val_batches=10,
         max_epochs=epochs,
         logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     with caplog.at_level(INFO):
@@ -609,6 +651,8 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
         limit_train_batches=1,
         limit_val_batches=1,
         logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -638,6 +682,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
         enable_progress_bar=False,
         callbacks=[checkpoint_callback],
         logger=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -673,6 +718,7 @@ def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
             )
         ],
         logger=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -686,7 +732,14 @@ def test_model_checkpoint_topk_zero(tmpdir):
     """Test that no checkpoints are saved when save_top_k=0."""
     model = LogInTwoMethods()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint_callback], max_epochs=2, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=2,
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
@@ -714,6 +767,8 @@ def test_model_checkpoint_topk_all(tmpdir):
         max_epochs=epochs,
         logger=False,
         val_check_interval=1.0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -737,6 +792,8 @@ def test_ckpt_metric_names(tmpdir):
         limit_train_batches=0.01,
         limit_val_batches=0.01,
         callbacks=[ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, filename="{val_loss:.2f}")],
+        enable_model_summary=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -754,7 +811,14 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -789,7 +853,14 @@ def test_model_checkpoint_save_last_warning(
         model.validation_step = None
     ckpt = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose)
     trainer = Trainer(
-        default_root_dir=tmpdir, callbacks=[ckpt], max_epochs=max_epochs, limit_train_batches=1, limit_val_batches=1
+        default_root_dir=tmpdir,
+        callbacks=[ckpt],
+        max_epochs=max_epochs,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
@@ -810,6 +881,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         max_epochs=num_epochs,
         limit_train_batches=2,
         limit_val_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -856,6 +930,10 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         max_epochs=len(monitor),
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.save_checkpoint = MagicMock()
 
@@ -1142,6 +1220,7 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
             logger=False,
             enable_progress_bar=False,
             enable_model_summary=False,
+            enable_checkpointing=False,
         )
         trainer.fit(BoringModel())
 
@@ -1168,6 +1247,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
         logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(BoringModel())
     trainer.fit_loop.max_epochs = 4
@@ -1199,6 +1279,8 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
         callbacks=mc,
         enable_model_summary=False,
         logger=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}

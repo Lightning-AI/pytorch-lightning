@@ -48,7 +48,16 @@ def test_xla_profiler_prog_capture(tmpdir):
 
     def train_worker():
         model = BoringModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, profiler="xla", tpu_cores=8)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=4,
+            profiler="xla",
+            tpu_cores=8,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
 
         trainer.fit(model)
 

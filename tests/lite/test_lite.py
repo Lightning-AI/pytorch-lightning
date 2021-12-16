@@ -208,9 +208,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "pytorch_lightning.lite.lite.LightningLite.device",
-    new_callable=PropertyMock,
-    return_value=torch.device("cuda", 1),
+    "pytorch_lightning.lite.lite.LightningLite.device", new_callable=PropertyMock, return_value=torch.device("cuda", 1)
 )
 def test_setup_dataloaders_move_to_device(lite_device_mock):
     """Test that the setup configures LiteDataLoader to move the data to the device automatically."""

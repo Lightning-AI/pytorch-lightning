@@ -74,6 +74,8 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
         enable_model_summary=False,
         logger=all_rank_logger,
         log_every_n_steps=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -93,6 +95,8 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
         max_epochs=1,
         logger=all_rank_logger,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -128,6 +132,9 @@ def test_first_logger_call_in_subprocess(tmpdir):
         max_epochs=1,
         logger=logger,
         callbacks=[LoggerCallsObserver()],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -184,6 +191,9 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
         max_epochs=1,
         logger=BufferLogger(),
         callbacks=[LoggerCallsObserver()],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
 
     assert not trainer.logger.logs

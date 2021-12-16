@@ -41,6 +41,8 @@ def test_cpu_slurm_save_load(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     real_global_step = trainer.global_step
@@ -87,6 +89,8 @@ def test_cpu_slurm_save_load(tmpdir):
         max_epochs=1,
         logger=logger,
         callbacks=[_StartCallback(), ModelCheckpoint(dirpath=tmpdir)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     # by calling fit again, we trigger training, loading weights from the cluster
     # and our hook to predict using current model before any more weight updates
@@ -156,11 +160,7 @@ def test_lbfgs_cpu_model(tmpdir):
             self.save_hyperparameters()
 
     trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        enable_progress_bar=False,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
+        default_root_dir=tmpdir, max_epochs=1, enable_progress_bar=False, limit_train_batches=0.2, limit_val_batches=0.2
     )
 
     model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
@@ -219,6 +219,7 @@ def test_running_test_after_fitting(tmpdir):
         limit_test_batches=0.2,
         callbacks=[checkpoint],
         logger=logger,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -263,6 +264,7 @@ def test_running_test_no_val(tmpdir):
         limit_test_batches=0.2,
         callbacks=[checkpoint],
         logger=logger,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -279,7 +281,16 @@ def test_simple_cpu(tmpdir):
     model = BoringModel()
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=20,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # traning complete

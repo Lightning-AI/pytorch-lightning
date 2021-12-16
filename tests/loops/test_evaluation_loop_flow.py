@@ -53,6 +53,9 @@ def test__eval_step__flow(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -116,6 +119,9 @@ def test__eval_step__eval_step_end__flow(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -185,6 +191,9 @@ def test__eval_step__epoch_end__flow(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -243,6 +252,9 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

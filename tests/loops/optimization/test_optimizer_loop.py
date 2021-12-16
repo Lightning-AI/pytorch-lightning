@@ -120,11 +120,7 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
 
     model = CurrentModel()
     model.optimizer_step = Mock(wraps=model.optimizer_step)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=10,
-        enable_progress_bar=False,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=10, enable_progress_bar=False)
     trainer.fit(model)
 
     positional_args = [c[0] for c in model.optimizer_step.call_args_list]
@@ -193,6 +189,8 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         num_sanity_val_steps=0,
         logger=False,
         enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     weights_complete = model.parameters()
@@ -212,6 +210,8 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         num_sanity_val_steps=0,
         logger=False,
         enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     with pytest.raises(CustomException):
         trainer.fit(model)
@@ -232,6 +232,8 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         num_sanity_val_steps=0,
         logger=False,
         enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))
     weights_resumed = model.parameters()

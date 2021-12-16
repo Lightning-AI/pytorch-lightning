@@ -350,6 +350,9 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_val_batches=2,
         callbacks=[ckpt],
         gpus=1 if device == "cuda" else 0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -543,7 +546,16 @@ def test_metric_collections(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
 

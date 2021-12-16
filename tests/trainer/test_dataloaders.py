@@ -70,7 +70,15 @@ def test_fit_val_loader_only(tmpdir):
 @pytest.mark.parametrize("dataloader_options", [dict(val_check_interval=10000)])
 def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        **dataloader_options,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.raises(ValueError):
         # fit model
         trainer.fit(model)
@@ -93,7 +101,15 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
 )
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
     with pytest.raises(MisconfigurationException, match="passed invalid value"):
-        Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
+        Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            **dataloader_options,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
 
 
 def test_multiple_val_dataloader(tmpdir):
@@ -105,7 +121,16 @@ def test_multiple_val_dataloader(tmpdir):
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=1.0)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=1.0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # verify training completed
@@ -140,7 +165,16 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
     model = MultipleTestDataloaderModel()
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=10, limit_train_batches=100)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=10,
+        limit_train_batches=100,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     if ckpt_path == "specific":
         ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -163,7 +197,16 @@ def test_train_dataloader_passed_to_fit(tmpdir):
 
     # only train passed to fit
     model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     fit_options = dict(train_dataloaders=model.dataloader(train=True))
     trainer.fit(model, **fit_options)
 
@@ -185,7 +228,16 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         model.test_step = model.test_step__multiple_dataloaders
 
     # multiple val dataloaders passed to fit
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, train_dataloaders=model.dataloader(train=True), val_dataloaders=dataloaders)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -255,6 +307,9 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     model = DummyModel()
 
@@ -307,6 +362,9 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
         max_epochs=epochs,
         callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     model = DummyModel()
 
@@ -350,6 +408,9 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
         callbacks=callbacks,
         limit_val_batches=limit_val_batches,
         enable_checkpointing=enable_checkpointing,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     model = DummyModel()
 
@@ -391,6 +452,9 @@ def test_datasets_dataloaders_with_limit_num_batches(
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     model = DummyModel()
 
@@ -437,6 +501,10 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     if limit_train_batches != 0.0:
@@ -474,6 +542,10 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
         num_sanity_val_steps=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with patch.object(
@@ -490,9 +562,7 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
             assert trainer.val_dataloaders is None
 
     with patch.object(
-        trainer.test_loop.epoch_loop,
-        "_evaluation_step",
-        wraps=trainer.test_loop.epoch_loop._evaluation_step,
+        trainer.test_loop.epoch_loop, "_evaluation_step", wraps=trainer.test_loop.epoch_loop._evaluation_step
     ) as mocked:
         trainer.test(model)
         test_dataloader_lengths = [len(x) for x in model.test_dataloader()]
@@ -578,7 +648,15 @@ def test_train_inf_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.fit(model)
@@ -589,7 +667,15 @@ def test_val_inf_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.fit(model)
@@ -600,7 +686,15 @@ def test_test_inf_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.test(model)
@@ -613,7 +707,15 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     # verify training completed
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -627,7 +729,15 @@ def test_inf_val_dataloader(tmpdir, check_interval):
     model.val_dataloader = model.val_dataloader__infinite
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     # verify training completed
@@ -648,6 +758,10 @@ def test_error_on_zero_len_dataloader(tmpdir):
             limit_train_batches=0.1,
             limit_val_batches=0.1,
             limit_test_batches=0.1,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         trainer.fit(model)
 
@@ -667,7 +781,16 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     val_dl = model.val_dataloader()
     val_dl.num_workers = 0
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.warns(
         UserWarning,
@@ -706,7 +829,16 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.warns(
         UserWarning,
@@ -815,7 +947,16 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     seed_everything(0, workers=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, strategy="ddp_spawn")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        strategy="ddp_spawn",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloaders=dataloader)
@@ -829,11 +970,28 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
     model.train_dataloader = lambda: dataloader
 
     with pytest.warns(UserWarning, match=r"The number of training samples \(10\) is smaller than the logging interval"):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=11)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            log_every_n_steps=11,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         trainer.fit(model)
 
     with pytest.warns(UserWarning, match=r"The number of training samples \(1\) is smaller than the logging interval"):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            log_every_n_steps=2,
+            limit_train_batches=1,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            enable_checkpointing=False,
+            logger=False,
+        )
         trainer.fit(model)
 
 
@@ -851,7 +1009,14 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
             return len(original_dataset)
 
     # with __len__ defined
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
     assert has_len_all_ranks(dataloader, trainer.training_type_plugin, model)
     assert has_iterable_dataset(dataloader)
@@ -865,7 +1030,14 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         trainer.predict(model, dataloaders=[dataloader])
 
     # without __len__ defined
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     dataloader = DataLoader(IterableWithoutLen(), batch_size=16)
     assert not has_len_all_ranks(dataloader, trainer.training_type_plugin, model)
     assert has_iterable_dataset(dataloader)
@@ -900,6 +1072,9 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
         default_root_dir=os.getcwd(),
         max_epochs=2,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
@@ -942,6 +1117,10 @@ def test_dataloader_distributed_sampler(tmpdir):
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[DistribSamplerCallback(expected_seeds=(123, 123, 123))],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     trainer.test(model)
@@ -970,6 +1149,10 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         max_steps=100,
         callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
         replace_sampler_ddp=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, "DDP Training failed"
@@ -1009,7 +1192,15 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     model = CurrentTestModel(**hparams)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0, gpus=num_gpus
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0,
+        gpus=num_gpus,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     # we expect the reduction for the metrics also to happen on the last batch
@@ -1019,8 +1210,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["multiple_trainloader_mode", "num_training_batches"],
-    [("min_size", 5), ("max_size_cycle", 10)],
+    ["multiple_trainloader_mode", "num_training_batches"], [("min_size", 5), ("max_size_cycle", 10)]
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
     """Integration test for multple train loaders."""
@@ -1030,7 +1220,15 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
     # todo: add also `train_dataloader__multiple_sequence`
     model.training_step = model.training_step__multiple_dataloaders
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, multiple_trainloader_mode=multiple_trainloader_mode)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        multiple_trainloader_mode=multiple_trainloader_mode,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     # verify the num_training_batches according to the multiple_trainloader_mode
     assert num_training_batches == trainer.num_training_batches
@@ -1044,7 +1242,16 @@ def test_val_dataloader_not_implemented_error(tmpdir, check_interval):
     model.val_dataloader = model.val_dataloader__not_implemented_error
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        val_check_interval=check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     # verify training completed
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -1058,7 +1265,16 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval):
     model.train_dataloader = model.train_dataloader__not_implemented_error
     model.val_dataloader = model.val_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        val_check_interval=check_interval,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     # verify training completed
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -1069,7 +1285,16 @@ def test_train_dataloader_not_implemented_error_failed(tmpdir):
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        val_check_interval=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.fit(model)
@@ -1080,7 +1305,16 @@ def test_val_dataloader_not_implemented_error_failed(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, limit_val_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        limit_val_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.fit(model)
@@ -1091,7 +1325,16 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, limit_test_batches=0.5)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        limit_test_batches=0.5,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="using an IterableDataset"):
         trainer.test(model)
@@ -1109,7 +1352,16 @@ def test_dataloaders_load_only_once(tmpdir):
     tracker.attach_mock(model.val_dataloader, "val_dataloader")
     tracker.attach_mock(model.test_dataloader, "test_dataloader")
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0.3,
+        limit_val_batches=0.3,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     model.train_dataloader.assert_called_once()
@@ -1130,6 +1382,10 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         val_check_interval=0.3,
         reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     tracker = Mock()
@@ -1169,7 +1425,15 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, num_sanity_val_steps=0, max_epochs=3
+        default_root_dir=tmpdir,
+        limit_train_batches=0.3,
+        limit_val_batches=0.3,
+        num_sanity_val_steps=0,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     tracker = Mock()
@@ -1198,6 +1462,10 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         limit_val_batches=0.3,
         reload_dataloaders_every_n_epochs=n,
         max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     tracker = Mock()
@@ -1249,6 +1517,9 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         reload_dataloaders_every_n_epochs=1,
         max_epochs=3,
         callbacks=[checkpoint_callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
 
     tracker = Mock()
@@ -1295,7 +1566,16 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
     model.val_dataloader = None
     model.test_dataloader = None
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=0.3,
+        limit_val_batches=0.3,
+        max_epochs=3,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     trainer.reset_train_dataloader = Mock(wraps=trainer.reset_train_dataloader)
     trainer.reset_val_dataloader = Mock(wraps=trainer.reset_val_dataloader)
@@ -1335,6 +1615,10 @@ def test_dataloaders_reset_and_attach(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     # 1st fit
@@ -1500,7 +1784,15 @@ def test_request_dataloader(tmpdir):
             self.on_val_batch_start_called = True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     model = TestModel()
     trainer.fit(model)
@@ -1526,5 +1818,13 @@ def test_multiple_dataloaders_with_random_sampler_overfit_batches(num_loaders, t
 
         validation_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=1.0, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        overfit_batches=1.0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(TestModel())

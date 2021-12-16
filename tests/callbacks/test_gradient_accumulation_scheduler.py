@@ -33,6 +33,9 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
             max_epochs=1,
             enable_model_summary=False,
             accumulate_grad_batches=accumulate_grad_batches,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         assert trainer.accumulate_grad_batches == accumulate_grad_batches
         trainer.fit(model)
@@ -43,10 +46,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
 
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "expected_call_count"],
-    [
-        ({1: 2, 3: 4}, 10 + 5 + 5 + 3),
-        ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
-    ],
+    [({1: 2, 3: 4}, 10 + 5 + 5 + 3), ({0: 2, 2: 1}, 5 + 5 + 10 + 10)],
 )
 def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
@@ -58,6 +58,9 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
             max_epochs=4,
             enable_model_summary=False,
             accumulate_grad_batches=accumulate_grad_batches,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         assert trainer.accumulate_grad_batches == accumulate_grad_batches.get(0, 1)
         trainer.fit(model)
@@ -76,6 +79,9 @@ def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
             max_epochs=4,
             enable_model_summary=False,
             callbacks=[GradientAccumulationScheduler({1: 2, 3: 4})],
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            logger=False,
         )
         assert trainer.accumulate_grad_batches == 1
         trainer.fit(model)
@@ -84,25 +90,13 @@ def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
         assert sgd_zero_grad.call_count == 10 + 5 + 5 + 3
 
 
-@pytest.mark.parametrize(
-    "scheduling",
-    [
-        {1: 2, -3: 4},
-        {0: 2, "2": 1},
-    ],
-)
+@pytest.mark.parametrize("scheduling", [{1: 2, -3: 4}, {0: 2, "2": 1}])
 def test_invalid_keys_for_grad_accum_scheduler(scheduling):
     with pytest.raises(MisconfigurationException, match="Epoch should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
 
 
-@pytest.mark.parametrize(
-    "scheduling",
-    [
-        {1: 0, 3: 4},
-        {0: 2, 2: "2"},
-    ],
-)
+@pytest.mark.parametrize("scheduling", [{1: 0, 3: 4}, {0: 2, 2: "2"}])
 def test_invalid_values_for_grad_accum_scheduler(scheduling):
     with pytest.raises(MisconfigurationException, match="Accumulation factor should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)

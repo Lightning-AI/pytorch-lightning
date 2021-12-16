@@ -93,7 +93,15 @@ def test_quantize_torchscript(tmpdir):
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
-    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        callbacks=[qcb],
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(qmodel, datamodule=dm)
 
     batch = iter(dm.test_dataloader()).next()
@@ -123,7 +131,15 @@ def test_quantization_exceptions(tmpdir):
 
     fusing_layers = [(f"layers.mlp_{i}", f"layers.NONE-mlp_{i}a") for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
-    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        callbacks=[qcb],
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     with pytest.raises(MisconfigurationException, match="one or more of them is not your model attributes"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
@@ -151,7 +167,15 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
     trainer = Trainer(
-        callbacks=[qcb], default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=4
+        callbacks=[qcb],
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(qmodel, datamodule=dm)
 
@@ -222,6 +246,10 @@ def test_quantization_val_test_predict(tmpdir):
         val_check_interval=1,
         num_sanity_val_steps=1,
         max_epochs=4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(val_test_predict_qmodel, datamodule=dm)
     trainer.validate(model=val_test_predict_qmodel, datamodule=dm, verbose=False)
@@ -238,6 +266,10 @@ def test_quantization_val_test_predict(tmpdir):
         limit_train_batches=1,
         limit_val_batches=0,
         max_epochs=4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     ).fit(expected_qmodel, datamodule=dm)
 
     expected_state_dict = expected_qmodel.state_dict()

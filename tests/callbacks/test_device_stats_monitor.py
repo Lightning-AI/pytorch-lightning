@@ -48,6 +48,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -77,6 +78,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -106,6 +108,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -124,6 +127,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):

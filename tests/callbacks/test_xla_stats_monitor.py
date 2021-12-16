@@ -34,7 +34,15 @@ def test_xla_stats_monitor(tmpdir):
     logger = CSVLogger(tmpdir)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=5, tpu_cores=8, callbacks=[xla_stats], logger=logger
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=5,
+        tpu_cores=8,
+        callbacks=[xla_stats],
+        logger=logger,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
@@ -56,7 +64,16 @@ def test_xla_stats_monitor_no_logger(tmpdir):
     model = BoringModel()
     xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_epochs=1, tpu_cores=[1], logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[xla_stats],
+        max_epochs=1,
+        tpu_cores=[1],
+        logger=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
@@ -69,7 +86,16 @@ def test_xla_stats_monitor_no_tpu_warning(tmpdir):
     model = BoringModel()
     xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_steps=1, tpu_cores=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[xla_stats],
+        max_steps=1,
+        tpu_cores=None,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
 
     with pytest.raises(MisconfigurationException, match="not running on TPU"):
         trainer.fit(model)

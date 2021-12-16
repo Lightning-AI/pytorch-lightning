@@ -81,12 +81,6 @@ def test_detect():
         assert not LSFEnvironment.detect()
 
     with mock.patch.dict(
-        os.environ,
-        {
-            "LSB_HOSTS": "",
-            "LSB_JOBID": "",
-            "JSM_NAMESPACE_SIZE": "",
-            "JSM_NAMESPACE_LOCAL_RANK": "",
-        },
+        os.environ, {"LSB_HOSTS": "", "LSB_JOBID": "", "JSM_NAMESPACE_SIZE": "", "JSM_NAMESPACE_LOCAL_RANK": ""}
     ):
         assert LSFEnvironment.detect()

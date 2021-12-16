@@ -71,6 +71,9 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -101,6 +104,9 @@ def test_multiple_eval_dataloaders_list(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)
@@ -158,6 +164,9 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     trainer.fit(model)

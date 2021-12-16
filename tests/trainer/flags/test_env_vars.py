@@ -23,7 +23,14 @@ def test_passing_no_env_variables():
     assert trainer.logger is not None
     assert trainer.max_steps == -1
     assert trainer.max_epochs == 1000
-    trainer = Trainer(False, max_steps=42)
+    trainer = Trainer(
+        False,
+        max_steps=42,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert trainer.logger is None
     assert trainer.max_steps == 42
     assert trainer.max_epochs == -1
@@ -40,7 +47,14 @@ def test_passing_env_variables_only():
 @mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "True", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments."""
-    trainer = Trainer(False, max_steps=42)
+    trainer = Trainer(
+        False,
+        max_steps=42,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     assert trainer.logger is None
     assert trainer.max_steps == 42
 

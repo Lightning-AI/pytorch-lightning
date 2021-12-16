@@ -36,7 +36,16 @@ def test_sync_batchnorm_set(tmpdir):
     model = BoringModel()
     plugin = CustomParallelPlugin()
     assert plugin.sync_batchnorm is None
-    trainer = Trainer(max_epochs=1, strategy=plugin, default_root_dir=tmpdir, sync_batchnorm=True)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=plugin,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
     assert plugin.sync_batchnorm is True
 

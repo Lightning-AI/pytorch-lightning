@@ -67,7 +67,17 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
 @RunIf(min_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
-    trainer = Trainer(default_root_dir=tmpdir, strategy="dp", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy="dp",
+        gpus=2,
+        callbacks=[DeviceAssertCallback()],
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
 
@@ -75,7 +85,15 @@ def test_submodules_multi_gpu_dp(tmpdir):
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy="ddp_spawn", gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1
+        default_root_dir=tmpdir,
+        strategy="ddp_spawn",
+        gpus=2,
+        callbacks=[DeviceAssertCallback()],
+        max_steps=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 

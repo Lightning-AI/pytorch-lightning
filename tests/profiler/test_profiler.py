@@ -116,7 +116,15 @@ def test_simple_profiler_log_dir(tmpdir):
     assert profiler._log_dir is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        profiler=profiler,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     expected = tmpdir / "lightning_logs" / "version_0"
@@ -134,7 +142,15 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        default_root_dir=nonexisting_tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -154,7 +170,15 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -308,6 +332,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         profiler=pytorch_profiler,
         strategy="ddp",
         gpus=2,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -340,7 +367,16 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
     model = boring_model_cls()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        fast_dev_run=fast_dev_run,
+        profiler=pytorch_profiler,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model)
 
     assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
@@ -362,7 +398,16 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = boring_model_cls()
     model.predict_dataloader = model.train_dataloader
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=2,
+        profiler=pytorch_profiler,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     getattr(trainer, fn)(model)
 
     assert sum(e.name == f"{step_name}_step" for e in pytorch_profiler.function_events)
@@ -421,7 +466,16 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
     # Wrap the logger in a list so it becomes a LoggerCollection
     logger = [TensorBoardLogger(save_dir=tmpdir)]
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        logger=logger,
+        limit_train_batches=5,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
 
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
@@ -532,13 +586,7 @@ def test_trainer_profiler_incorrect_str_arg():
     [
         ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
         ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),
-        (
-            {
-                "limit_train_batches": 7,
-                "limit_val_batches": 2,
-            },
-            "fit",
-        ),
+        ({"limit_train_batches": 7, "limit_val_batches": 2}, "fit"),
         ({"limit_val_batches": 4}, "validate"),
         ({"limit_test_batches": 4}, "test"),
         ({"limit_predict_batches": 4}, "predict"),
@@ -546,7 +594,16 @@ def test_trainer_profiler_incorrect_str_arg():
 )
 def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_config, trainer_fn):
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", max_epochs=1, **trainer_config)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        max_epochs=1,
+        **trainer_config,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)

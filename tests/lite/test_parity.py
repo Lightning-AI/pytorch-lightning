@@ -50,12 +50,7 @@ def configure_optimizers(module: nn.Module):
     return torch.optim.SGD(module.parameters(), lr=0.0001)
 
 
-def main(
-    move_to_device: Callable,
-    model: nn.Module,
-    train_dataloader: DataLoader,
-    num_epochs: int = 10,
-):
+def main(move_to_device: Callable, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10):
     model = move_to_device(model)
     optimizer = configure_optimizers(model)
 
@@ -143,10 +138,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         torch.distributed.init_process_group("gloo", rank=rank, world_size=2)
 
     to_device = partial(move_data_to_device, device=torch.device("cuda", rank))
-    model = DistributedDataParallel(
-        to_device(model),
-        device_ids=[rank],
-    )
+    model = DistributedDataParallel(to_device(model), device_ids=[rank])
     train_dataloader = DataLoader(
         train_dataloader.dataset,
         sampler=DistributedSampler(train_dataloader.dataset, rank=rank, num_replicas=2, seed=42, drop_last=False),
@@ -160,12 +152,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
 
 @pytest.mark.skipif(True, reason="Skipping as it takes 80 seconds.")
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
-    [
-        (32, "ddp_spawn", 2, "gpu"),
-    ],
-)
+@pytest.mark.parametrize("precision, strategy, devices, accelerator", [(32, "ddp_spawn", 2, "gpu")])
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
@@ -191,12 +178,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
 
 
 @RunIf(min_gpus=2, standalone=True)
-@pytest.mark.parametrize(
-    "precision, strategy, devices, accelerator",
-    [
-        (32, "ddp", 2, "gpu"),
-    ],
-)
+@pytest.mark.parametrize("precision, strategy, devices, accelerator", [(32, "ddp", 2, "gpu")])
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))

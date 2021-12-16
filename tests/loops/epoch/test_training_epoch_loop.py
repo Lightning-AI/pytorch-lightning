@@ -37,17 +37,9 @@ _out13 = {"loss": 1.3}
         # 1 batch, 2 optimizers
         (2, [[{0: _out00, 1: _out01}]], [_out00, _out01]),
         # 2 batches, 2 optimizers
-        (
-            2,
-            [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]],
-            [[_out00, _out10], [_out01, _out11]],
-        ),
+        (2, [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]], [[_out00, _out10], [_out01, _out11]]),
         # 4 batches, 2 optimizers, different frequency
-        (
-            2,
-            [[{0: _out00}], [{1: _out10}], [{1: _out11}], [{0: _out01}]],
-            [[_out00, _out01], [_out10, _out11]],
-        ),
+        (2, [[{0: _out00}], [{1: _out10}], [{1: _out11}], [{0: _out01}]], [[_out00, _out01], [_out10, _out11]]),
         # 1 batch, tbptt with 2 splits (uneven)
         (1, [[{0: _out00}, {0: _out01}], [{0: _out03}]], [[_out00, _out01], [_out03]]),
         # 3 batches, tbptt with 2 splits, 2 optimizers alternating
@@ -62,9 +54,7 @@ def test_prepare_outputs_training_epoch_end_automatic(num_optimizers, batch_outp
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of automatic optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
-        batch_outputs,
-        automatic=True,
-        num_optimizers=num_optimizers,
+        batch_outputs, automatic=True, num_optimizers=num_optimizers
     )
     assert prepared == expected
 
@@ -88,9 +78,7 @@ def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of manual optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
-        batch_outputs,
-        automatic=False,
-        num_optimizers=-1,  # does not matter for manual optimization
+        batch_outputs, automatic=False, num_optimizers=-1  # does not matter for manual optimization
     )
     assert prepared == expected
 
@@ -114,9 +102,7 @@ def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of automatic optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
-        batch_end_outputs,
-        automatic=True,
-        num_optimizers=num_optimizers,
+        batch_end_outputs, automatic=True, num_optimizers=num_optimizers
     )
     assert prepared == expected
 
@@ -136,8 +122,6 @@ def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of manual optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
-        batch_end_outputs,
-        automatic=False,
-        num_optimizers=-1,  # does not matter for manual optimization
+        batch_end_outputs, automatic=False, num_optimizers=-1  # does not matter for manual optimization
     )
     assert prepared == expected

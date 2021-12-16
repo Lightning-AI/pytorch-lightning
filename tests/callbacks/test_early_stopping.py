@@ -71,6 +71,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         callbacks=[early_stop_callback, checkpoint_callback],
         num_sanity_val_steps=0,
         max_epochs=4,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -91,6 +94,10 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[early_stop_callback],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
@@ -111,6 +118,9 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         limit_val_batches=4,
         max_epochs=expected_count,
         enable_checkpointing=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -141,6 +151,9 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
         num_sanity_val_steps=0,
         max_epochs=10,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -177,6 +190,9 @@ def test_early_stopping_patience_train(
         num_sanity_val_steps=0,
         max_epochs=10,
         enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -203,7 +219,16 @@ def test_early_stopping_no_val_step(tmpdir):
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor="train_loss", min_delta=0.1, patience=0, check_on_train_epoch_end=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[stopping], overfit_batches=0.20, max_epochs=10)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[stopping],
+        overfit_batches=0.20,
+        max_epochs=10,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
     trainer.fit(model, datamodule=dm)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -234,6 +259,10 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         max_epochs=20,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_epoch, "early_stopping failed"
@@ -258,6 +287,10 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         max_epochs=10,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.current_epoch == expected_stop_epoch
@@ -329,6 +362,10 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
         limit_val_batches=2,
         min_steps=min_steps,
         min_epochs=min_epochs,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -444,6 +481,10 @@ def test_multiple_early_stopping_callbacks(
         strategy=strategy,
         accelerator="cpu",
         num_processes=num_processes,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     trainer.fit(model)
 
@@ -469,6 +510,9 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
         callbacks=EarlyStopping(monitor="foo"),
         enable_progress_bar=False,
         **kwargs,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
 
     side_effect = [(False, "A"), (True, "B")]

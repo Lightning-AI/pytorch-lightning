@@ -47,6 +47,10 @@ def test_lambda_call(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
         trainer.fit(model)
@@ -62,6 +66,10 @@ def test_lambda_call(tmpdir):
         limit_test_batches=1,
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
     )
     with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
         trainer.fit(model, ckpt_path=ckpt_path)
