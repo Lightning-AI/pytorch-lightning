@@ -80,8 +80,7 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
 
@@ -107,8 +106,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert ddp_spawn_plugin.new_test_val == "new_test_val"
 

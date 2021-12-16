@@ -3,7 +3,7 @@ codecov>=2.1
 pytest>=6.0
 pytest-rerunfailures>=10.2
 twine==3.2
-mypy>=0.900
+mypy>=0.920
 flake8>=3.9.2
 pre-commit>=1.0
 

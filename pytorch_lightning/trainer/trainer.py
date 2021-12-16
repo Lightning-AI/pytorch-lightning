@@ -49,6 +49,7 @@ from pytorch_lightning.plugins import (
     TrainingTypePlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -673,7 +674,12 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            return trainer_fn(*args, **kwargs)
+            if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+                spawn_output: _SpawnOutput = self.training_type_plugin.spawn(trainer_fn, *args, **kwargs)
+                self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
+                return spawn_output.trainer_results
+            else:
+                return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
@@ -711,7 +717,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -721,6 +727,7 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
+        self.training_type_plugin.model = model
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -756,10 +763,11 @@ class Trainer(
 
         # TODO: ckpt_path only in v1.7
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        self._run(model, ckpt_path=ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
+        return results
 
     def validate(
         self,
@@ -793,6 +801,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
+        self.training_type_plugin.model = model or self.lightning_module
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -876,6 +885,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
+        self.training_type_plugin.model = model or self.lightning_module
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -958,6 +968,7 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
+        self.training_type_plugin.model = model or self.lightning_module
         return self._call_and_handle_interrupt(
             self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -1026,7 +1037,7 @@ class Trainer(
 
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
@@ -1080,23 +1091,22 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        verify_loop_configurations(self, model)
-
-        # attach model log function to callback
-        self._callback_connector.attach_model_logging_functions(model)
-
         # attach model to the training type plugin
         self.training_type_plugin.connect(model)
 
+        self._callback_connector._attach_model_callbacks()
+        self._callback_connector._attach_model_logging_functions()
+
+        verify_loop_configurations(self)
+
         # hook
         self._data_connector.prepare_data()
-        self._callback_connector._attach_model_callbacks()
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
-        self.accelerator.setup_environment()
+        self.training_type_plugin.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1104,7 +1114,7 @@ class Trainer(
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
-        self.accelerator.setup(self)
+        self.training_type_plugin.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1113,25 +1123,21 @@ class Trainer(
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
-                        create accelerator                    ||
+                         spawn processes                      ||
+           {self.training_type_plugin.setup_environment}      ||
                                 |                             ||
-                         {self._dispatch}                     ||
-                                |                             ||  LIGHTNING
-         {self.training_type_plugin.start_training}           ||
-       or {self.training_type_plugin.start_evaluating}        ||
-       or {self.training_type_plugin.start_predicting}        ||  FLOW
+                        setup accelerator                     ||
+                           and strategy                       ||  LIGHTNING
                                 |                             ||
-                         {self.run_stage}                     ||
-                                |                             ||  DIRECTION
-                        {self._run_train}                     ||
+                         {self.run_stage}                     ||  FLOW
+                                |                             ||
+                        {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
         {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
-        Search for `start_training` or `start_evaluating` or `start_predicting` in
-        `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
         """
 
         # ----------------------------
@@ -1147,7 +1153,7 @@ class Trainer(
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        # plugin will setup fitting (e.g. ddp will launch child processes)
+        # plugin will move model to device
         self._pre_dispatch()
 
         if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
@@ -1158,10 +1164,8 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        results = self._dispatch()
-
-        self._post_dispatch()
+        results = self.run_stage()
+        self._teardown()
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -1171,14 +1175,14 @@ class Trainer(
             self._call_callback_hooks("on_fit_end")
             self._call_lightning_module_hook("on_fit_end")
 
-        # teardown if necessary (similar calls for spawn plugins are excluded as they have
-        # been included at the end of `new_process` functions)
-        if not isinstance(self.training_type_plugin, DDPSpawnPlugin):
-            self._call_teardown_hook()
+        self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
+
+        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         return results
 
@@ -1223,25 +1227,18 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def _post_dispatch(self):
-        # these `teardown` calls are here instead of in `_call_teardown_hook` since they are internal teardowns
-        # which need to happen before.
+    def _teardown(self):
+        """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
+        Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.training_type_plugin.post_dispatch(self)
-        self.accelerator.teardown()
+        self.training_type_plugin.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def _dispatch(self) -> Any:
-        if self.evaluating:
-            return self.training_type_plugin.start_evaluating(self)
-        elif self.predicting:
-            return self.training_type_plugin.start_predicting(self)
-        else:
-            return self.training_type_plugin.start_training(self)
-
     def run_stage(self):
+        self.training_type_plugin.barrier("run-stage")
         self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
 
@@ -1592,29 +1589,6 @@ class Trainer(
 
         return output
 
-    # TODO: eventually no longer need this
-    def _call_accelerator_hook(
-        self,
-        hook_name: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        pl_module = self.lightning_module
-        prev_fx_name = pl_module._current_fx_name
-        pl_module._current_fx_name = hook_name
-
-        fn = getattr(self.accelerator, hook_name)
-        if not callable(fn):
-            return
-
-        with self.profiler.profile(hook_name):
-            output = fn(*args, **kwargs)
-
-        # restore current_fx when nested context
-        pl_module._current_fx_name = prev_fx_name
-
-        return output
-
     @staticmethod
     def _parse_devices(
         gpus: Optional[Union[List[int], str, int]],
@@ -1696,11 +1670,11 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
-        return self._accelerator_connector.accelerator
+        return self.training_type_plugin.accelerator
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
-        return self.accelerator.training_type_plugin
+        return self._accelerator_connector.training_type_plugin
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -1727,6 +1701,9 @@ class Trainer(
 
     @property
     def should_rank_save_checkpoint(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5
+        )
         return self.training_type_plugin.should_rank_save_checkpoint
 
     @property
@@ -1771,7 +1748,7 @@ class Trainer(
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
-        return self.accelerator.lightning_module
+        return self.training_type_plugin.lightning_module
 
     @property
     def optimizers(self) -> List[Optimizer]:
@@ -1829,7 +1806,7 @@ class Trainer(
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
-        return self.accelerator.model
+        return self.training_type_plugin.model
 
     @model.setter
     def model(self, model: torch.nn.Module) -> None:
@@ -1840,7 +1817,7 @@ class Trainer(
             model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
                 on the backend.
         """
-        self.accelerator.model = model
+        self.training_type_plugin.model = model
 
     """
     General properties
@@ -1994,6 +1971,14 @@ class Trainer(
         return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+        r"""
+        Runs routine to create a checkpoint.
+
+        Args:
+            filepath: Path where checkpoint is saved.
+            weights_only: If ``True``, will only save the model weights.
+
+        """
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """

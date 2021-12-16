@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
@@ -36,6 +38,8 @@ class XLACheckpointIO(TorchCheckpointIO):
             path: write-target path
             storage_options: Optional parameters when saving the model/training states.
         """
+        fs = get_filesystem(path)
+        fs.makedirs(os.path.dirname(path), exist_ok=True)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
         # Ref: https://github.com/pytorch/xla/issues/2773
         if _OMEGACONF_AVAILABLE:

@@ -83,3 +83,34 @@ def test_v1_8_0_deprecated_call_hook():
     )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
+
+
+def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
+    class TestModelSave(BoringModel):
+        def on_hpc_save(self):
+            print("on_hpc_save override")
+
+    class TestModelLoad(BoringModel):
+        def on_hpc_load(self):
+            print("on_hpc_load override")
+
+    save_model = TestModelSave()
+    load_model = TestModelLoad()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
+
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(save_model)
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(load_model)
+
+
+def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8."
+    ):
+        _ = trainer.should_rank_save_checkpoint
