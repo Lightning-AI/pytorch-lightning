@@ -84,4 +84,7 @@ def test_checkpoint_plugin_called(tmpdir):
 
 def test_no_checkpoint_io_plugin_support():
     with pytest.raises(MisconfigurationException, match="must be a `XLA"):
+        TPUSpawnPlugin(checkpoint_io=CustomCheckpointIO())
+
+    with pytest.raises(MisconfigurationException, match="must be a `XLA"):
         TPUSpawnPlugin().checkpoint_io = CustomCheckpointIO()
