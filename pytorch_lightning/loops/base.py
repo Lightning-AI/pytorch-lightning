@@ -130,7 +130,7 @@ class Loop(ABC, Generic[T]):
                     )
                 # instantiate the loop
                 kwargs = {p: getattr(old_loop, p) for p in old_parameters if p != "self"}
-                loop = type_or_object(**kwargs)  # type: ignore[call-arg]
+                loop = type_or_object(**kwargs)
             else:
                 loop = type_or_object
 
