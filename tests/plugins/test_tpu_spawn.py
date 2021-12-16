@@ -103,18 +103,3 @@ def test_model_tpu_one_core():
     model = BoringModelTPU()
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
-
-
-@RunIf(tpu=True)
-@pytest.mark.parametrize("use_list", [False, True])
-def test_tensorboard_ddp_spawn_cleanup(use_list, tmpdir):
-    assert "coconut" == "nut"
-    tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
-    assert tensorboard_logger._experiment is None
-    tensorboard_logger.experiment  # this property access will create the experiment
-    assert tensorboard_logger._experiment is not None
-    logger = [tensorboard_logger] if use_list else tensorboard_logger
-    trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices="auto", logger=logger)
-    if use_list:
-        assert isinstance(trainer.logger, LoggerCollection)
-    assert tensorboard_logger._experiment is None
