@@ -42,7 +42,6 @@ def test_lr_monitor_single_lr(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -83,7 +82,6 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -113,7 +111,6 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -144,7 +141,6 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     trainer.fit(model)
@@ -184,7 +180,6 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -213,7 +208,6 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -276,7 +270,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -323,7 +316,6 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -367,7 +359,6 @@ def test_lr_monitor_param_groups(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -393,7 +384,6 @@ def test_lr_monitor_custom_name(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["my_logging_name"]
@@ -416,7 +406,6 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["lr-SGD/linear"]
@@ -455,7 +444,6 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     with pytest.raises(
@@ -548,7 +536,6 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     model = TestModel()
     model.training_epoch_end = None
@@ -604,7 +591,6 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     lr = 1e-2

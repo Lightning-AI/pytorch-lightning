@@ -46,7 +46,6 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
         val_check_interval=val_check_interval,
         limit_val_batches=1,
         enable_progress_bar=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)

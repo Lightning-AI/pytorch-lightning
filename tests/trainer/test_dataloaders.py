@@ -172,7 +172,6 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
         limit_train_batches=100,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -235,7 +234,6 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
         limit_train_batches=0.2,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model, train_dataloaders=model.dataloader(train=True), val_dataloaders=dataloaders)
@@ -788,7 +786,6 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
         limit_train_batches=0.2,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
 
@@ -836,7 +833,6 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
         limit_train_batches=0.2,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
 
@@ -977,7 +973,6 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
             enable_progress_bar=False,
             enable_model_summary=False,
             enable_checkpointing=False,
-            logger=False,
         )
         trainer.fit(model)
 
@@ -990,7 +985,6 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
             enable_progress_bar=False,
             enable_model_summary=False,
             enable_checkpointing=False,
-            logger=False,
         )
         trainer.fit(model)
 

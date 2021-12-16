@@ -41,7 +41,6 @@ def test_logdir(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
 
     assert trainer.log_dir == expected
@@ -60,7 +59,6 @@ def test_logdir_no_checkpoint_cb(tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
 
     assert trainer.log_dir == expected
@@ -117,7 +115,6 @@ def test_logdir_custom_callback(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, "ckpts"))],
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
 
     assert trainer.log_dir == expected

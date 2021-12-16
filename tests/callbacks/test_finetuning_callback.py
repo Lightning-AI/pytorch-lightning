@@ -140,7 +140,6 @@ def test_finetuning_callback_warning(tmpdir):
             max_epochs=2,
             enable_progress_bar=False,
             enable_model_summary=False,
-            enable_checkpointing=False,
             logger=False,
         )
         trainer.fit(model)
@@ -273,7 +272,6 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
         callbacks=[cb, chk],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)

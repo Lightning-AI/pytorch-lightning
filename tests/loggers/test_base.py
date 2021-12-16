@@ -115,7 +115,6 @@ def test_custom_logger(tmpdir):
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -324,7 +323,6 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -351,7 +349,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
 
     same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.tensor(4)}
     model = TestModel(same_params)
-    dm = TestDataModule(same_params)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -362,7 +359,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
     # there should be no exceptions raised for the same key/value pair in the hparams of both
     # the lightning module and data module
@@ -371,7 +367,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     obj_params = deepcopy(same_params)
     obj_params["test"] = _Test()
     model = TestModel(same_params)
-    dm = TestDataModule(obj_params)
     trainer.fit(model)
 
     diff_params = deepcopy(same_params)
@@ -387,7 +382,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
@@ -405,7 +399,6 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)

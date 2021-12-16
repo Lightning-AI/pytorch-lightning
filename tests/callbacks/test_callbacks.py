@@ -132,7 +132,6 @@ def test_resume_callback_state_saved_by_type(tmpdir):
         callbacks=[callback],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -163,7 +162,6 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         callbacks=[callback0, callback1],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -175,7 +173,6 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         callbacks=[callback1],  # one callback is missing!
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     with pytest.warns(UserWarning, match=escape(f"Please add the following callbacks: [{repr(callback0.state_key)}]")):
@@ -187,7 +184,6 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         callbacks=[callback1, callback0],  # all callbacks here, order switched
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     with no_warning_call(UserWarning, match="Please add the following callbacks:"):

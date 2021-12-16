@@ -620,7 +620,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         enable_progress_bar=False,
         logger=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
 

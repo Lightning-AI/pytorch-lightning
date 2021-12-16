@@ -339,7 +339,6 @@ def test_log_works_in_train_callback(tmpdir):
         num_sanity_val_steps=0,
         max_epochs=1,
         callbacks=[cb],
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,

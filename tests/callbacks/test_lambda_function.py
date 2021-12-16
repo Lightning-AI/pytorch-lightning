@@ -49,7 +49,6 @@ def test_lambda_call(tmpdir):
         callbacks=[LambdaCallback(**hooks_args)],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):

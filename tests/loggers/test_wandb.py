@@ -157,7 +157,6 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
@@ -186,7 +185,6 @@ def test_wandb_log_model(wandb, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
@@ -205,7 +203,6 @@ def test_wandb_log_model(wandb, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
@@ -224,7 +221,6 @@ def test_wandb_log_model(wandb, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert not wandb.init().log_artifact.called
@@ -247,7 +243,6 @@ def test_wandb_log_model(wandb, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     wandb.Artifact.assert_called_once_with(

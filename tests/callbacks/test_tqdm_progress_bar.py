@@ -83,7 +83,6 @@ def test_tqdm_progress_bar_totals(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -386,7 +385,6 @@ def test_tensor_to_float_conversion(tmpdir):
         limit_train_batches=2,
         logger=False,
         enable_checkpointing=False,
-        enable_progress_bar=False,
         enable_model_summary=False,
     )
     trainer.fit(TestModel())
@@ -449,7 +447,6 @@ def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -479,7 +476,6 @@ def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -511,7 +507,6 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -533,7 +528,6 @@ def test_tqdm_progress_bar_can_be_pickled():
         fast_dev_run=True,
         callbacks=[bar],
         max_steps=1,
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -642,7 +636,6 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
 
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
-            del items["v_num"]
             del items["loss"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append(

@@ -84,7 +84,6 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
         max_steps=1,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)

@@ -159,7 +159,6 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)

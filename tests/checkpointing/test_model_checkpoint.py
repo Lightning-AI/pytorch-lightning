@@ -316,7 +316,6 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
         max_epochs=max_epochs,
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=False,
     )
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
@@ -368,7 +367,6 @@ def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], ex
         logger=logger,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
 
@@ -817,8 +815,6 @@ def test_default_checkpoint_behavior(tmpdir):
         limit_train_batches=5,
         limit_val_batches=5,
         enable_model_summary=False,
-        enable_checkpointing=False,
-        logger=False,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -932,7 +928,6 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         max_epochs=len(monitor),
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.save_checkpoint = MagicMock()
@@ -1210,23 +1205,22 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
     are used."""
     epochs = 2
     for i in range(epochs):
-        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
+        ckpt = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
         trainer = Trainer(
             max_epochs=epochs,
             limit_train_batches=1,
             limit_val_batches=1,
             default_root_dir=tmpdir,
-            callbacks=[mc],
+            callbacks=[ckpt],
             logger=False,
             enable_progress_bar=False,
             enable_model_summary=False,
-            enable_checkpointing=False,
         )
         trainer.fit(BoringModel())
 
         # check best_k_models state
         expected = {"epoch=0-v1.ckpt", "epoch=1-v1.ckpt"} if i else {"epoch=0.ckpt", "epoch=1.ckpt"}
-        assert {Path(f).name for f in mc.best_k_models} == expected
+        assert {Path(f).name for f in ckpt.best_k_models} == expected
 
     # check created ckpts
     actual = {f.basename for f in tmpdir.listdir()}
@@ -1236,27 +1230,26 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
 def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     """Check that previous checkpoints are renamed to have the correct version suffix when the same trainer
     instance is used."""
-    mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
-    mc.STARTING_VERSION = 9
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
+    ckpt.STARTING_VERSION = 9
     trainer = Trainer(
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=1,
         default_root_dir=tmpdir,
-        callbacks=[mc],
+        callbacks=[ckpt],
         logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(BoringModel())
     trainer.fit_loop.max_epochs = 4
     trainer.fit(BoringModel())
 
-    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
+    ckpt_range = range(ckpt.STARTING_VERSION, trainer.max_epochs + ckpt.STARTING_VERSION)
     expected = {"test.ckpt", *(f"test-v{i}.ckpt" for i in ckpt_range)}
     # check best_k_models state
-    assert {Path(f).name for f in mc.best_k_models} == expected
+    assert {Path(f).name for f in ckpt.best_k_models} == expected
     # check created ckpts
     assert set(os.listdir(tmpdir)) == expected
 
@@ -1268,7 +1261,7 @@ def test_model_checkpoint_mode_options():
 
 def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     model = BoringModel()
-    mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
+    ckpt = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -1276,11 +1269,10 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
         num_sanity_val_steps=0,
         max_epochs=5,
         check_val_every_n_epoch=2,
-        callbacks=mc,
+        callbacks=ckpt,
         enable_model_summary=False,
         logger=False,
         enable_progress_bar=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}

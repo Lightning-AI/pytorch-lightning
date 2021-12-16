@@ -44,7 +44,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     # sanity + 2 epochs
     assert eval_epoch_end_mock.call_count == 3
 
-    trainer.test()
+    trainer.test(model)
     # sanity + 2 epochs + called once for test
     assert eval_epoch_end_mock.call_count == 4
 

@@ -123,7 +123,6 @@ def test_simple_profiler_log_dir(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -150,7 +149,6 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 

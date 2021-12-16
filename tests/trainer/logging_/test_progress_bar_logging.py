@@ -17,7 +17,6 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=2,
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,

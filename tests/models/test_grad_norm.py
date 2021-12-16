@@ -78,7 +78,6 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -101,7 +100,6 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:

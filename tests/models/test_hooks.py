@@ -75,7 +75,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         max_epochs=num_epochs,
         default_root_dir=tmpdir,
         overfit_batches=2,
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
         logger=False,
@@ -510,8 +509,6 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         callbacks=[callback],
         track_grad_norm=1,
         **kwargs,
-        enable_checkpointing=False,
-        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -618,7 +615,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         callbacks=[HookedCallback([])],
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -640,8 +636,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         enable_model_summary=False,
         callbacks=[callback],
         track_grad_norm=1,
-        enable_checkpointing=False,
-        logger=False,
     )
     assert called == [
         dict(name="Callback.on_init_start", args=(trainer,)),
@@ -903,7 +897,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         reload_dataloaders_every_n_epochs=1,
-        enable_checkpointing=False,
         logger=False,
     )
 

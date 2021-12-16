@@ -40,7 +40,6 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
         limit_val_batches=2,
         check_val_every_n_epoch=2,
         logger=False,
-        enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
     )

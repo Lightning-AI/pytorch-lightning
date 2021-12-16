@@ -713,7 +713,6 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         default_root_dir=tmpdir,
         callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
         enable_model_summary=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -1433,7 +1432,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
@@ -2007,15 +2005,14 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     """Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming."""
 
     model = BoringModel()
-    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
-        callbacks=[chk, CustomCallbackOnLoadCheckpoint()],
+        callbacks=[ckpt, CustomCallbackOnLoadCheckpoint()],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -2029,7 +2026,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
         logger=False,
     )
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
-        trainer.fit(model, ckpt_path=chk.last_model_path)
+        trainer.fit(model, ckpt_path=ckpt.last_model_path)
 
 
 def test_module_current_fx_attributes_reset(tmpdir):

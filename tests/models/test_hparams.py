@@ -85,7 +85,6 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
         overfit_batches=2,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -205,7 +204,6 @@ def test_explicit_missing_args_hparams(tmpdir):
         overfit_batches=0.5,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -347,7 +345,6 @@ def test_collect_init_arguments(tmpdir, cls):
         overfit_batches=0.5,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -451,7 +448,6 @@ def test_load_past_checkpoint(tmpdir, past_key):
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -564,7 +560,7 @@ def test_model_nohparams_train_test(tmpdir, cls):
     trainer.fit(model, train_loader)
 
     test_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
-    trainer.test(dataloaders=test_loader)
+    trainer.test(model, dataloaders=test_loader)
 
 
 def test_model_ignores_non_exist_kwargument(tmpdir):
@@ -584,7 +580,6 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -617,7 +612,6 @@ def test_args(tmpdir):
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -649,8 +643,6 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
         max_epochs=1,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
-        logger=False,
     )
     trainer.fit(model)
 
@@ -679,7 +671,7 @@ def test_model_with_fsspec_as_parameter(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    trainer.test()
+    trainer.test(model)
 
 
 @pytest.mark.skipif(not _HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
@@ -740,7 +732,6 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
         overfit_batches=0.5,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)
@@ -892,7 +883,6 @@ def test_colliding_hparams(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)

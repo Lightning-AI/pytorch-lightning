@@ -468,7 +468,6 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         callbacks=[callback],
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
         logger=False,
     )
     trainer.fit(model)

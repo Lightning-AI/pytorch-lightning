@@ -140,7 +140,6 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
         limit_val_batches=3,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
@@ -182,7 +181,6 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         limit_val_batches=limit_batches,
         enable_progress_bar=False,
         enable_model_summary=False,
-        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
