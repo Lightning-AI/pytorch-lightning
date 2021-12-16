@@ -47,7 +47,7 @@ class TrainingTypePlugin(ABC):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self._accelerator = accelerator
+        self.accelerator = accelerator
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
