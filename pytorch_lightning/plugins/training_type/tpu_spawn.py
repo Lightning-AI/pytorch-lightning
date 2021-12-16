@@ -341,6 +341,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @DDPSpawnPlugin.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
-        if io is not None and isinstance(io, XLACheckpointIO):
+        if io is not None and not isinstance(io, XLACheckpointIO):
             raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
         self._checkpoint_io = io
