@@ -19,6 +19,7 @@ from platform import python_version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -402,7 +403,7 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
-    def _check_input_dim(self, input):
+    def _check_input_dim(self, input: torch.Tensor) -> None:
         # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
         # is this method that is overwritten by the subclass.
         # Here, we are bypassing some tensor sanity checks and trusting that the user
@@ -410,7 +411,7 @@ class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
         return
 
 
-def _revert_sync_batchnorm(module: torch.nn.Module) -> torch.nn.Module:
+def _revert_sync_batchnorm(module: Module) -> Module:
     # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
     # Original author: Kapil Yedidi (@kapily)
     converted_module = module
