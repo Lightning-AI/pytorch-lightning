@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -104,5 +105,43 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
     writer.write_on_epoch_end.assert_has_calls(
         [
             call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
+        ]
+    )
+
+
+def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
+    """Test partial support for CombinedLoader: prediction works but sample indices don't get tracked."""
+
+    class PredictionModel(BoringModel):
+        def predict_dataloader(self):
+            return CombinedLoader(
+                {
+                    "a": DataLoader(RandomDataset(32, 8), batch_size=2),
+                    "b": DataLoader(RandomDataset(32, 8), batch_size=4),
+                }
+            )
+
+        def predict_step(self, batch, *args, **kwargs):
+            return self(batch["a"])
+
+    DummyPredictionWriter.write_on_batch_end = Mock()
+    DummyPredictionWriter.write_on_epoch_end = Mock()
+
+    model = PredictionModel()
+    writer = DummyPredictionWriter("batch_and_epoch")
+    trainer = Trainer(callbacks=writer)
+    with pytest.warns(UserWarning, match="Lightning couldn't infer the indices fetched for your dataloader."):
+        trainer.predict(model)
+
+    writer.write_on_batch_end.assert_has_calls(
+        [
+            call(trainer, model, ANY, [], ANY, 0, 0),
+            call(trainer, model, ANY, [], ANY, 1, 0),
+        ]
+    )
+
+    writer.write_on_epoch_end.assert_has_calls(
+        [
+            call(trainer, model, ANY, [[]]),
         ]
     )
