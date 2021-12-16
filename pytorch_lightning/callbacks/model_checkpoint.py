@@ -248,7 +248,7 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """When pretrain routine starts we resolve the ckpt dir on the fly."""
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
