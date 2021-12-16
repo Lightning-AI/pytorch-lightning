@@ -84,6 +84,7 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -95,6 +96,7 @@ class DDPPlugin(ParallelPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -147,6 +149,7 @@ class DDPPlugin(ParallelPlugin):
             self._call_children_scripts()
 
         self.setup_distributed()
+        super().setup_environment()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -273,7 +276,7 @@ class DDPPlugin(ParallelPlugin):
             _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
         ):
             register_ddp_comm_hook(
-                model=self._model,
+                model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
@@ -330,7 +333,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = self._setup_model(LightningDistributedModule(self.model))
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):

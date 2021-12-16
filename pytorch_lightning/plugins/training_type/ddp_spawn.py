@@ -62,6 +62,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -72,6 +73,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         **kwargs: Any,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -203,7 +205,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
             register_ddp_comm_hook(
-                model=self._model,
+                model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
@@ -211,7 +213,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = self._setup_model(LightningDistributedModule(self.model))
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):

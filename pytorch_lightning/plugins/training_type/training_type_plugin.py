@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -42,12 +41,15 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
+        self._accelerator = accelerator
         self._model: Optional[Module] = None
-        checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self.checkpoint_io = checkpoint_io
-        self.precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
+        self.precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
@@ -58,20 +60,28 @@ class TrainingTypePlugin(ABC):
             )
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
-        return self._precision_plugin
+    def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
+        return self._accelerator
 
-    @precision_plugin.setter
-    def precision_plugin(self, plugin: PrecisionPlugin) -> None:
-        self._precision_plugin = plugin
+    @accelerator.setter
+    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
+        self._accelerator = accelerator
 
     @property
-    def checkpoint_io(self) -> CheckpointIO:
+    def checkpoint_io(self) -> Optional[CheckpointIO]:
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
+
+    @property
+    def precision_plugin(self) -> PrecisionPlugin:
+        return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+        self._precision_plugin = precision_plugin
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
@@ -83,6 +93,7 @@ class TrainingTypePlugin(ABC):
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
+        self.accelerator.setup_environment(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -105,6 +116,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
+        self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
@@ -297,7 +309,7 @@ class TrainingTypePlugin(ABC):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self._model) if self._model is not None else None
+        return unwrap_lightning_module(self.model) if self.model is not None else None
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
@@ -429,6 +441,7 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
+        self._move_optimizer_state(torch.device("cpu"))
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
