@@ -15,7 +15,6 @@ import os
 from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
@@ -91,7 +90,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @SingleDevicePlugin.checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
-        if not isinstance(io, XLACheckpointIO):
+    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+        if io is not None and not isinstance(io, XLACheckpointIO):
             raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
         self._checkpoint_io = io
