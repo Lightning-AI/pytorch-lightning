@@ -68,7 +68,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger.finalize("finished")
     hpc_save_path = trainer.checkpoint_connector.hpc_save_path(trainer.weights_save_path)
     trainer.save_checkpoint(hpc_save_path)
-    assert os.path.exists(saved_filepath)
+    assert os.path.exists(hpc_save_path)
 
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
