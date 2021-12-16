@@ -15,6 +15,7 @@ import math
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
+import copy
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -211,7 +212,7 @@ class RichProgressBar(ProgressBarBase):
             Set it to ``0`` to disable the display.
         leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
         theme: Contains styles used to stylize the progress bar.
-        console_kwargs: Args for constructing a `Console`
+        console_kwargs: Args for constructing a `Console` or a `Console` object
 
     Raises:
         ModuleNotFoundError:
@@ -228,7 +229,7 @@ class RichProgressBar(ProgressBarBase):
         refresh_rate: int = 1,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[Dict[str, Any], Console] = None,
+        console_kwargs: Optional[Union[Dict[str, Any], Console]] = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise MisconfigurationException(
@@ -284,7 +285,10 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            self._console = Console(**self._console_kwargs)
+            if isinstance(self._console_kwargs, Console):
+                self._console = copy.deepcopy(self._console_kwargs)
+            else:
+                self._console = Console(**self._console_kwargs)
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(
