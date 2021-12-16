@@ -451,7 +451,6 @@ class Trainer(
             amp_level,
             plugins,
         )
-        self._accelerator_connector.training_type_plugin
         self.logger_connector: LoggerConnector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
