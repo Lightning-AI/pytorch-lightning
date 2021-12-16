@@ -99,8 +99,8 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._accelerator = self._accelerator_connector.accelerator
-        self._strategy = self._accelerator.training_type_plugin
+        self._strategy = self._accelerator_connector.training_type_plugin
+        self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
@@ -398,7 +398,7 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._accelerator.setup_environment()
+        self._strategy.setup_environment()
 
         # apply sharded context to prevent OOM
         run_method = partial(self._run_with_sharded_context, run_method)

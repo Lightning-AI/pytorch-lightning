@@ -62,6 +62,7 @@ class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
@@ -86,6 +87,7 @@ class IPUPlugin(ParallelPlugin):
                 created options for validation/testing and predicting.
         """
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
