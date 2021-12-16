@@ -410,7 +410,7 @@ class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
         return
 
 
-def _revert_sync_batchnorm(module):
+def _revert_sync_batchnorm(module: torch.nn.Module) -> torch.nn.Module:
     # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
     # Original author: Kapil Yedidi (@kapily)
     converted_module = module
