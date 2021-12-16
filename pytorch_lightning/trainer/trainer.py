@@ -46,6 +46,7 @@ from pytorch_lightning.plugins import (
     ParallelPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
+    TPUSpawnPlugin,
     TrainingTypePlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
@@ -1702,9 +1703,10 @@ class Trainer(
     @property
     def should_rank_save_checkpoint(self) -> bool:
         rank_zero_deprecation(
-            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5
+            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
-        return self.training_type_plugin.should_rank_save_checkpoint
+        ttp = self.training_type_plugin
+        return isinstance(ttp, TPUSpawnPlugin) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
