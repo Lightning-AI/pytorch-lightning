@@ -295,7 +295,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_gpus=2)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
@@ -310,13 +310,12 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         gpus=2,
     )
     trainer.fit(model)
-
-    expected = {"LightningModule.BoringModel.validation_step"}
+    expected = {"[TrainingTypePlugin]DDPPlugin.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
             "training_step_and_backward",
-            "LightningModule.BoringModel.training_step",
-            "LightningModule.BoringModel.backward",
+            "[TrainingTypePlugin]DDPPlugin.training_step",
+            "[TrainingTypePlugin]DDPPlugin.backward",
         }
     print([e.name for e in pytorch_profiler.function_events])
     for name in expected:
@@ -349,7 +348,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer.fit(model)
 
     assert sum(
-        e.name == "TrainingTypePlugin.SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events
+        e.name == "[TrainingTypePlugin]SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events
     )
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
@@ -556,7 +555,7 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
 
 
 def test_profile_callbacks(tmpdir):
-    """Checks is profiling callbacks works correctly, specifically when there are two of the same callback type."""
+    """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
 
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
     model = BoringModel()
@@ -568,10 +567,10 @@ def test_profile_callbacks(tmpdir):
     )
     trainer.fit(model)
     assert sum(
-        e.name == "Callback.EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
     assert sum(
-        e.name == "Callback.EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )

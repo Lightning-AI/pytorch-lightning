@@ -384,6 +384,7 @@ class PyTorchProfiler(BaseProfiler):
 
             if self._schedule is not None:
                 self._schedule.setup(action_name)
+            # sd
 
             self._create_profilers()
 
@@ -411,7 +412,10 @@ class PyTorchProfiler(BaseProfiler):
             )
             and action_name not in self._recording_map
         ):
-
+            # print("in here")
+            # print(action_name)
+            if action_name == "[TrainingTypePlugin]DDPPlugin.validation_step":
+                print("8")
             recording = record_function(action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
@@ -420,6 +424,8 @@ class PyTorchProfiler(BaseProfiler):
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
+            if action_name == "[TrainingTypePlugin]DDPPlugin.validation_step":
+                print("1")
 
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
@@ -428,7 +434,10 @@ class PyTorchProfiler(BaseProfiler):
             any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
             or action_name.startswith(self.STEP_FUNCTION_PREFIX)
         ):
-
+            if action_name == "[TrainingTypePlugin]DDPPlugin.validation_step":
+                print("2")
+            print("where im supposed to be")
+            print(action_name)
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
