@@ -103,7 +103,7 @@ class SignalConnector:
         """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             if handler is not None:
-                signal.signal(signum, handler)  # type: ignore[arg-type]
+                self._register_signal(signum, handler)
         self._original_handlers = {}
 
     @staticmethod
