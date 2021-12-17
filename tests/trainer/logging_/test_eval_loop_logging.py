@@ -751,7 +751,7 @@ def test_multiple_dataloaders_logging(tmpdir):
 
     model = TestModel()
     model.validation_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1)
     results = trainer.validate(model)
     assert results == [
         {"value_2/dataloader_idx_0": 0.0, "value_1": 0.5},
