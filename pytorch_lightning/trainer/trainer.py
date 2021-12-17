@@ -571,6 +571,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
+        self.logger: Optional[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1107,7 +1108,7 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
-        self.accelerator.setup_environment()
+        self.training_type_plugin.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1115,7 +1116,7 @@ class Trainer(
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
-        self.accelerator.setup(self)
+        self.training_type_plugin.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1125,12 +1126,12 @@ class Trainer(
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
                          spawn processes                      ||
-               {self.accelerator.setup_environment}           ||
+           {self.training_type_plugin.setup_environment}      ||
                                 |                             ||
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
                                 |                             ||
-                         {self.run_stage}                     ||  FLOW
+                        {self._run_stage}                     ||  FLOW
                                 |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
@@ -1165,7 +1166,7 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        results = self.run_stage()
+        results = self._run_stage()
         self._teardown()
 
         # ----------------------------
@@ -1232,13 +1233,20 @@ class Trainer(
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.training_type_plugin.post_dispatch(self)
-        self.accelerator.teardown()
+        self.training_type_plugin.teardown()
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def run_stage(self):
+    def run_stage(self) -> None:
+        rank_zero_deprecation(
+            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
+            " `Trainer.{fit,validate,test,predict}` instead."
+        )
+        return self._run_stage()
+
+    def _run_stage(self):
         self.training_type_plugin.barrier("run-stage")
         self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
@@ -1671,11 +1679,11 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
-        return self._accelerator_connector.accelerator
+        return self.training_type_plugin.accelerator
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
-        return self.accelerator.training_type_plugin
+        return self._accelerator_connector.training_type_plugin
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -1750,7 +1758,7 @@ class Trainer(
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
-        return self.accelerator.lightning_module
+        return self.training_type_plugin.lightning_module
 
     @property
     def optimizers(self) -> List[Optimizer]:
@@ -1808,7 +1816,7 @@ class Trainer(
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
-        return self.accelerator.model
+        return self.training_type_plugin.model
 
     @model.setter
     def model(self, model: torch.nn.Module) -> None:
@@ -1819,7 +1827,7 @@ class Trainer(
             model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
                 on the backend.
         """
-        self.accelerator.model = model
+        self.training_type_plugin.model = model
 
     """
     General properties
@@ -1973,6 +1981,14 @@ class Trainer(
         return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+        r"""
+        Runs routine to create a checkpoint.
+
+        Args:
+            filepath: Path where checkpoint is saved.
+            weights_only: If ``True``, will only save the model weights.
+
+        """
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """

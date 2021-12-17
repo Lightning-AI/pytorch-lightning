@@ -42,12 +42,16 @@ class TrainingTypePlugin(ABC):
     loop."""
 
     def __init__(
-        self, checkpoint_io: Optional[CheckpointIO] = None, precision_plugin: Optional[PrecisionPlugin] = None
+        self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
+        self._accelerator = accelerator
         self._model: Optional[Module] = None
         checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
         self._checkpoint_io = checkpoint_io
-        self._precision_plugin = precision_plugin if precision_plugin is not None else PrecisionPlugin()
+        self._precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
@@ -58,12 +62,24 @@ class TrainingTypePlugin(ABC):
             )
 
     @property
+    def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
+        return self._accelerator
+
+    @accelerator.setter
+    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
+        self._accelerator = accelerator
+
+    @property
     def checkpoint_io(self) -> CheckpointIO:
         return self._checkpoint_io
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
-        return self._precision_plugin
+        return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
+
+    @precision_plugin.setter
+    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+        self._precision_plugin = precision_plugin
 
     @checkpoint_io.setter
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
@@ -79,6 +95,7 @@ class TrainingTypePlugin(ABC):
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
+        self.accelerator.setup_environment(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -101,6 +118,7 @@ class TrainingTypePlugin(ABC):
         Args:
             trainer: the trainer instance
         """
+        self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
 
@@ -425,6 +443,7 @@ class TrainingTypePlugin(ABC):
 
         It is the right place to release memory and free other resources.
         """
+        self._move_optimizer_state(torch.device("cpu"))
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:

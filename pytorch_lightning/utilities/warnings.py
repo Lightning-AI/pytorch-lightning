@@ -14,17 +14,25 @@
 """Warning-related utilities."""
 import warnings
 from functools import partial
+from typing import Any, Union
 
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
-def _warn(*args, stacklevel: int = 2, **kwargs):
-    warnings.warn(*args, stacklevel=stacklevel, **kwargs)
+def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
+    if type(stacklevel) is type and issubclass(stacklevel, Warning):
+        rank_zero_deprecation(
+            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
+            f" Please, use `category={stacklevel.__name__}`."
+        )
+        kwargs["category"] = stacklevel
+        stacklevel = kwargs.pop("stacklevel", 2)
+    warnings.warn(message, stacklevel=stacklevel, **kwargs)
 
 
 @rank_zero_only
-def rank_zero_warn(*args, stacklevel: int = 4, **kwargs):
-    _warn(*args, stacklevel=stacklevel, **kwargs)
+def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
+    _warn(message, stacklevel=stacklevel, **kwargs)
 
 
 class PossibleUserWarning(UserWarning):
@@ -36,18 +44,18 @@ class LightningDeprecationWarning(DeprecationWarning):
 
 
 # enable our warnings
-warnings.simplefilter("default", LightningDeprecationWarning)
+warnings.simplefilter("default", category=LightningDeprecationWarning)
 
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
 class WarningCache(set):
-    def warn(self, m, *args, stacklevel: int = 5, **kwargs):
-        if m not in self:
-            self.add(m)
-            rank_zero_warn(m, *args, stacklevel=stacklevel, **kwargs)
+    def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
 
-    def deprecation(self, m, *args, stacklevel: int = 5, **kwargs):
-        if m not in self:
-            self.add(m)
-            rank_zero_deprecation(m, *args, stacklevel=stacklevel, **kwargs)
+    def deprecation(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)

@@ -34,7 +34,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -62,6 +62,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -72,6 +73,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         **kwargs: Any,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -375,6 +377,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown

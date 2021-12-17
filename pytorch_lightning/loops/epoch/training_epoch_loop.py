@@ -498,7 +498,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                             f"ReduceLROnPlateau conditioned on metric {monitor_key}"
                             " which is not available but strict is set to `False`."
                             " Skipping learning rate update.",
-                            RuntimeWarning,
+                            category=RuntimeWarning,
                         )
                         continue
 

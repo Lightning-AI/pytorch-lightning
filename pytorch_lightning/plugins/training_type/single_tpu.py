@@ -33,6 +33,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -40,7 +41,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(
+            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
 
         self.debug = debug
         self.tpu_local_core_rank = 0

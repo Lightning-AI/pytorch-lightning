@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+from unittest.mock import Mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -85,6 +87,11 @@ def test_v1_8_0_deprecated_call_hook():
         trainer.call_hook("test_hook")
 
 
+def test_v1_8_0_deprecated_warning_positional_category():
+    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
+        rank_zero_warn("foo", FutureWarning)
+
+
 def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     class TestModelSave(BoringModel):
         def on_hpc_save(self):
@@ -106,6 +113,13 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
         match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(load_model)
+
+
+def test_v1_8_0_deprecated_run_stage():
+    trainer = Trainer()
+    trainer._run_stage = Mock()
+    with pytest.deprecated_call(match="`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8."):
+        trainer.run_stage()
 
 
 def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):

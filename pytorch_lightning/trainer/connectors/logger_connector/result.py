@@ -280,7 +280,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
                     " as metric states have not yet been updated.",
-                    UserWarning,
                 )
 
             # return cached value
@@ -525,12 +524,13 @@ class ResultCollection(dict):
             return cache.detach()
         return cache
 
-    def valid_items(self, dataloader_idx: Optional[int] = None) -> Generator:
+    def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
         return (
             (k, v)
             for k, v in self.items()
-            if not (isinstance(v, ResultMetric) and v.has_reset) and (dataloader_idx in (None, v.meta.dataloader_idx))
+            if not (isinstance(v, ResultMetric) and v.has_reset)
+            and self.dataloader_idx in (None, v.meta.dataloader_idx)
         )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
@@ -544,10 +544,10 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def metrics(self, on_step: bool, dataloader_idx: Optional[int] = None) -> _METRICS:
+    def metrics(self, on_step: bool) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
-        for _, result_metric in self.valid_items(dataloader_idx):
+        for _, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
             value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
@@ -616,8 +616,8 @@ class ResultCollection(dict):
 
     def sync(self) -> None:
         for result_metric in self.result_metrics:
-            if result_metric.is_tensor:
-                result_metric.sync()
+            if result_metric.is_tensor and not result_metric._is_synced:
+                result_metric.sync(should_sync=not result_metric.meta.sync.rank_zero_only)
 
     def unsync(self) -> None:
         for result_metric in self.result_metrics:

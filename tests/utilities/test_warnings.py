@@ -28,10 +28,10 @@ if standalone:
     # recording
     with redirect_stderr(stderr):
         _warn("test1")
-        _warn("test2", DeprecationWarning)
+        _warn("test2", category=DeprecationWarning)
 
         rank_zero_warn("test3")
-        rank_zero_warn("test4", DeprecationWarning)
+        rank_zero_warn("test4", category=DeprecationWarning)
 
         rank_zero_deprecation("test5")
 
