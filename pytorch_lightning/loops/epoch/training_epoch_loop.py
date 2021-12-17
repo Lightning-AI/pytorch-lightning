@@ -156,8 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         if not data_fetcher.store_on_device:
-            with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.training_type_plugin.batch_to_device(batch)
+            batch = self.trainer._call_ttp_hook("batch_to_device", batch)
 
         self.batch_progress.increment_ready()
 
@@ -499,7 +498,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                             f"ReduceLROnPlateau conditioned on metric {monitor_key}"
                             " which is not available but strict is set to `False`."
                             " Skipping learning rate update.",
-                            RuntimeWarning,
+                            category=RuntimeWarning,
                         )
                         continue
 

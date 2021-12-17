@@ -268,7 +268,7 @@ def test_dataloader_reinit_for_subclass():
 
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    with pytest.raises(MisconfigurationException, match="will be replaced  by `DistributedSampler`"):
+    with pytest.raises(MisconfigurationException, match="will be replaced by `DistributedSampler`"):
         trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
@@ -337,6 +337,21 @@ def test_pre_made_batches():
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
+
+
+def test_error_raised_with_float_limited_eval_batches():
+    """Test that an error is raised if there are not enough batches when passed with float value of
+    limit_eval_batches."""
+    model = BoringModel()
+    dl_size = len(model.val_dataloader())
+    limit_val_batches = 1 / (dl_size + 2)
+    trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer._data_connector.attach_data(model)
+    with pytest.raises(
+        MisconfigurationException,
+        match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
+    ):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
 
 
 @pytest.mark.parametrize(

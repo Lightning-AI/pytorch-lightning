@@ -603,7 +603,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 

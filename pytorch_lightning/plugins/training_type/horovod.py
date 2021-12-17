@@ -41,11 +41,13 @@ class HorovodPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=None,
             checkpoint_io=checkpoint_io,

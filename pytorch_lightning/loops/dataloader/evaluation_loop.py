@@ -13,12 +13,14 @@
 # limitations under the License.
 from typing import Any, List, Sequence, Union
 
+import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
@@ -31,6 +33,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         self._results = ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
+        self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[int] = []
         self._has_run: bool = False
 
@@ -75,6 +78,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._max_batches = self._get_max_batches()
         # bookkeeping
         self._outputs = []
+        self._logged_outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
@@ -117,18 +121,34 @@ class EvaluationLoop(DataLoaderLoop):
             # indicate the loop has run
             self._has_run = True
 
+    def on_advance_end(self) -> None:
+        self.trainer.logger_connector.epoch_end_reached()
+
+        self._logged_outputs.append(self.trainer.logger_connector.update_eval_epoch_metrics())
+
+        super().on_advance_end()
+
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
-        outputs, self._outputs = self._outputs, []  # free memory
+        # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
+        self.trainer.logger_connector.epoch_end_reached()
 
-        # lightning module method
-        self._evaluation_epoch_end(outputs)
+        # hook
+        self._evaluation_epoch_end(self._outputs)
+        self._outputs = []  # free memory
 
         # hook
         self._on_evaluation_epoch_end()
 
-        # log epoch metrics
-        eval_loop_results = self.trainer.logger_connector.update_eval_epoch_metrics()
+        logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
+        # include any logged outputs on epoch_end
+        if self.num_dataloaders < 2:  # TODO: remove this check
+            epoch_end_logged_outputs = self.trainer.logger_connector.update_eval_epoch_metrics()
+            for dl_outputs in logged_outputs:
+                dl_outputs.update(epoch_end_logged_outputs)
+
+        # log metrics
+        self.trainer.logger_connector.log_eval_end_metrics()
 
         # hook
         self._on_evaluation_end()
@@ -136,7 +156,17 @@ class EvaluationLoop(DataLoaderLoop):
         # enable train mode again
         self._on_evaluation_model_train()
 
-        return eval_loop_results
+        if (
+            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
+            and not self.trainer.sanity_checking
+            and self.trainer.is_global_zero
+            # TODO: this should be defined in this loop, not the Trainer
+            and self.trainer.verbose_evaluate
+        ):
+            assert self.trainer.state.stage is not None
+            self._print_results(logged_outputs, self.trainer.state.stage)
+
+        return logged_outputs
 
     def teardown(self) -> None:
         self._results.cpu()
@@ -220,8 +250,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer.logger_connector._evaluation_epoch_end()
 
         # with a single dataloader don't pass a 2D list
         output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
@@ -243,3 +272,18 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks("on_epoch_end")
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
+
+    def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
+        # TODO: this could be updated to look nicer
+        from pprint import pprint
+
+        print("-" * 80)
+        for i, metrics_dict in enumerate(results):
+            print(f"DATALOADER:{i} {stage.upper()} RESULTS")
+            pprint(
+                {
+                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                    for k, v in metrics_dict.items()
+                }
+            )
+            print("-" * 80)
