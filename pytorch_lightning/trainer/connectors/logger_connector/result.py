@@ -591,9 +591,6 @@ class ResultCollection(dict):
             if result_metric.meta.prog_bar:
                 metrics["pbar"][forked_name] = metrics_to_scalars(value)
 
-        if not on_step:
-            print(metrics)
-
         return metrics
 
     def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
