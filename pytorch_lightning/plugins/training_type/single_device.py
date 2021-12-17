@@ -15,6 +15,7 @@ from typing import Any, Optional, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -27,10 +28,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(
         self,
         device: torch.device,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__(checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.device: torch.device = device
         self.global_rank = 0
         self.local_rank = 0
@@ -67,10 +69,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.device
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+        super().setup(trainer)
 
     @property
     def is_global_zero(self) -> bool:

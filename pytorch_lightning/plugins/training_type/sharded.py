@@ -23,7 +23,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -45,7 +45,7 @@ class DDPShardedPlugin(DDPPlugin):
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
-        self._model, optimizers = self._setup_model_and_optimizers(
+        self.model, optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
@@ -71,7 +71,7 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.precision_plugin.precision in ("mixed", 16)
+                    is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.
@@ -101,13 +101,13 @@ class DDPShardedPlugin(DDPPlugin):
         return optimizer.state_dict()
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model)
+        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass

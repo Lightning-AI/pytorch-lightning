@@ -48,7 +48,7 @@ class ModelCheckpoint(Callback):
     Save the model periodically by monitoring a quantity. Every metric logged with
     :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`weights_loading`.
+    :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -102,8 +102,7 @@ class ModelCheckpoint(Callback):
             ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
         save_weights_only: if ``True``, then only the model's weights will be
-            saved (``model.save_weights(filepath)``), else the full model
-            is saved (``model.save(filepath)``).
+            saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
             If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
@@ -248,7 +247,9 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_init_end(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
+        # because the attributes are part of the state_key which needs to be fully defined before reloading.
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
@@ -479,14 +480,6 @@ class ModelCheckpoint(Callback):
         if less_than_k_models:
             return True
 
-        if not isinstance(current, torch.Tensor):
-            rank_zero_warn(
-                f"{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly."
-                f" HINT: check the value of {self.monitor} in your validation loop",
-                RuntimeWarning,
-            )
-            current = torch.tensor(current)
-
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
@@ -600,9 +593,6 @@ class ModelCheckpoint(Callback):
         ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
-
-        if not trainer.fast_dev_run and trainer.training_type_plugin.should_rank_save_checkpoint:
-            self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:

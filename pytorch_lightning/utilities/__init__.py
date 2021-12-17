@@ -18,9 +18,9 @@ import numpy
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.enums import (  # noqa: F401
+    _AcceleratorType,
     _StrategyType,
     AMPType,
-    DeviceType,
     DistributedType,
     GradClipAlgorithmType,
     LightningEnum,

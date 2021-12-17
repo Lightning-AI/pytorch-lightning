@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -34,11 +35,13 @@ class DataParallelPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=None,
             checkpoint_io=checkpoint_io,
@@ -61,10 +64,23 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        self._model = self._setup_model(LightningParallelModule(self._model))
+        self.model = self._setup_model(LightningParallelModule(self.model))
+        super().setup(trainer)
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        """Moves the batch to the correct device.
+
+        The input and the output is the same type.
+
+        Args:
+            batch: The batch of samples to move to the correct device
+            device: The target device
+            dataloader_idx: The index of the dataloader to which the batch belongs.
+        """
+        return move_data_to_device(batch, device=device or self.root_device)
 
     def _setup_model(self, model: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
@@ -93,7 +109,7 @@ class DataParallelPlugin(ParallelPlugin):
         return self.parallel_devices[0]
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def barrier(self, *args, **kwargs):
         pass
@@ -104,17 +120,21 @@ class DataParallelPlugin(ParallelPlugin):
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
 
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
         if not is_overridden("training_step_end", self.lightning_module):
@@ -132,6 +152,7 @@ class DataParallelPlugin(ParallelPlugin):
         return output
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()

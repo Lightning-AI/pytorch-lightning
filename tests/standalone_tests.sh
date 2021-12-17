@@ -15,12 +15,12 @@
 set -e
 
 # this environment variable allows special tests to run
-export PL_RUNNING_SPECIAL_TESTS=1
+export PL_RUN_STANDALONE_TESTS=1
 # python arguments
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
-# find tests marked as `@RunIf(special=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'special=True' --include '*.py' --exclude 'tests/conftest.py')
+# find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
+grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' --include '*.py' --exclude 'tests/conftest.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
@@ -28,9 +28,9 @@ files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  parametrizations=$(pytest $files --collect-only --quiet | tail -r | sed -e '1,3d' | tail -r)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  parametrizations=$(pytest $files --collect-only --quiet | head -n -2)
+  parametrizations=$(pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 parametrizations_arr=($parametrizations)
 
@@ -43,14 +43,6 @@ for i in "${!parametrizations_arr[@]}"; do
 
   # check blocklist
   if echo $blocklist | grep -F "${parametrization}"; then
-    report+="Skipped\t$parametrization\n"
-    continue
-  fi
-
-  # SPECIAL_PATTERN allows filtering the tests to run when debugging.
-  # use as `SPECIAL_PATTERN="foo_bar" ./special_tests.sh` to run only those
-  # test with `foo_bar` in their name
-  if [[ $parametrization != *$SPECIAL_PATTERN* ]]; then
     report+="Skipped\t$parametrization\n"
     continue
   fi
@@ -74,7 +66,7 @@ fi
 
 # TODO: enable when CI uses torch>=1.9
 # test deadlock is properly handled with TorchElastic.
-# LOGS=$(PL_RUNNING_SPECIAL_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
+# LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
 # if  [ -z "$LOGS" ]; then
 #    exit 1
 # fi

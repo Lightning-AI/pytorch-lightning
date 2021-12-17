@@ -26,7 +26,7 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_10:
     import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
 
-@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -40,13 +40,13 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -63,13 +63,13 @@ def test_ddp_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
 def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
@@ -87,13 +87,13 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
@@ -110,7 +110,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
@@ -132,7 +132,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         sync_batchnorm=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"

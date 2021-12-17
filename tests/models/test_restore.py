@@ -84,21 +84,21 @@ class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
 
 
 class CustomClassificationModelDP(ClassificationModel):
-    def _step(self, batch, batch_idx):
+    def _step(self, batch):
         x, y = batch
         logits = self(x)
         return {"logits": logits, "y": y}
 
     def training_step(self, batch, batch_idx):
-        out = self._step(batch, batch_idx)
+        out = self._step(batch)
         loss = F.cross_entropy(out["logits"], out["y"])
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        return self._step(batch)
 
     def test_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        return self._step(batch)
 
     def validation_step_end(self, outputs):
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
@@ -142,6 +142,8 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
         logger=False,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
@@ -244,10 +246,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
-            max_steps=1,
+            limit_train_batches=1,
+            limit_val_batches=2,
+            max_epochs=1,
             logger=False,
             callbacks=[checkpoint, callback_capture],
-            limit_val_batches=2,
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None

@@ -3,7 +3,7 @@
 ############
 Accelerators
 ############
-Accelerators connect a Lightning Trainer to arbitrary accelerators (CPUs, GPUs, TPUs, etc). Accelerators
+Accelerators connect a Lightning Trainer to arbitrary accelerators (CPUs, GPUs, TPUs, IPUs). Accelerators
 also manage distributed communication through :ref:`Plugins` (like DP, DDP, HPC cluster) and
 can also be configured to run on arbitrary clusters or to link up to arbitrary
 computational strategies like 16-bit precision via AMP and Apex.
@@ -25,11 +25,10 @@ One to handle differences from the training routine and one to handle different 
     from pytorch_lightning.accelerators import GPUAccelerator
     from pytorch_lightning.plugins import NativeMixedPrecisionPlugin, DDPPlugin
 
-    accelerator = GPUAccelerator(
-        precision_plugin=NativeMixedPrecisionPlugin(16, "cuda"),
-        training_type_plugin=DDPPlugin(),
-    )
-    trainer = Trainer(accelerator=accelerator)
+    accelerator = GPUAccelerator()
+    precision_plugin = NativeMixedPrecisionPlugin(precision=16, device="cuda")
+    training_type_plugin = DDPPlugin(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_type_plugin)
 
 
 We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new

@@ -85,7 +85,7 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
 
 def test_rich_progress_bar_import_error():
     if not _RICH_AVAILABLE:
-        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` to be installed."):
+        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
             Trainer(callbacks=RichProgressBar())
 
 
@@ -201,3 +201,24 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
     trainer.fit(model)
 
     assert progress_update.call_count == expected_call_count
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize("limit_val_batches", (1, 5))
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
+    model = BoringModel()
+
+    progress_bar = RichProgressBar()
+    num_sanity_val_steps = 3
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=num_sanity_val_steps,
+        limit_train_batches=1,
+        limit_val_batches=limit_val_batches,
+        max_epochs=1,
+        callbacks=progress_bar,
+    )
+
+    trainer.fit(model)
+    assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)

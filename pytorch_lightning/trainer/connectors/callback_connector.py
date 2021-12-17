@@ -238,8 +238,7 @@ class CallbackConnector:
         if refresh_rate == 0 or not enable_progress_bar:
             return
         if refresh_rate is None:
-            # smaller refresh rate on colab causes crashes, choose a higher value
-            refresh_rate = 20 if os.getenv("COLAB_GPU") else 1
+            refresh_rate = 1
 
         progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
         self.trainer.callbacks.append(progress_bar_callback)
@@ -256,10 +255,11 @@ class CallbackConnector:
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
 
-    def attach_model_logging_functions(self, model):
+    def _attach_model_logging_functions(self):
+        lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
-            callback.log = model.log
-            callback.log_dict = model.log_dict
+            callback.log = lightning_module.log
+            callback.log_dict = lightning_module.log_dict
 
     def _attach_model_callbacks(self) -> None:
         """Attaches the callbacks defined in the model.
@@ -269,7 +269,7 @@ class CallbackConnector:
         In addition, all :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
         """
-        model_callbacks = self.trainer.call_hook("configure_callbacks")
+        model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks")
         if not model_callbacks:
             return
         model_callback_types = {type(c) for c in model_callbacks}

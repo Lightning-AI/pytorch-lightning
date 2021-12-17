@@ -33,7 +33,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctely when training and after teardown for DDPPlugin."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
@@ -56,15 +56,15 @@ def test_ddp_with_2_gpus():
 
 class BarrierModel(BoringModel):
     def setup(self, stage=None):
-        assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert not isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier before model is wrapped")
 
     def on_train_start(self):
-        assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
 
 
-@RunIf(min_gpus=4, special=True)
+@RunIf(min_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
@@ -110,8 +110,8 @@ def test_ddp_configure_ddp():
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
+    trainer.training_type_plugin.setup_environment()
+    trainer.training_type_plugin.setup(trainer)
     trainer.lightning_module.trainer = trainer
     assert isinstance(trainer.model, LightningModule)
     trainer._pre_dispatch()
@@ -124,8 +124,8 @@ def test_ddp_configure_ddp():
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
+    trainer.training_type_plugin.setup_environment()
+    trainer.training_type_plugin.setup(trainer)
     trainer.lightning_module.trainer = trainer
     trainer._pre_dispatch()
     # in DDPPlugin configure_ddp(), model are still LightningModule

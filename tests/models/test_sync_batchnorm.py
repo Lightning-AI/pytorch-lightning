@@ -37,6 +37,9 @@ class SyncBNModule(LightningModule):
         self.linear = nn.Linear(28 * 28, 10)
         self.bn_layer = nn.BatchNorm1d(28 * 28)
 
+    def on_train_start(self) -> None:
+        assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
     def forward(self, x, batch_idx):
         with torch.no_grad():
             out_bn = self.bn_layer(x.view(x.size(0), -1))
@@ -67,7 +70,7 @@ class SyncBNModule(LightningModule):
 
 # TODO: Fatal Python error: Bus error
 @pytest.mark.skip(reason="Fatal Python error: Bus error")
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
     set_random_main_port()
@@ -123,4 +126,6 @@ def test_sync_batchnorm_ddp(tmpdir):
     )
 
     trainer.fit(model, dm)
-    assert trainer.state.finished, "Sync batchnorm failing with DDP"
+    # the strategy is responsible for tearing down the batchnorm wrappers
+    assert not isinstance(model.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+    assert isinstance(model.bn_layer, torch.nn.modules.batchnorm._BatchNorm)

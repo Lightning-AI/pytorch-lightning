@@ -62,9 +62,9 @@ class ModelIO:
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
+        it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
+        Any arguments specified through \*\*kwargs will override args stored in ``"hyper_parameters"``.
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
@@ -86,11 +86,11 @@ class ModelIO:
                 These will be converted into a :class:`~dict` and passed into your
                 :class:`LightningModule` for use.
 
-                If your model's `hparams` argument is :class:`~argparse.Namespace`
+                If your model's ``hparams`` argument is :class:`~argparse.Namespace`
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
-                `hparams` as :class:`~dict`.
+                ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict. Default: `True`.
+                returned by this module's state dict.
             kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -224,6 +224,10 @@ class ModelIO:
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
                 Contents need to be pickleable.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use ``LightningModule.on_save_checkpoint`` instead.
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
@@ -231,6 +235,10 @@ class ModelIO:
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use ``LightningModule.on_load_checkpoint`` instead.
         """
 
 

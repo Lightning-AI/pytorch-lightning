@@ -34,15 +34,15 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.distributed import log, rank_zero_info
+from pytorch_lightning.utilities.enums import _StrategyType, AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -88,6 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -266,6 +267,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
@@ -319,24 +321,6 @@ class DeepSpeedPlugin(DDPPlugin):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        # optionally set by Lite
-        self._precision: Optional[Union[str, int]] = None
-        self._amp_level: Optional[str] = None
-        self._amp_type: Optional[str] = None
-
-    @property
-    def precision(self) -> Union[str, int]:
-        return self._precision or self.precision_plugin.precision
-
-    @property
-    def amp_level(self) -> Optional[str]:
-        if self._amp_type == AMPType.APEX:
-            return self._amp_level or self.lightning_module.trainer._accelerator_connector.amp_level
-
-    @property
-    def amp_type(self) -> Optional[str]:
-        return self._amp_type or self.lightning_module.trainer._accelerator_connector.amp_type
-
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
@@ -384,7 +368,8 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         return True
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        self._move_optimizer_state()
         self.init_deepspeed()
         self.barrier()
 
@@ -407,9 +392,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
+        self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
-        return self._model, [optimizer]
+        return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
@@ -451,7 +436,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision)
+        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -505,7 +490,11 @@ class DeepSpeedPlugin(DDPPlugin):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
-            dtype = torch.float16 if self.precision in (16, "mixed") else torch.float32
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
             model_parallel_context = deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
             )
@@ -521,8 +510,8 @@ class DeepSpeedPlugin(DDPPlugin):
             deepspeed.checkpointing.configure(
                 mpu_=None,
                 partition_activations=checkpoint_config.get("partition_activations"),
-                contiguous_checkpointing=checkpoint_config.get("contiguous_checkpointing"),
-                checkpoint_in_cpu=checkpoint_config.get("checkpoint_in_cpu"),
+                contiguous_checkpointing=checkpoint_config.get("contiguous_memory_optimization"),
+                checkpoint_in_cpu=checkpoint_config.get("cpu_checkpointing"),
                 profile=checkpoint_config.get("profile"),
             )
 
@@ -631,11 +620,9 @@ class DeepSpeedPlugin(DDPPlugin):
                     )
         return batch_size
 
-    def _format_precision_config(self):
-        if self.amp_type == AMPType.APEX:
-            amp_level = self.amp_level
-        if self.precision in (16, "mixed"):
-            if "fp16" not in self.config and self.amp_type == AMPType.NATIVE:
+    def _format_precision_config(self) -> None:
+        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -646,9 +633,9 @@ class DeepSpeedPlugin(DDPPlugin):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.amp_type == AMPType.APEX:
-                rank_zero_only("Enabling DeepSpeed APEX Implementation.")
-                self.config["amp"] = {"enabled": True, "opt_level": amp_level}
+            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+                rank_zero_info("Enabling DeepSpeed APEX Implementation.")
+                self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
 
     def _create_default_config(
         self,
@@ -875,11 +862,14 @@ class DeepSpeedPlugin(DDPPlugin):
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)

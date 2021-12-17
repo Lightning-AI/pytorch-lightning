@@ -59,7 +59,7 @@ class YieldLoop(OptimizerLoop):
     def on_run_start(self, batch, optimizers, batch_idx):
         super().on_run_start(batch, optimizers, batch_idx)
         if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
-            raise MisconfigurationException("The LightingModule does not yield anything in the `training_step`.")
+            raise MisconfigurationException("The `LightningModule` does not yield anything in the `training_step`.")
         assert self.trainer.lightning_module.automatic_optimization
 
         # We request the generator once and save it for later
@@ -77,7 +77,7 @@ class YieldLoop(OptimizerLoop):
         # Here we are basically calling `lightning_module.training_step()`
         # and this returns a generator! The `training_step` is handled by the
         # accelerator to enable distributed training.
-        return self.trainer.accelerator.training_step(step_kwargs)
+        return self.trainer.training_type_plugin.training_step(*step_kwargs.values())
 
     def _training_step(self, generator):
         # required for logging
@@ -88,7 +88,9 @@ class YieldLoop(OptimizerLoop):
         training_step_output = next(generator)
         self.trainer.training_type_plugin.post_training_step()
 
-        training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+        ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
+        training_step_output = ttp_output if model_output is None else model_output
 
         # The closure result takes care of properly detaching the loss for logging and peforms
         # some additional checks that the output format is correct.
