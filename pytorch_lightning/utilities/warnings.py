@@ -14,17 +14,18 @@
 """Warning-related utilities."""
 import warnings
 from functools import partial
+from typing import Any, Union
 
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
-def _warn(*args, stacklevel: int = 2, **kwargs):
-    warnings.warn(*args, stacklevel=stacklevel, **kwargs)
+def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
+    warnings.warn(message, stacklevel=stacklevel, **kwargs)
 
 
 @rank_zero_only
-def rank_zero_warn(*args, stacklevel: int = 4, **kwargs):
-    _warn(*args, stacklevel=stacklevel, **kwargs)
+def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
+    _warn(message, stacklevel=stacklevel, **kwargs)
 
 
 class PossibleUserWarning(UserWarning):
@@ -42,12 +43,12 @@ rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWar
 
 
 class WarningCache(set):
-    def warn(self, m, *args, stacklevel: int = 5, **kwargs):
-        if m not in self:
-            self.add(m)
-            rank_zero_warn(m, *args, stacklevel=stacklevel, **kwargs)
+    def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
 
-    def deprecation(self, m, *args, stacklevel: int = 5, **kwargs):
-        if m not in self:
-            self.add(m)
-            rank_zero_deprecation(m, *args, stacklevel=stacklevel, **kwargs)
+    def deprecation(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)

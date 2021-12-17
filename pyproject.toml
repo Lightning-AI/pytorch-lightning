@@ -112,6 +112,5 @@ module = [
     "pytorch_lightning.utilities.metrics",
     "pytorch_lightning.utilities.migration",
     "pytorch_lightning.utilities.upgrade_checkpoint",
-    "pytorch_lightning.utilities.warnings",
 ]
 ignore_errors = "True"
