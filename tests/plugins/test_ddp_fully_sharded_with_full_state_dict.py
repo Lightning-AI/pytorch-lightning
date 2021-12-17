@@ -7,7 +7,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import DDPFullyShardedPlugin, FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import DDPFullyShardedStrategy, FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -23,7 +23,7 @@ def test_invalid_on_cpu(tmpdir):
         MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
-        assert isinstance(trainer.training_type_plugin, DDPFullyShardedPlugin)
+        assert isinstance(trainer.training_type_plugin, DDPFullyShardedStrategy)
         trainer.training_type_plugin.setup_environment()
 
 
@@ -34,7 +34,7 @@ def test_invalid_on_cpu(tmpdir):
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
-    assert isinstance(trainer.training_type_plugin, DDPFullyShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPFullyShardedStrategy)
     assert isinstance(trainer.training_type_plugin.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 

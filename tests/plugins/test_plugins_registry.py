@@ -16,7 +16,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
     CheckpointIO,
-    DDPFullyShardedPlugin,
+    DDPFullyShardedStrategy,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -99,11 +99,11 @@ def test_fsdp_plugins_registry(tmpdir):
     plugin = "fsdp"
 
     assert plugin in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == DDPFullyShardedPlugin
+    assert TrainingTypePluginsRegistry[plugin]["plugin"] == DDPFullyShardedStrategy
 
     trainer = Trainer(strategy=plugin)
 
-    assert isinstance(trainer.training_type_plugin, DDPFullyShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPFullyShardedStrategy)
 
 
 @pytest.mark.parametrize(

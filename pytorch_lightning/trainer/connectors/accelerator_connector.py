@@ -29,7 +29,7 @@ from pytorch_lightning.plugins import (
     CheckpointIO,
     DataParallelPlugin,
     DDP2Plugin,
-    DDPFullyShardedPlugin,
+    DDPFullyShardedStrategy,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -540,7 +540,7 @@ class AcceleratorConnector:
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
-        return isinstance(self._training_type_plugin, DDPFullyShardedPlugin)
+        return isinstance(self._training_type_plugin, DDPFullyShardedStrategy)
 
     @property
     def is_distributed(self) -> bool:
@@ -737,7 +737,7 @@ class AcceleratorConnector:
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
             elif use_ddp_fully_sharded:
-                ddp_plugin_cls = DDPFullyShardedPlugin
+                ddp_plugin_cls = DDPFullyShardedStrategy
             else:
                 ddp_plugin_cls = DDPPlugin
 
