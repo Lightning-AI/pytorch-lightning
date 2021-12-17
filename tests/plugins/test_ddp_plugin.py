@@ -102,10 +102,10 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 def test_ddp_configure_ddp():
     """Tests with ddp plugin."""
     model = BoringModel()
-    ddp_plugin = DDPStrategy()
+    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
@@ -119,7 +119,7 @@ def test_ddp_configure_ddp():
 
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.state.fn = TrainerFn.VALIDATING

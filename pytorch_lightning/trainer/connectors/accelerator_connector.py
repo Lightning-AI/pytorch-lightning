@@ -720,11 +720,11 @@ class AcceleratorConnector:
             use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
 
             if use_tpu_spawn:
-                ddp_plugin_cls = TPUSpawnPlugin
+                ddp_strategy_cls = TPUSpawnPlugin
             elif use_ddp_sharded:
-                ddp_plugin_cls = DDPShardedPlugin
+                ddp_strategy_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
-                ddp_plugin_cls = DDPSpawnShardedPlugin
+                ddp_strategy_cls = DDPSpawnShardedPlugin
             elif (
                 use_ddp_cpu_slurm
                 or use_slurm_ddp
@@ -733,15 +733,15 @@ class AcceleratorConnector:
                 or use_kubeflow_ddp
                 or use_ddp_cpu_kubeflow
             ):
-                ddp_plugin_cls = DDPStrategy
+                ddp_strategy_cls = DDPStrategy
             elif use_ddp_spawn or use_ddp_cpu_spawn:
-                ddp_plugin_cls = DDPSpawnPlugin
+                ddp_strategy_cls = DDPSpawnPlugin
             elif use_ddp_fully_sharded:
-                ddp_plugin_cls = DDPFullyShardedStrategy
+                ddp_strategy_cls = DDPFullyShardedStrategy
             else:
-                ddp_plugin_cls = DDPStrategy
+                ddp_strategy_cls = DDPStrategy
 
-            plugin = ddp_plugin_cls(
+            plugin = ddp_strategy_cls(
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
