@@ -136,14 +136,7 @@ def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
         trainer.predict(model)
 
     writer.write_on_batch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [], ANY, 0, 0),
-            call(trainer, model, ANY, [], ANY, 1, 0),
-        ]
+        [call(trainer, model, ANY, [], ANY, 0, 0), call(trainer, model, ANY, [], ANY, 1, 0)]
     )
 
-    writer.write_on_epoch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [[]]),
-        ]
-    )
+    writer.write_on_epoch_end.assert_has_calls([call(trainer, model, ANY, [[]])])
