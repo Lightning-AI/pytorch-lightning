@@ -758,5 +758,8 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     logged_results = trainer.test(model)
-    # TODO: what's logged in `test_epoch_end` should be included in the results of each dataloader
-    assert logged_results == [{"foo/dataloader_idx_0": 12.0}, {"foo/dataloader_idx_1": 12.0}]
+    # what's logged in `test_epoch_end` gets included in the results of each dataloader
+    assert logged_results == [
+        {"foo/dataloader_idx_0": 12.0, "foobar": 23.0},
+        {"foo/dataloader_idx_1": 12.0, "foobar": 23.0},
+    ]
