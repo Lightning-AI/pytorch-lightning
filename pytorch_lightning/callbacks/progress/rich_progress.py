@@ -318,17 +318,6 @@ class RichProgressBar(ProgressBarBase):
         super().on_validation_start(trainer, pl_module)
         self._init_progress(trainer)
 
-    def __getstate__(self):
-        # can't pickle the rich progress objects
-        state = self.__dict__.copy()
-        state["progress"] = None
-        state["_console"] = None
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-        self._console = Console(**self._console_kwargs)
-
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self._init_progress(trainer)
