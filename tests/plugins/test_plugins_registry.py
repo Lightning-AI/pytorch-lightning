@@ -22,8 +22,8 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
-    TPUSpawnPlugin,
     StrategyRegistry,
+    TPUSpawnPlugin,
 )
 from tests.helpers.runif import RunIf
 
@@ -40,9 +40,7 @@ def test_training_type_plugins_registry_with_new_plugin():
     plugin_name = "test_plugin"
     plugin_description = "Test Plugin"
 
-    StrategyRegistry.register(
-        plugin_name, TestPlugin, description=plugin_description, param1="abc", param2=123
-    )
+    StrategyRegistry.register(plugin_name, TestPlugin, description=plugin_description, param1="abc", param2=123)
 
     assert plugin_name in StrategyRegistry
     assert StrategyRegistry[plugin_name]["description"] == plugin_description

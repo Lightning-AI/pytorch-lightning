@@ -46,11 +46,11 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
+    StrategyRegistry,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
-    StrategyRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
