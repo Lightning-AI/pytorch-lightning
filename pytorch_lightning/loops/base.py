@@ -337,4 +337,6 @@ class Loop(ABC, Generic[T]):
                     v.reset(metrics=False)
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
-        self.restarting = True
+
+        if _FaultTolerantMode.detect_current_mode().is_enabled:
+            self.restarting = True
