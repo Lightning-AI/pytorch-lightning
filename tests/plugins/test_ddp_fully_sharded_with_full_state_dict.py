@@ -90,7 +90,7 @@ class TestFSDPModel(BoringModel):
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
-def test_fully_sharded_plugin_checkpoint(tmpdir):
+def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
@@ -99,7 +99,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
-def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
+def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     model = TestFSDPModel()
