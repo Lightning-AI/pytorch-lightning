@@ -1148,13 +1148,14 @@ class Trainer(
         self.logger_connector.reset_results()
         self.logger_connector.reset_metrics()
 
+        # strategy will configure model and move it to the device
+        self.training_type_plugin.setup(self)
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        # strategy will configure model and move it to the device
-        self.training_type_plugin.setup(self)
         self._log_hyperparams()
 
         if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
