@@ -84,6 +84,10 @@ class EvaluationLoop(DataLoaderLoop):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
         super().reset()
+        # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
+        # need to reset the current state when the loop has finished running
+        if self.done and self.trainer.state.fn != TrainerFn.FITTING:
+            self.dataloader_progress.reset_on_run()
 
     def on_skip(self) -> List:
         return []
