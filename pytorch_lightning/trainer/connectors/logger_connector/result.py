@@ -532,7 +532,7 @@ class ResultCollection(dict):
             for k, v in self.items()
             if (
                 not (isinstance(v, ResultMetric) and v.has_reset)
-                and (dataloader_idx in (None, v.meta.dataloader_idx) or v.meta.dataloader_idx is None)
+                and (v.meta.dataloader_idx is None or dataloader_idx in (None, v.meta.dataloader_idx))
             )
         )
 
