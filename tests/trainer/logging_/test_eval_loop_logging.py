@@ -751,7 +751,6 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
             return dataloader_idx + 1
 
         def test_epoch_end(self, outputs) -> None:
-            print(outputs)
             self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
