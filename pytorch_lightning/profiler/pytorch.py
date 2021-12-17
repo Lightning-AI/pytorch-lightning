@@ -384,7 +384,6 @@ class PyTorchProfiler(BaseProfiler):
 
             if self._schedule is not None:
                 self._schedule.setup(action_name)
-            # sd
 
             self._create_profilers()
 

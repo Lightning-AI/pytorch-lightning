@@ -295,7 +295,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_gpus=2, standalone=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
