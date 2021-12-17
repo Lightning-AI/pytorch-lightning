@@ -46,10 +46,10 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
+    Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
-    Strategy,
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
@@ -402,9 +402,9 @@ class AcceleratorConnector:
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        if (
-                isinstance(self.strategy, Strategy) and self.strategy._precision_plugin is None
-        ) or not isinstance(self.strategy, Strategy):
+        if (isinstance(self.strategy, Strategy) and self.strategy._precision_plugin is None) or not isinstance(
+            self.strategy, Strategy
+        ):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
                 self._training_type_plugin.precision_plugin = precision_plugin
@@ -968,9 +968,7 @@ class AcceleratorConnector:
             self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
-        if isinstance(self.strategy, Strategy) or any(
-                isinstance(plug, Strategy) for plug in self.plugins
-        ):
+        if isinstance(self.strategy, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
             if self._accelerator_type is not None:
                 if self.use_ipu:
                     self._device_type = _AcceleratorType.IPU
