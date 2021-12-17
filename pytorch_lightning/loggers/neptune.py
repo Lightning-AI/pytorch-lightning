@@ -266,6 +266,11 @@ class NeptuneLogger(LightningLoggerBase):
         prefix: str = "training",
         **neptune_run_kwargs,
     ):
+        if neptune is None:
+            raise ModuleNotFoundError(
+                "You want to use the `Neptune` logger which is not installed yet, install it with"
+                " `pip install neptune-client`."
+            )
 
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
