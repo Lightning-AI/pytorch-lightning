@@ -28,7 +28,7 @@ class HyperparametersMixin:
 
     def __init__(self) -> None:
         super().__init__()
-        self._log_hyperparams = True
+        self._log_hyperparams = False
 
     def save_hyperparameters(
         self,
