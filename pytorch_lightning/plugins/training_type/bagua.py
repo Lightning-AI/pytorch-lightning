@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch.nn import Module
@@ -188,6 +188,8 @@ class BaguaPlugin(DDPPlugin):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
+        if not isinstance(tensor, torch.Tensor):
+            return tensor
         if group is not None:
             raise ValueError("Bagua does not support allreduce using a subcommunicator at this time. Unset `group`.")
 
