@@ -761,6 +761,8 @@ def test_deepspeed_multigpu_test(tmpdir):
     trainer.test(model)
 
 
+# TODO(Sean): Once partial parameter partitioning is supported this test should be re-enabled
+@pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
     """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
