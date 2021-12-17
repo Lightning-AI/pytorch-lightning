@@ -101,6 +101,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 
 Automatic Logging
 =================
+
 Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method to log from anywhere in a :doc:`lightning module <../common/lightning_module>` and :doc:`callbacks <../extensions/callbacks>`.
 
@@ -182,6 +183,7 @@ If your work requires to log in an unsupported method, please open an issue with
 
 Manual Logging Non-Scalar Artifacts
 ===================================
+
 If you want to log anything that is not a scalar, like histograms, text, images, etc., you may need to use the logger object directly.
 
 .. code-block:: python
@@ -295,6 +297,7 @@ which is the default logger in Lightning.
 ************
 Progress Bar
 ************
+
 You can add any metric to the progress bar using :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method, setting ``prog_bar=True``.
 

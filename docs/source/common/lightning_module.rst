@@ -1204,6 +1204,8 @@ override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split
 
 --------------
 
+.. _lightning_hooks:
+
 Hooks
 ^^^^^
 This is the pseudocode to describe the structure of :meth:`~pytorch_lightning.trainer.Trainer.fit`.
