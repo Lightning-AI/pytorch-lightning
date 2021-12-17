@@ -1,4 +1,3 @@
-import enum
 import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -22,6 +21,7 @@ if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
     from bagua.torch_api.algorithms import Algorithm
     from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
+    from bagua.torch_api.communication import allreduce_inplace, barrier, broadcast_object, is_initialized, ReduceOp
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 
 
@@ -125,9 +125,17 @@ class BaguaPlugin(DDPPlugin):
 
         return trainer.run_stage()
 
-    def post_dispatch(self, trainer: "pl.Trainer"):
-        if self._bagua_algorithm == "async":
-            self.model.bagua_algorithm.abort(self.model)
+    def train_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
@@ -139,3 +147,49 @@ class BaguaPlugin(DDPPlugin):
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("bagua", cls, description="Default Bagua Plugin")
+
+    def teardown(self) -> None:
+        if self._bagua_algorithm == "async":
+            self.model.bagua_algorithm.abort(self.model)
+
+        if isinstance(self.model, BaguaDistributedDataParallel):
+            self.model = self.lightning_module
+
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            torch.cuda.empty_cache()
+
+    def barrier(self, *args, **kwargs) -> None:
+        if is_initialized():
+            barrier()
+
+    def broadcast(self, obj, src: int = 0) -> object:
+        return broadcast_object(obj, src)
+
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if group is not None:
+            raise ValueError("Bagua does not support allreduce using a subcommunicator at this time. Unset `group`.")
+
+        if isinstance(reduce_op, str):
+            if reduce_op.lower() in ("avg", "mean"):
+                op = ReduceOp.AVG
+            elif reduce_op.lower() == "sum":
+                op = ReduceOp.SUM
+            else:
+                raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
+
+            allreduce_inplace(tensor, op=op)
+            return tensor
