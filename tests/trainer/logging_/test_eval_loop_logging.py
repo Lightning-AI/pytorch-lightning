@@ -742,6 +742,11 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
 def test_multiple_dataloaders_logging(tmpdir):
     class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx, dataloader_idx):
+            loss = super().training_step(batch, batch_idx)
+            self.log("loss", loss["loss"], cross_dataloaders_reduce=True)
+            return loss
+
         def validation_step(self, batch, batch_idx, dataloader_idx):
             self.log("value_1", dataloader_idx, cross_dataloaders_reduce=True)
             self.log("value_2", dataloader_idx)
@@ -751,7 +756,13 @@ def test_multiple_dataloaders_logging(tmpdir):
 
     model = TestModel()
     model.validation_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, max_epochs=1)
+
+    with pytest.raises(
+        MisconfigurationException, match="`cross_dataloaders_reduce` should be used only during evaluation"
+    ):
+        trainer.fit(model)
+
     results = trainer.validate(model)
     assert results == [
         {"value_2/dataloader_idx_0": 0.0, "value_1": 0.5},

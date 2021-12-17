@@ -409,6 +409,9 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
+        if (not self.trainer.evaluating or self.trainer.sanity_checking) and cross_dataloaders_reduce:
+            raise MisconfigurationException("`cross_dataloaders_reduce` should be used only during evaluation.")
+
         results.log(
             self._current_fx_name,
             name,
