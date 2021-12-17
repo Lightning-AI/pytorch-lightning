@@ -52,7 +52,7 @@ class BaguaPlugin(DDPPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ):
 
-        super(BaguaPlugin, self).__init__(
+        super().__init__(
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
