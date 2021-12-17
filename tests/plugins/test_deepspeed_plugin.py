@@ -595,7 +595,9 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumulate_grad_batches: int = 2):
+@pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
+@RunIf(min_gpus=2, deepspeed=True, standalone=True)
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
     seed_everything(1)
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -628,13 +630,6 @@ def run_checkpoint_test(tmpdir: str, automatic_optimization: bool = True, accumu
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]["test_acc"] > 0.7
-
-
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
-    """Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint, and
-    see convergence."""
-    run_checkpoint_test(tmpdir)
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
@@ -718,24 +713,9 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     trainer.fit(model, datamodule=dm, ckpt_path=ck.best_model_path)
 
 
+@pytest.mark.parametrize("offload_optimizer", [False, True])
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_checkpointing_full_weights_manual(tmpdir):
-    """Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    where we save the full weights to one file."""
-    run_checkpoint_test(tmpdir, automatic_optimization=False, accumulate_grad_batches=1)
-
-
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=False)
-
-
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_offload_optimizer(tmpdir):
-    _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer=True)
-
-
-def _deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
     seed_everything(42)
 
@@ -781,6 +761,8 @@ def test_deepspeed_multigpu_test(tmpdir):
     trainer.test(model)
 
 
+# TODO(Sean): Once partial parameter partitioning is supported this test should be re-enabled
+@pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
     """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
@@ -824,7 +806,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(stage=3, partition_module=False),
+        strategy=DeepSpeedPlugin(stage=3),
         gpus=1,
         fast_dev_run=True,
         precision=16,
@@ -941,22 +923,14 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 
 
 @mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)
+@pytest.mark.parametrize("interval", ["step", "epoch"])
+@pytest.mark.parametrize("max_epoch", [2])
+@pytest.mark.parametrize("limit_train_batches", [2])
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_scheduler_step_count(mock_step):
+def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interval):
     """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
-    set to step."""
-    _run_scheduler_test(mock_step, max_epoch=2, limit_train_batches=2, interval="step")
+    set to step or epoch."""
 
-
-@mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)
-@RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_scheduler_step_count_epoch(mock_step):
-    """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
-    set to epoch."""
-    _run_scheduler_test(mock_step, max_epoch=2, limit_train_batches=2, interval="epoch")
-
-
-def _run_scheduler_test(mock_step, max_epoch, limit_train_batches, interval):
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
