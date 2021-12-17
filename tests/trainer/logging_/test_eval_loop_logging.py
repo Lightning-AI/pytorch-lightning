@@ -510,6 +510,10 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
         val_losses = []
 
+        def __init__(self, some_val=7):
+            super().__init__()
+            self.save_hyperparameters()
+
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)

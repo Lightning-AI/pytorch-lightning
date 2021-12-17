@@ -764,7 +764,10 @@ def test_adding_datamodule_hparams(tmpdir, model, data):
     # Merged hparams were logged
     merged_hparams = copy.deepcopy(org_model_hparams)
     merged_hparams.update(org_data_hparams)
-    mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+    if merged_hparams:
+        mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+    else:
+        mock_logger.log_hyperparams.assert_not_called()
 
 
 def test_no_datamodule_for_hparams(tmpdir):

@@ -111,7 +111,6 @@ def test_custom_logger(tmpdir):
     trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger, default_root_dir=tmpdir)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.after_save_checkpoint_called
     assert logger.finalized_status == "success"
@@ -133,11 +132,11 @@ def test_multiple_loggers(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert logger1.hparams_logged == model.hparams
+    assert logger1.hparams_logged is None
     assert logger1.metrics_logged != {}
     assert logger1.finalized_status == "success"
 
-    assert logger2.hparams_logged == model.hparams
+    assert logger2.hparams_logged is None
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 

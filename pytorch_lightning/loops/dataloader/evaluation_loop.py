@@ -19,7 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
-from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -27,11 +27,12 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = True) -> None:
         super().__init__()
         self.epoch_loop = EvaluationEpochLoop()
+        self.verbose = verbose
 
-        self._results = ResultCollection(training=False)
+        self._results = _ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[int] = []
@@ -84,6 +85,10 @@ class EvaluationLoop(DataLoaderLoop):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
         super().reset()
+        # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
+        # need to reset the current state when the loop has finished running
+        if self.done and self.trainer.state.fn != TrainerFn.FITTING:
+            self.dataloader_progress.reset_on_run()
 
     def on_skip(self) -> List:
         return []
@@ -156,13 +161,7 @@ class EvaluationLoop(DataLoaderLoop):
         # enable train mode again
         self._on_evaluation_model_train()
 
-        if (
-            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
-            and not self.trainer.sanity_checking
-            and self.trainer.is_global_zero
-            # TODO: this should be defined in this loop, not the Trainer
-            and self.trainer.verbose_evaluate
-        ):
+        if self.verbose and self.trainer.is_global_zero:
             assert self.trainer.state.stage is not None
             self._print_results(logged_outputs, self.trainer.state.stage)
 
