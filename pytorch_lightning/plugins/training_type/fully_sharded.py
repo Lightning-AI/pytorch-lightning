@@ -129,6 +129,14 @@ class DDPFullyShardedPlugin(DDPPlugin):
             )
         super().setup_distributed()
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        super().setup(trainer)
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+        self.configure_ddp()  # TODO: we call setup_optimizers here too?
+        self.barrier()
+        self.setup_optimizers(trainer)  # TODO: and here
+
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         precision = self.precision_plugin.precision
@@ -162,14 +170,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
         # setup optimizers after fully sharded has wrapped the lightning module
         self.setup_optimizers(self.lightning_module.trainer)
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        self._move_optimizer_state()
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-        self.configure_ddp()
-        self.barrier()
-        self.setup_optimizers(trainer)
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module

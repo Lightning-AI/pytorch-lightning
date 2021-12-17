@@ -121,6 +121,7 @@ class TrainingTypePlugin(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        self._move_optimizer_state()
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
@@ -489,10 +490,6 @@ class TrainingTypePlugin(ABC):
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""

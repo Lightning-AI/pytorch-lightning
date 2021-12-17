@@ -30,7 +30,7 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     class TestPlugin(SingleDevicePlugin):
         predispatched_called = False
 
-        def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        def setup(self, trainer: "pl.Trainer") -> None:
             super().pre_dispatch(trainer)
             self.predispatched_called = True
 
