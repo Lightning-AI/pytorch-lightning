@@ -59,6 +59,7 @@ class DeviceStatsMonitor(Callback):
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_start")
+        assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
     def on_train_batch_end(
@@ -75,6 +76,7 @@ class DeviceStatsMonitor(Callback):
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_end")
+        assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
 
