@@ -531,7 +531,7 @@ class ResultCollection(dict):
             (k, v)
             for k, v in self.items()
             if not (isinstance(v, ResultMetric) and v.has_reset)
-            and (self.dataloader_idx in (None, v.meta.dataloader_idx))
+            and self.dataloader_idx in (None, v.meta.dataloader_idx)
         )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:

@@ -132,8 +132,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         # hook
         self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
+        self.trainer._call_callback_hooks("on_epoch_start")
+        self.trainer._call_lightning_module_hook("on_epoch_start")
+
+        self.trainer._call_callback_hooks("on_train_epoch_start")
+        self.trainer._call_lightning_module_hook("on_train_epoch_start")
         self.trainer.fit_loop.epoch_progress.increment_started()
 
         self._reload_dataloader_state_dict(data_fetcher)
@@ -153,8 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         if not data_fetcher.store_on_device:
-            with self.trainer.profiler.profile("training_batch_to_device"):
-                batch = self.trainer.training_type_plugin.batch_to_device(batch)
+            batch = self.trainer._call_ttp_hook("batch_to_device", batch)
 
         self.batch_progress.increment_ready()
 
@@ -165,7 +167,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = []
         else:
             # hook
-            self.trainer.call_hook("on_batch_start")
+            self.trainer._call_callback_hooks("on_batch_start")
 
             # TODO: Update this in v1.7 (deprecation: #9816)
             model_fx = self.trainer.lightning_module.on_train_batch_start
@@ -176,7 +178,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
             # hook
-            response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            response = self.trainer._call_lightning_module_hook(
+                "on_train_batch_start", batch, batch_idx, **extra_kwargs
+            )
+            self.trainer._call_ttp_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
             if response == -1:
                 self.batch_progress.increment_processed()
                 raise StopIteration
@@ -207,8 +213,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
             else {}
         )
-        self.trainer.call_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
-        self.trainer.call_hook("on_batch_end")
+        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
+        self.trainer._call_lightning_module_hook(
+            "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
+        )
+        self.trainer._call_callback_hooks("on_batch_end")
         self.trainer.logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -276,8 +285,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
             # run lightning module hook training_epoch_end
             # refresh the result for custom logging at the epoch level
-            model._current_fx_name = "training_epoch_end"
-            epoch_end_outputs = model.training_epoch_end(epoch_end_outputs)
+            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
             if epoch_end_outputs is not None:
                 raise MisconfigurationException(
                     "`training_epoch_end` expects a return of None. "
@@ -289,8 +297,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.fit_loop.epoch_progress.increment_processed()
 
         # call train epoch end hooks
-        self.trainer.call_hook("on_train_epoch_end")
-        self.trainer.call_hook("on_epoch_end")
+        self.trainer._call_callback_hooks("on_train_epoch_end")
+        self.trainer._call_lightning_module_hook("on_train_epoch_end")
+
+        self.trainer._call_callback_hooks("on_epoch_end")
+        self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
         if self._num_ready_batches_reached():

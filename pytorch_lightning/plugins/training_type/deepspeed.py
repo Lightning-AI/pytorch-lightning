@@ -42,7 +42,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -88,6 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -129,7 +130,6 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        partition_module: bool = True,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -260,12 +260,6 @@ class DeepSpeedPlugin(DDPPlugin):
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
                 per worker.
-
-            partition_module: When True, partitions the ``LightningModule`` across devices when using ZeRO Stage 3.
-                This is the default behaviour to ensure that the entire module is appropriately initialized
-                for DeepSpeed. When False we do not explicitly convert the model, which is fine if NO layers
-                or ALL layers are defined in ``configure_sharded_model``. This is useful for layers such as
-                ``torch.nn.RNN`` which do internal logic when moving to device.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -273,6 +267,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
@@ -318,7 +313,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
-        self.partition_module = partition_module
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -375,6 +369,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return True
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        self._move_optimizer_state()
         self.init_deepspeed()
         self.barrier()
 
@@ -397,9 +392,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
+        self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
-        return self._model, [optimizer]
+        return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
@@ -442,17 +437,6 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
-
-        if self.zero_stage_3 and self.partition_module:
-            # Ensure the entire model has been moved to the appropriate device
-            dtype = (
-                torch.float16
-                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
-                else torch.float32
-            )
-            deepspeed.zero.Init(
-                module=model, remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
-            )
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -512,7 +496,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 else torch.float32
             )
             model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config=self.config, dtype=dtype
+                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
             )
         else:
             model_parallel_context = super().model_sharded_context()
@@ -526,8 +510,8 @@ class DeepSpeedPlugin(DDPPlugin):
             deepspeed.checkpointing.configure(
                 mpu_=None,
                 partition_activations=checkpoint_config.get("partition_activations"),
-                contiguous_checkpointing=checkpoint_config.get("contiguous_checkpointing"),
-                checkpoint_in_cpu=checkpoint_config.get("checkpoint_in_cpu"),
+                contiguous_checkpointing=checkpoint_config.get("contiguous_memory_optimization"),
+                checkpoint_in_cpu=checkpoint_config.get("cpu_checkpointing"),
                 profile=checkpoint_config.get("profile"),
             )
 
@@ -542,7 +526,7 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lr_scheduler, _ = self._init_optimizers()
             scheduler = lr_scheduler["scheduler"]
         inference_config = {
-            # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
+            # todo: this is required for DeepSpeed throughput timers
             "train_micro_batch_size_per_gpu": 1
         }
         if "fp16" in self.config:
@@ -878,11 +862,14 @@ class DeepSpeedPlugin(DDPPlugin):
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)

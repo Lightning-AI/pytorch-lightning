@@ -16,9 +16,9 @@ from tests.helpers.boring_model import BoringModel
 
 def test_restore_checkpoint_after_pre_dispatch_default():
     """Assert default for restore_checkpoint_after_pre_dispatch is False."""
-    plugin = SingleDevicePlugin(torch.device("cpu"))
-    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
-    assert not accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch
+    plugin = SingleDevicePlugin(
+        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
+    )
     assert not plugin.restore_checkpoint_after_pre_dispatch
 
 
@@ -49,14 +49,16 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
-    plugin = TestPlugin(torch.device("cpu"), checkpoint_io=TorchCheckpointIO())
-    accelerator = CPUAccelerator(training_type_plugin=plugin, precision_plugin=PrecisionPlugin())
-
-    assert accelerator.training_type_plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
+    plugin = TestPlugin(
+        accelerator=CPUAccelerator(),
+        precision_plugin=PrecisionPlugin(),
+        device=torch.device("cpu"),
+        checkpoint_io=TorchCheckpointIO(),
+    )
     assert plugin.restore_checkpoint_after_pre_dispatch == restore_after_pre_dispatch
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, fast_dev_run=True)
     trainer.fit(model, ckpt_path=checkpoint_path)
     for func in (trainer.test, trainer.validate, trainer.predict):
-        accelerator.training_type_plugin.predispatched_called = False
+        plugin.predispatched_called = False
         func(model, ckpt_path=checkpoint_path)

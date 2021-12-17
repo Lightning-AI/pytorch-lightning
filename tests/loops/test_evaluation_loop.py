@@ -127,6 +127,6 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     assert not is_overridden("test_epoch_end", model)
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
-    trainer.test_loop.connect(TestLoop())
+    trainer.test_loop.replace(epoch_loop=TestLoop)
     trainer.test(model)
     assert did_assert

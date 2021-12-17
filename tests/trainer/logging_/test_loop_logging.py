@@ -50,9 +50,12 @@ def test_default_level_for_hooks_that_support_logging():
         trainer.state.stage = RunningStage.TRAINING
         hooks = [
             "on_before_backward",
+            "backward",
             "on_after_backward",
             "on_before_optimizer_step",
+            "optimizer_step",
             "on_before_zero_grad",
+            "optimizer_zero_grad",
             "training_step",
             "training_step_end",
             "on_batch_start",

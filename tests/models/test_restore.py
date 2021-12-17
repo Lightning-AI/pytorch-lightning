@@ -246,10 +246,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
-            max_steps=1,
+            limit_train_batches=1,
+            limit_val_batches=2,
+            max_epochs=1,
             logger=False,
             callbacks=[checkpoint, callback_capture],
-            limit_val_batches=2,
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None

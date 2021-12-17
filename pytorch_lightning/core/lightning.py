@@ -374,7 +374,7 @@ class LightningModule(
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # if we started a new epoch (running it's first batch) the hook name has changed
+            # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
@@ -1710,7 +1710,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1807,7 +1807,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if "example_outputs" not in kwargs:
+        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
             if isinstance(input_sample, Tuple):
                 kwargs["example_outputs"] = self(*input_sample)
@@ -1927,8 +1927,6 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
@@ -1941,8 +1939,6 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

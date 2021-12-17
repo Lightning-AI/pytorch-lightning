@@ -96,13 +96,11 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("predict_batch_to_device"):
-            batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
-        with self.trainer.profiler.profile("predict_step"):
-            self._predict_step(batch, batch_idx, dataloader_idx)
+        self._predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
@@ -125,21 +123,20 @@ class PredictionEpochLoop(Loop):
         # extract batch_indices and store them
         self.current_batch_indices = self._seen_batch_indices[batch_idx] if self._seen_batch_indices else []
 
-        model_ref = self.trainer.lightning_module
-
-        self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        self.trainer._call_callback_hooks("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+        self.trainer._call_lightning_module_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_started()
 
-        model_ref._current_fx_name = "predict_step"
-        predictions = self.trainer.accelerator.predict_step(*step_kwargs.values())
+        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        self.trainer._call_callback_hooks("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
+        self.trainer._call_lightning_module_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
         self.batch_progress.increment_completed()
 
