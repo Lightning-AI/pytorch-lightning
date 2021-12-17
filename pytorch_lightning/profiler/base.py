@@ -60,7 +60,7 @@ class BaseProfiler(AbstractProfiler):
         self.filename = filename
 
         self._output_file: Optional[TextIO] = None
-        self._prepare_streams()
+        self._write_stream = self._rank_zero_info
         self._local_rank: Optional[int] = None
         self._log_dir: Optional[str] = None
         self._stage: Optional[str] = None
@@ -115,8 +115,6 @@ class BaseProfiler(AbstractProfiler):
         return filename
 
     def _prepare_streams(self) -> None:
-        if self._write_stream is not None:
-            return
         if self.filename:
             filepath = os.path.join(self.dirpath, self._prepare_filename())
             fs = get_filesystem(filepath)
@@ -124,8 +122,6 @@ class BaseProfiler(AbstractProfiler):
             file = fs.open(filepath, "a")
             self._output_file = file
             self._write_stream = file.write
-        else:
-            self._write_stream = self._rank_zero_info
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
@@ -154,6 +150,8 @@ class BaseProfiler(AbstractProfiler):
         self._local_rank = local_rank
         self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
+
+        self._prepare_streams()
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Execute arbitrary post-profiling tear-down steps.
