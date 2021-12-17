@@ -296,7 +296,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """
     fs = get_filesystem(tags_csv)
     if not fs.exists(tags_csv):
-        rank_zero_warn(f"Missing Tags: {tags_csv}.", RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {tags_csv}.", category=RuntimeWarning)
         return {}
 
     with fs.open(tags_csv, "r", newline="") as fp:
@@ -340,7 +340,7 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     """
     fs = get_filesystem(config_yaml)
     if not fs.exists(config_yaml):
-        rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {config_yaml}.", category=RuntimeWarning)
         return {}
 
     with fs.open(config_yaml, "r") as fp:
