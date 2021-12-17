@@ -63,7 +63,3 @@ class BaguaEnvironment(ClusterEnvironment):
 
     def node_rank(self) -> int:
         return int(os.environ.get("NODE_RANK", 0))
-
-    def teardown(self) -> None:
-        if "WORLD_SIZE" in os.environ:
-            del os.environ["WORLD_SIZE"]
