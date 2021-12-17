@@ -41,7 +41,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -435,6 +435,9 @@ class DDPSpawnPlugin(ParallelPlugin):
     def teardown(self) -> None:
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown
