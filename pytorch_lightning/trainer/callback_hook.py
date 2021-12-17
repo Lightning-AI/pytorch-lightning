@@ -76,7 +76,6 @@ class TrainerCallbackHookMixin(ABC):
                 "Be aware that when using `ckpt_path`,"
                 " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
                 f" Please add the following callbacks: {list(difference)}.",
-                UserWarning,
             )
 
         for callback in self.callbacks:

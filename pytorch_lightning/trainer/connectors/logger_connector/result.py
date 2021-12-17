@@ -280,7 +280,6 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
                     " as metric states have not yet been updated.",
-                    UserWarning,
                 )
 
             # return cached value
@@ -617,8 +616,8 @@ class _ResultCollection(dict):
 
     def sync(self) -> None:
         for result_metric in self.result_metrics:
-            if result_metric.is_tensor:
-                result_metric.sync()
+            if result_metric.is_tensor and not result_metric._is_synced:
+                result_metric.sync(should_sync=not result_metric.meta.sync.rank_zero_only)
 
     def unsync(self) -> None:
         for result_metric in self.result_metrics:

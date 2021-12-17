@@ -35,7 +35,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
@@ -462,9 +462,6 @@ class Trainer(
         )
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        training_batch_loop = TrainingBatchLoop()
-        training_validation_loop = EvaluationLoop()
-        training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
         fit_loop.connect(epoch_loop=training_epoch_loop)
 
         # default .fit() loop
@@ -659,9 +656,6 @@ class Trainer(
         self.test_dataloaders = None
         self.val_dataloaders = None
 
-        # when true, print evaluation results in .validate() and .test()
-        self.verbose_evaluate = True
-
         self.num_predict_batches = []
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
@@ -817,7 +811,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("validate")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -837,6 +830,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
             )
+
+        self.validate_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
@@ -901,7 +896,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("test")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -921,6 +915,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
             )
+
+        self.test_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
@@ -2189,6 +2185,26 @@ class Trainer(
         """
         loop.trainer = self
         self._predict_loop = loop
+
+    @property
+    def verbose_evaluate(self) -> bool:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. The current value"
+            " returned is the union of the validate and test loop values. You can choose which one to access with"
+            " `trainer.{validate,test}_loop.verbose`.",
+            stacklevel=5,
+        )
+        return self.validate_loop.verbose or self.test_loop.verbose
+
+    @verbose_evaluate.setter
+    def verbose_evaluate(self, verbose: bool) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. This will set"
+            " the value for both trainer.{validate,test}_loop.verbose`.",
+            stacklevel=5,
+        )
+        self.validate_loop.verbose = verbose
+        self.test_loop.verbose = verbose
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:

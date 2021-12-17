@@ -63,7 +63,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.scheduler_progress = SchedulerProgress()
 
         self.batch_loop = TrainingBatchLoop()
-        self.val_loop = loops.EvaluationLoop()
+        self.val_loop = loops.EvaluationLoop(verbose=False)
 
         self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
@@ -498,7 +498,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                             f"ReduceLROnPlateau conditioned on metric {monitor_key}"
                             " which is not available but strict is set to `False`."
                             " Skipping learning rate update.",
-                            RuntimeWarning,
+                            category=RuntimeWarning,
                         )
                         continue
 

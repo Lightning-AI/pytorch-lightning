@@ -248,7 +248,6 @@ class TensorBoardLogger(LightningLoggerBase):
                     "Could not log computational graph since the"
                     " `model.example_input_array` attribute is not set"
                     " or `input_array` was not given",
-                    UserWarning,
                 )
 
     @rank_zero_only
