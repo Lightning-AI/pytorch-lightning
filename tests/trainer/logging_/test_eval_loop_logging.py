@@ -747,7 +747,7 @@ def test_multiple_dataloaders_logging(tmpdir):
             self.log("value_2", dataloader_idx, add_dataloader_idx=True)
 
         def val_dataloader(self):
-            return [self.train_dataloader(), self.train_dataloader()]
+            return [super().val_dataloader(), super().val_dataloader()]
 
     model = TestModel()
     model.validation_epoch_end = None
