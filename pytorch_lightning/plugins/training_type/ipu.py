@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -61,6 +62,7 @@ class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
@@ -85,6 +87,7 @@ class IPUPlugin(ParallelPlugin):
                 created options for validation/testing and predicting.
         """
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -130,6 +133,7 @@ class IPUPlugin(ParallelPlugin):
             raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 
@@ -257,19 +261,24 @@ class IPUPlugin(ParallelPlugin):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self, *args, **kwargs):
-        return self._step(RunningStage.TRAINING, *args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self._step(RunningStage.TRAINING, *args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self._step(RunningStage.VALIDATING, *args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self._step(RunningStage.TESTING, *args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self._step(RunningStage.PREDICTING, *args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
+        super().teardown()
         # undo dataloader patching
         pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
 

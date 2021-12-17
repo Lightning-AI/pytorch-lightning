@@ -150,7 +150,7 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        optimizer.step(closure=closure, **kwargs)  # type: ignore[call-arg]
+        optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
@@ -205,10 +205,7 @@ class PrecisionPlugin(CheckpointHooks):
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something when ``Accelerator.dispatch()`` gets called."""
-
-    def post_dispatch(self) -> None:
-        """Hook to do something after the training/evaluation/prediction finishes."""
+        """Hook to do something when ``TrainingTypePlugin.dispatch()`` gets called."""
 
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:

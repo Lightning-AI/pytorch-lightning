@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -152,7 +152,7 @@ class ProgressBarBase(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
-    def on_init_end(self, trainer):
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._trainer = trainer
 
     def on_train_start(self, trainer, pl_module):
