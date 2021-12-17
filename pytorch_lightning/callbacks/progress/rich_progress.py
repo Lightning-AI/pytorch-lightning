@@ -229,7 +229,7 @@ class RichProgressBar(ProgressBarBase):
         refresh_rate: int = 1,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[Dict[str, Any], Console] = None,
+        console_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise MisconfigurationException(
