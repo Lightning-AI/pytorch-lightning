@@ -49,7 +49,7 @@ class CheckpointConnector:
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
-    def hpc_resume_path(self) -> Optional[str]:
+    def _hpc_resume_path(self) -> Optional[str]:
         if not os.path.isdir(self.trainer.weights_save_path):
             return None
         dir_path_hpc = str(self.trainer.weights_save_path)
@@ -58,7 +58,7 @@ class CheckpointConnector:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
     @property
-    def fault_tolerant_auto_save_path(self) -> Optional[str]:
+    def _fault_tolerant_auto_save_path(self) -> Optional[str]:
         auto_save_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
         if os.path.exists(auto_save_path):
             return auto_save_path
@@ -71,7 +71,7 @@ class CheckpointConnector:
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or self.fault_tolerant_auto_save_path or checkpoint_path
+        self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_save_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -166,7 +166,7 @@ class CheckpointConnector:
 
         # TODO: remove this in v1.8.
         # call hpc specific hook
-        if self.hpc_resume_path is not None:
+        if self._hpc_resume_path is not None:
             model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
