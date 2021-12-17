@@ -30,10 +30,10 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, rank_zero_warn, set_shared_parameters
+from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
@@ -54,6 +54,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -62,7 +63,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
-            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            parallel_devices=parallel_devices,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.debug = debug
         self.tpu_local_core_rank = 0
@@ -121,9 +125,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-        if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
-            trainer.progress_bar_callback.disable()
-
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         if is_overridden("on_post_move_to_device", self.lightning_module):
@@ -132,7 +133,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         self.setup_optimizers(trainer)
-        self.precision_plugin.connect(self._model, None, None)
+        self.precision_plugin.connect(self.model, None, None)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
@@ -174,7 +175,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             rendezvous(name)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
-        rank_zero_warn("cleaning up tpu spawn environment...")
+        rank_zero_debug("Finalizing the TPU spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
