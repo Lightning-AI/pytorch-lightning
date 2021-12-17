@@ -747,10 +747,12 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
-            self.log("foo", 12.0)
+            self.log("foo", dataloader_idx + 1)
+            return dataloader_idx + 1
 
         def test_epoch_end(self, outputs) -> None:
-            self.log("foobar", 23.0)
+            print(outputs)
+            self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(2)]
@@ -759,7 +761,4 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     logged_results = trainer.test(model)
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
-    assert logged_results == [
-        {"foo/dataloader_idx_0": 12.0, "foobar": 23.0},
-        {"foo/dataloader_idx_1": 12.0, "foobar": 23.0},
-    ]
+    assert logged_results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
