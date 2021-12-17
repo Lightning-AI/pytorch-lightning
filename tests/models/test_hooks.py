@@ -113,7 +113,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch(
-    "pytorch_lightning.plugins.training_type.training_type_plugin.TrainingTypePlugin.lightning_module",
+    "pytorch_lightning.plugins.training_type.training_type_plugin.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock):

@@ -46,7 +46,7 @@ from pytorch_lightning.plugins import (
     ParallelPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    TrainingTypePlugin,
+    Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -163,7 +163,7 @@ class Trainer(
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
@@ -1471,7 +1471,7 @@ class Trainer(
                 output = model_fx(*args, **kwargs)
 
             # *Bad code alert*
-            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
+            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
             # The following logic selectively chooses which hooks are called on each object.
             # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
             # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
@@ -1673,7 +1673,7 @@ class Trainer(
         return self.training_type_plugin.accelerator
 
     @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
+    def training_type_plugin(self) -> Strategy:
         return self._accelerator_connector.training_type_plugin
 
     @property
