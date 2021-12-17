@@ -1204,30 +1204,35 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
 
 
-def test_model_checkpoint_attributes(tmpdir):
-    seed_everything()
-    model = LogInTwoMethods()
+def test_model_checkpoint_loadsave_ckpt(tmpdir):
+    cb = ModelCheckpoint(dirpath=tmpdir, monitor=None, save_top_k=-1, save_last=True)
 
-    epochs = 2
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor=None, save_top_k=-1, save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        limit_train_batches=10,
-        limit_val_batches=10,
-        max_epochs=epochs,
-        logger=False,
-    )
+    # test restore
+    ckpt_for_restore = {
+        "best_model_path": 'epoch=0-step=0.ckpt',
+        "best_model_score": torch.tensor(1.1027),
+        "best_k_models": {'epoch=0-step=0.ckpt': torch.tensor(1.1027)},
+        "kth_best_model_path": "epoch=0-step=0.ckpt",
+        "kth_value": torch.tensor(1.1027),
+        "last_model_path": "last.ckpt"
+    }
 
-    trainer.fit(model)
+    cb.on_load_checkpoint("", "", ckpt_for_restore)    
+    for key, val in ckpt_for_restore.items():
+        assert getattr(cb, key) == val
 
-    checkpoint = torch.load(os.path.join(tmpdir, "last.ckpt"))["callbacks"][checkpoint_callback.state_key]
-
-    for k in ("best_k_models", "kth_best_model_path", "kth_value", "last_model_path"):
-        assert checkpoint[k] == getattr(checkpoint_callback, k)
-
-    restored_callback = ModelCheckpoint(dirpath=tmpdir, monitor=None, save_top_k=-1, save_last=True)
-    restored_callback.on_load_checkpoint("", "", checkpoint)
-
-    for k in ("best_k_models", "kth_best_model_path", "kth_value", "last_model_path"):
-        assert checkpoint[k] == getattr(restored_callback, k)
+    # set attributes from 2nd checkpoint to simulate training and test write
+    ckpt_for_write = {
+        "best_model_path": 'epoch=10-step=1436.ckpt',
+        "best_model_score": torch.tensor(2.246),
+        "best_k_models": {'epoch=10-step=1436.ckpt': torch.tensor(2.246)},
+        "kth_best_model_path": "epoch=10-step=1436.ckpt",
+        "kth_value": torch.tensor(2.246),
+        "last_model_path": "last2245.ckpt"
+    }
+    for key, val in ckpt_for_write.items():
+        setattr(cb, key, val)
+    
+    written_ckpt = cb.on_save_checkpoint("", "", "")
+    for state in ckpt_for_write:
+        assert ckpt_for_write[state] == written_ckpt[state]
