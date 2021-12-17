@@ -743,8 +743,8 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 def test_multiple_dataloaders_logging(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
-            self.log("value_1", dataloader_idx, add_dataloader_idx=False)
-            self.log("value_2", dataloader_idx, add_dataloader_idx=True)
+            self.log("value_1", dataloader_idx, cross_dataloaders_reduce=True)
+            self.log("value_2", dataloader_idx)
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]

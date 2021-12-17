@@ -114,6 +114,7 @@ class _Metadata:
     reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
+    cross_dataloaders_reduce: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     _sync: Optional[_Sync] = None
@@ -437,6 +438,7 @@ class ResultCollection(dict):
         sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        cross_dataloaders_reduce: bool = False,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
@@ -449,6 +451,9 @@ class ResultCollection(dict):
         # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
+
+        if cross_dataloaders_reduce:
+            add_dataloader_idx = False
 
         # storage key
         key = f"{fx}.{name}"
@@ -467,7 +472,8 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
-            dataloader_idx=self.dataloader_idx if add_dataloader_idx else None,
+            cross_dataloaders_reduce=cross_dataloaders_reduce,
+            dataloader_idx=self.dataloader_idx if not cross_dataloaders_reduce else None,
             metric_attribute=metric_attribute,
         )
         meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)

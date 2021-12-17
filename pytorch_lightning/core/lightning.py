@@ -301,6 +301,7 @@ class LightningModule(
         sync_dist: bool = False,
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        cross_dataloaders_reduce: bool = False,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
         rank_zero_only: Optional[bool] = None,
@@ -328,6 +329,7 @@ class LightningModule(
             add_dataloader_idx: if ``True``, appends the index of the current dataloader to
                 the name (when using multiple dataloaders). If False, user needs to give unique names for
                 each dataloader to not mix the values.
+            cross_dataloaders_reduce: Whether to perform reduction across multiple dataloaders.
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but for some data structures you might need to explicitly provide it.
             metric_attribute: To restore the metric state, Lightning requires the reference of the
@@ -418,6 +420,7 @@ class LightningModule(
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
+            cross_dataloaders_reduce=cross_dataloaders_reduce,
             batch_size=batch_size,
             sync_dist=sync_dist and distributed_available(),
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
