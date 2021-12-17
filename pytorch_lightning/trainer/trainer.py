@@ -570,6 +570,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
+        self.logger: Optional[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1129,7 +1130,7 @@ class Trainer(
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
                                 |                             ||
-                         {self.run_stage}                     ||  FLOW
+                        {self._run_stage}                     ||  FLOW
                                 |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
@@ -1164,7 +1165,7 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        results = self.run_stage()
+        results = self._run_stage()
         self._teardown()
 
         # ----------------------------
@@ -1237,7 +1238,14 @@ class Trainer(
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def run_stage(self):
+    def run_stage(self) -> None:
+        rank_zero_deprecation(
+            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
+            " `Trainer.{fit,validate,test,predict}` instead."
+        )
+        return self._run_stage()
+
+    def _run_stage(self):
         self.training_type_plugin.barrier("run-stage")
         self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
@@ -1971,6 +1979,14 @@ class Trainer(
         return resume_from_checkpoint
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+        r"""
+        Runs routine to create a checkpoint.
+
+        Args:
+            filepath: Path where checkpoint is saved.
+            weights_only: If ``True``, will only save the model weights.
+
+        """
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """

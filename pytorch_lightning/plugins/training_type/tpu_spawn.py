@@ -125,9 +125,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-        if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
-            trainer.progress_bar_callback.disable()
-
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         if is_overridden("on_post_move_to_device", self.lightning_module):
