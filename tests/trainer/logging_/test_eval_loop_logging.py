@@ -738,3 +738,23 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
         "test_log_no_dl_idx_1": 321 * 2,
         "test_log_b_class": 456.0,
     }
+
+
+def test_multiple_dataloaders_logging(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx):
+            self.log("value_1", dataloader_idx, add_dataloader_idx=False)
+            self.log("value_2", dataloader_idx, add_dataloader_idx=True)
+
+        def val_dataloader(self):
+            return [self.train_dataloader(), self.train_dataloader()]
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    trainer = Trainer(default_root_dir=tmpdir)
+    results = trainer.validate(model)
+    breakpoint()
+    assert results == [
+        {"value_2/dataloader_idx_0": 0.0, "value_1": 0.5},
+        {"value_2/dataloader_idx_1": 1.0, "value_1": 0.5},
+    ]

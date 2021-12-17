@@ -467,7 +467,7 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
-            dataloader_idx=self.dataloader_idx,
+            dataloader_idx=self.dataloader_idx if add_dataloader_idx else None,
             metric_attribute=metric_attribute,
         )
         meta.sync = _Sync(_should=sync_dist, fn=sync_dist_fn, _group=sync_dist_group, rank_zero_only=rank_zero_only)
@@ -530,7 +530,10 @@ class ResultCollection(dict):
         return (
             (k, v)
             for k, v in self.items()
-            if not (isinstance(v, ResultMetric) and v.has_reset) and (dataloader_idx in (None, v.meta.dataloader_idx))
+            if (
+                not (isinstance(v, ResultMetric) and v.has_reset)
+                and (dataloader_idx in (None, v.meta.dataloader_idx) or v.meta.dataloader_idx is None)
+            )
         )
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
@@ -581,6 +584,9 @@ class ResultCollection(dict):
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
                 metrics["pbar"][forked_name] = metrics_to_scalars(value)
+
+        if not on_step:
+            print(metrics)
 
         return metrics
 
