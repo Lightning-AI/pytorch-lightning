@@ -6,8 +6,7 @@ import torch
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -26,6 +25,16 @@ if _BAGUA_AVAILABLE:
 
 
 log = logging.getLogger(__name__)
+
+
+class LightningBaguaModule(_LightningModuleWrapperBase):
+    def __init__(self, pl_module: "pl.LightningModule") -> None:
+        super().__init__(pl_module)
+        # Bagua use `bagua_module_name` to distinguish different modules
+        self.bagua_module_name = pl_module._get_name() + str(id(pl_module))
+
+    def forward(self, *inputs, **kwargs):
+        return super().forward(*inputs, **kwargs)
 
 
 class BaguaPlugin(DDPPlugin):
@@ -79,7 +88,9 @@ class BaguaPlugin(DDPPlugin):
         )
 
         torch.cuda.set_device(self.local_rank)
-        bagua.init_process_group()
+
+        if not is_initialized():
+            bagua.init_process_group()
 
     def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
@@ -93,7 +104,7 @@ class BaguaPlugin(DDPPlugin):
         # move the model to the correct device
         self.model_to_device()
 
-        model = LightningDistributedModule(self.model)
+        model = LightningBaguaModule(self.model)
         self.configure_bagua_ddp(model)
 
     def _check_qadam_optimizer(self):
@@ -151,9 +162,6 @@ class BaguaPlugin(DDPPlugin):
     def teardown(self) -> None:
         if self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)
-
-        if isinstance(self.model, BaguaDistributedDataParallel):
-            self.model = self.lightning_module
 
         if self.on_gpu:
             # GPU teardown
