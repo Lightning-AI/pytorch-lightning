@@ -274,9 +274,11 @@ class Loop(ABC, Generic[T]):
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
+        # do not get the mode from `self.trainer` because it might not have been attached yet
+        ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
         for k, v in self.__dict__.items():
             key = prefix + k
-            if isinstance(v, BaseProgress):
+            if ft_enabled and isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
@@ -301,11 +303,9 @@ class Loop(ABC, Generic[T]):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
-        # do not get the mode from `self.trainer` because it might not have been attached yet
-        ft_enabled = not _FaultTolerantMode.detect_current_mode().is_enabled
         for k, v in self.__dict__.items():
             key = prefix + k
-            if not ft_enabled or key not in state_dict:
+            if key not in state_dict:
                 # no state for this object, maybe we are loading an old checkpoint
                 continue
 

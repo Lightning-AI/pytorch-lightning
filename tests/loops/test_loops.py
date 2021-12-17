@@ -213,6 +213,7 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loop_hierarchy():
     @dataclass
     class SimpleProgress(BaseProgress):
@@ -535,9 +536,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
     # fit loop to have an iterator, which is only available during training
     state_dict["epoch_loop.state_dict"]["dataloader_state_dict"] = ANY
-    state_dict["epoch_loop._results"] = ANY
     checkpoint["loops"]["fit_loop"]["epoch_loop.state_dict"]["dataloader_state_dict"] = ANY
-    checkpoint["loops"]["fit_loop"]["epoch_loop._results"] = ANY
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
