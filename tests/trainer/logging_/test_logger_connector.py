@@ -267,19 +267,19 @@ def test_fx_validator_integration(tmpdir):
     with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
         trainer.test(model, verbose=False)
 
-    not_supported.update({k: "_ResultCollection` is not registered yet" for k in not_supported})
+    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "_ResultCollection` is not registered yet",
-            "predict_dataloader": "_ResultCollection` is not registered yet",
-            "on_predict_model_eval": "_ResultCollection` is not registered yet",
-            "on_predict_start": "_ResultCollection` is not registered yet",
-            "on_predict_epoch_start": "_ResultCollection` is not registered yet",
-            "on_predict_batch_start": "_ResultCollection` is not registered yet",
-            "predict_step": "_ResultCollection` is not registered yet",
-            "on_predict_batch_end": "_ResultCollection` is not registered yet",
-            "on_predict_epoch_end": "_ResultCollection` is not registered yet",
-            "on_predict_end": "_ResultCollection` is not registered yet",
+            "on_predict_dataloader": "result collection is not registered yet",
+            "predict_dataloader": "result collection is not registered yet",
+            "on_predict_model_eval": "result collection is not registered yet",
+            "on_predict_start": "result collection is not registered yet",
+            "on_predict_epoch_start": "result collection is not registered yet",
+            "on_predict_batch_start": "result collection is not registered yet",
+            "predict_step": "result collection is not registered yet",
+            "on_predict_batch_end": "result collection is not registered yet",
+            "on_predict_epoch_end": "result collection is not registered yet",
+            "on_predict_end": "result collection is not registered yet",
         }
     )
     with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
