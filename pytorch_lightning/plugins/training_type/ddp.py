@@ -73,7 +73,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class DDPPlugin(ParallelPlugin):
+class DDPStrategy(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
     The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of

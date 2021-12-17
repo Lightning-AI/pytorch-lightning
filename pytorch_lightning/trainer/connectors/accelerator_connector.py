@@ -30,10 +30,10 @@ from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedStrategy,
-    DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DDPStrategy,
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
@@ -733,13 +733,13 @@ class AcceleratorConnector:
                 or use_kubeflow_ddp
                 or use_ddp_cpu_kubeflow
             ):
-                ddp_plugin_cls = DDPPlugin
+                ddp_plugin_cls = DDPStrategy
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
             elif use_ddp_fully_sharded:
                 ddp_plugin_cls = DDPFullyShardedStrategy
             else:
-                ddp_plugin_cls = DDPPlugin
+                ddp_plugin_cls = DDPStrategy
 
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment

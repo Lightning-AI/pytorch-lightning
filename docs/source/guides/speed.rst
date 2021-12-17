@@ -43,7 +43,7 @@ GPU training
 
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
 
-* :class:`~pytorch_lightning.plugins.training_type.DDPPlugin`
+* :class:`~pytorch_lightning.plugins.training_type.DDPStrategy`
 * :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
 * :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
 
@@ -73,7 +73,7 @@ Prefer DDP over DP
 2. Copy data to device.
 3. Copy outputs of each device back to main device.
 
-Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
+Whereas :class:`~pytorch_lightning.plugins.training_type.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
 When using DDP plugins, set find_unused_parameters=False
@@ -86,11 +86,11 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPPlugin(find_unused_parameters=False),
+        strategy=DDPStrategy(find_unused_parameters=False),
     )
 
 .. code-block:: python

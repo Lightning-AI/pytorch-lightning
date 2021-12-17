@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins import DDPStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
@@ -35,10 +35,10 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
-    """Tests if device is set correctely when training and after teardown for DDPPlugin."""
+    """Tests if device is set correctely when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
     local_rank = trainer.training_type_plugin.local_rank
@@ -102,7 +102,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 def test_ddp_configure_ddp():
     """Tests with ddp plugin."""
     model = BoringModel()
-    ddp_plugin = DDPPlugin()
+    ddp_plugin = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_plugin,

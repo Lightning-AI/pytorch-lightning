@@ -17,10 +17,10 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
     CheckpointIO,
     DDPFullyShardedStrategy,
-    DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DDPStrategy,
     DeepSpeedPlugin,
     TPUSpawnPlugin,
     TrainingTypePluginsRegistry,
@@ -109,7 +109,7 @@ def test_fsdp_strategys_registry(tmpdir):
 @pytest.mark.parametrize(
     "plugin_name, plugin",
     [
-        ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
         ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedPlugin),
         ("ddp_sharded_find_unused_parameters_false", DDPShardedPlugin),
@@ -142,11 +142,11 @@ def test_custom_registered_training_plugin_to_strategy():
     # Register the DDP Plugin with your custom CheckpointIO plugin
     TrainingTypePluginsRegistry.register(
         "ddp_custom_checkpoint_io",
-        DDPPlugin,
+        DDPStrategy,
         description="DDP Plugin with custom checkpoint io plugin",
         checkpoint_io=custom_checkpoint_io,
     )
     trainer = Trainer(strategy="ddp_custom_checkpoint_io", accelerator="cpu", devices=2)
 
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert trainer.training_type_plugin.checkpoint_io == custom_checkpoint_io
