@@ -13,7 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import torch
@@ -288,25 +288,27 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises():
-    accelerator = TPUAccelerator(object(), TPUSpawnPlugin())
+    training_type_plugin = TPUSpawnPlugin(accelerator=TPUAccelerator(), precision_plugin=Mock())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
-        accelerator.setup(object())
+        Trainer(strategy=training_type_plugin)
 
-    accelerator = TPUAccelerator(TPUPrecisionPlugin(), DDPPlugin())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugi"):
-        accelerator.setup(object())
+    training_type_plugin = DDPPlugin(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+        Trainer(strategy=training_type_plugin)
 
 
 def test_tpu_invalid_raises_set_precision_with_strategy():
-    accelerator = TPUAccelerator(object(), TPUSpawnPlugin(precision_plugin=object()))
+    accelerator = TPUAccelerator()
+    training_type_plugin = TPUSpawnPlugin(accelerator=accelerator, precision_plugin=object())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
-        accelerator.setup(object())
+        Trainer(strategy=training_type_plugin)
 
-    accelerator = TPUAccelerator(None, DDPPlugin(precision_plugin=TPUPrecisionPlugin()))
+    accelerator = TPUAccelerator()
+    training_type_plugin = DDPPlugin(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin"
+        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin"
     ):
-        accelerator.setup(object())
+        Trainer(strategy=training_type_plugin)
 
 
 @RunIf(tpu=True)

@@ -37,7 +37,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 def test_sharded_ddp_choice(tmpdir, strategy, expected):
     """Test to ensure that plugin is correctly chosen."""
     trainer = Trainer(fast_dev_run=True, strategy=strategy)
-    assert isinstance(trainer.accelerator.training_type_plugin, expected)
+    assert isinstance(trainer.training_type_plugin, expected)
 
 
 @RunIf(min_gpus=1, fairscale=True)
@@ -47,7 +47,7 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
 def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
-    assert isinstance(trainer.accelerator.training_type_plugin, expected)
+    assert isinstance(trainer.training_type_plugin, expected)
 
 
 @RunIf(skip_windows=True, fairscale=True)
