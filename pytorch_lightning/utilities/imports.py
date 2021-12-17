@@ -109,8 +109,6 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
-if _BAGUA_AVAILABLE:
-    import bagua.torch_api
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
