@@ -26,7 +26,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
@@ -309,6 +309,9 @@ def test_single_gpu_batch_parse():
     assert batch.a.type() == "torch.cuda.FloatTensor"
 
     # torchtext.data.Batch
+    if not _TORCHTEXT_LEGACY:
+        return
+
     samples = [
         {"text": "PyTorch Lightning is awesome!", "label": 0},
         {"text": "Please make it work with torchtext", "label": 1},
@@ -326,7 +329,9 @@ def test_single_gpu_batch_parse():
     label_field.build_vocab(dataset)
 
     batch = Batch(data=examples, dataset=dataset)
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+
+    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+        batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
 
     assert batch.text.type() == "torch.cuda.LongTensor"
     assert batch.label.type() == "torch.cuda.LongTensor"

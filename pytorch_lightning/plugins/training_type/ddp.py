@@ -48,7 +48,7 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_10,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -84,6 +84,7 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -95,6 +96,7 @@ class DDPPlugin(ParallelPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -147,6 +149,7 @@ class DDPPlugin(ParallelPlugin):
             self._call_children_scripts()
 
         self.setup_distributed()
+        super().setup_environment()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -273,7 +276,7 @@ class DDPPlugin(ParallelPlugin):
             _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
         ):
             register_ddp_comm_hook(
-                model=self._model,
+                model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
@@ -330,7 +333,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = self._setup_model(LightningDistributedModule(self.model))
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
@@ -338,7 +341,8 @@ class DDPPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         # share ddp pids to all processes
         self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
         if self._should_run_deadlock_detection():
@@ -354,9 +358,6 @@ class DDPPlugin(ParallelPlugin):
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
@@ -397,22 +398,26 @@ class DDPPlugin(ParallelPlugin):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs) -> Optional[Any]:
-        return self.model(*args, **kwargs)
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        if isinstance(self.model, DistributedDataParallel):
-            # used when calling `trainer.fit`
-            return self.model(*args, **kwargs)
-        else:
-            # used when calling `trainer.validate`
-            return self.lightning_module.validation_step(*args, **kwargs)
+        with self.precision_plugin.val_step_context():
+            if isinstance(self.model, DistributedDataParallel):
+                # used when calling `trainer.fit`
+                return self.model(*args, **kwargs)
+            else:
+                # used when calling `trainer.validate`
+                return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        return self.lightning_module.test_step(*args, **kwargs)
+        with self.precision_plugin.test_step_context():
+            return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> Any:
-        return self.lightning_module.predict_step(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -495,8 +500,12 @@ class DDPPlugin(ParallelPlugin):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
+        super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown

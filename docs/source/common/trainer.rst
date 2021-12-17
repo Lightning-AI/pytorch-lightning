@@ -603,7 +603,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -1074,7 +1074,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+Uses this much data of the training set. If nonzero, will turn off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
@@ -1084,7 +1084,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set (and use the train set for val and test)
+    # use only 1% of the train set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches

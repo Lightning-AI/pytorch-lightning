@@ -14,15 +14,12 @@
 import os
 from typing import Any, Dict, Optional
 
-import torch
-
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
@@ -37,6 +34,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def __init__(
         self,
         device: int,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -44,7 +42,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        super().__init__(device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(
+            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
 
         self.debug = debug
         self.tpu_local_core_rank = 0
@@ -62,22 +62,13 @@ class SingleTPUPlugin(SingleDevicePlugin):
         else:
             set_shared_parameters(self.model, shared_params)
 
-        if not self.setup_optimizers_in_pre_dispatch:
-            self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-
-    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the TPU if needed."""
-        # TODO: `self.root_device` would raise error if called outside the spawn process
-        # while training on 8 and more cores.
-        for opt in self.optimizers:
-            for p, v in opt.state.items():
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
+        super().setup(trainer)
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def pre_dispatch(self) -> None:
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        super().pre_dispatch(trainer)
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
@@ -86,9 +77,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-
-    def save(self, state_dict: Dict, path: _PATH) -> None:
-        xm.save(state_dict, path)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

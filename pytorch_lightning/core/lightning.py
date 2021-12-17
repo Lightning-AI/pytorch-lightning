@@ -109,7 +109,6 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._current_fx_name: Optional[str] = None
-        self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = {}
@@ -312,36 +311,25 @@ class LightningModule(
 
             self.log('train_loss', loss)
 
-        The default behavior per hook is as follows:
-
-        .. csv-table:: ``*`` also applies to the test loop
-           :header: "LightningModule Hook", "on_step", "on_epoch", "prog_bar", "logger"
-           :widths: 20, 10, 10, 10, 10
-
-           "training_step", "T", "F", "F", "T"
-           "training_step_end", "T", "F", "F", "T"
-           "training_epoch_end", "F", "T", "F", "T"
-           "validation_step*", "F", "T", "F", "T"
-           "validation_step_end*", "F", "T", "F", "T"
-           "validation_epoch_end*", "F", "T", "F", "T"
+        The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
 
         Args:
-            name: key to log
+            name: key to log.
             value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
-            prog_bar: if True logs to the progress bar
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
+            prog_bar: if ``True`` logs to the progress bar.
+            logger: if ``True`` logs to the logger.
+            on_step: if ``True`` logs at this step.
+            on_epoch: if True logs epoch accumulated metrics.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+            enable_graph: if ``True``, will not auto detach the graph.
+            sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
                 communication overhead.
-            sync_dist_group: the ddp group to sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
+            sync_dist_group: the DDP group to sync across.
+            add_dataloader_idx: if ``True``, appends the index of the current dataloader to
+                the name (when using multiple dataloaders). If False, user needs to give unique names for
+                each dataloader to not mix the values.
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
-                but some data structures might need to explicitly provide it.
+                but for some data structures you might need to explicitly provide it.
             metric_attribute: To restore the metric state, Lightning requires the reference of the
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
@@ -386,7 +374,7 @@ class LightningModule(
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
-            # if we started a new epoch (running it's first batch) the hook name has changed
+            # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
 
@@ -429,7 +417,7 @@ class LightningModule(
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
-            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+            add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and distributed_available(),
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
@@ -1722,7 +1710,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1928,7 +1916,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def add_to_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1939,10 +1927,8 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
-    def get_from_queue(self, queue: torch.multiprocessing.SimpleQueue) -> None:
+    def get_from_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1953,8 +1939,6 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

@@ -133,8 +133,8 @@ def test_deepspeed_plugin_string(tmpdir, plugin):
         fast_dev_run=True, default_root_dir=tmpdir, strategy=plugin if isinstance(plugin, str) else plugin()
     )
 
-    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-    assert trainer.accelerator.training_type_plugin.parallel_devices == [torch.device("cpu")]
+    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+    assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")]
 
 
 @RunIf(deepspeed=True)
@@ -147,7 +147,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
     trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
 
-    plugin = trainer.accelerator.training_type_plugin
+    plugin = trainer.training_type_plugin
     assert isinstance(plugin, DeepSpeedPlugin)
     assert plugin.parallel_devices == [torch.device("cpu")]
     assert plugin.config == deepspeed_config
@@ -169,7 +169,7 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
         fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed", amp_backend=amp_backend, precision=precision
     )
 
-    assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
     assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
     assert trainer.training_type_plugin.precision_plugin.precision == precision
 
@@ -235,8 +235,8 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmp
 
     class AssertCallback(Callback):
         def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
-            assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
-            config = trainer.accelerator.training_type_plugin.config
+            assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+            config = trainer.training_type_plugin.config
 
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
@@ -359,6 +359,36 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["cpu_checkpointing"]
     assert checkpoint_config["contiguous_memory_optimization"]
     assert checkpoint_config["synchronize_checkpoint_boundary"]
+
+
+@RunIf(min_gpus=1, deepspeed=True, standalone=True)
+def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
+    """Ensure if we modify the activation checkpointing parameters, we pass these to
+    deepspeed.checkpointing.configure correctly."""
+    ds = DeepSpeedPlugin(
+        partition_activations=True,
+        cpu_checkpointing=True,
+        contiguous_memory_optimization=True,
+        synchronize_checkpoint_boundary=True,
+    )
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        fast_dev_run=1,
+        strategy=ds,
+        precision=16,
+        gpus=1,
+    )
+    with mock.patch(
+        "deepspeed.checkpointing.configure", wraps=deepspeed.checkpointing.configure
+    ) as deepspeed_checkpointing_configure:
+        trainer.fit(model)
+
+    deepspeed_checkpointing_configure.assert_called_with(
+        mpu_=None, partition_activations=True, contiguous_checkpointing=True, checkpoint_in_cpu=True, profile=None
+    )
 
 
 @RunIf(min_gpus=1, deepspeed=True)
@@ -658,8 +688,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         def on_train_batch_start(
             self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
         ) -> None:
-            original_deepspeed_plugin = initial_trainer.accelerator.training_type_plugin
-            current_deepspeed_plugin = trainer.accelerator.training_type_plugin
+            original_deepspeed_plugin = initial_trainer.training_type_plugin
+            current_deepspeed_plugin = trainer.training_type_plugin
 
             assert isinstance(original_deepspeed_plugin, DeepSpeedPlugin)
             assert isinstance(current_deepspeed_plugin, DeepSpeedPlugin)

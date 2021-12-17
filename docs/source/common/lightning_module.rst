@@ -150,7 +150,7 @@ The LightningModule has many convenience methods, but the core ones you need to 
 Training
 --------
 
-Training loop
+Training Loop
 ^^^^^^^^^^^^^
 To activate the training loop, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method.
 
@@ -191,7 +191,7 @@ Under the hood, Lightning does the following (pseudocode):
         optimizer.step()
 
 
-Training epoch-level metrics
+Training Epoch-Level Metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
 
@@ -229,7 +229,7 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
 
     epoch_metric = torch.mean(torch.stack([x["train_loss"] for x in outs]))
 
-Train epoch-level operations
+Train Epoch-Level Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end` method.
@@ -327,7 +327,7 @@ Here is the Lightning training pseudo-code for DP:
 
 ------------------
 
-Validation loop
+Validation Loop
 ^^^^^^^^^^^^^^^
 To activate the validation loop while training, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method.
 
@@ -373,7 +373,7 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
     trainer = Trainer()
     trainer.validate(model)
 
-Validation epoch-level metrics
+Validation Epoch-Level Metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
@@ -450,7 +450,7 @@ Here is the Lightning validation pseudo-code for DP:
 
 ----------------
 
-Test loop
+Test Loop
 ^^^^^^^^^
 The process for enabling a test loop is the same as the process for enabling a validation loop. Please refer to
 the section above for details. For this you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method.
@@ -592,7 +592,7 @@ Note that in this case, the train loop and val loop are exactly the same. We can
 
 We create a new method called ``shared_step`` that all loops can use. This method name is arbitrary and NOT reserved.
 
-Inference in research
+Inference in Research
 ^^^^^^^^^^^^^^^^^^^^^
 If you want to perform inference with the system, you can add a ``forward`` method to the LightningModule.
 
@@ -643,7 +643,7 @@ In the case where you want to scale your inference, you should be using
     trainer = Trainer(gpus=2)
     trainer.predict(model, data_module)
 
-Inference in production
+Inference in Production
 ^^^^^^^^^^^^^^^^^^^^^^^
 For cases like production, you might want to iterate different models inside a LightningModule.
 
@@ -1193,7 +1193,7 @@ example above, we have set ``batch_first=True``.
     sub_batch = batch[0, 0:t, ...]
 
 To modify how the batch is split,
-override the :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch` method:
+override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch` method:
 
 .. testcode:: python
 

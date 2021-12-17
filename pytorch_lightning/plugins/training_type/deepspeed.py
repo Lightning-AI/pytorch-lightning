@@ -42,7 +42,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -88,6 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -273,6 +274,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
@@ -374,7 +376,8 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_checkpoint_after_pre_dispatch(self) -> bool:
         return True
 
-    def pre_dispatch(self):
+    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+        self._move_optimizer_state()
         self.init_deepspeed()
         self.barrier()
 
@@ -397,9 +400,9 @@ class DeepSpeedPlugin(DDPPlugin):
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
-        self._model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
+        self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
-        return self._model, [optimizer]
+        return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
         self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
@@ -526,8 +529,8 @@ class DeepSpeedPlugin(DDPPlugin):
             deepspeed.checkpointing.configure(
                 mpu_=None,
                 partition_activations=checkpoint_config.get("partition_activations"),
-                contiguous_checkpointing=checkpoint_config.get("contiguous_checkpointing"),
-                checkpoint_in_cpu=checkpoint_config.get("checkpoint_in_cpu"),
+                contiguous_checkpointing=checkpoint_config.get("contiguous_memory_optimization"),
+                checkpoint_in_cpu=checkpoint_config.get("cpu_checkpointing"),
                 profile=checkpoint_config.get("profile"),
             )
 
@@ -878,11 +881,14 @@ class DeepSpeedPlugin(DDPPlugin):
     def checkpoint_io(self, plugin: CheckpointIO) -> None:
         raise MisconfigurationException("DeepSpeed currently does not support custom checkpoint plugins.")
 
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)

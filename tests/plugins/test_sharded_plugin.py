@@ -6,7 +6,6 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
@@ -32,43 +31,23 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_sharded_ddp_choice(tmpdir, strategy):
+@pytest.mark.parametrize(
+    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+)
+def test_sharded_ddp_choice(tmpdir, strategy, expected):
     """Test to ensure that plugin is correctly chosen."""
-
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            if strategy == "ddp_sharded":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif strategy == "ddp_sharded_spawn":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy)
+    assert isinstance(trainer.training_type_plugin, expected)
 
 
 @RunIf(min_gpus=1, fairscale=True)
-@pytest.mark.parametrize(["strategy"], [("ddp_sharded",), ("ddp_sharded_spawn",)])
-def test_ddp_choice_sharded_amp(tmpdir, strategy):
+@pytest.mark.parametrize(
+    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+)
+def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            if strategy == "ddp_sharded":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
-            elif strategy == "ddp_sharded_spawn":
-                assert isinstance(trainer.accelerator.training_type_plugin, DDPSpawnShardedPlugin)
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
+    assert isinstance(trainer.training_type_plugin, expected)
 
 
 @RunIf(skip_windows=True, fairscale=True)

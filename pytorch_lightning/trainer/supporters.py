@@ -60,9 +60,11 @@ class TensorRunningAccum:
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
 
-    def reset(self) -> None:
+    def reset(self, window_length: Optional[int] = None) -> None:
         """Empty the accumulator."""
-        self.__init__(self.window_length)
+        if window_length is None:
+            window_length = self.window_length
+        self.__init__(window_length)
 
     def last(self):
         """Get the last added element."""
@@ -305,10 +307,10 @@ class CombinedDataset:
 
 
 class CombinedLoader:
-    """Combines different dataloaders and allows sampling in parallel. Supported modes are 'min_size', which raises
-    StopIteration after the shortest loader (the one with the lowest number of batches) is done, and
-    'max_size_cycle` which raises StopIteration after the longest loader (the one with most batches) is done, while
-    cycling through the shorter loaders.
+    """Combines different dataloaders and allows sampling in parallel. Supported modes are ``"min_size"``, which
+    raises StopIteration after the shortest loader (the one with the lowest number of batches) is done, and
+    ``"max_size_cycle"`` which raises StopIteration after the longest loader (the one with most batches) is done,
+    while cycling through the shorter loaders.
 
     Examples:
         >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4),

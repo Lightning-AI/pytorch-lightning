@@ -120,7 +120,7 @@ def test_warning_if_ipus_not_used(tmpdir):
 @RunIf(ipu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, strategy=IPUPlugin(training_opts=poptorch.Options()))
+        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUPlugin(training_opts=poptorch.Options()))
     assert len(record) == 0
 
 
@@ -188,7 +188,7 @@ def test_optimization(tmpdir):
 def test_mixed_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-            assert trainer.accelerator.model.precision == 16
+            assert trainer.training_type_plugin.model.precision == 16
             raise SystemExit
 
     model = IPUModel()
@@ -203,8 +203,8 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.accelerator.model.precision == 16
-            for param in trainer.accelerator.model.parameters():
+            assert trainer.training_type_plugin.model.precision == 16
+            for param in trainer.training_type_plugin.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
 
@@ -212,7 +212,7 @@ def test_pure_half_precision(tmpdir):
     model = model.half()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
 
-    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
     assert isinstance(trainer.training_type_plugin.precision_plugin, IPUPrecisionPlugin)
     assert trainer.training_type_plugin.precision_plugin.precision == 16
 
@@ -224,9 +224,9 @@ def test_pure_half_precision(tmpdir):
 def test_device_iterations_ipu_plugin(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.accelerator.training_type_plugin.device_iterations == 2
+            assert trainer.training_type_plugin.device_iterations == 2
             # assert device iterations has been set correctly within the poptorch options
-            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
+            poptorch_model = trainer.training_type_plugin.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.toDict()["device_iterations"] == 2
             raise SystemExit
 
@@ -238,7 +238,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
         strategy=IPUPlugin(device_iterations=2),
         callbacks=TestCallback(),
     )
-    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -251,7 +251,7 @@ def test_accumulated_batches(tmpdir):
             # since ipu handle accumulation
             assert trainer.accumulation_scheduler.scheduling == {0: 1}
             # assert poptorch option have been set correctly
-            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
+            poptorch_model = trainer.training_type_plugin.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.Training.toDict()["gradient_accumulation"] == 2
             raise SystemExit
 
@@ -356,9 +356,9 @@ def test_manual_poptorch_opts(tmpdir):
     )
     trainer.fit(model)
 
-    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-    assert trainer.accelerator.training_type_plugin.training_opts == training_opts
-    assert trainer.accelerator.training_type_plugin.inference_opts == inference_opts
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    assert trainer.training_type_plugin.training_opts == training_opts
+    assert trainer.training_type_plugin.inference_opts == inference_opts
 
 
 @RunIf(ipu=True)
@@ -380,7 +380,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
     class TestCallback(Callback):
         def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
             # ensure dataloaders were correctly set up during training.
-            plugin = trainer.accelerator.training_type_plugin
+            plugin = trainer.training_type_plugin
             assert isinstance(plugin, IPUPlugin)
             assert plugin.training_opts.replication_factor == 2
             assert plugin.inference_opts.replication_factor == 1
@@ -400,7 +400,7 @@ def test_manual_poptorch_opts_custom(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin, callbacks=TestCallback())
     trainer.fit(model)
 
-    plugin = trainer.accelerator.training_type_plugin
+    plugin = trainer.training_type_plugin
     assert isinstance(plugin, IPUPlugin)
 
     training_opts = plugin.training_opts
@@ -436,7 +436,7 @@ def test_replication_factor(tmpdir):
     plugin.model = model
     model.trainer = trainer
     trainer.state.fn = TrainerFn.FITTING
-    trainer.training_type_plugin.pre_dispatch()
+    trainer.training_type_plugin.pre_dispatch(trainer)
 
     trainer.state.stage = RunningStage.TRAINING
     assert trainer.training_type_plugin.replication_factor == 8
@@ -450,7 +450,7 @@ def test_replication_factor(tmpdir):
     ):
         trainer.state.fn = fn
         trainer.state.stage = stage
-        trainer.training_type_plugin.pre_dispatch()
+        trainer.training_type_plugin.pre_dispatch(trainer)
         assert trainer.training_type_plugin.replication_factor == 7
 
 
@@ -462,9 +462,9 @@ def test_default_opts(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, fast_dev_run=True)
     trainer.fit(model)
-    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-    inference_opts = trainer.accelerator.training_type_plugin.inference_opts
-    training_opts = trainer.accelerator.training_type_plugin.training_opts
+    assert isinstance(trainer.training_type_plugin, IPUPlugin)
+    inference_opts = trainer.training_type_plugin.inference_opts
+    training_opts = trainer.training_type_plugin.training_opts
     for opts in (inference_opts, training_opts):
         assert isinstance(opts, poptorch.Options)
         assert opts.Training.gradient_accumulation == 1
@@ -585,7 +585,7 @@ def test_poptorch_models_at_different_stages(tmpdir):
 
     trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
-    trainer.training_type_plugin.pre_dispatch()
+    trainer.training_type_plugin.pre_dispatch(trainer)
     assert list(trainer.training_type_plugin.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
 
     for fn, stage in (
@@ -595,7 +595,7 @@ def test_poptorch_models_at_different_stages(tmpdir):
     ):
         trainer.state.fn = fn
         trainer.state.stage = stage
-        trainer.training_type_plugin.pre_dispatch()
+        trainer.training_type_plugin.pre_dispatch(trainer)
         assert list(trainer.training_type_plugin.poptorch_models) == [stage]
 
 

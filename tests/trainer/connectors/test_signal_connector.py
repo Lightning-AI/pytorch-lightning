@@ -27,6 +27,21 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+@RunIf(skip_windows=True)
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_signal_handlers_restored_in_teardown():
+    """Test that the SignalConnector restores the previously configured handler on teardown."""
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+
+    trainer = Trainer(plugins=SLURMEnvironment())
+    connector = SignalConnector(trainer)
+    connector.register_signal_handlers()
+
+    assert signal.getsignal(signal.SIGTERM) is not signal.SIG_DFL
+    connector.teardown()
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+
+
 @pytest.mark.parametrize("register_handler", [False, True])
 @pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
@@ -64,9 +79,6 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
 def test_auto_requeue_flag(auto_requeue):
-    sigterm_handler_default = signal.getsignal(signal.SIGTERM)
-    sigusr1_handler_default = signal.getsignal(signal.SIGUSR1)
-
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
     connector = SignalConnector(trainer)
     connector.register_signal_handlers()
@@ -80,13 +92,10 @@ def test_auto_requeue_flag(auto_requeue):
         assert len(sigusr1_handlers) == 1
         assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
     else:
-        assert signal.getsignal(signal.SIGTERM) is sigterm_handler_default
-        assert signal.getsignal(signal.SIGUSR1) is sigusr1_handler_default
+        assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+        assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
 
-    # restore the signal handlers so the next test can run with system defaults
-    # TODO: should this be done in SignalConnector teardown?
-    signal.signal(signal.SIGTERM, sigterm_handler_default)
-    signal.signal(signal.SIGUSR1, sigusr1_handler_default)
+    connector.teardown()
 
 
 def _registering_signals():
@@ -100,3 +109,28 @@ def test_signal_connector_in_thread():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
             assert future.exception() is None
+
+
+def signal_handler():
+    pass
+
+
+class SignalHandlers:
+    def signal_handler(self):
+        pass
+
+
+@pytest.mark.parametrize(
+    ["handler", "expected_return"],
+    [
+        (None, False),
+        (signal.Handlers.SIG_IGN, True),
+        (signal.Handlers.SIG_DFL, False),
+        (signal_handler, True),
+        (SignalHandlers().signal_handler, True),
+    ],
+)
+def test_has_already_handler(handler, expected_return):
+    """Test that the SignalConnector detects whether a signal handler is already attached."""
+    with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
+        assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return

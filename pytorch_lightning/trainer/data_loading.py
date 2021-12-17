@@ -14,10 +14,10 @@
 import multiprocessing
 import os
 from abc import ABC
-from copy import deepcopy
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -50,13 +50,18 @@ class TrainerDataLoadingMixin(ABC):
     val_check_interval: float
     tpu_local_core_rank: int
     train_dataloader: DataLoader
-    num_training_batches: Union[int, float]
-    val_check_batch: float
-    val_dataloaders: Optional[List[DataLoader]]
-    num_val_batches: List[Union[int, float]]
-    test_dataloaders: Optional[List[DataLoader]]
-    num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    num_training_batches: int
+    val_check_batch: float
+    val_dataloaders: List[DataLoader]
+    limit_val_batches: Union[int, float]
+    num_val_batches: List[int]
+    test_dataloaders: List[DataLoader]
+    limit_test_batches: Union[int, float]
+    num_test_batches: List[int]
+    predict_dataloaders: List[DataLoader]
+    limit_predict_batches: Union[int, float]
+    num_predict_batches: List[int]
     log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
@@ -166,7 +171,7 @@ class TrainerDataLoadingMixin(ABC):
         if self._requires_distributed_sampler(dataloader):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
+                    "You seem to have configured a sampler in your DataLoader. This will be replaced"
                     " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp=False` if you want to use your custom sampler."
@@ -293,31 +298,16 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        # when overfitting, use the training loader as val and test
-        # duplicate it the numb of times needed to match the train loaders
-        if self.overfit_batches > 0:
-            train_dataloader = self.request_dataloader(RunningStage.TRAINING, model=model)
-            dataloaders = [deepcopy(train_dataloader) for _ in range(len(dataloaders))]
-
-        for loader_i in range(len(dataloaders)):
-            loader = dataloaders[loader_i]
-
-            if hasattr(loader, "sampler") and not isinstance(loader.sampler, SequentialSampler):
-                # when overfitting, the dataloader should not have sampler
-                if self.overfit_batches > 0 and mode.evaluating:
-                    rank_zero_warn(
-                        "You requested to overfit but enabled val/test dataloader shuffling."
-                        " We are turning it off for you."
-                    )
-                    dataloaders[loader_i] = _update_dataloader(loader, SequentialSampler(loader.dataset), mode=mode)
-                else:
-                    rank_zero_warn(
-                        f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                        "it is strongly recommended that you turn this off for val/test/predict dataloaders."
-                    )
-
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
+
+        for loader in dataloaders:
+            apply_to_collection(
+                loader.loaders if isinstance(loader, CombinedLoader) else loader,
+                DataLoader,
+                self._check_eval_shuffling,
+                mode=mode,
+            )
 
         # add samplers
         dataloaders = [self.prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
@@ -332,7 +322,7 @@ class TrainerDataLoadingMixin(ABC):
         module = model or self.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = (
+                orig_num_batches = num_batches = (
                     len(dataloader)
                     if has_len_all_ranks(dataloader, self.training_type_plugin, module)
                     else float("inf")
@@ -358,7 +348,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
-                        f" {limit_eval_batches}*{num_batches} < 1. Please increase the"
+                        f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
                     )
@@ -433,7 +423,7 @@ class TrainerDataLoadingMixin(ABC):
         source = getattr(self._data_connector, f"_{stage.dataloader_prefix}_dataloader_source")
 
         hook = f"{stage.dataloader_prefix}_dataloader"
-        self.call_hook("on_" + hook, pl_module=model)
+        self._call_lightning_module_hook("on_" + hook, pl_module=model)
         with _replace_dataloader_init_method():
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
@@ -468,3 +458,16 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
 
         return dataloader
+
+    @staticmethod
+    def _check_eval_shuffling(dataloader, mode):
+        if (
+            hasattr(dataloader, "sampler")
+            and not isinstance(dataloader.sampler, SequentialSampler)
+            and not isinstance(dataloader.dataset, IterableDataset)
+        ):
+            rank_zero_warn(
+                f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
+                " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                category=PossibleUserWarning,
+            )

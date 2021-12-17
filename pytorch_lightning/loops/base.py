@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
 from deprecate import void
 from torchmetrics import Metric
@@ -59,7 +59,7 @@ class Loop(ABC, Generic[T]):
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: "pl.Trainer"):
+    def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
@@ -100,7 +100,52 @@ class Loop(ABC, Generic[T]):
         Linked loops should form a tree.
         """
 
-    def on_skip(self) -> Optional[Any]:
+    def replace(self, **loops: Union["Loop", Type["Loop"]]) -> None:
+        """Optionally replace one or multiple of this loop's sub-loops.
+
+        This methods takes care of instantiating the class (if necessary) with all existing arguments, connecting all
+        sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and connecting the new loop to
+        the parent.
+
+        Args:
+            **loops: ``Loop`` subclasses or instances. The name used should match the loop attribute name you want to
+                replace.
+
+        Raises:
+            MisconfigurationException: When passing a ``Loop`` class, if the ``__init__`` arguments do not match those
+                of the Loop class it replaces.
+        """
+        new_loops = {}
+
+        for name, type_or_object in loops.items():
+            old_loop = getattr(self, name)
+
+            if isinstance(type_or_object, type):
+                # compare the signatures
+                old_parameters = inspect.signature(old_loop.__class__.__init__).parameters
+                current_parameters = inspect.signature(type_or_object.__init__).parameters
+                if old_parameters != current_parameters:
+                    raise MisconfigurationException(
+                        f"`{self.__class__.__name__}.replace({type_or_object.__name__})` can only be used if the"
+                        f" `__init__` signatures match but `{old_loop.__class__.__name__}` does not."
+                    )
+                # instantiate the loop
+                kwargs = {p: getattr(old_loop, p) for p in old_parameters if p != "self"}
+                loop = type_or_object(**kwargs)
+            else:
+                loop = type_or_object
+
+            # connect sub-loops
+            kwargs = {n: l for n, l in old_loop.__dict__.items() if isinstance(l, Loop)}
+            loop.connect(**kwargs)
+            # set the trainer reference
+            loop.trainer = self.trainer
+
+            new_loops[name] = loop
+        # connect to self
+        self.connect(**new_loops)
+
+    def on_skip(self) -> T:
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
@@ -216,7 +261,7 @@ class Loop(ABC, Generic[T]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
         """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:

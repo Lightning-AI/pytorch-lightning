@@ -28,6 +28,8 @@ import pytest
 import torch
 import yaml
 from packaging import version
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -626,10 +628,7 @@ def test_lightning_cli_optimizer(tmpdir, run):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
 
-    match = (
-        "BoringModel.configure_optimizers` will be overridden by "
-        "`MyLightningCLI.add_configure_optimizers_method_to_model`"
-    )
+    match = "BoringModel.configure_optimizers` will be overridden by " "`MyLightningCLI.configure_optimizers`"
     argv = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1"] if run else []
     with mock.patch("sys.argv", ["any.py"] + argv), pytest.warns(UserWarning, match=match):
         cli = MyLightningCLI(BoringModel, run=run)
@@ -878,6 +877,7 @@ def test_registries():
     assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
     assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
     assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
+    assert "ReduceLROnPlateau" in LR_SCHEDULER_REGISTRY.names
 
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
@@ -1384,3 +1384,41 @@ def test_cli_help_message():
     assert shorthand_help.getvalue() == classpath_help.getvalue()
     # make sure it's not empty
     assert "Implements Adam" in shorthand_help.getvalue()
+
+
+def test_cli_reducelronplateau():
+    with mock.patch(
+        "sys.argv", ["any.py", "--optimizer=Adam", "--lr_scheduler=ReduceLROnPlateau", "--lr_scheduler.monitor=foo"]
+    ):
+        cli = LightningCLI(BoringModel, run=False)
+    config = cli.model.configure_optimizers()
+    assert isinstance(config["lr_scheduler"]["scheduler"], ReduceLROnPlateau)
+    assert config["lr_scheduler"]["scheduler"].monitor == "foo"
+
+
+def test_cli_configureoptimizers_can_be_overridden():
+    class MyCLI(LightningCLI):
+        def __init__(self):
+            super().__init__(BoringModel, run=False)
+
+        @staticmethod
+        def configure_optimizers(self, optimizer, lr_scheduler=None):
+            assert isinstance(self, BoringModel)
+            assert lr_scheduler is None
+            return 123
+
+    with mock.patch("sys.argv", ["any.py", "--optimizer=Adam"]):
+        cli = MyCLI()
+    assert cli.model.configure_optimizers() == 123
+
+    # with no optimization config, we don't override
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = MyCLI()
+    [optimizer], [scheduler] = cli.model.configure_optimizers()
+    assert isinstance(optimizer, SGD)
+    assert isinstance(scheduler, StepLR)
+    with mock.patch("sys.argv", ["any.py", "--lr_scheduler=StepLR"]):
+        cli = MyCLI()
+    [optimizer], [scheduler] = cli.model.configure_optimizers()
+    assert isinstance(optimizer, SGD)
+    assert isinstance(scheduler, StepLR)
