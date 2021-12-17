@@ -569,7 +569,8 @@ class Trainer(
         # configure profiler
         self.__init_profiler(profiler)
 
-        # init logger flags
+        # configure logger flags
+        self.__init_logger_flags(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1624,6 +1625,40 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+
+    def __init_logger_flags(
+        self,
+        logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
+        flush_logs_every_n_steps: Optional[int],
+        log_every_n_steps: int,
+        move_metrics_to_cpu: bool,
+    ) -> None:
+        if flush_logs_every_n_steps is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
+                "and will be removed in v1.7. Please configure flushing in the logger instead."
+            )
+        else:
+            flush_logs_every_n_steps = 100  # original default parameter
+
+        self.flush_logs_every_n_steps: int = flush_logs_every_n_steps
+        self.log_every_n_steps: int = log_every_n_steps
+        self.move_metrics_to_cpu: bool = move_metrics_to_cpu
+
+        self.logger: Optional[LightningLoggerBase]
+        if isinstance(logger, bool):
+            # default logger
+            self.logger = (
+                TensorBoardLogger(
+                    save_dir=self.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
+                )
+                if logger
+                else None
+            )
+        elif isinstance(logger, Iterable):
+            self.logger = LoggerCollection(logger)
+        else:
+            self.logger = logger
 
     def _log_device_info(self) -> None:
         rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")

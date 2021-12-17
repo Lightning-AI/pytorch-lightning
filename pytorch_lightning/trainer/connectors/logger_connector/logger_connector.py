@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pprint import pprint
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, memory
@@ -48,25 +46,6 @@ class LoggerConnector:
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
 
-    def on_trainer_init(
-        self,
-        logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
-        flush_logs_every_n_steps: Optional[int],
-        log_every_n_steps: int,
-        move_metrics_to_cpu: bool,
-    ) -> None:
-        self.configure_logger(logger)
-        if flush_logs_every_n_steps is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
-                "and will be removed in v1.7. Please configure flushing in the logger instead."
-            )
-        else:
-            flush_logs_every_n_steps = 100  # original default parameter
-        self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
-        self.trainer.log_every_n_steps = log_every_n_steps
-        self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
-
     @property
     def should_flush_logs(self) -> bool:
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
@@ -76,21 +55,6 @@ class LoggerConnector:
     def should_update_logs(self) -> bool:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
-
-    def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
-        if isinstance(logger, bool):
-            # default logger
-            self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
-                if logger
-                else None
-            )
-        elif isinstance(logger, Iterable):
-            self.trainer.logger = LoggerCollection(logger)
-        else:
-            self.trainer.logger = logger
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
