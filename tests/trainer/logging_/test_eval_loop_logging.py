@@ -753,7 +753,6 @@ def test_multiple_dataloaders_logging(tmpdir):
     model.validation_epoch_end = None
     trainer = Trainer(default_root_dir=tmpdir)
     results = trainer.validate(model)
-    breakpoint()
     assert results == [
         {"value_2/dataloader_idx_0": 0.0, "value_1": 0.5},
         {"value_2/dataloader_idx_1": 1.0, "value_1": 0.5},
