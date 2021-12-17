@@ -273,10 +273,9 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Calling of ``model.eval()``, enabling/disabling grads during evaluation
 * :doc:`Checkpoint Saving and Loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
-* :doc:`Accelerator Support <../extensions/accelerator>`
+* :doc:`Accelerator Support <../extensions/accelerators>`
 * :doc:`Multi-GPU <../advanced/multi_gpu>` support
-<todo update once precision PR is merged>
-* :ref:`16-bit precision AMP <amp>` support
+* :ref:`16-bit precision AMP <precision>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode (ie: RL, GANs, etc...).
 
@@ -428,6 +427,7 @@ Make sure you have added a ``forward`` method or trace only the sub-models you n
 * TorchScript using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript` method.
 
 .. code-block:: python
+
     autoencoder = LitAutoEncoder()
     autoencoder.to_torchscript(file_path="model.pt")
 

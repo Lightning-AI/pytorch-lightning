@@ -20,7 +20,6 @@ PyTorch Lightning
 
    starter/new-project
    starter/converting
-   starter/rapid_prototyping_templates
    starter/lightning_lite
 
 .. toctree::
