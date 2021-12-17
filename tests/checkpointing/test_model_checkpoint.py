@@ -1209,30 +1209,30 @@ def test_model_checkpoint_loadsave_ckpt(tmpdir):
 
     # test restore
     ckpt_for_restore = {
-        "best_model_path": 'epoch=0-step=0.ckpt',
+        "best_model_path": "epoch=0-step=0.ckpt",
         "best_model_score": torch.tensor(1.1027),
-        "best_k_models": {'epoch=0-step=0.ckpt': torch.tensor(1.1027)},
+        "best_k_models": {"epoch=0-step=0.ckpt": torch.tensor(1.1027)},
         "kth_best_model_path": "epoch=0-step=0.ckpt",
         "kth_value": torch.tensor(1.1027),
-        "last_model_path": "last.ckpt"
+        "last_model_path": "last.ckpt",
     }
 
-    cb.on_load_checkpoint("", "", ckpt_for_restore)    
+    cb.on_load_checkpoint("", "", ckpt_for_restore)
     for key, val in ckpt_for_restore.items():
         assert getattr(cb, key) == val
 
     # set attributes from 2nd checkpoint to simulate training and test write
     ckpt_for_write = {
-        "best_model_path": 'epoch=10-step=1436.ckpt',
+        "best_model_path": "epoch=10-step=1436.ckpt",
         "best_model_score": torch.tensor(2.246),
-        "best_k_models": {'epoch=10-step=1436.ckpt': torch.tensor(2.246)},
+        "best_k_models": {"epoch=10-step=1436.ckpt": torch.tensor(2.246)},
         "kth_best_model_path": "epoch=10-step=1436.ckpt",
         "kth_value": torch.tensor(2.246),
-        "last_model_path": "last2245.ckpt"
+        "last_model_path": "last2245.ckpt",
     }
     for key, val in ckpt_for_write.items():
         setattr(cb, key, val)
-    
+
     written_ckpt = cb.on_save_checkpoint("", "", "")
     for state in ckpt_for_write:
         assert ckpt_for_write[state] == written_ckpt[state]
