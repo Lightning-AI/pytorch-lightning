@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
-def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
     Checks that the model is configured correctly before the run is started.
 
@@ -28,6 +28,8 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
         model: The model to check the configuration.
 
     """
+    model = trainer.lightning_module
+
     if trainer.state.fn is None:
         raise ValueError("Unexpected: Trainer state fn must be set before validating loop configuration.")
     if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):

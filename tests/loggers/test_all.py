@@ -146,10 +146,8 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
         expected = [
-            (0, ["hp_metric"]),
             (0, ["epoch", "train_some_val"]),
             (0, ["early_stop_on", "epoch", "val_loss"]),
-            (0, ["hp_metric"]),
             (1, ["epoch", "test_loss"]),
         ]
         assert log_metric_names == expected

@@ -333,7 +333,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     for i, loss in enumerate(losses):
         trainer.fit_loop.current_epoch = i
         trainer.fit_loop.global_step = i
-        trainer.callback_metrics.update({"checkpoint_on": loss})
+        trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))
@@ -660,7 +660,7 @@ def test_benchmark_option(tmpdir):
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
