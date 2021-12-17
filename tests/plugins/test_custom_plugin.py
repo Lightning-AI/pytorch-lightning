@@ -23,7 +23,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class CustomParallelPlugin(DDPPlugin):
+class CustomParallelStrategy(DDPPlugin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.
@@ -34,7 +34,7 @@ class CustomParallelPlugin(DDPPlugin):
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
-    plugin = CustomParallelPlugin()
+    plugin = CustomParallelStrategy()
     assert plugin.sync_batchnorm is None
     trainer = Trainer(max_epochs=1, strategy=plugin, default_root_dir=tmpdir, sync_batchnorm=True)
     trainer.fit(model)
