@@ -570,6 +570,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # configure logger flags
+        self.logger: Optional[LightningLoggerBase]
         self.__init_logger_flags(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1646,20 +1647,17 @@ class Trainer(
         else:
             flush_logs_every_n_steps = 100  # original default parameter
 
-        self.flush_logs_every_n_steps: int = flush_logs_every_n_steps
-        self.log_every_n_steps: int = log_every_n_steps
-        self.move_metrics_to_cpu: bool = move_metrics_to_cpu
+        self.flush_logs_every_n_steps = flush_logs_every_n_steps
+        self.log_every_n_steps = log_every_n_steps
+        self.move_metrics_to_cpu = move_metrics_to_cpu
 
-        self.logger: Optional[LightningLoggerBase]
-        if isinstance(logger, bool):
+        if logger is True:
             # default logger
-            self.logger = (
-                TensorBoardLogger(
-                    save_dir=self.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
-                if logger
-                else None
+            self.logger = TensorBoardLogger(
+                save_dir=self.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
             )
+        elif logger is False:
+            self.logger = None
         elif isinstance(logger, Iterable):
             self.logger = LoggerCollection(logger)
         else:
