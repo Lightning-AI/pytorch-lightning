@@ -19,7 +19,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
-from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -32,7 +32,7 @@ class EvaluationLoop(DataLoaderLoop):
         self.epoch_loop = EvaluationEpochLoop()
         self.verbose = verbose
 
-        self._results = ResultCollection(training=False)
+        self._results = _ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[int] = []

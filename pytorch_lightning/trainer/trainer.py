@@ -65,7 +65,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -2242,7 +2242,7 @@ class Trainer(
         return self.logger_connector.progress_bar_metrics
 
     @property
-    def _results(self) -> Optional[ResultCollection]:
+    def _results(self) -> Optional[_ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
