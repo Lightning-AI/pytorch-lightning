@@ -303,7 +303,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a key, value pair.
 
@@ -441,7 +441,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a dictionary of values at once.
 
@@ -1807,7 +1807,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if "example_outputs" not in kwargs:
+        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
             if isinstance(input_sample, Tuple):
                 kwargs["example_outputs"] = self(*input_sample)
