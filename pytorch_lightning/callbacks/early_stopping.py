@@ -144,7 +144,7 @@ class EarlyStopping(Callback):
             if self.strict:
                 raise RuntimeError(error_msg)
             if self.verbose > 0:
-                rank_zero_warn(error_msg, RuntimeWarning)
+                rank_zero_warn(error_msg, category=RuntimeWarning)
 
             return False
 

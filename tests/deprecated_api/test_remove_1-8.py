@@ -18,6 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -84,6 +85,11 @@ def test_v1_8_0_deprecated_call_hook():
     )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
+
+
+def test_v1_8_0_deprecated_warning_positional_category():
+    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
+        rank_zero_warn("foo", FutureWarning)
 
 
 def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
