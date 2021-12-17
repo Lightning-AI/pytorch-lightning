@@ -544,15 +544,6 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
         sampler.batch_indices = []
 
 
-def test_v1_7_0_trainer_verbose_evaluate():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.7"):
-        assert trainer.verbose_evaluate
-
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.7"):
-        trainer.verbose_evaluate = False
-
-
 def test_v1_7_0_post_dispatch_hook():
     class CustomPlugin(SingleDevicePlugin):
         def post_dispatch(self, trainer):

@@ -2192,19 +2192,22 @@ class Trainer(
     @property
     def verbose_evaluate(self) -> bool:
         rank_zero_deprecation(
-            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.7. The current value"
-            " returned is just a token value.",
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. The current value"
+            " returned is the union of the validate and test loop values. You can choose which one to access with"
+            " `trainer.{validate,test}_loop.verbose`.",
             stacklevel=5,
         )
-        return True
+        return self.validate_loop.verbose or self.test_loop.verbose
 
     @verbose_evaluate.setter
-    def verbose_evaluate(self, value: bool) -> None:
+    def verbose_evaluate(self, verbose: bool) -> None:
         rank_zero_deprecation(
-            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.7. Setting the value"
-            " is a no-op.",
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. This will set"
+            " the value for both trainer.{validate,test}_loop.verbose`.",
             stacklevel=5,
         )
+        self.validate_loop.verbose = verbose
+        self.test_loop.verbose = verbose
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:
