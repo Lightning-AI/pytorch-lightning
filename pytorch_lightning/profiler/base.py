@@ -17,7 +17,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
+from typing import Any, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
@@ -60,7 +60,7 @@ class BaseProfiler(AbstractProfiler):
         self.filename = filename
 
         self._output_file: Optional[TextIO] = None
-        self._write_stream: Optional[Callable] = None
+        self._prepare_streams()
         self._local_rank: Optional[int] = None
         self._log_dir: Optional[str] = None
         self._stage: Optional[str] = None
@@ -129,16 +129,9 @@ class BaseProfiler(AbstractProfiler):
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
-        # there are pickling issues with open file handles in Python 3.6
-        # so to avoid them, we open and close the files within this function
-        # by calling `_prepare_streams` and `teardown`
-        self._prepare_streams()
         summary = self.summary()
         if summary:
             self._write_stream(summary)
-        if self._output_file is not None:
-            self._output_file.flush()
-        self.teardown(stage=self._stage)
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
         stage = f"{self._stage.upper()} " if self._stage is not None else ""

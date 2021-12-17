@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
 
-# TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
-_IN_METRIC = Any  # Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
+_IN_METRIC = Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[torch.Tensor, Dict[str, torch.Tensor]]
 _PBAR_METRIC = Union[float, Dict[str, float]]
 _OUT_DICT = Dict[str, _OUT_METRIC]

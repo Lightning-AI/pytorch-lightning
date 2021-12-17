@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import signal
-import sys
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
@@ -135,28 +134,8 @@ def caplog(caplog):
 
 @pytest.fixture
 def tmpdir_server(tmpdir):
-    if sys.version_info >= (3, 7):
-        Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
-        from http.server import ThreadingHTTPServer
-    else:
-        # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
-        # so we have to hack it like this
-
-        class Handler(SimpleHTTPRequestHandler):
-            def translate_path(self, path):
-                # get the path from cwd
-                path = super().translate_path(path)
-                # get the relative path
-                relpath = os.path.relpath(path, os.getcwd())
-                # return the full path from root_dir
-                return os.path.join(str(tmpdir), relpath)
-
-        # ThreadingHTTPServer was added in 3.7, so we need to define it ourselves
-        from http.server import HTTPServer
-        from socketserver import ThreadingMixIn
-
-        class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
-            daemon_threads = True
+    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
+    from http.server import ThreadingHTTPServer
 
     with ThreadingHTTPServer(("localhost", 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
