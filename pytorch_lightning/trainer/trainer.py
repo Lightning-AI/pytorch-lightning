@@ -35,7 +35,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
@@ -462,9 +462,6 @@ class Trainer(
         )
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        training_batch_loop = TrainingBatchLoop()
-        training_validation_loop = EvaluationLoop()
-        training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
         fit_loop.connect(epoch_loop=training_epoch_loop)
 
         # default .fit() loop
