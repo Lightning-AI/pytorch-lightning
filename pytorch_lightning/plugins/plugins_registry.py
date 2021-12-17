@@ -21,28 +21,28 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Trainin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _TrainingTypePluginsRegistry(dict):
-    """This class is a Registry that stores information about the Training Type Plugins.
+class _StrategyRegistry(dict):
+    """This class is a Registry that stores information about the Strategies.
 
-    The Plugins are mapped to strings. These strings are names that idenitify
-    a plugin, e.g., "deepspeed". It also returns Optional description and
-    parameters to initialize the Plugin, which were defined durng the
+    The Strategies are mapped to strings. These strings are names that idenitify
+    a strategy, e.g., "deepspeed". It also returns Optional description and
+    parameters to initialize the strategy, which were defined durng the
     registration.
 
-    The motivation for having a TrainingTypePluginRegistry is to make it convenient
-    for the Users to try different Plugins by passing just strings
-    to the plugins flag to the Trainer.
+    The motivation for having a StrategyRegistry is to make it convenient
+    for the Users to try different Strategies by passing just strings
+    to the ``strategy`` flag to the Trainer.
 
     Example::
 
-        @TrainingTypePluginsRegistry.register("lightning", description="Super fast", a=1, b=True)
-        class LightningPlugin:
+        @StrategyRegistry.register("lightning", description="Super fast", a=1, b=True)
+        class LightningStrategy:
             def __init__(self, a, b):
                 ...
 
         or
 
-        TrainingTypePluginsRegistry.register("lightning", LightningPlugin, description="Super fast", a=1, b=True)
+        StrategyRegistry.register("lightning", LightningStrategy, description="Super fast", a=1, b=True)
     """
 
     def register(
@@ -113,7 +113,7 @@ class _TrainingTypePluginsRegistry(dict):
         return "Registered Plugins: {}".format(", ".join(self.keys()))
 
 
-TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
+StrategyRegistry = _StrategyRegistry()
 
 
 def is_register_plugins_overridden(plugin: type) -> bool:
@@ -134,4 +134,4 @@ def call_training_type_register_plugins(root: Path, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
-            mod.register_plugins(TrainingTypePluginsRegistry)
+            mod.register_plugins(StrategyRegistry)

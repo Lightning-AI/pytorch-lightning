@@ -50,7 +50,7 @@ from pytorch_lightning.plugins import (
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
-    TrainingTypePluginsRegistry,
+    StrategyRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -301,8 +301,8 @@ class AcceleratorConnector:
             )
 
     def _set_training_type_plugin(self) -> None:
-        if isinstance(self.strategy, str) and self.strategy in TrainingTypePluginsRegistry:
-            self._training_type_plugin = TrainingTypePluginsRegistry.get(self.strategy)
+        if isinstance(self.strategy, str) and self.strategy in StrategyRegistry:
+            self._training_type_plugin = StrategyRegistry.get(self.strategy)
         if isinstance(self.strategy, str):
             self.set_distributed_mode(self.strategy)
         elif isinstance(self.strategy, TrainingTypePlugin):
@@ -328,14 +328,14 @@ class AcceleratorConnector:
         cluster_environment = None
 
         for plug in self.plugins:
-            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
+            if isinstance(plug, str) and plug in StrategyRegistry:
                 if training_type is None:
-                    training_type = TrainingTypePluginsRegistry.get(plug)
+                    training_type = StrategyRegistry.get(plug)
                 else:
                     raise MisconfigurationException(
                         "You can only specify one precision and one training type plugin."
                         " Found more than 1 training type plugin:"
-                        f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
+                        f' {StrategyRegistry[plug]["plugin"]} registered to {plug}'
                     )
             if isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
@@ -593,14 +593,14 @@ class AcceleratorConnector:
 
     @staticmethod
     def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
-        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(_StrategyType)):
+        if isinstance(plugin, str) and (plugin in StrategyRegistry or plugin in list(_StrategyType)):
             return True
         return isinstance(plugin, TrainingTypePlugin)
 
     @property
     def is_training_type_in_plugins(self) -> bool:
         return any(
-            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, TrainingTypePlugin)
+            (isinstance(plug, str) and plug in StrategyRegistry) or isinstance(plug, TrainingTypePlugin)
             for plug in self.plugins
         )
 
@@ -820,8 +820,8 @@ class AcceleratorConnector:
         if strategy is None and self.is_training_type_in_plugins:
             return
 
-        if strategy is not None and strategy in TrainingTypePluginsRegistry:
-            self.distributed_backend = TrainingTypePluginsRegistry[strategy]["distributed_backend"]
+        if strategy is not None and strategy in StrategyRegistry:
+            self.distributed_backend = StrategyRegistry[strategy]["distributed_backend"]
         elif strategy is not None:
             self.distributed_backend = strategy
 

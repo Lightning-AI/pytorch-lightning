@@ -25,7 +25,7 @@ Additionally, you can pass your custom registered training type plugins to the `
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin, TrainingTypePluginsRegistry, CheckpointIO
+    from pytorch_lightning.plugins import DDPPlugin, StrategyRegistry, CheckpointIO
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -39,7 +39,7 @@ Additionally, you can pass your custom registered training type plugins to the `
     custom_checkpoint_io = CustomCheckpointIO()
 
     # Register the DDP Plugin with your custom CheckpointIO plugin
-    TrainingTypePluginsRegistry.register(
+    StrategyRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPPlugin,
         description="DDP Plugin with custom checkpoint io plugin",

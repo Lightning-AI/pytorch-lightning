@@ -7,7 +7,7 @@ from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     call_training_type_register_plugins,
-    TrainingTypePluginsRegistry,
+    StrategyRegistry,
 )
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin

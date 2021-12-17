@@ -23,7 +23,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
     TPUSpawnPlugin,
-    TrainingTypePluginsRegistry,
+    StrategyRegistry,
 )
 from tests.helpers.runif import RunIf
 
@@ -40,18 +40,18 @@ def test_training_type_plugins_registry_with_new_plugin():
     plugin_name = "test_plugin"
     plugin_description = "Test Plugin"
 
-    TrainingTypePluginsRegistry.register(
+    StrategyRegistry.register(
         plugin_name, TestPlugin, description=plugin_description, param1="abc", param2=123
     )
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["description"] == plugin_description
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert TrainingTypePluginsRegistry[plugin_name]["distributed_backend"] == "test_plugin"
-    assert isinstance(TrainingTypePluginsRegistry.get(plugin_name), TestPlugin)
+    assert plugin_name in StrategyRegistry
+    assert StrategyRegistry[plugin_name]["description"] == plugin_description
+    assert StrategyRegistry[plugin_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert StrategyRegistry[plugin_name]["distributed_backend"] == "test_plugin"
+    assert isinstance(StrategyRegistry.get(plugin_name), TestPlugin)
 
-    TrainingTypePluginsRegistry.remove(plugin_name)
-    assert plugin_name not in TrainingTypePluginsRegistry
+    StrategyRegistry.remove(plugin_name)
+    assert plugin_name not in StrategyRegistry
 
 
 @pytest.mark.parametrize(
@@ -67,9 +67,9 @@ def test_training_type_plugins_registry_with_new_plugin():
 )
 def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init_params):
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == init_params
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
+    assert plugin_name in StrategyRegistry
+    assert StrategyRegistry[plugin_name]["init_params"] == init_params
+    assert StrategyRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
 
 
 @RunIf(deepspeed=True)
@@ -85,9 +85,9 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 
     plugin = "tpu_spawn_debug"
 
-    assert plugin in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
+    assert plugin in StrategyRegistry
+    assert StrategyRegistry[plugin]["init_params"] == {"debug": True}
+    assert StrategyRegistry[plugin]["plugin"] == TPUSpawnPlugin
 
     trainer = Trainer(strategy=plugin)
 
@@ -98,8 +98,8 @@ def test_fsdp_plugins_registry(tmpdir):
 
     plugin = "fsdp"
 
-    assert plugin in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == DDPFullyShardedPlugin
+    assert plugin in StrategyRegistry
+    assert StrategyRegistry[plugin]["plugin"] == DDPFullyShardedPlugin
 
     trainer = Trainer(strategy=plugin)
 
@@ -121,9 +121,9 @@ def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugi
 
     assert isinstance(trainer.training_type_plugin, plugin)
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == plugin
+    assert plugin_name in StrategyRegistry
+    assert StrategyRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
+    assert StrategyRegistry[plugin_name]["plugin"] == plugin
 
 
 def test_custom_registered_training_plugin_to_strategy():
@@ -140,7 +140,7 @@ def test_custom_registered_training_plugin_to_strategy():
     custom_checkpoint_io = CustomCheckpointIO()
 
     # Register the DDP Plugin with your custom CheckpointIO plugin
-    TrainingTypePluginsRegistry.register(
+    StrategyRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPPlugin,
         description="DDP Plugin with custom checkpoint io plugin",
