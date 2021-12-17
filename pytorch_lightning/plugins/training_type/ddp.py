@@ -50,7 +50,7 @@ from pytorch_lightning.utilities import (
     rank_zero_deprecation,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -535,6 +535,9 @@ class DDPPlugin(ParallelPlugin):
     def teardown(self) -> None:
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown
