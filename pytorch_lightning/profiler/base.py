@@ -132,6 +132,8 @@ class BaseProfiler(AbstractProfiler):
         summary = self.summary()
         if summary:
             self._write_stream(summary)
+        if self._output_file is not None:
+            self._output_file.flush()
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
         stage = f"{self._stage.upper()} " if self._stage is not None else ""
