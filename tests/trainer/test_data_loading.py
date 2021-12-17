@@ -19,9 +19,12 @@ import pytest
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -265,7 +268,7 @@ def test_dataloader_reinit_for_subclass():
 
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    with pytest.raises(MisconfigurationException, match="will be replaced  by `DistributedSampler`"):
+    with pytest.raises(MisconfigurationException, match="will be replaced by `DistributedSampler`"):
         trainer.prepare_dataloader(dataloader, shuffle=True)
 
 
@@ -334,3 +337,42 @@ def test_pre_made_batches():
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
+
+
+def test_error_raised_with_float_limited_eval_batches():
+    """Test that an error is raised if there are not enough batches when passed with float value of
+    limit_eval_batches."""
+    model = BoringModel()
+    dl_size = len(model.val_dataloader())
+    limit_val_batches = 1 / (dl_size + 2)
+    trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer._data_connector.attach_data(model)
+    with pytest.raises(
+        MisconfigurationException,
+        match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
+    ):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
+
+
+@pytest.mark.parametrize(
+    "val_dl",
+    [
+        DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+        CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)),
+        CombinedLoader(
+            [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
+        ),
+        CombinedLoader(
+            {
+                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            }
+        ),
+    ],
+)
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
+    trainer = Trainer()
+    model = BoringModel()
+    trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
+    with pytest.warns(PossibleUserWarning, match="recommended .* turn this off for val/test/predict"):
+        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)

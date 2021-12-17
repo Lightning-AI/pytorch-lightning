@@ -1710,7 +1710,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1807,7 +1807,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if "example_outputs" not in kwargs:
+        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
             if isinstance(input_sample, Tuple):
                 kwargs["example_outputs"] = self(*input_sample)

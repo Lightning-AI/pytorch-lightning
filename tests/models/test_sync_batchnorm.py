@@ -37,6 +37,9 @@ class SyncBNModule(LightningModule):
         self.linear = nn.Linear(28 * 28, 10)
         self.bn_layer = nn.BatchNorm1d(28 * 28)
 
+    def on_train_start(self) -> None:
+        assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
     def forward(self, x, batch_idx):
         with torch.no_grad():
             out_bn = self.bn_layer(x.view(x.size(0), -1))
@@ -123,4 +126,6 @@ def test_sync_batchnorm_ddp(tmpdir):
     )
 
     trainer.fit(model, dm)
-    assert trainer.state.finished, "Sync batchnorm failing with DDP"
+    # the strategy is responsible for tearing down the batchnorm wrappers
+    assert not isinstance(model.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+    assert isinstance(model.bn_layer, torch.nn.modules.batchnorm._BatchNorm)

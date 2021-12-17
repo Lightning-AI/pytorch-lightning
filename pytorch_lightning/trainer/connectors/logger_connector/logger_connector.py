@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pprint import pprint
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 
@@ -20,7 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _AcceleratorType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -36,7 +35,6 @@ class LoggerConnector:
                 "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
             )
         self.log_gpu_memory = log_gpu_memory
-        self.eval_loop_results: List[_OUT_DICT] = []
         self._val_log_step: int = 0
         self._test_log_step: int = 0
         self._progress_bar_metrics: _PBAR_DICT = {}
@@ -139,6 +137,11 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
+    def _evaluation_epoch_end(self) -> None:
+        results = self.trainer._results
+        assert results is not None
+        results.dataloader_idx = None
+
     def update_eval_step_metrics(self) -> None:
         assert not self._epoch_end_reached
         if self.trainer.sanity_checking:
@@ -150,58 +153,19 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self._increment_eval_log_step()
 
-    def _prepare_eval_loop_results(self) -> None:
+    def update_eval_epoch_metrics(self) -> _OUT_DICT:
+        assert self._epoch_end_reached
+        if self.trainer.sanity_checking:
+            return {}
+        return self.metrics["callback"]
+
+    def log_eval_end_metrics(self) -> None:
+        assert self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
-        on_step = not self._epoch_end_reached
-        num_dataloaders = self.trainer._evaluation_loop.num_dataloaders
-        has_been_initialized = len(self.eval_loop_results) == num_dataloaders
-        assert self.trainer._evaluation_loop._results is not None
-        for dl_idx in range(num_dataloaders):
-            metrics = self.trainer._evaluation_loop._results.metrics(
-                on_step, dataloader_idx=dl_idx if num_dataloaders > 1 else None
-            )
-            callback_metrics = metrics["callback"]
-
-            if has_been_initialized:
-                self.eval_loop_results[dl_idx].update(callback_metrics)
-            else:
-                self.eval_loop_results.append(callback_metrics)
-
-    def update_eval_epoch_metrics(self) -> List[_OUT_DICT]:
-        assert self._epoch_end_reached
-        metrics = self.metrics
-
-        if not self.trainer.sanity_checking:
-            # log all the metrics as a single dict
-            self.log_metrics(metrics["log"])
-
-        self._prepare_eval_loop_results()
-
-        # log results of evaluation
-        if (
-            self.trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING)
-            and self.trainer.evaluating
-            and self.trainer.is_global_zero
-            and self.trainer.verbose_evaluate
-        ):
-            print("-" * 80)
-            assert self.trainer.state.stage is not None
-            for i, metrics_dict in enumerate(self.eval_loop_results):
-                print(f"DATALOADER:{i} {self.trainer.state.stage.upper()} RESULTS")
-                pprint(
-                    {
-                        k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                        for k, v in metrics_dict.items()
-                    }
-                )
-                print("-" * 80)
-
-        results = self.eval_loop_results
-        # clear mem
-        self.eval_loop_results = []
-        return results
+        # log all the metrics as a single dict
+        self.log_metrics(self.metrics["log"])
 
     """
     Train metric updates
@@ -272,11 +236,6 @@ class LoggerConnector:
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
-        results = self.trainer._results
-        assert results is not None
-        # we need to reset this index before the `self.metrics` call below
-        results.dataloader_idx = None
-
         metrics = self.metrics
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
