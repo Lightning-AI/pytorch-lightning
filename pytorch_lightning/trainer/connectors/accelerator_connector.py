@@ -32,8 +32,8 @@ from pytorch_lightning.plugins import (
     DDPFullyShardedStrategy,
     DDPPlugin,
     DDPShardedPlugin,
-    DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DDPSpawnStrategy,
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
@@ -735,7 +735,7 @@ class AcceleratorConnector:
             ):
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
-                ddp_plugin_cls = DDPSpawnPlugin
+                ddp_plugin_cls = DDPSpawnStrategy
             elif use_ddp_fully_sharded:
                 ddp_plugin_cls = DDPFullyShardedStrategy
             else:

@@ -14,7 +14,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPPlugin, DDPSpawnStrategy
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_10
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -97,7 +97,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPSpawnPlugin(ddp_comm_hook=default.fp16_compress_hook)
+    training_type_plugin = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
     trainer = Trainer(
         max_epochs=1,
         gpus=2,

@@ -95,11 +95,11 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPSpawnPlugin
+    from pytorch_lightning.plugins import DDPSpawnStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPSpawnPlugin(find_unused_parameters=False),
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters

@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
@@ -46,7 +46,7 @@ __all__ = [
     "DataParallelPlugin",
     "DDP2Plugin",
     "DDPPlugin",
-    "DDPSpawnPlugin",
+    "DDPSpawnStrategy",
     "DDPFullyShardedStrategy",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",

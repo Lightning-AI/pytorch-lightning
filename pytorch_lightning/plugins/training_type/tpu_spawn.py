@@ -27,7 +27,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -49,7 +49,7 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnPlugin(DDPSpawnPlugin):
+class TPUSpawnPlugin(DDPSpawnStrategy):
     """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
     def __init__(
