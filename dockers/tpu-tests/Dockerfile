@@ -29,7 +29,7 @@ RUN cd pytorch-lightning && \
 
 RUN \
     # drop unnecessary packages
-    python .github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "fairscale" "horovod" && \
+    python .actions/assistant.py requirements_prune_pkgs ./pytorch-lightning/requirements/extra.txt --packages "fairscale" "horovod" && \
     pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
 
 COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/

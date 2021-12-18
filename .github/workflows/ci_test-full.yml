@@ -53,7 +53,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .github/prune-packages.py requirements/extra.txt "horovod"
+        python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages "horovod"
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'

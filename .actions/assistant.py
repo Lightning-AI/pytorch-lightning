@@ -1,6 +1,8 @@
 import datetime
 import os
 import re
+from pprint import pprint
+from typing import Sequence
 
 import fire
 
@@ -22,6 +24,18 @@ class AssistantCLI:
         init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
         with open(path_info, "w") as fp:
             fp.write(init)
+
+    @staticmethod
+    def requirements_prune_pkgs(req_file: str, packages: Sequence[str]):
+        with open(req_file) as fp:
+            lines = fp.readlines()
+
+        for pkg in packages:
+            lines = [ln for ln in lines if not ln.startswith(pkg)]
+        pprint(lines)
+
+        with open(req_file, "w") as fp:
+            fp.writelines(lines)
 
 
 if __name__ == '__main__':

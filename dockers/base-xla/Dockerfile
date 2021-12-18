@@ -92,10 +92,10 @@ RUN \
     python --version && \
     cd pytorch-lightning && \
     # drop packages installed with XLA
-    python .github/prune-packages.py requirements.txt "torch" && \
-    python .github/prune-packages.py requirements/examples.txt "torchvision" && \
+    python .actions/assistant.py requirements_prune_pkgs requirements.txt --packages "torch" && \
+    python .actions/assistant.py requirements_prune_pkgs requirements/examples.txt --packages "torchvision" && \
     # drop unnecessary packages
-    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
+    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages "fairscale" "horovod" && \
     python ./requirements/adjust-versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \
