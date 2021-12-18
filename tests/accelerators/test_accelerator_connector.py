@@ -712,21 +712,13 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 @mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPPlugin()])
 def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
