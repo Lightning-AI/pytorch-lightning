@@ -110,9 +110,9 @@ def test_ddp_configure_ddp():
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.connect(model)
+    trainer.lightning_module.trainer = trainer
     trainer.training_type_plugin.setup_environment()
     trainer.training_type_plugin.setup(trainer)
-    trainer.lightning_module.trainer = trainer
     assert isinstance(trainer.model, LightningModule)
     trainer._pre_dispatch()
     # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
@@ -124,9 +124,9 @@ def test_ddp_configure_ddp():
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.training_type_plugin.connect(model)
+    trainer.lightning_module.trainer = trainer
     trainer.training_type_plugin.setup_environment()
     trainer.training_type_plugin.setup(trainer)
-    trainer.lightning_module.trainer = trainer
     trainer._pre_dispatch()
     # in DDPPlugin configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
