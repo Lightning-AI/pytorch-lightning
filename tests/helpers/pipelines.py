@@ -41,7 +41,7 @@ def run_model_test_without_loggers(
 
     if not isinstance(model2, BoringModel):
         for dataloader in test_loaders:
-            run_prediction_eval_model_template(model2, dataloader, min_acc=min_acc)
+            run_model_prediction(model2, dataloader, min_acc=min_acc)
 
 
 def run_model_test(
@@ -79,7 +79,7 @@ def run_model_test(
 
     if not isinstance(model, BoringModel):
         for dataloader in test_loaders:
-            run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
+            run_model_prediction(model, dataloader, min_acc=min_acc)
 
     if with_hpc:
         if trainer._distrib_type in (_StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2):
@@ -96,7 +96,7 @@ def run_model_test(
 
 
 @torch.no_grad()
-def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
+def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()
