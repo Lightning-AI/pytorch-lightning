@@ -24,7 +24,6 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
@@ -41,7 +40,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -399,7 +398,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
-        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 

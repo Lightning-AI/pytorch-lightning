@@ -665,6 +665,8 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
 
 
 def test_lr_scheduler_step_hook(tmpdir):
+    """Test that custom lr_schedulers works and `lr_scheduler_hook` is called at appropriate time."""
+
     class CustomEpochScheduler:
         def __init__(self, optimizer):
             self.optimizer = optimizer
@@ -672,6 +674,12 @@ def test_lr_scheduler_step_hook(tmpdir):
         def step(self, epoch):
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = param_group["lr"] / (epoch + 1)
+
+        def state_dict(self):
+            return {key: value for key, value in self.__dict__.items() if key != "optimizer"}
+
+        def load_state_dict(self, state_dict):
+            self.__dict__.update(state_dict)
 
     class CustomBoringModel(BoringModel):
         def __init__(self, learning_rate):

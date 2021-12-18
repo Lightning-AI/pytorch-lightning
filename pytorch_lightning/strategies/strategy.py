@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, move_dat
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeUnion, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
