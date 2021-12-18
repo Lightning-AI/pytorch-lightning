@@ -691,13 +691,13 @@ def test_lr_scheduler_step_hook(tmpdir):
         def training_epoch_end(self, *args, **kwargs):
             pass
 
-        def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val=None):
+        def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val=None):
+            # step-level
             if optimizer_idx == 0:
-                assert step == self.trainer.global_step
-                super().lr_scheduler_step(scheduler, step, optimizer_idx, monitor_val)
-            if optimizer_idx == 1:
-                assert step == self.trainer.current_epoch
-                scheduler.step(epoch=step)
+                super().lr_scheduler_step(scheduler, optimizer_idx, monitor_val)
+            # epoch-level
+            elif optimizer_idx == 1:
+                scheduler.step(epoch=self.current_epoch)
 
         def configure_optimizers(self):
             opt1 = torch.optim.SGD(self.layer1.parameters(), lr=self.learning_rate)
@@ -724,5 +724,3 @@ def test_lr_scheduler_step_hook(tmpdir):
 
     for param_group in trainer.optimizers[1].param_groups:
         assert param_group["lr"] == lr / math.factorial(max_epochs)
-
-    breakpoint()

@@ -330,7 +330,7 @@ class HookedModel(BoringModel):
                         [
                             dict(
                                 name="lr_scheduler_step",
-                                args=(ANY, current_epoch),
+                                args=(ANY,),
                                 kwargs=dict(optimizer_idx=None, monitor_val=None),
                             )
                         ]

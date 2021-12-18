@@ -1496,7 +1496,6 @@ class LightningModule(
     def lr_scheduler_step(
         self,
         scheduler: Any,
-        step: int,
         optimizer_idx: Optional[int] = None,
         monitor_val: Optional[Union[float, torch.Tensor]] = None,
     ):
@@ -1508,28 +1507,27 @@ class LightningModule(
 
         Args:
             scheduler: Learning rate scheduler.
-            step: Epoch or global step based on the interval of individual scheduler.
             optimizer_idx: Index of the optimizer associated with scheduler.
             monitor_val: Value of the metric used for schedulers like ``ReduceLROnPlateau``.
 
         Examples::
 
             # DEFAULT
-            def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val):
+            def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val):
                 if monitor_val is None:
                     scheduler.step()
                 else:
                     scheduler.step(monitor_val)
 
             # Alternative way to do step if scheduler requires an epoch value
-            def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val):
-                scheduler.step(epoch=step)
+            def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val):
+                scheduler.step(epoch=self.current_epoch)
 
         """
         if monitor_val is None:
             scheduler.step()
         else:
-            scheduler.step(monitor_val)
+            scheduler.step(metrics=monitor_val)
 
     def optimizer_step(
         self,

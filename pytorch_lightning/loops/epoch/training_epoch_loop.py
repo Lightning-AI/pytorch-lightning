@@ -503,10 +503,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                step = self.trainer.global_step if interval == "step" else self.trainer.current_epoch
                 self.trainer.lightning_module.lr_scheduler_step(
                     lr_scheduler["scheduler"],
-                    step,
                     optimizer_idx=lr_scheduler["opt_idx"],
                     monitor_val=monitor_val,
                 )

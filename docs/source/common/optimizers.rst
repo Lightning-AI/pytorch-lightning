@@ -252,7 +252,7 @@ If you want to call schedulers that require a metric value after each epoch, con
 
 -----
 
-Bring your own custom learning rate schedulers
+Bring your own Custom Learning Rate Schedulers
 ----------------------------------------------
 Lightning allows custom learning rate schedulers which are not present in
 `PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
@@ -272,8 +272,8 @@ Lightning will handle it optimally by default.
         return [optimizer], [scheduler]
 
 
-    def lr_scheduler_step(self, scheduler, step, optimizer_idx, monitor_val=None):
-        scheduler.step(epoch=step)  # timm's scheduler need the epoch value
+    def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val=None):
+        scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
 
 -----
 
