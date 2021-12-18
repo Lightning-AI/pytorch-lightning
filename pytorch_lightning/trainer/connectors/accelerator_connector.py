@@ -178,10 +178,6 @@ class AcceleratorConnector:
         self.accelerator = self.training_type_plugin.accelerator
         self._check_plugin_compatibility()
 
-        # benchmarking
-        # TODO: should this be moved to GPU accelerator?
-        torch.backends.cudnn.benchmark = self.benchmark
-
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def _init_deterministic(self, deterministic: bool) -> None:
