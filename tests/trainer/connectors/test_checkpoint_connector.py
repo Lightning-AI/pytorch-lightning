@@ -25,7 +25,8 @@ from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
 
 
-class HPCHookdedModel(BoringModel):
+# TODO: remove HPCHookedModel in v1.8
+class HPCHookedModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.hpc_save_called = 0
@@ -40,12 +41,13 @@ class HPCHookdedModel(BoringModel):
         self.hpc_load_called += 1
 
 
+# TODO: remove test_hpc_hook_calls in v1.8
 @mock.patch(
     "pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks",
     return_value=True,
 )
 def test_hpc_hook_calls(mock_slurm_env, tmpdir):
-    model = HPCHookdedModel()
+    model = HPCHookedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
     environment = trainer._accelerator_connector.cluster_environment
     assert isinstance(environment, SLURMEnvironment)
