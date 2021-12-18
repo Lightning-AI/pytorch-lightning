@@ -1519,7 +1519,7 @@ class LightningModule(
                 else:
                     scheduler.step(monitor_val)
 
-            # Alternative way to do step if scheduler requires an epoch value
+            # Alternative way to update schedulers if it requires an epoch value
             def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val):
                 scheduler.step(epoch=self.current_epoch)
 
