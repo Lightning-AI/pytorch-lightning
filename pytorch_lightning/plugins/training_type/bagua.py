@@ -31,7 +31,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__(pl_module)
         # Bagua use `bagua_module_name` to distinguish different modules
-        self.bagua_module_name = pl_module._get_name() + str(id(pl_module))
+        self._bagua_module_name = pl_module._get_name() + str(id(pl_module))
 
     def forward(self, *inputs, **kwargs):
         return super().forward(*inputs, **kwargs)
@@ -87,6 +87,7 @@ class BaguaPlugin(DDPPlugin):
             f"MEMBER: {self.global_rank + 1}/{self.world_size}"
         )
 
+        # need to set device first before initialize Bagua distributed environment
         torch.cuda.set_device(self.local_rank)
 
         if not is_initialized():
@@ -131,6 +132,7 @@ class BaguaPlugin(DDPPlugin):
         )
 
     def start_training(self, trainer: "pl.Trainer") -> Any:
+        # start the background communication for async algorithm
         if self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)
 
@@ -160,6 +162,7 @@ class BaguaPlugin(DDPPlugin):
         plugin_registry.register("bagua", cls, description="Default Bagua Plugin")
 
     def teardown(self) -> None:
+        # abort the background communication for async algorithm, this operation is idempotent
         if self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)
 
