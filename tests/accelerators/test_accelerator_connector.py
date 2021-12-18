@@ -24,7 +24,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
@@ -45,7 +44,6 @@ from pytorch_lightning.plugins.environments import (
 )
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 

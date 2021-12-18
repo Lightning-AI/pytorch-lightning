@@ -70,9 +70,14 @@ class PredictionLoop(DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        super().reset()
         self.predictions = []
         self.epoch_batch_indices = []
+
+        super().reset()
+        # when restarting, if we are running twice, since there's no concept of `max_epochs` we need to reset the
+        # current state when the loop has finished running
+        if self.done:
+            self.dataloader_progress.reset_on_run()
 
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls ``_on_predict_start`` hook."""

@@ -22,6 +22,7 @@ from deprecate import void
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
@@ -67,6 +68,10 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.reset_on_run()
         else:
             self.batch_progress.reset_on_restart()
+        # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
+        # need to reset the current state when the loop has finished running
+        if self.done and self.trainer.state.fn != TrainerFn.FITTING:
+            self.batch_progress.reset_on_run()
 
     def on_run_start(  # type: ignore[override]
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: int

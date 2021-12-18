@@ -21,7 +21,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -31,6 +31,7 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
@@ -351,7 +352,7 @@ class LightningModule(
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(
-                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                "You are trying to `self.log()` but the loop's result collection is not registered"
                 " yet. This is most likely because you are trying to log in a `predict` hook,"
                 " but it doesn't support logging"
             )
@@ -1119,15 +1120,16 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self):
+    def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
-        gets called, the list returned here will be merged with the list of callbacks passed to the Trainer's
-        ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks already
-        present in the Trainer's callbacks list, it will take priority and replace them. In addition, Lightning
-        will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
+        gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
+        Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
+        already present in the Trainer's callbacks list, it will take priority and replace them. In addition,
+        Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        run last.
 
         Return:
-            A list of callbacks which will extend the list of callbacks in the Trainer.
+            A callback or a list of callbacks which will extend the list of callbacks in the Trainer.
 
         Example::
 

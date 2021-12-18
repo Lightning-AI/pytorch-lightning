@@ -112,7 +112,6 @@ def test_first_logger_call_in_subprocess(tmpdir):
 
         def on_train_start(self, trainer, pl_module):
             assert trainer.logger.method_call
-            trainer.logger.log_hyperparams.assert_called_once()
             trainer.logger.log_graph.assert_called_once()
 
     logger = Mock()
