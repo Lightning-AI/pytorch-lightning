@@ -732,3 +732,26 @@ def test_lr_scheduler_step_hook(tmpdir):
 
     for param_group in trainer.optimizers[1].param_groups:
         assert param_group["lr"] == lr / math.factorial(max_epochs)
+
+
+def test_invalid_lr_scheduler(tmpdir):
+    """Test that custom lr_schedulers works and `lr_scheduler_hook` is called at appropriate time."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, epoch):
+            for param_group in self.optimizer.param_groups:
+                param_group["lr"] = param_group["lr"] / (epoch + 1)
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    with pytest.raises(ValueError, match="provided lr scheduler .* is invalid"):
+        trainer.init_optimizers(model)
