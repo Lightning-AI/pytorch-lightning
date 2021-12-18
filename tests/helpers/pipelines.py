@@ -88,7 +88,7 @@ def run_model_test(
                 trainer.optimizers,
                 trainer.lr_schedulers,
                 trainer.optimizer_frequencies,
-            ) = pretrained_model.init_optimizers_and_lr_schedulers()
+            ) = pretrained_model._init_optimizers_and_lr_schedulers()
 
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)

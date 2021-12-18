@@ -151,18 +151,18 @@ def test_optimizer_return_options(tmpdir):
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert len(opt) == 1 and len(lr_sched) == len(freq) == 0
 
     # opt tuple
     model.configure_optimizers = lambda: (opt_a, opt_b)
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
     # opt list
     model.configure_optimizers = lambda: [opt_a, opt_b]
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
@@ -179,7 +179,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt tuple of 2 lists
     model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -187,7 +187,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt tuple of 1 list
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -195,7 +195,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -206,7 +206,7 @@ def test_optimizer_return_options(tmpdir):
         {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
         {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
     )
-    opt, lr_sched, freq = model.init_optimizers_and_lr_schedulers()
+    opt, lr_sched, freq = model._init_optimizers_and_lr_schedulers()
     assert len(opt) == len(lr_sched) == len(freq) == 2
     assert opt[0] == opt_a
     ref_lr_sched["opt_idx"] = 0

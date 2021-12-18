@@ -105,7 +105,7 @@ class TrainingTypePlugin(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        optimizers, lr_schedulers, optimizer_frequencies = self.lightning_module.init_optimizers_and_lr_schedulers()
+        optimizers, lr_schedulers, optimizer_frequencies = self.lightning_module._init_optimizers_and_lr_schedulers()
         self.optimizers = optimizers
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies

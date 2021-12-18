@@ -98,14 +98,14 @@ class _LRFinder:
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, model: "pl.LightningModule"):
-        """Decorate `model.init_optimizers_and_lr_schedulers` method such that it returns the user's originally
+        """Decorate `model._init_optimizers_and_lr_schedulers` method such that it returns the user's originally
         specified optimizer together with a new scheduler that takes care of the learning rate search."""
-        init_optimizers_and_lr_schedulers = model.init_optimizers_and_lr_schedulers
+        _init_optimizers_and_lr_schedulers = model._init_optimizers_and_lr_schedulers
 
-        @wraps(init_optimizers_and_lr_schedulers)
+        @wraps(_init_optimizers_and_lr_schedulers)
         def func():
-            # Decide the structure of the output from init_optimizers_and_lr_schedulers
-            optimizers, _, _ = init_optimizers_and_lr_schedulers()
+            # Decide the structure of the output from _init_optimizers_and_lr_schedulers
+            optimizers, _, _ = _init_optimizers_and_lr_schedulers()
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -231,7 +231,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    model.init_optimizers_and_lr_schedulers = lr_finder._exchange_scheduler(model)
+    model._init_optimizers_and_lr_schedulers = lr_finder._exchange_scheduler(model)
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)

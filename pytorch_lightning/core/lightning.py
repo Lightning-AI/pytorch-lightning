@@ -1970,8 +1970,13 @@ class LightningModule(
         self._register_state_dict_hook(state_dict_hook)
         self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
 
-    def init_optimizers_and_lr_schedulers(self) -> Tuple[List, List, List]:
+    def _init_optimizers_and_lr_schedulers(self) -> Tuple[List, List, List]:
+        prev_fx_name = self._current_fx_name
+        self._current_fx_name = "configure_optimizers"
+        self.trainer._lightning_optimizers = None
         optim_conf = self.configure_optimizers()
+        self._current_fx_name = prev_fx_name
+
         if optim_conf is None:
             rank_zero_warn(
                 "`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer",

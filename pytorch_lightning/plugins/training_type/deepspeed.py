@@ -443,7 +443,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = self.lightning_module.init_optimizers_and_lr_schedulers()
+        optimizers, schedulers, optimizer_frequencies = self.lightning_module._init_optimizers_and_lr_schedulers()
         if len(optimizers) > 1 or len(schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
