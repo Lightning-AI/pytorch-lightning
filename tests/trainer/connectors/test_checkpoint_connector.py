@@ -20,6 +20,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
 
@@ -39,17 +40,22 @@ class HPCHookdedModel(BoringModel):
         self.hpc_load_called += 1
 
 
-def test_hpc_hook_calls(tmpdir):
+@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks", return_value=True)
+def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     model = HPCHookdedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    environment = trainer._accelerator_connector.cluster_environment
+    assert isinstance(environment, SLURMEnvironment)
+    assert environment.auto_requeue
     with pytest.deprecated_call(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(model)
+
     # simulate snapshot on slurm
-    saved_filepath = trainer.checkpoint_connector.hpc_save_path(tmpdir)
-    trainer.save_checkpoint(saved_filepath)
-    assert model.hpc_save_called == 0
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    trainer.save_checkpoint(hpc_save_path)
+    assert model.hpc_save_called == 1
     assert model.hpc_load_called == 0
 
     # new training run, restore from hpc checkpoint file automatically
@@ -59,7 +65,7 @@ def test_hpc_hook_calls(tmpdir):
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(model)
-    assert model.hpc_save_called == 0
+    assert model.hpc_save_called == 1
     assert model.hpc_load_called == 1
 
 
