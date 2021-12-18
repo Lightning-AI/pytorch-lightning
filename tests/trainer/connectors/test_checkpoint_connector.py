@@ -40,7 +40,10 @@ class HPCHookdedModel(BoringModel):
         self.hpc_load_called += 1
 
 
-@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks", return_value=True)
+@mock.patch(
+    "pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks",
+    return_value=True,
+)
 def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     model = HPCHookdedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
