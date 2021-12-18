@@ -93,7 +93,6 @@ module = [
     "pytorch_lightning.trainer.connectors.checkpoint_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.data_loading",
-    "pytorch_lightning.trainer.optimizers",
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",

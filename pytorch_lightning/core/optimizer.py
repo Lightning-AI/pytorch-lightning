@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Optional
+from typing import Any, Callable, Dict, Generator, Optional
 from weakref import proxy
 
+import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -162,3 +163,30 @@ class LightningOptimizer:
         assert trainer is not None
         with trainer.profiler.profile(profiler_action):
             trainer.training_type_plugin.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+
+
+class _MockOptimizer(Optimizer):
+    """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
+    `configure_optimizers`."""
+
+    def __init__(self) -> None:
+        super().__init__([torch.zeros(1)], {})
+
+    def add_param_group(self, param_group: Dict[Any, Any]) -> None:
+        pass  # Do Nothing
+
+    def load_state_dict(self, state_dict: Dict[Any, Any]) -> None:
+        pass  # Do Nothing
+
+    def state_dict(self) -> Dict[Any, Any]:
+        return {}  # Return Empty
+
+    def step(self, closure: Callable = None) -> None:
+        if closure is not None:
+            closure()
+
+    def zero_grad(self, set_to_none: Optional[bool] = False) -> None:
+        pass  # Do Nothing
+
+    def __repr__(self) -> str:
+        return "No Optimizer"

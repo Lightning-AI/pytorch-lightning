@@ -68,7 +68,6 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -118,12 +117,8 @@ warnings.filterwarnings(
 
 class Trainer(
     TrainerCallbackHookMixin,
-    TrainerOptimizersMixin,
     TrainerDataLoadingMixin,
 ):
-    # Needed because of LightningOptimizer
-    _lightning_optimizers = None
-
     @_defaults_from_env_vars
     def __init__(
         self,
@@ -476,8 +471,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # Needed because of LightningOptimizer
-        self._lightning_optimizers = None
+        self._lightning_optimizers: Optional[List[LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -2291,6 +2285,17 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
+
+    def convert_to_lightning_optimizers(self):
+        def _convert_to_lightning_optimizer(trainer, optimizer):
+            if not isinstance(optimizer, LightningOptimizer):
+                optimizer = LightningOptimizer(optimizer)
+            optimizer._on_trainer_init(trainer)
+            return optimizer
+
+        self._lightning_optimizers = {
+            opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
+        }
 
 
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
