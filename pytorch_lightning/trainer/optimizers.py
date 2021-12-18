@@ -15,10 +15,12 @@
 from abc import ABC
 from typing import List, Optional, Tuple
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import optim
 from torch.optim.optimizer import Optimizer
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import (
