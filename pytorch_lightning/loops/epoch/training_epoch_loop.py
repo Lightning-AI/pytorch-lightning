@@ -503,7 +503,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                self.trainer.lightning_module.lr_scheduler_step(
+                self.trainer._call_lightning_module_hook(
+                    "lr_scheduler_step",
                     lr_scheduler["scheduler"],
                     optimizer_idx=lr_scheduler["opt_idx"],
                     monitor_val=monitor_val,
