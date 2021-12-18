@@ -79,10 +79,9 @@ class HorovodPlugin(ParallelPlugin):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+
         super().setup(trainer)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 
