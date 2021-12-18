@@ -1,6 +1,10 @@
+from unittest import mock
+
 import torch
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import GPUAccelerator
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -26,3 +30,12 @@ def test_get_nvidia_gpu_stats(tmpdir):
 
     for f in fields:
         assert any(f in h for h in gpu_stats.keys())
+
+
+@RunIf(gpus=1)
+@mock.patch("torch.cuda.set_device")
+def test_set_cuda_device(set_device_mock, tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1, enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False)
+    trainer.fit(model)
+    set_device_mock.assert_called_once()
