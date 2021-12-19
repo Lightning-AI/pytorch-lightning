@@ -351,6 +351,16 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Lightning Lite
+
+<img href="https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html" src="docs/source/_static/images/lightning_lite/lite.gif" width="400px">
+
+In the Lighting 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
+[blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
+[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
+
+______________________________________________________________________
+
 ## Examples
 
 ###### Hello world

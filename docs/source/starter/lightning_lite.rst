@@ -11,6 +11,7 @@ on any kind of device while retaining full control over their own loops and opti
     :width: 500
     :align: center
 
+|
 
 :class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
 
@@ -83,6 +84,7 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 4. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair and :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``self.backward(loss)``.
 5. Instantiate your :class:`~pytorch_lightning.lite.LightningLite` subclass and call its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 
+|
 
 .. code-block:: python
 
