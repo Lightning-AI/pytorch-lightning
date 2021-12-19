@@ -131,15 +131,12 @@ class ScheduleWrapper:
 
     @property
     def is_training(self) -> bool:
-        return self._current_action is not None and (
-            self._current_action.startswith("optimizer_step_with_closure_")
-            or self._current_action.endswith("training_step")
+        return self._current_action.startswith("optimizer_step_with_closure_") or self._current_action.endswith(
+            "training_step"
         )
 
     @property
     def num_step(self) -> int:
-        if self._current_action is None:
-            return 0
         if self.is_training:
             return self._num_optimizer_step_with_closure
         if self._current_action.endswith("validation_step"):
@@ -151,8 +148,6 @@ class ScheduleWrapper:
         return 0
 
     def _step(self) -> None:
-        if self._current_action is None:
-            return
         if self.is_training:
             self._num_optimizer_step_with_closure += 1
         elif self._current_action.endswith("validation_step"):
@@ -168,8 +163,6 @@ class ScheduleWrapper:
 
     @property
     def has_finished(self) -> bool:
-        if self._current_action is None:
-            return False
         if self.is_training:
             return self._optimizer_step_with_closure_reached_end
         if self._current_action.endswith("validation_step"):
@@ -182,12 +175,12 @@ class ScheduleWrapper:
 
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
-        if self.has_finished:
+        if self._current_action is None or self.has_finished:
             return ProfilerAction.NONE
 
         self._step()
         action = self._schedule(max(self.num_step, 0))
-        if action == ProfilerAction.RECORD_AND_SAVE and self._current_action is not None:
+        if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_with_closure_reached_end = True
             elif self._current_action.endswith("validation_step"):

@@ -310,12 +310,12 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         gpus=2,
     )
     trainer.fit(model)
-    expected = {"[TrainingTypePlugin]DDPPlugin.validation_step"}
+    expected = {"[Strategy]DDPPlugin.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
             "training_step_and_backward",
-            "[TrainingTypePlugin]DDPPlugin.training_step",
-            "[TrainingTypePlugin]DDPPlugin.backward",
+            "[Strategy]DDPPlugin.training_step",
+            "[Strategy]DDPPlugin.backward",
         }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
@@ -333,7 +333,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
-        assert any(f"{local_rank}-[TrainingTypePlugin]DDPPlugin.validation_step" in f for f in files)
+        assert any(f"{local_rank}-[Strategy]DDPPlugin.validation_step" in f for f in files)
 
 
 @RunIf(standalone=True)
@@ -346,9 +346,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(
-        e.name == "[TrainingTypePlugin]SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events
-    )
+    assert sum(e.name == "[Strategy]SingleDevicePlugin.validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")

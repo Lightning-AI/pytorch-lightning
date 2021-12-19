@@ -1583,7 +1583,7 @@ class Trainer(
         if not callable(fn):
             return
 
-        with self.profiler.profile(f"[TrainingTypePlugin]{self.training_type_plugin.__class__.__name__}.{hook_name}"):
+        with self.profiler.profile(f"[Strategy]{self.training_type_plugin.__class__.__name__}.{hook_name}"):
             output = fn(*args, **kwargs)
 
         # restore current_fx when nested context
