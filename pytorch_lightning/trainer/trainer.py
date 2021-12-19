@@ -1107,7 +1107,7 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1153,7 +1153,7 @@ class Trainer(
         # plugin will move model to device
         self._pre_dispatch()
 
-        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.

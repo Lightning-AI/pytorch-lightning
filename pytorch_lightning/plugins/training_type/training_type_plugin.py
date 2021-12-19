@@ -381,7 +381,7 @@ class TrainingTypePlugin(ABC):
         return trainer.init_optimizers(model)
 
     @property
-    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+    def restore_checkpoint_after_setup(self) -> bool:
         """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
         requires all the setup hooks to run before loading checkpoint.
 

@@ -365,7 +365,7 @@ class DeepSpeedPlugin(DDPPlugin):
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
-    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+    def restore_checkpoint_after_setup(self) -> bool:
         return True
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
