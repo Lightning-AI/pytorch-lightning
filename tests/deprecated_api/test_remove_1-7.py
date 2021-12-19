@@ -551,3 +551,27 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
+
+
+def test_v1_7_0_deprecate_TrainerCallbackHookMixin():
+    trainer = Trainer(
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    with pytest.deprecated_call(
+        match="`TrainerCallbackHookMixin.on_after_backward` was deprecated in v1.6 and will be removed in v1.7"
+    ):
+        trainer.call_hook("on_after_backward")
+
+    with pytest.deprecated_call(
+        match="`TrainerCallbackHookMixin.on_exception` was deprecated in v1.6 and will be removed in v1.7"
+    ):
+        trainer.call_hook("on_exception", Exception)
+
+    with pytest.deprecated_call(
+        match="`TrainerCallbackHookMixin.on_predict_start` was deprecated in v1.6 and will be removed in v1.7"
+    ):
+        trainer.call_hook("on_predict_start")

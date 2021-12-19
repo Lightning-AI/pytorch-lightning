@@ -20,7 +20,7 @@ from packaging.version import Version
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -32,166 +32,353 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: "pl.LightningModule"
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_before_accelerator_backend_setup(self) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_before_accelerator_backend_setup` was deprecated in v1.6
+            and will be removed in v1.7.
+
+        Called at the beginning of fit (train + validate), validate, test, or predict, or tune.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_before_accelerator_backend_setup` was deprecated in v1.6 "
+            "and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_configure_sharded_model(self) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_configure_sharded_model` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called at the beginning of fit (train + validate), validate, test, or predict, or tune.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_configure_sharded_model` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_configure_sharded_model(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def setup(self, stage: Optional[str]) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.setup` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called at the beginning of fit (train + validate), validate, test, or predict, or tune.
+        """
+        rank_zero_deprecation("`TrainerCallbackHookMixin.setup` was deprecated in v1.6 and will be removed in v1.7.")
         for callback in self.callbacks:
             callback.setup(self, self.lightning_module, stage=stage)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.teardown` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called at the end of fit (train + validate), validate, test, or predict, or tune.
+        """
+        rank_zero_deprecation("`TrainerCallbackHookMixin.teardown` was deprecated in v1.6 and will be removed in v1.7.")
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage=stage)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_init_start(self):
-        """Called when the trainer initialization begins, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_init_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the trainer initialization begins, model has not yet been set.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_init_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_init_start(self)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_init_end(self):
-        """Called when the trainer initialization ends, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_init_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the trainer initialization ends, model has not yet been set.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_init_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_init_end(self)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_fit_start(self):
-        """Called when the trainer initialization begins, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the trainer initialization begins, model has not yet been set.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_fit_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_fit_end(self):
-        """Called when the trainer initialization begins, model has not yet been set."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the trainer initialization begins, model has not yet been set.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_fit_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_sanity_check_start(self):
-        """Called when the validation sanity check starts."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_sanity_check_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation sanity check starts.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_sanity_check_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_sanity_check_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_sanity_check_end(self):
-        """Called when the validation sanity check ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_sanity_check_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation sanity check ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_sanity_check_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_sanity_check_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_epoch_start(self):
-        """Called when the epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_epoch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_epoch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_epoch_end(self):
-        """Called when the epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_epoch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_epoch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_epoch_start(self):
-        """Called when the epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_epoch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_epoch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_epoch_end(self):
-        """Called when the validation epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_epoch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation epoch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_epoch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_epoch_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_epoch_start(self):
-        """Called when the epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_epoch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_epoch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_epoch_end(self):
-        """Called when the test epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_epoch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the test epoch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_epoch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_epoch_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_epoch_start(self) -> None:
-        """Called when the epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_epoch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_epoch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_epoch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_epoch_end(self, outputs: List[Any]) -> None:
-        """Called when the epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_epoch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the epoch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_epoch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_epoch_end(self, self.lightning_module, outputs)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_epoch_start(self):
-        """Called when either of train/val/test epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_epoch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when either of train/val/test epoch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_epoch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_epoch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_epoch_end(self):
-        """Called when either of train/val/test epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_epoch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when either of train/val/test epoch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_epoch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_epoch_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_start(self):
-        """Called when the train begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the train begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_train_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_end(self):
-        """Called when the train ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the train ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_train_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_pretrain_routine_start(self) -> None:
-        """Called when the pre-train routine begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_pretrain_routine_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the pre-train routine begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_pretrain_routine_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_pretrain_routine_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_pretrain_routine_end(self) -> None:
-        """Called when the pre-train routine ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_pretrain_routine_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the pre-train routine ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_pretrain_routine_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_pretrain_routine_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_batch_start(self):
-        """Called when the training batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_batch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the training batch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_batch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_batch_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_batch_end(self):
-        """Called when the training batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_batch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the training batch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_batch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_batch_end(self, self.lightning_module)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """Called when the training batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the training batch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
@@ -199,84 +386,175 @@ class TrainerCallbackHookMixin(ABC):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
-        """Called when the training batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the training batch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-        """Called when the validation batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_batch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation batch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_batch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
-        """Called when the validation batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_batch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation batch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_batch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
-        """Called when the test batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_batch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the test batch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_batch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
-        """Called when the test batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_batch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the test batch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_batch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """Called when the predict batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_batch_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the predict batch begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_batch_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        """Called when the predict batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_batch_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the predict batch ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_batch_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_start(self):
-        """Called when the validation loop begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation loop begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_validation_end(self):
-        """Called when the validation loop ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_validation_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the validation loop ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_validation_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_validation_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_start(self):
-        """Called when the test begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the test begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_test_end(self):
-        """Called when the test ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_test_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when the test ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_test_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_test_end(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_start(self) -> None:
-        """Called when predict begins."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_start` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when predict begins.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_start` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_start(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_predict_end(self) -> None:
-        """Called when predict ends."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_predict_end` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when predict ends.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_predict_end` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_predict_end(self, self.lightning_module)
 
@@ -290,9 +568,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_exception(self, exception: BaseException) -> None:
-        """Called when any trainer execution is interrupted by an exception."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_exception` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when any trainer execution is interrupted by an exception.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_exception` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_exception(self, self.lightning_module, exception)
 
@@ -331,26 +616,54 @@ class TrainerCallbackHookMixin(ABC):
                 state = deepcopy(state)
                 callback.on_load_checkpoint(self, self.lightning_module, state)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_before_backward(self, loss: torch.Tensor) -> None:
-        """Called before ``loss.backward()``."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_before_backward` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called before ``loss.backward()``.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_before_backward` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_before_backward(self, self.lightning_module, loss)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_after_backward(self):
-        """Called after loss.backward() and before optimizers do anything."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_after_backward` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called after loss.backward() and before optimizers do anything.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_after_backward` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_before_optimizer_step(self, optimizer, optimizer_idx):
-        """Called after on_after_backward() once the gradient is accumulated and before optimizer.step()."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_before_optimizer_step` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called after on_after_backward() once the gradient is accumulated and before optimizer.step().
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_before_optimizer_step` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
-    # TODO: Delete this in v1.8 (deprecation #10979)
     def on_before_zero_grad(self, optimizer):
-        """Called after optimizer.step() and before optimizer.zero_grad()."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_before_zero_grad` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called after optimizer.step() and before optimizer.zero_grad().
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_before_zero_grad` was deprecated in v1.6 and will be removed in v1.7."
+        )
         for callback in self.callbacks:
             callback.on_before_zero_grad(self, self.lightning_module, optimizer)
