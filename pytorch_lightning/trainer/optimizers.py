@@ -21,15 +21,26 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainerOptimizersMixin(ABC):
+    r"""
+    .. deprecated:: v1.6
+        The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.7.
+    """
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
 
     def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
+        r"""
+        .. deprecated:: v1.6
+            `TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.7.
+        """
+        rank_zero_deprecation(
+            "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.7."
+        )
         pl_module = self.lightning_module or model
         self._lightning_optimizers = None
         optim_conf = self._call_lightning_module_hook("configure_optimizers", pl_module=pl_module)
@@ -109,6 +120,15 @@ class TrainerOptimizersMixin(ABC):
         return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
     def convert_to_lightning_optimizers(self):
+        r"""
+        .. deprecated:: v1.6
+            `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.7.
+        """
+        rank_zero_deprecation(
+            "`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
+            "v1.7."
+        )
+
         def _convert_to_lightning_optimizer(trainer, optimizer):
             if not isinstance(optimizer, LightningOptimizer):
                 optimizer = LightningOptimizer(optimizer)

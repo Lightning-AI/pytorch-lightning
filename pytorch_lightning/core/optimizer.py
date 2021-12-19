@@ -336,7 +336,7 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
     }
 
 
-def _validate_scheduler_optimizer(optimizers, lr_schedulers):
+def _validate_scheduler_optimizer(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
     if any(sch["scheduler"].optimizer not in optimizers for sch in lr_schedulers):
         raise MisconfigurationException(
             "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
