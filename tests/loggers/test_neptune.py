@@ -77,7 +77,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
-        created_run_mock = logger._run_instance
+        created_run_mock = logger.run
 
         self.assertEqual(logger._run_instance, created_run_mock)
         self.assertEqual(logger.name, "Run test name")
@@ -109,7 +109,7 @@ class TestNeptuneLogger(unittest.TestCase):
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
-        neptune.init.assert_called_once_with(project="test-project", api_token=None, run="TEST-42")
+        neptune.init.assert_called_once_with(name="Test name", run=unpickleable_run._short_id)
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -360,7 +360,7 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
-        attr_mock = logger._run_instance.__getitem__
+        attr_mock = logger.run.__getitem__
         attr_mock.reset_mock()
         fake_image = {}
 
