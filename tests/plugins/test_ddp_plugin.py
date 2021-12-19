@@ -100,7 +100,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_ddp_configure_ddp():
-    """Tests with ddp plugin."""
+    """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
     trainer = Trainer(

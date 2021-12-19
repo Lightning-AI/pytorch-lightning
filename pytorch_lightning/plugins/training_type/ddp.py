@@ -310,7 +310,7 @@ class DDPStrategy(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
             )
         if _TORCH_GREATER_EQUAL_1_10:
             if not _IS_WINDOWS:
@@ -428,7 +428,7 @@ class DDPStrategy(ParallelPlugin):
         plugin_registry.register(
             "ddp_find_unused_parameters_false",
             cls,
-            description="DDP Plugin with `find_unused_parameters` as False",
+            description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 

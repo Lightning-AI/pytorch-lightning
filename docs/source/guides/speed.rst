@@ -76,13 +76,13 @@ Prefer DDP over DP
 Whereas :class:`~pytorch_lightning.plugins.training_type.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP plugins, set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When using DDP strategies, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 This by default comes with a performance hit, and can be disabled in most cases.
 
 .. tip::
-    It applies to all DDP plugins that support ``find_unused_parameters`` as input.
+    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
 
 .. code-block:: python
 

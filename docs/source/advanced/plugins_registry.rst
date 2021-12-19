@@ -11,7 +11,7 @@ It also returns the optional description and parameters for initialising the Plu
 
 .. code-block:: python
 
-    # Training with the DDP Plugin with `find_unused_parameters` as False
+    # Training with the DDP Strategy with `find_unused_parameters` as False
     trainer = Trainer(strategy="ddp_find_unused_parameters_false", accelerator="gpu", devices=4)
 
     # Training with DeepSpeed ZeRO Stage 3 and CPU Offload
@@ -38,11 +38,11 @@ Additionally, you can pass your custom registered training type plugins to the `
 
     custom_checkpoint_io = CustomCheckpointIO()
 
-    # Register the DDP Plugin with your custom CheckpointIO plugin
+    # Register the DDP Strategy with your custom CheckpointIO plugin
     TrainingTypePluginsRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPStrategy,
-        description="DDP Plugin with custom checkpoint io plugin",
+        description="DDP Strategy with custom checkpoint io plugin",
         checkpoint_io=custom_checkpoint_io,
     )
 

@@ -139,11 +139,11 @@ def test_custom_registered_training_plugin_to_strategy():
 
     custom_checkpoint_io = CustomCheckpointIO()
 
-    # Register the DDP Plugin with your custom CheckpointIO plugin
+    # Register the DDP Strategy with your custom CheckpointIO plugin
     TrainingTypePluginsRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPStrategy,
-        description="DDP Plugin with custom checkpoint io plugin",
+        description="DDP Strategy with custom checkpoint io plugin",
         checkpoint_io=custom_checkpoint_io,
     )
     trainer = Trainer(strategy="ddp_custom_checkpoint_io", accelerator="cpu", devices=2)

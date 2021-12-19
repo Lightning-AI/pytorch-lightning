@@ -161,7 +161,7 @@ def plugin_parity_test(
 
     assert (
         percent_diff <= max_percent_speed_diff
-    ), f"Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}"
+    ), f"Custom DDP strategy was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}"
 
     if use_cuda:
         # Assert CUDA memory parity
