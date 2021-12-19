@@ -1419,7 +1419,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     from pytorch_lightning.plugins import DDPStrategy
 
 
-    class CustomDDPStrategy(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
