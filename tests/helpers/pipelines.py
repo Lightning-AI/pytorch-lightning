@@ -82,14 +82,6 @@ def run_model_test(
             run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
 
     if with_hpc:
-        if trainer._distrib_type in (_StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2):
-            # on hpc this would work fine... but need to hack it for the purpose of the test
-            (
-                trainer.optimizers,
-                trainer.lr_schedulers,
-                trainer.optimizer_frequencies,
-            ) = pretrained_model._init_optimizers_and_lr_schedulers()
-
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
