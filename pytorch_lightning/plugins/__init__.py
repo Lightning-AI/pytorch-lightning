@@ -27,7 +27,7 @@ from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
-from pytorch_lightning.plugins.training_type.parallel import Parallel
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
@@ -64,7 +64,7 @@ __all__ = [
     "TPUBf16PrecisionPlugin",
     "TPUSpawnPlugin",
     "Strategy",
-    "Parallel",
+    "ParallelStrategy",
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",
 ]

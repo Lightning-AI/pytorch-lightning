@@ -124,7 +124,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Renamed the `TrainingTypePlugin` to `Strategy` ([#11120](https://github.com/PyTorchLightning/pytorch-lightning/pull/11120))
-    * Renamed `ParallelPlugin` to `Parallel` ([#11123](https://github.com/PyTorchLightning/pytorch-lightning/pull/11123))
+    * Renamed `ParallelPlugin` to `ParallelStrategy` ([#11123](https://github.com/PyTorchLightning/pytorch-lightning/pull/11123))
 
 
 ### Deprecated
