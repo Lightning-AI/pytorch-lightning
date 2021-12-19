@@ -346,7 +346,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
+        tpipes.run_model_prediction(pretrained_model, dataloader)
 
 
 @RunIf(min_gpus=2)
@@ -394,7 +394,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_model_prediction(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -540,7 +540,7 @@ def test_dp_resume(tmpdir):
             new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = dm.train_dataloader()
-            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
+            tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
             self.on_pretrain_routine_end_called = True
 
     # new model
