@@ -347,8 +347,9 @@ class DeepSpeedPlugin(DDPPlugin):
             self._config_initialized = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
-        self._move_optimizer_state()
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
         self.init_deepspeed()
         self.barrier()
 
