@@ -15,7 +15,6 @@ import torch
 from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities import _StrategyType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
@@ -70,7 +69,7 @@ def run_model_test(
     assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
+    _ = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model.test_dataloader() if not data else data.test_dataloader()
