@@ -114,7 +114,7 @@ class PredictionLoop(DataLoaderLoop):
         # hook
         self.trainer._call_callback_hooks("on_predict_start")
         self.trainer._call_lightning_module_hook("on_predict_start")
-        self.trainer._call_ttp_hook("on_predict_start")
+        self.trainer._call_strategy_hook("on_predict_start")
 
         self.trainer._call_callback_hooks("on_predict_epoch_start")
         self.trainer._call_lightning_module_hook("on_predict_epoch_start")
@@ -142,7 +142,7 @@ class PredictionLoop(DataLoaderLoop):
         # hook
         self.trainer._call_callback_hooks("on_predict_end")
         self.trainer._call_lightning_module_hook("on_predict_end")
-        self.trainer._call_ttp_hook("on_predict_end")
+        self.trainer._call_strategy_hook("on_predict_end")
 
     def _on_predict_model_eval(self) -> None:
         """Calls ``on_predict_model_eval`` hook."""
