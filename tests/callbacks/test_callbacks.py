@@ -83,7 +83,7 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
 
     class TestModel(BoringModel):
         def configure_callbacks(self):
-            return [model_callback_mock]
+            return model_callback_mock
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)

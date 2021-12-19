@@ -35,7 +35,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import PredictionLoop, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
@@ -65,7 +65,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -462,9 +462,6 @@ class Trainer(
         )
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        training_batch_loop = TrainingBatchLoop()
-        training_validation_loop = EvaluationLoop()
-        training_epoch_loop.connect(batch_loop=training_batch_loop, val_loop=training_validation_loop)
         fit_loop.connect(epoch_loop=training_epoch_loop)
 
         # default .fit() loop
@@ -570,6 +567,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
+        self.logger: Optional[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -657,9 +655,6 @@ class Trainer(
         self.num_val_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
-
-        # when true, print evaluation results in .validate() and .test()
-        self.verbose_evaluate = True
 
         self.num_predict_batches = []
 
@@ -816,7 +811,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("validate")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -836,6 +830,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
             )
+
+        self.validate_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
@@ -900,7 +896,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("test")
-        self.verbose_evaluate = verbose
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -920,6 +915,8 @@ class Trainer(
             raise MisconfigurationException(
                 "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
             )
+
+        self.test_loop.verbose = verbose
 
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
@@ -1129,7 +1126,7 @@ class Trainer(
                         setup accelerator                     ||
                            and strategy                       ||  LIGHTNING
                                 |                             ||
-                         {self.run_stage}                     ||  FLOW
+                        {self._run_stage}                     ||  FLOW
                                 |                             ||
                         {self._run_train}                     ||  DIRECTION
                      or {self._run_evaluate}                  ||
@@ -1164,7 +1161,7 @@ class Trainer(
 
         self.checkpoint_connector.resume_end()
 
-        results = self.run_stage()
+        results = self._run_stage()
         self._teardown()
 
         # ----------------------------
@@ -1237,7 +1234,14 @@ class Trainer(
         self.logger_connector.teardown()
         self.signal_connector.teardown()
 
-    def run_stage(self):
+    def run_stage(self) -> None:
+        rank_zero_deprecation(
+            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
+            " `Trainer.{fit,validate,test,predict}` instead."
+        )
+        return self._run_stage()
+
+    def _run_stage(self):
         self.training_type_plugin.barrier("run-stage")
         self.training_type_plugin.dispatch(self)
         self.__setup_profiler()
@@ -1566,8 +1570,7 @@ class Trainer(
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
-    # TODO: rename to _call_strategy_hook and eventually no longer need this
-    def _call_ttp_hook(
+    def _call_strategy_hook(
         self,
         hook_name: str,
         *args: Any,
@@ -2183,6 +2186,26 @@ class Trainer(
         self._predict_loop = loop
 
     @property
+    def verbose_evaluate(self) -> bool:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. The current value"
+            " returned is the union of the validate and test loop values. You can choose which one to access with"
+            " `trainer.{validate,test}_loop.verbose`.",
+            stacklevel=5,
+        )
+        return self.validate_loop.verbose or self.test_loop.verbose
+
+    @verbose_evaluate.setter
+    def verbose_evaluate(self, verbose: bool) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. This will set"
+            " the value for both trainer.{validate,test}_loop.verbose`.",
+            stacklevel=5,
+        )
+        self.validate_loop.verbose = verbose
+        self.test_loop.verbose = verbose
+
+    @property
     def _evaluation_loop(self) -> EvaluationLoop:
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             return self.fit_loop.epoch_loop.val_loop
@@ -2218,7 +2241,7 @@ class Trainer(
         return self.logger_connector.progress_bar_metrics
 
     @property
-    def _results(self) -> Optional[ResultCollection]:
+    def _results(self) -> Optional[_ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results

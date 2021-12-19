@@ -47,6 +47,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(offline_mode=True)
     if "offline" in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline=True)
+    if issubclass(logger_class, NeptuneLogger):
+        logger_args.update(mode="offline")
     return logger_args
 
 
@@ -146,10 +148,8 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
         expected = [
-            (0, ["hp_metric"]),
             (0, ["epoch", "train_some_val"]),
             (0, ["early_stop_on", "epoch", "val_loss"]),
-            (0, ["hp_metric"]),
             (1, ["epoch", "test_loss"]),
         ]
         assert log_metric_names == expected
@@ -330,7 +330,9 @@ class RankZeroLoggerCheck(Callback):
 
 
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
-@pytest.mark.parametrize("logger_class", [CometLogger, CSVLogger, MLFlowLogger, TensorBoardLogger, TestTubeLogger])
+@pytest.mark.parametrize(
+    "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger]
+)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)

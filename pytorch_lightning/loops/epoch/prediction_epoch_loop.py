@@ -96,7 +96,7 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -128,7 +128,7 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_started()
 
-        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
+        predictions = self.trainer._call_strategy_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 
@@ -162,7 +162,8 @@ class PredictionEpochLoop(Loop):
     def _get_batch_indices(self, dataloader_idx: int) -> List[List[int]]:
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
-        batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
+        # the batch_sampler is not be defined in case of CombinedDataLoaders
+        batch_sampler = getattr(self.trainer.predict_dataloaders[dataloader_idx], "batch_sampler", None)
         if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
             return batch_sampler.seen_batch_indices
 

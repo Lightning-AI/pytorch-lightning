@@ -23,7 +23,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -267,19 +267,19 @@ def test_fx_validator_integration(tmpdir):
     with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
         trainer.test(model, verbose=False)
 
-    not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
+    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "ResultCollection` is not registered yet",
-            "predict_dataloader": "ResultCollection` is not registered yet",
-            "on_predict_model_eval": "ResultCollection` is not registered yet",
-            "on_predict_start": "ResultCollection` is not registered yet",
-            "on_predict_epoch_start": "ResultCollection` is not registered yet",
-            "on_predict_batch_start": "ResultCollection` is not registered yet",
-            "predict_step": "ResultCollection` is not registered yet",
-            "on_predict_batch_end": "ResultCollection` is not registered yet",
-            "on_predict_epoch_end": "ResultCollection` is not registered yet",
-            "on_predict_end": "ResultCollection` is not registered yet",
+            "on_predict_dataloader": "result collection is not registered yet",
+            "predict_dataloader": "result collection is not registered yet",
+            "on_predict_model_eval": "result collection is not registered yet",
+            "on_predict_start": "result collection is not registered yet",
+            "on_predict_epoch_start": "result collection is not registered yet",
+            "on_predict_batch_start": "result collection is not registered yet",
+            "predict_step": "result collection is not registered yet",
+            "on_predict_batch_end": "result collection is not registered yet",
+            "on_predict_epoch_end": "result collection is not registered yet",
+            "on_predict_end": "result collection is not registered yet",
         }
     )
     with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
@@ -531,7 +531,7 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True)
+    result_collection = _ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
     values = torch.arange(1, 10)
     batches = values * values
@@ -647,7 +647,7 @@ def test_result_collection_batch_size_extraction():
     fx_name = "training_step"
     log_val = torch.tensor(7.0)
 
-    results = ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True, device="cpu")
     results.batch = torch.randn(1, 4)
     train_mse = MeanSquaredError()
     train_mse(torch.randn(4, 5), torch.randn(4, 5))
@@ -656,7 +656,7 @@ def test_result_collection_batch_size_extraction():
     assert isinstance(results["training_step.train_logs"]["mse"].value, MeanSquaredError)
     assert results["training_step.train_logs"]["log_val"].value == log_val
 
-    results = ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True, device="cpu")
     results.batch = torch.randn(1, 4)
     results.log(fx_name, "train_log", log_val, on_step=False, on_epoch=True)
     assert results.batch_size == 1
@@ -665,7 +665,7 @@ def test_result_collection_batch_size_extraction():
 
 
 def test_result_collection_no_batch_size_extraction():
-    results = ResultCollection(training=True, device="cpu")
+    results = _ResultCollection(training=True, device="cpu")
     results.batch = torch.randn(1, 4)
     fx_name = "training_step"
     batch_size = 10
