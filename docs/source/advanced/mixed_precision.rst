@@ -12,10 +12,10 @@ Precision
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
-Lower precision, such as the 16-bit floating-point, requires less memory, enabling the training and deployment of larger neural networks. Second, they require less memory bandwidth, thereby speeding up data transfer operations. Third, math
-operations run much faster in reduced precision, especially on GPUs with Tensor Core support for that precision [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
+Lower precision, such as the 16-bit floating-point, enables the training and deployment of marge neural networks since they require less memory, enhances data transfer operations since they required
+less memory bandwidth and run match operations much faster on GPUs that support Tensor Core. [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
-Higher precision, such as the 64-bit floating-point, offers <TODO add something>
+Higher precision, such as the 64-bit floating-point, can be used for highly sensitive use-cases.
 
 Following are the precisions available in Lightning along with their supported Accelerator:
 
@@ -54,16 +54,39 @@ Following are the precisions available in Lightning along with their supported A
 Mixed Precision
 ***************
 
-Most deep learning frameworks, including PyTorch, train with 32-bit floating-point (FP32) arithmetic by default. However, this is not essential for many deep learning models to achieve complete accuracy. Mixed precision training offers significant computational speedup
-by performing operations in half-precision format while storing minimal information in single-precision to retain as much information as possible in critical parts of the network. Since the introduction of Tensor Cores in the Volta and Turing architectures, significant
-training speedups are experienced by switching to mixed precision. It combines both FP32 and lower bit floating-points (such as FP16) to reduce memory footprint during model
-training/evaluation, resulting in improved performance. It does so by identifying the steps that require full precision and using a 32-bit floating-point for only those steps while using a 16-bit floating-point everywhere else. Mixed precision training achieves all these benefits
-while ensuring that no task-specific accuracy is lost compared to full precision training [`2 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
+PyTorch, like most deep learning frameworks, trains on 32-bit floating-point (FP32) arithmetic by default. However, many deep learning models do not require this to reach complete accuracy. By conducting
+operations in half-precision format while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network, mixed precision training delivers
+significant computational speedup. Switching to mixed precision has resulted in considerable training speedups since the introduction of Tensor Cores in the Volta and Turing architectures. It combines
+FP32 and lower-bit floating-points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation. It accomplishes this by recognising the steps that require
+complete accuracy and employing a 32-bit floating-point for those steps only, while using a 16-bit floating-point for the rest. When compared to complete precision training, mixed precision training
+delivers all of these benefits while ensuring that no task-specific accuracy is lost. [`2 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 .. note::
 
     In some cases, it is essential to remain in FP32 for numerical stability, so keep this in mind when using mixed precision.
     For example, when running scatter operations during the forward (such as torchpoint3d), computation must remain in FP32.
+
+.. warning::
+
+    Do not cast anything to other dtypes manually using ``torch.autocast`` when using native precision because
+    this can bring unstability.
+
+    .. code-block:: python
+
+        class LitModel(LightningModule):
+            def training_step(self, batch, batch_idx):
+                outs = self(batch)
+                target = torch.zeros_like(outs)
+                with torch.autocast(device_type=self.device.type, dtype=torch.float):
+                    # casting to float32
+                    outs = outs.softmax(dim=-1)
+
+                # here outs is of type float32 and target is of type float16
+                loss = F.mse_loss(outs, target)
+                return loss
+
+
+        trainer = Trainer(gpus=1, precision=16)
 
 
 FP16 Mixed Precision
@@ -160,8 +183,7 @@ Lightning uses 32-bit by default. You can also set it using:
 Double Precision
 ****************
 
-<TODO add more stuff here>
-Lightning supports training models with double precision/64-bit. You can also set it using:
+Lightning supports training models with double precision/64-bit. You can set it using:
 
 .. testcode::
 
