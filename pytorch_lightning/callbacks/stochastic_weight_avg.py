@@ -24,6 +24,7 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -181,7 +182,7 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
-            default_scheduler_cfg = pl.LightningModule._get_default_scheduler_config()
+            default_scheduler_cfg = _get_default_scheduler_config()
             assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
             default_scheduler_cfg["scheduler"] = self._swa_scheduler
 

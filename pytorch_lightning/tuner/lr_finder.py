@@ -24,6 +24,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -97,15 +98,15 @@ class _LRFinder:
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, model: "pl.LightningModule"):
-        """Decorate `model._init_optimizers_and_lr_schedulers` method such that it returns the user's originally
+    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
+        """Decorate `trainer.training_type_plugin.setup_optimizers` method such that it sets the user's originally
         specified optimizer together with a new scheduler that takes care of the learning rate search."""
-        _init_optimizers_and_lr_schedulers = model._init_optimizers_and_lr_schedulers
+        setup_optimizers = trainer.training_type_plugin.setup_optimizers
 
-        @wraps(_init_optimizers_and_lr_schedulers)
-        def func():
+        @wraps(setup_optimizers)
+        def func(trainer):
             # Decide the structure of the output from _init_optimizers_and_lr_schedulers
-            optimizers, _, _ = _init_optimizers_and_lr_schedulers()
+            optimizers, _, _ = _init_optimizers_and_lr_schedulers(trainer.lightning_module)
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -122,10 +123,12 @@ class _LRFinder:
 
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-            sched_config = pl.LightningModule._get_default_scheduler_config()
+            sched_config = _get_default_scheduler_config()
             sched_config.update({"scheduler": scheduler, "interval": "step"})
 
-            return [optimizer], [sched_config], []
+            trainer.training_type_plugin.optimizers = [optimizer]
+            trainer.training_type_plugin.lr_schedulers = [sched_config]
+            trainer.training_type_plugin.optimizer_frequencies = []
 
         return func
 
@@ -231,7 +234,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    model._init_optimizers_and_lr_schedulers = lr_finder._exchange_scheduler(model)
+    trainer.training_type_plugin.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)

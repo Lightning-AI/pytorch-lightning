@@ -23,6 +23,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -105,10 +106,9 @@ class TrainingTypePlugin(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        optimizers, lr_schedulers, optimizer_frequencies = self.lightning_module._init_optimizers_and_lr_schedulers()
-        self.optimizers = optimizers
-        self.lr_schedulers = lr_schedulers
-        self.optimizer_frequencies = optimizer_frequencies
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+            self.lightning_module
+        )
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Setup plugins for the trainer fit and creates optimizers.

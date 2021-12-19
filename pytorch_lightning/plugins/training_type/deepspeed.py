@@ -27,6 +27,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -443,14 +444,14 @@ class DeepSpeedPlugin(DDPPlugin):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = self.lightning_module._init_optimizers_and_lr_schedulers()
+        optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else pl.LightningModule._get_default_scheduler_config(),
+            schedulers[0] if schedulers else _get_default_scheduler_config(),
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -460,7 +461,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_train(self, model):
         if "optimizer" in self.config:
-            optimizer, lr_scheduler = None, pl.LightningModule._get_default_scheduler_config()
+            optimizer, lr_scheduler = None, _get_default_scheduler_config()
         else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
