@@ -85,7 +85,7 @@ def test_error_process_iterable_dataloader(_):
 
 class BoringModelTPU(BoringModel):
     def on_train_start(self) -> None:
-        assert self.device == torch.device("xla")
+        assert self.device == torch.device("xla", index=1)
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
@@ -93,12 +93,12 @@ class BoringModelTPU(BoringModel):
 @pl_multi_process_test
 def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctely when training and after teardown for TPUSpawnPlugin."""
-    trainer = Trainer(tpu_cores=1, fast_dev_run=True, plugin=TPUSpawnPlugin(debug=True))
+    trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnPlugin(debug=True))
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
     assert not trainer.training_type_plugin.on_gpu
     assert trainer.training_type_plugin.on_tpu
-    assert trainer.training_type_plugin.root_device == torch.device("xla")
+    assert trainer.training_type_plugin.root_device == torch.device("xla", index=1)
     model = BoringModelTPU()
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
