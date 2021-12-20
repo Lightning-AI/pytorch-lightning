@@ -46,7 +46,7 @@ from pytorch_lightning.plugins import (
     ParallelPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    TrainingTypePlugin,
+    Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -65,7 +65,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -163,7 +163,7 @@ class Trainer(
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
@@ -1475,7 +1475,7 @@ class Trainer(
                 output = model_fx(*args, **kwargs)
 
             # *Bad code alert*
-            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
+            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
             # The following logic selectively chooses which hooks are called on each object.
             # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
             # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
@@ -1570,8 +1570,7 @@ class Trainer(
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
-    # TODO: rename to _call_strategy_hook and eventually no longer need this
-    def _call_ttp_hook(
+    def _call_strategy_hook(
         self,
         hook_name: str,
         *args: Any,
@@ -1677,7 +1676,7 @@ class Trainer(
         return self.training_type_plugin.accelerator
 
     @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
+    def training_type_plugin(self) -> Strategy:
         return self._accelerator_connector.training_type_plugin
 
     @property
@@ -2242,7 +2241,7 @@ class Trainer(
         return self.logger_connector.progress_bar_metrics
 
     @property
-    def _results(self) -> Optional[ResultCollection]:
+    def _results(self) -> Optional[_ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results

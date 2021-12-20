@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -131,7 +131,7 @@ def train_with_swa(
         num_processes=num_processes,
     )
 
-    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
+    with mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward):
         trainer.fit(model)
 
     # check the model is the expected

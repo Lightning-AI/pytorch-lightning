@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function
@@ -327,7 +327,7 @@ def test_to_device(accelerator, expected):
 def test_rank_properties():
     """Test that the rank properties are determined by the strategy."""
     lite = EmptyLite()
-    lite._strategy = Mock(spec=TrainingTypePlugin)
+    lite._strategy = Mock(spec=Strategy)
     lite._strategy.world_size = 1000
     assert lite.world_size == 1000
     lite._strategy.global_rank = 100

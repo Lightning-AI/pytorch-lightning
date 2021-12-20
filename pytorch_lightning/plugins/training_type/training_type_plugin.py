@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 TBroadcast = TypeVar("TBroadcast")
 
 
-class TrainingTypePlugin(ABC):
+class Strategy(ABC):
     """Base class for all training type plugins that change the behaviour of the training, validation and test-
     loop."""
 
@@ -55,7 +55,7 @@ class TrainingTypePlugin(ABC):
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
-        if is_overridden("post_dispatch", self, parent=TrainingTypePlugin):
+        if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
