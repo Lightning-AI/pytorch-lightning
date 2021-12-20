@@ -130,12 +130,17 @@ class DDPFullyShardedPlugin(DDPPlugin):
         super().setup_distributed()
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        self._move_optimizer_state()
+
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
-        self.configure_ddp()  # TODO: we call setup_optimizers here too?
+
+        self.configure_ddp()
         self.barrier()
-        self.setup_optimizers(trainer)  # TODO: and here
+        self.setup_optimizers(trainer)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
