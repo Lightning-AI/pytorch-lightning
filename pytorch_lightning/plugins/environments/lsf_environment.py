@@ -76,63 +76,16 @@ class LSFEnvironment(ClusterEnvironment):
         """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
         return True
 
-    def _read_hosts(self) -> List[str]:
-        """Read compute hosts that are a part of the compute job.
-
-        LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.
-        Each job is assigned a launch node. This launch node will be the first node in the list contained in
-        ``LSB_DJOB_RANKFILE``.
-        """
-        var = "LSB_DJOB_RANKFILE"
-        rankfile = os.environ.get(var)
-        if rankfile is None:
-            raise ValueError("Did not find the environment variable `LSB_DJOB_RANKFILE`")
-        if not rankfile:
-            raise ValueError("The environment variable `LSB_DJOB_RANKFILE` is empty")
-        with open(rankfile) as f:
-            ret = [line.strip() for line in f]
-        # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
-        return ret[1:]
-
     @property
     def main_address(self) -> str:
         """The main address is read from an OpenMPI host rank file in the environment variable
         ``LSB_DJOB_RANKFILE``"""
         return self._main_address
 
-    def _get_main_address(self) -> str:
-        """A helper for getting the master address.
-
-        Master address is assigned to the first node in the list of nodes used for the job.
-        """
-        hosts = self._read_hosts()
-        return hosts[0]
-
     @property
     def main_port(self) -> int:
         """The main port is calculated from the LSF job ID."""
         return self._main_port
-
-    def _get_main_port(self) -> int:
-        """A helper for getting the master port.
-
-        Use the LSF job ID so all ranks can compute the master port
-        """
-        # check for user-specified master port
-        port = os.environ.get("MASTER_PORT")
-        if not port:
-            var = "LSB_JOBID"
-            jobid = os.environ.get(var)
-            if not jobid:
-                raise ValueError(f"Could not find job id. Expected in environment variable {var}")
-            port = int(jobid)  # type: ignore
-            # all ports should be in the 10k+ range
-            port = (port % 1000) + 10000  # type: ignore
-            log.debug("calculated master port")
-        else:
-            log.debug("using externally specified master port")
-            port = int(port)  # type: ignore
-        return port  # type: ignore
 
     @staticmethod
     def detect() -> bool:
@@ -215,6 +168,51 @@ class LSFEnvironment(ClusterEnvironment):
             if host not in count:
                 count[host] = len(count)
         return count[socket.gethostname()]
+
+    @staticmethod
+    def _read_hosts() -> List[str]:
+        """Read compute hosts that are a part of the compute job.
+
+        LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.
+        Each job is assigned a launch node. This launch node will be the first node in the list contained in
+        ``LSB_DJOB_RANKFILE``.
+        """
+        var = "LSB_DJOB_RANKFILE"
+        rankfile = os.environ.get(var)
+        if rankfile is None:
+            raise ValueError("Did not find the environment variable `LSB_DJOB_RANKFILE`")
+        if not rankfile:
+            raise ValueError("The environment variable `LSB_DJOB_RANKFILE` is empty")
+        with open(rankfile) as f:
+            ret = [line.strip() for line in f]
+        # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
+        return ret[1:]
+
+    def _get_main_address(self) -> str:
+        """A helper for getting the main address.
+
+        The main address is assigned to the first node in the list of nodes used for the job.
+        """
+        hosts = self._read_hosts()
+        return hosts[0]
+
+    @staticmethod
+    def _get_main_port() -> int:
+        """A helper function for accessing the main port.
+
+        Uses the LSF job ID so all ranks can compute the main port.
+        """
+        # check for user-specified main port
+        if "MASTER_PORT" in os.environ:
+            log.debug(f"Using externally specified main port: {os.environ['MASTER_PORT']}")
+            return int(os.environ["MASTER_PORT"])
+        if "LSB_JOBID" in os.environ:
+            port = int(os.environ["LSB_JOBID"])
+            # all ports should be in the 10k+ range
+            port = port % 1000 + 10000
+            log.debug(f"calculated LSF main port: {port}")
+            return port
+        raise ValueError("Could not find job id in environment variable LSB_JOBID")
 
     def __str__(self) -> str:
         return self._rep
