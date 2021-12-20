@@ -18,11 +18,11 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
-class SingleDevicePlugin(TrainingTypePlugin):
+class SingleDevicePlugin(Strategy):
     """Plugin that handles communication on a single device."""
 
     def __init__(

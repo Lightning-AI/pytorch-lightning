@@ -46,10 +46,10 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
+    Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TPUSpawnPlugin,
-    TrainingTypePlugin,
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
@@ -92,7 +92,7 @@ class AcceleratorConnector:
         tpu_cores,
         ipus,
         accelerator,
-        strategy: Optional[Union[str, TrainingTypePlugin]],
+        strategy: Optional[Union[str, Strategy]],
         gpus,
         gpu_ids,
         num_nodes,
@@ -136,7 +136,7 @@ class AcceleratorConnector:
         self.amp_level = amp_level
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
-        self._training_type_plugin: Optional[TrainingTypePlugin] = None
+        self._training_type_plugin: Optional[Strategy] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
         self._checkpoint_io: Optional[CheckpointIO] = None
 
@@ -305,7 +305,7 @@ class AcceleratorConnector:
             self._training_type_plugin = TrainingTypePluginsRegistry.get(self.strategy)
         if isinstance(self.strategy, str):
             self.set_distributed_mode(self.strategy)
-        elif isinstance(self.strategy, TrainingTypePlugin):
+        elif isinstance(self.strategy, Strategy):
             self._training_type_plugin = self.strategy
 
     def handle_given_plugins(self) -> None:
@@ -343,7 +343,7 @@ class AcceleratorConnector:
                 self._distrib_type = None
                 self.set_distributed_mode(plug)
 
-            elif isinstance(plug, TrainingTypePlugin):
+            elif isinstance(plug, Strategy):
                 if training_type is None:
                     training_type = plug
 
@@ -395,21 +395,21 @@ class AcceleratorConnector:
             self._precision_plugin = self.select_precision_plugin()
         return self._precision_plugin
 
-    def final_training_type_plugin(self) -> TrainingTypePlugin:
+    def final_training_type_plugin(self) -> Strategy:
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         # attach checkpoint plugin to the training type plugin
         if self._checkpoint_io is not None:
             self._training_type_plugin.checkpoint_io = self._checkpoint_io
-        if (
-            isinstance(self.strategy, TrainingTypePlugin) and self.strategy._precision_plugin is None
-        ) or not isinstance(self.strategy, TrainingTypePlugin):
+        if (isinstance(self.strategy, Strategy) and self.strategy._precision_plugin is None) or not isinstance(
+            self.strategy, Strategy
+        ):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
                 self._training_type_plugin.precision_plugin = precision_plugin
-        if (isinstance(self.strategy, TrainingTypePlugin) and self.strategy.accelerator is None) or not isinstance(
-            self.strategy, TrainingTypePlugin
+        if (isinstance(self.strategy, Strategy) and self.strategy.accelerator is None) or not isinstance(
+            self.strategy, Strategy
         ):
             self._training_type_plugin.accelerator = self.select_accelerator()
         return self._training_type_plugin
@@ -592,15 +592,15 @@ class AcceleratorConnector:
         )
 
     @staticmethod
-    def _is_plugin_training_type(plugin: Union[str, TrainingTypePlugin]) -> bool:
+    def _is_plugin_training_type(plugin: Union[str, Strategy]) -> bool:
         if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(_StrategyType)):
             return True
-        return isinstance(plugin, TrainingTypePlugin)
+        return isinstance(plugin, Strategy)
 
     @property
     def is_training_type_in_plugins(self) -> bool:
         return any(
-            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, TrainingTypePlugin)
+            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, Strategy)
             for plug in self.plugins
         )
 
@@ -693,7 +693,7 @@ class AcceleratorConnector:
 
         raise RuntimeError("No precision set")
 
-    def select_training_type_plugin(self) -> TrainingTypePlugin:
+    def select_training_type_plugin(self) -> Strategy:
         if (
             isinstance(self.distributed_backend, Accelerator)
             and self.distributed_backend.training_type_plugin is not None
@@ -757,7 +757,7 @@ class AcceleratorConnector:
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
-    def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
+    def resolve_training_type_plugin(self, training_type: Strategy) -> Strategy:
         # necessary for when the user has passed in a plugin
         if hasattr(training_type, "parallel_devices") and getattr(training_type, "parallel_devices") is None:
             training_type.parallel_devices = self.parallel_devices
@@ -968,9 +968,7 @@ class AcceleratorConnector:
             self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
-        if isinstance(self.strategy, TrainingTypePlugin) or any(
-            isinstance(plug, TrainingTypePlugin) for plug in self.plugins
-        ):
+        if isinstance(self.strategy, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
             if self._accelerator_type is not None:
                 if self.use_ipu:
                     self._device_type = _AcceleratorType.IPU
@@ -987,7 +985,7 @@ class AcceleratorConnector:
                     self._device_type = _AcceleratorType.GPU
 
     def _set_distrib_type_if_training_type_plugin_passed(self):
-        # This is required as when `TrainingTypePlugin` instance is passed to either `strategy`
+        # This is required as when `Strategy` instance is passed to either `strategy`
         # or `plugins` flag, `AcceleratorConnector.set_distributed_mode` is not required to be
         # called and `_distrib_type` is not set.
         if self._distrib_type is not None:
@@ -1020,7 +1018,7 @@ class AcceleratorConnector:
         """Checks that selected plugins are compatible with each other.
 
         Raises:
-            ValueError: If an invalid combination of Accelerator, TrainingTypePlugin, PrecisionPlugin is found.
+            ValueError: If an invalid combination of Accelerator, Strategy, PrecisionPlugin is found.
         """
         if isinstance(self.accelerator, TPUAccelerator):
             if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
