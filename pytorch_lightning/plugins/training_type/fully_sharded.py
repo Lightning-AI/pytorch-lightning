@@ -31,7 +31,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 
-class DDPFullyShardedPlugin(DDPPlugin):
+class DDPFullyShardedStrategy(DDPPlugin):
 
     distributed_backend = _StrategyType.DDP_FULLY_SHARDED
 
