@@ -2290,8 +2290,9 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
     def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """
-        Called when saving a model checkpoint. Calls every callback's `on_save_checkpoint` hook.
+        """Called when saving a model checkpoint.
+
+        Calls every callback's `on_save_checkpoint` hook.
         """
         callback_states = {}
         for callback in self.callbacks:
@@ -2301,8 +2302,9 @@ class Trainer(
         return callback_states
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Called when loading a model checkpoint. Calls every callback's `on_load_checkpoint` hook.
+        """Called when loading a model checkpoint.
+
+        Calls every callback's `on_load_checkpoint` hook.
         """
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
