@@ -1356,14 +1356,6 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        self._last_train_dl_reload_epoch = self.current_epoch
-        return super().reset_train_dataloader(model=model)
-
-    def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
-        self._last_val_dl_reload_epoch = self.current_epoch
-        return super().reset_val_dataloader(model=model)
-
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
@@ -1893,18 +1885,6 @@ class Trainer(
         if self.progress_bar_callback:
             return self.progress_bar_callback.get_metrics(self, ref_model)
         return self.progress_bar_metrics
-
-    @property
-    def _should_reload_train_dl(self) -> bool:
-        """Check if train dataloader should be reloaded."""
-        n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
-
-    @property
-    def _should_reload_val_dl(self) -> bool:
-        """Check if validation dataloader should be reloaded."""
-        n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs
 
     @property
     def enable_validation(self) -> bool:

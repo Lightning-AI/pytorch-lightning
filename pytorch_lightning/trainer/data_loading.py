@@ -48,6 +48,7 @@ class TrainerDataLoadingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     val_check_interval: float
+    reload_dataloaders_every_n_epochs: int
     tpu_local_core_rank: int
     train_dataloader: DataLoader
     limit_train_batches: Union[int, float]
@@ -68,6 +69,9 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     call_hook: Callable
     _accelerator_connector: AcceleratorConnector
+    current_epoch: int
+    _last_train_dl_reload_epoch: int
+    _last_val_dl_reload_epoch: int
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -278,6 +282,9 @@ class TrainerDataLoadingMixin(ABC):
                 category=PossibleUserWarning,
             )
 
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = self.current_epoch
+
     def _reset_eval_dataloader(
         self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
@@ -370,6 +377,9 @@ class TrainerDataLoadingMixin(ABC):
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
+
+            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+            self._last_val_dl_reload_epoch = self.current_epoch
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
@@ -471,3 +481,15 @@ class TrainerDataLoadingMixin(ABC):
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
+
+    @property
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
+
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs
