@@ -68,7 +68,6 @@ PyTorch Lightning
    common/production_inference
    advanced/ipu
    common/lightning_cli
-   advanced/lr_finder
    common/loggers
    advanced/multi_gpu
    advanced/advanced_gpu

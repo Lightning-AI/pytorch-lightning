@@ -403,7 +403,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
+    See the :doc:`learning rate finder guide <../advanced/training_tricks:Learning Rate Finder>`.
 
 benchmark
 ^^^^^^^^^

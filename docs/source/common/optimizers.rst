@@ -522,7 +522,7 @@ to perform a step, Lightning won't be able to support accelerators and precision
 
 -----
 
-.. configure_gradient_clipping:
+.. _configure_gradient_clipping:
 
 Configure gradient clipping
 ---------------------------
