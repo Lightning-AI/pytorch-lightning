@@ -354,7 +354,7 @@ ______________________________________________________________________
 ## Lightning Lite
 
 <div align="center">
-  <img src="docs/source/_static/images/lightning_lite/lite.gif" max-height="250px">
+  <img src="docs/source/_static/images/lightning_lite/lite.gif" max-height="200px" max-width="400px">
 </div>
 
 In the Lighting 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
