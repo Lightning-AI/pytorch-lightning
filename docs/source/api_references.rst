@@ -147,7 +147,7 @@ Training Type Plugins
     :template: classtemplate.rst
 
     Strategy
-    SingleDevicePlugin
+    SingleDeviceStrategy
     ParallelPlugin
     DataParallelPlugin
     DDPPlugin
