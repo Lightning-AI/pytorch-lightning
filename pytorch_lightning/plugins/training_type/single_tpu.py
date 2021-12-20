@@ -28,7 +28,7 @@ if _TPU_AVAILABLE:
 
 
 class SingleTPUStrategy(SingleDevicePlugin):
-    """Plugin for training on a single TPU device."""
+    """Strategy for training on a single TPU device."""
 
     def __init__(
         self,
