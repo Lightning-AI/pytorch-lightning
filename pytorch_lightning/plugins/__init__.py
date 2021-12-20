@@ -33,7 +33,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
+from pytorch_lightning.strategies.training_type_plugin import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
 PLUGIN_INPUT = Union[PLUGIN, str]
@@ -63,7 +63,6 @@ __all__ = [
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
     "TPUSpawnPlugin",
-    "Strategy",
     "ParallelPlugin",
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",

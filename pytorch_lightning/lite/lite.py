@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, Strategy, TPUSpawnPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
+from pytorch_lightning.strategies.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
