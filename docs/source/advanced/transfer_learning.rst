@@ -129,6 +129,7 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             logits = self.W(h_cls)
             return logits, attn
 
+----------
 
 **********
 Finetuning
