@@ -5,9 +5,9 @@
 
 .. _training_tricks:
 
-===============
+###############
 Training Tricks
-===============
+###############
 
 Lightning implements various tricks to help during training:
 
@@ -189,6 +189,8 @@ The algorithm in short works by:
 .. warning:: Batch size finder is not yet supported for DDP or any of its variations, it is coming soon.
 
 ----------
+
+.. _learning_rate_finder:
 
 ********************
 Learning Rate Finder
