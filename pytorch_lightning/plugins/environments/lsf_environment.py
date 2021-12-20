@@ -79,7 +79,8 @@ class LSFEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        """The main address is read from an OpenMPI host rank file in the environment variable ``LSB_DJOB_RANKFILE``."""
+        """The main address is read from an OpenMPI host rank file in the environment variable
+        ``LSB_DJOB_RANKFILE``."""
         return self._main_address
 
     @property
@@ -161,8 +162,8 @@ class LSFEnvironment(ClusterEnvironment):
     def _get_node_rank(self) -> int:
         """A helper method for getting the node rank.
 
-        The node rank is determined by the position of the current node in the list of hosts used in the job.
-        This is calculated by reading all hosts from ``LSB_DJOB_RANKFILE`` and finding this node's hostname in the list.
+        The node rank is determined by the position of the current node in the list of hosts used in the job. This is
+        calculated by reading all hosts from ``LSB_DJOB_RANKFILE`` and finding this node's hostname in the list.
         """
         hosts = self._read_hosts()
         count: Dict[str, int] = {}
