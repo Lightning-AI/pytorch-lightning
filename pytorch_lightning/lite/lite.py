@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, Strategy, TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -69,7 +69,7 @@ class LightningLite(ABC):
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
@@ -451,13 +451,13 @@ class LightningLite(ABC):
                 f" Choose one of {supported} or pass in a `Accelerator` instance."
             )
 
-    def _check_strategy_support(self, strategy: Optional[Union[str, TrainingTypePlugin]]) -> None:
+    def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
         supported = [t.lower() for t in self._supported_strategy_types()]
-        valid = strategy is None or isinstance(strategy, TrainingTypePlugin) or strategy in supported
+        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
         if not valid:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
+                f" Choose one of {supported} or pass in a `Strategy` instance."
             )
 
     @staticmethod

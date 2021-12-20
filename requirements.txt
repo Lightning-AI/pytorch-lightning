@@ -4,7 +4,7 @@ numpy>=1.17.2
 torch>=1.7.*
 future>=0.17.1  # required for builtins in setup.py
 tqdm>=4.41.0
-PyYAML>=5.1
+PyYAML>=5.4
 fsspec[http]>=2021.05.0, !=2021.06.0
 tensorboard>=2.2.0
 torchmetrics>=0.4.1

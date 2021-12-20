@@ -227,7 +227,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if _invalid_reduce_op or _invalid_reduce_op_str:
             raise MisconfigurationException(
-                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
             )
 
         output = xm.mesh_reduce("reduce", output, sum)

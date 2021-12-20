@@ -199,7 +199,7 @@ class _Metadata:
         return meta
 
 
-class ResultMetric(Metric, DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
@@ -316,25 +316,25 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         super().__setstate__(d)
 
     @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetric":
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "_ResultMetric":
         # need to reconstruct twice because `meta` is used in `__init__`
         meta = _Metadata._reconstruct(state["meta"])
         result_metric = cls(meta, state["is_tensor"])
         result_metric.__setstate__(state, sync_fn=sync_fn)
         return result_metric
 
-    def to(self, *args: Any, **kwargs: Any) -> "ResultMetric":
+    def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
         self.__dict__.update(
             apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs)
         )
         return self
 
 
-class ResultMetricCollection(dict):
+class _ResultMetricCollection(dict):
     """Dict wrapper for easy access to metadata.
 
     All of the leaf items should be instances of
-    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result._ResultMetric`
     with the same metadata.
     """
 
@@ -347,36 +347,36 @@ class ResultMetricCollection(dict):
         return any(v.is_tensor for v in self.values())
 
     def __getstate__(self, drop_value: bool = False) -> dict:
-        def getstate(item: ResultMetric) -> dict:
+        def getstate(item: _ResultMetric) -> dict:
             return item.__getstate__(drop_value=drop_value)
 
-        items = apply_to_collection(dict(self), ResultMetric, getstate)
+        items = apply_to_collection(dict(self), _ResultMetric, getstate)
         return {"items": items, "meta": self.meta.__getstate__(), "_class": self.__class__.__name__}
 
     def __setstate__(self, state: dict, sync_fn: Optional[Callable] = None) -> None:
         # can't use `apply_to_collection` as it does not recurse items of the same type
-        items = {k: ResultMetric._reconstruct(v, sync_fn=sync_fn) for k, v in state["items"].items()}
+        items = {k: _ResultMetric._reconstruct(v, sync_fn=sync_fn) for k, v in state["items"].items()}
         self.update(items)
 
     @classmethod
-    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "ResultMetricCollection":
+    def _reconstruct(cls, state: dict, sync_fn: Optional[Callable] = None) -> "_ResultMetricCollection":
         rmc = cls()
         rmc.__setstate__(state, sync_fn=sync_fn)
         return rmc
 
 
-_METRIC_COLLECTION = Union[_IN_METRIC, ResultMetricCollection]
+_METRIC_COLLECTION = Union[_IN_METRIC, _ResultMetricCollection]
 
 
-class ResultCollection(dict):
+class _ResultCollection(dict):
     """
-    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric` or
-    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetricCollection`
+    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result._ResultMetric` or
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result._ResultMetricCollection`
 
     Example:
 
         # `device` needs to be provided before logging
-        result = ResultCollection(training=True, torch.device("cpu"))
+        result = _ResultCollection(training=True, torch.device("cpu"))
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata
@@ -395,14 +395,14 @@ class ResultCollection(dict):
         self.dataloader_idx: Optional[int] = None
 
     @property
-    def result_metrics(self) -> List[ResultMetric]:
+    def result_metrics(self) -> List[_ResultMetric]:
         o = []
 
-        def append_fn(v: ResultMetric) -> None:
+        def append_fn(v: _ResultMetric) -> None:
             nonlocal o
             o.append(v)
 
-        apply_to_collection(list(self.values()), ResultMetric, append_fn)
+        apply_to_collection(list(self.values()), _ResultMetric, append_fn)
         return o
 
     def _extract_batch_size(self, value: _METRIC_COLLECTION, batch_size: Optional[int], meta: _Metadata) -> int:
@@ -414,7 +414,7 @@ class ResultCollection(dict):
             return batch_size
 
         batch_size = 1
-        is_tensor = value.is_tensor if isinstance(value, ResultMetric) else value.has_tensor
+        is_tensor = value.is_tensor if isinstance(value, _ResultMetric) else value.has_tensor
         if self.batch is not None and is_tensor and meta.on_epoch and meta.is_mean_reduction:
             batch_size = extract_batch_size(self.batch)
             self.batch_size = batch_size
@@ -485,30 +485,30 @@ class ResultCollection(dict):
         self.update_metrics(key, value, batch_size)
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
-        """Create one ResultMetric object per value.
+        """Create one _ResultMetric object per value.
 
         Value can be provided as a nested collection
         """
 
-        def fn(v: _IN_METRIC) -> ResultMetric:
-            metric = ResultMetric(meta, isinstance(v, torch.Tensor))
+        def fn(v: _IN_METRIC) -> _ResultMetric:
+            metric = _ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
         value = apply_to_collection(value, (torch.Tensor, Metric), fn)
         if isinstance(value, dict):
-            value = ResultMetricCollection(value)
+            value = _ResultMetricCollection(value)
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: int) -> None:
-        def fn(result_metric: ResultMetric, v: torch.Tensor) -> None:
+        def fn(result_metric: _ResultMetric, v: torch.Tensor) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
             result_metric.forward(v.to(self.device), batch_size)
             result_metric.has_reset = False
 
-        apply_to_collections(self[key], value, ResultMetric, fn)
+        apply_to_collections(self[key], value, _ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(result_metric: ResultMetric, on_step: bool) -> Optional[torch.Tensor]:
+    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[torch.Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -529,11 +529,10 @@ class ResultCollection(dict):
         return (
             (k, v)
             for k, v in self.items()
-            if not (isinstance(v, ResultMetric) and v.has_reset)
-            and self.dataloader_idx in (None, v.meta.dataloader_idx)
+            if not (isinstance(v, _ResultMetric) and v.has_reset) and self.dataloader_idx == v.meta.dataloader_idx
         )
 
-    def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
+    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_dataloader_idx = result_metric.meta.add_dataloader_idx
@@ -549,11 +548,11 @@ class ResultCollection(dict):
 
         for _, result_metric in self.valid_items():
 
-            # extract forward_cache or computed from the ResultMetric. ignore when the output is None
-            value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
+            # extract forward_cache or computed from the _ResultMetric. ignore when the output is None
+            value = apply_to_collection(result_metric, _ResultMetric, self._get_cache, on_step, include_none=False)
 
             # convert metric collection to dict container.
-            if isinstance(value, ResultMetricCollection):
+            if isinstance(value, _ResultMetricCollection):
                 value = dict(value.items())
 
             # check if the collection is empty
@@ -594,15 +593,15 @@ class ResultCollection(dict):
             fx: Function to reset
         """
 
-        def fn(item: ResultMetric) -> None:
+        def fn(item: _ResultMetric) -> None:
             requested_type = metrics is None or metrics ^ item.is_tensor
             same_fx = fx is None or fx == item.meta.fx
             if requested_type and same_fx:
                 item.reset()
 
-        apply_to_collection(self, ResultMetric, fn)
+        apply_to_collection(self, _ResultMetric, fn)
 
-    def to(self, *args: Any, **kwargs: Any) -> "ResultCollection":
+    def to(self, *args: Any, **kwargs: Any) -> "_ResultCollection":
         """Move all data to the given device."""
         self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
 
@@ -610,7 +609,7 @@ class ResultCollection(dict):
             self.device = kwargs["device"]
         return self
 
-    def cpu(self) -> "ResultCollection":
+    def cpu(self) -> "_ResultCollection":
         """Move all data to CPU."""
         return self.to(device="cpu")
 
@@ -634,7 +633,7 @@ class ResultCollection(dict):
 
     def __getstate__(self, drop_value: bool = True) -> dict:
         d = self.__dict__.copy()
-        # all the items should be either `ResultMetric`s or `ResultMetricCollection`s
+        # all the items should be either `_ResultMetric`s or `_ResultMetricCollection`s
         items = {k: v.__getstate__(drop_value=drop_value) for k, v in self.items()}
         return {**d, "items": items}
 
@@ -643,14 +642,14 @@ class ResultCollection(dict):
     ) -> None:
         self.__dict__.update({k: v for k, v in state.items() if k != "items"})
 
-        def setstate(k: str, item: dict) -> Union[ResultMetric, ResultMetricCollection]:
+        def setstate(k: str, item: dict) -> Union[_ResultMetric, _ResultMetricCollection]:
             if not isinstance(item, dict):
                 raise ValueError(f"Unexpected value: {item}")
             cls = item["_class"]
-            if cls == ResultMetric.__name__:
-                cls = ResultMetric
-            elif cls == ResultMetricCollection.__name__:
-                cls = ResultMetricCollection
+            if cls == _ResultMetric.__name__:
+                cls = _ResultMetric
+            elif cls == _ResultMetricCollection.__name__:
+                cls = _ResultMetricCollection
             else:
                 raise ValueError(f"Unexpected class name: {cls}")
             _sync_fn = sync_fn or (self[k].meta.sync.fn if k in self else None)

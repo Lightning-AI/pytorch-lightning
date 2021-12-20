@@ -21,7 +21,7 @@ from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -63,9 +63,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.scheduler_progress = SchedulerProgress()
 
         self.batch_loop = TrainingBatchLoop()
-        self.val_loop = loops.EvaluationLoop()
+        self.val_loop = loops.EvaluationLoop(verbose=False)
 
-        self._results = ResultCollection(training=True)
+        self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
         self._dataloader_iter: Optional[Iterator] = None
@@ -156,7 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         if not data_fetcher.store_on_device:
-            batch = self.trainer._call_ttp_hook("batch_to_device", batch)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch)
 
         self.batch_progress.increment_ready()
 
@@ -182,7 +182,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             response = self.trainer._call_lightning_module_hook(
                 "on_train_batch_start", batch, batch_idx, **extra_kwargs
             )
-            self.trainer._call_ttp_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
             if response == -1:
                 self.batch_progress.increment_processed()
                 raise StopIteration

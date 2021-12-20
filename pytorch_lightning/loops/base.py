@@ -19,7 +19,7 @@ from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -282,7 +282,7 @@ class Loop(ABC, Generic[T]):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
-            elif isinstance(v, ResultCollection):
+            elif isinstance(v, _ResultCollection):
                 # sync / unsync metrics
                 v.sync()
                 destination[key] = v.state_dict()
@@ -312,7 +312,7 @@ class Loop(ABC, Generic[T]):
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
             elif (
-                isinstance(v, ResultCollection)
+                isinstance(v, _ResultCollection)
                 and self.trainer is not None
                 and self.trainer.lightning_module is not None
             ):
@@ -324,10 +324,10 @@ class Loop(ABC, Generic[T]):
                 if metrics:
                     metric_attributes.update(metrics)
 
-                # The `ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
+                # The `_ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
                 # When creating a checkpoint, the `Metric`s are dropped from the loop `state_dict` to serialize only
                 # Python primitives. However, their states are saved with the model's `state_dict`.
-                # On reload, we need to re-attach the `Metric`s back to the `ResultCollection`.
+                # On reload, we need to re-attach the `Metric`s back to the `_ResultCollection`.
                 # The references are provided through the `metric_attributes` dictionary.
                 v.load_state_dict(
                     state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
@@ -337,6 +337,4 @@ class Loop(ABC, Generic[T]):
                     v.reset(metrics=False)
 
         self.on_load_checkpoint(state_dict[prefix + "state_dict"])
-
-        if _FaultTolerantMode.detect_current_mode().is_enabled:
-            self.restarting = True
+        self.restarting = True
