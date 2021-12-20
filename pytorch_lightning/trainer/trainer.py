@@ -1569,10 +1569,10 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """
-        Called when saving a model checkpoint. Calls every callback's `on_save_checkpoint` hook.
-        We have a dedicated function for this rather than using `_call_callback_hooks` because
-        we have special logic for returning callback_states.
+        """Called when saving a model checkpoint.
+
+        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for returning callback_states.
         """
         callback_states = {}
         for callback in self.callbacks:
@@ -1583,10 +1583,10 @@ class Trainer(
         return callback_states
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Called when loading a model checkpoint. Calls every callback's `on_load_checkpoint` hook.
-        We have a dedicated function for this rather than using `_call_callback_hooks` because
-        we have special logic for getting callback_states.
+        """Called when loading a model checkpoint.
+
+        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for getting callback_states.
         """
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
