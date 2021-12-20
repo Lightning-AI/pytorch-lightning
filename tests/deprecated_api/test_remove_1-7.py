@@ -553,7 +553,57 @@ def test_v1_7_0_post_dispatch_hook():
         CustomPlugin(torch.device("cpu"))
 
 
-def test_v1_7_0_deprecate_TrainerCallbackHookMixin():
+def test_v1_7_0_deprecate_trainer_callback_hook_mixin():
+    methods_with_self = [
+        "on_before_accelerator_backend_setup",
+        "on_configure_sharded_model",
+        "on_init_start",
+        "on_init_end",
+        "on_fit_start",
+        "on_fit_end",
+        "on_sanity_check_start",
+        "on_sanity_check_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_validation_epoch_start",
+        "on_validation_epoch_end",
+        "on_test_epoch_start",
+        "on_test_epoch_end",
+        "on_predict_epoch_start",
+        "on_epoch_start",
+        "on_epoch_end",
+        "on_train_start",
+        "on_train_end",
+        #"on_pretrain_routine_start",
+        "on_pretrain_routine_end",
+        "on_batch_start",
+        "on_batch_end",
+        "on_validation_start",
+        "on_validation_end",
+        "on_test_start",
+        "on_test_end",
+        "on_predict_start",
+        "on_predict_end",
+        "on_keyboard_interrupt",
+        "on_after_backward",
+    ]
+    methods_with_stage = [
+        "setup",
+        "teardown",
+    ]
+    methods_with_batch_batch_idx_dataloader_idx = [
+        "on_train_batch_start",
+        "on_validation_batch_start",
+        "on_test_batch_start",
+        "on_predict_batch_start",
+    ]
+    methods_with_outputs_batch_batch_idx_dataloader_idx = [
+        "on_train_batch_end",
+        "on_validation_batch_end",
+        "on_test_batch_end",
+        "on_predict_batch_end",
+    ]
+    methods_with_checkpoint = ["on_save_checkpoint", "on_load_checkpoint"]
     trainer = Trainer(
         max_epochs=1,
         limit_val_batches=0.1,
@@ -561,17 +611,34 @@ def test_v1_7_0_deprecate_TrainerCallbackHookMixin():
         enable_progress_bar=False,
         logger=False,
     )
-    with pytest.deprecated_call(
-        match="`TrainerCallbackHookMixin.on_after_backward` was deprecated in v1.6 and will be removed in v1.7"
-    ):
-        trainer.call_hook("on_after_backward")
-
-    with pytest.deprecated_call(
-        match="`TrainerCallbackHookMixin.on_exception` was deprecated in v1.6 and will be removed in v1.7"
-    ):
-        trainer.call_hook("on_exception", Exception)
-
-    with pytest.deprecated_call(
-        match="`TrainerCallbackHookMixin.on_predict_start` was deprecated in v1.6 and will be removed in v1.7"
-    ):
-        trainer.call_hook("on_predict_start")
+    model = BoringModel()
+    for method_name in methods_with_self:
+        fn = getattr(trainer, method_name)
+        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+            fn()
+    # for method_name in methods_with_stage:
+    #     fn = getattr(trainer, method_name)
+    #     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #         fn(stage="test")
+    # for method_name in methods_with_batch_batch_idx_dataloader_idx:
+    #     fn = getattr(trainer, method_name)
+    #     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #         fn(batch, batch_idx=0, dataloader_idx=0)
+    # for method_name in methods_with_outputs_batch_batch_idx_dataloader_idx:
+    #     fn = getattr(trainer, method_name)
+    #     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #         fn(outputs, batch, batch_idx=0, dataloader_idx=0)
+    # for method_name in methods_with_outputs_batch_batch_idx_dataloader_idx:
+    #     fn = getattr(trainer, method_name)
+    #     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #         fn(checkpoint)
+    # with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #     trainer.on_predict_epoch_end(outputs)
+    # with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #     trainer.on_exception(Exception)
+    # with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #     trainer.on_before_backward(loss=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
+    # with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #     trainer.on_before_optimizer_step(optimizer, optimizer_idx)
+    # with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.7"):
+    #     trainer.on_before_zero_grad(optimizer)

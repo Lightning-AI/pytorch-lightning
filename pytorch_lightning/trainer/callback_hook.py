@@ -26,6 +26,10 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class TrainerCallbackHookMixin(ABC):
+    r"""
+    .. deprecated:: v1.6
+        The `TrainerCallbackHookMixin` class was deprecated in v1.6 and will be removed in v1.7.
+    """
 
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
@@ -582,7 +586,15 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_exception(self, self.lightning_module, exception)
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """Called when saving a model checkpoint."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_save_checkpoint` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when saving a model checkpoint.
+        """
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_save_checkpoint` was deprecated in v1.6 and will be removed in v1.7."
+        )
         callback_states = {}
         for callback in self.callbacks:
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
@@ -591,10 +603,18 @@ class TrainerCallbackHookMixin(ABC):
         return callback_states
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when loading a model checkpoint."""
+        r"""
+        .. deprecated:: v1.6
+            `TrainerCallbackHookMixin.on_load_checkpoint` was deprecated in v1.6 and will be removed in v1.7.
+
+        Called when loading a model checkpoint.
+        """
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
+        rank_zero_deprecation(
+            "`TrainerCallbackHookMixin.on_load_checkpoint` was deprecated in v1.6 and will be removed in v1.7."
+        )
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
