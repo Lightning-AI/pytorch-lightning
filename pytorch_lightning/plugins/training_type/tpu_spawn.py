@@ -340,7 +340,7 @@ class TPUSpawnPlugin(DDPSpawnStrategy):
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
 
-    @DDPSpawnPlugin.checkpoint_io.setter
+    @TPUSpawnPlugin.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
