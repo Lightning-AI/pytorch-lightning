@@ -211,7 +211,7 @@ You can read more about it :ref:`here <early_stopping>`.
 .. _speed_amp:
 
 *********************************
-Mixed precision (16-bit) Training
+Mixed Precision (16-bit) Training
 *********************************
 
 Lower precision, such as the 16-bit floating-point, enables the training and deployment of marge neural networks since they require less memory, enhances data transfer operations since they required
@@ -308,8 +308,8 @@ You can limit validation check to only run every n epochs using the ``check_val_
     trainer = Trainer(check_val_every_n_epoch=7)
 
 
-Set validation check frequency within a single training epoch
-=============================================================
+Validation within Training Epoch
+================================
 
 **Use when:** You have a large training dataset, and want to run mid-epoch validation checks.
 
@@ -501,14 +501,10 @@ Things to avoid
 Don't call ``.item()`` anywhere in your code. Use ``.detach()`` instead to remove the connected graph calls. Lightning
 takes a great deal of care to be optimized for this.
 
-----------
-
 Clear Cache
 ===========
 
 Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
-
-----------
 
 Tranfering Tensors to Device
 ============================
