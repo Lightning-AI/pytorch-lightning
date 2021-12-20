@@ -195,7 +195,7 @@ class FitLoop(Loop):
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer._call_callback_hooks("on_train_start")
         self.trainer._call_lightning_module_hook("on_train_start")
-        self.trainer._call_ttp_hook("on_train_start")
+        self.trainer._call_strategy_hook("on_train_start")
 
     def on_advance_start(self) -> None:  # type: ignore[override]
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
@@ -252,7 +252,7 @@ class FitLoop(Loop):
         # hook
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
-        self.trainer._call_ttp_hook("on_train_end")
+        self.trainer._call_strategy_hook("on_train_end")
 
         # give accelerators a chance to finish
         self.trainer.training_type_plugin.on_train_end()

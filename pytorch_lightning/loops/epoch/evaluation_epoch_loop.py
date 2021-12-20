@@ -112,7 +112,7 @@ class EvaluationEpochLoop(Loop):
             raise StopIteration
 
         if not data_fetcher.store_on_device:
-            batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=(dataloader_idx or 0))
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=(dataloader_idx or 0))
 
         self.batch_progress.increment_ready()
 
@@ -222,9 +222,9 @@ class EvaluationEpochLoop(Loop):
             the outputs of the step
         """
         if self.trainer.testing:
-            output = self.trainer._call_ttp_hook("test_step", *kwargs.values())
+            output = self.trainer._call_strategy_hook("test_step", *kwargs.values())
         else:
-            output = self.trainer._call_ttp_hook("validation_step", *kwargs.values())
+            output = self.trainer._call_strategy_hook("validation_step", *kwargs.values())
 
         return output
 
@@ -232,8 +232,8 @@ class EvaluationEpochLoop(Loop):
         """Calls the `{validation/test}_step_end` hook."""
         hook_name = "test_step_end" if self.trainer.testing else "validation_step_end"
         model_output = self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-        ttp_output = self.trainer._call_ttp_hook(hook_name, *args, **kwargs)
-        output = ttp_output if model_output is None else model_output
+        strategy_output = self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
+        output = strategy_output if model_output is None else model_output
         return output
 
     def _on_evaluation_batch_start(self, **kwargs: Any) -> None:
