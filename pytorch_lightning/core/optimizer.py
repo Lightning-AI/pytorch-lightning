@@ -167,11 +167,8 @@ class LightningOptimizer:
 
 
 def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[List, List, List]:
-    prev_fx_name = model._current_fx_name
-    model._current_fx_name = "configure_optimizers"
     model.trainer._lightning_optimizers = None
-    optim_conf = model.configure_optimizers()
-    model._current_fx_name = prev_fx_name
+    optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
     if optim_conf is None:
         rank_zero_warn(

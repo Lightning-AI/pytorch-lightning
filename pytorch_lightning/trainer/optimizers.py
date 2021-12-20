@@ -36,10 +36,10 @@ class TrainerOptimizersMixin(ABC):
     def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
         r"""
         .. deprecated:: v1.6
-            `TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.7.
+            `TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8.
         """
         rank_zero_deprecation(
-            "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.7."
+            "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
         )
         pl_module = self.lightning_module or model
         self._lightning_optimizers = None
@@ -122,11 +122,11 @@ class TrainerOptimizersMixin(ABC):
     def convert_to_lightning_optimizers(self):
         r"""
         .. deprecated:: v1.6
-            `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.7.
+            `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.8.
         """
         rank_zero_deprecation(
             "`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
-            "v1.7."
+            "v1.8."
         )
 
         def _convert_to_lightning_optimizer(trainer, optimizer):

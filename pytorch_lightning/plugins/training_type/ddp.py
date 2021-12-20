@@ -329,7 +329,7 @@ class DDPPlugin(ParallelPlugin):
             del optimizer
         trainer = self.lightning_module.trainer
         trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
+        trainer._convert_to_lightning_optimizers()
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()

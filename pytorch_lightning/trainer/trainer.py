@@ -1856,7 +1856,7 @@ class Trainer(
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
         if self._lightning_optimizers is None:
-            self.convert_to_lightning_optimizers()
+            self._convert_to_lightning_optimizers()
         return self._lightning_optimizers
 
     @property
@@ -2291,7 +2291,7 @@ class Trainer(
         )
         self._terminate_on_nan = val  # : 212
 
-    def convert_to_lightning_optimizers(self):
+    def _convert_to_lightning_optimizers(self):
         def _convert_to_lightning_optimizer(trainer, optimizer):
             if not isinstance(optimizer, LightningOptimizer):
                 optimizer = LightningOptimizer(optimizer)

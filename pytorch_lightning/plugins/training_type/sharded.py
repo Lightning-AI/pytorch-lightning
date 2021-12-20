@@ -50,7 +50,7 @@ class DDPShardedPlugin(DDPPlugin):
             optimizers=trainer.optimizers,
         )
         trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
+        trainer._convert_to_lightning_optimizers()
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
