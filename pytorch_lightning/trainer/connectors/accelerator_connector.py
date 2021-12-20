@@ -27,7 +27,7 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
-    DataParallelPlugin,
+    DataParallelStrategy,
     DDP2Plugin,
     DDPFullyShardedStrategy,
     DDPPlugin,
@@ -745,7 +745,7 @@ class AcceleratorConnector:
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
-            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+            plugin = DataParallelStrategy(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):

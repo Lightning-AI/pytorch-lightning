@@ -25,7 +25,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.plugins import (
-    DataParallelPlugin,
+    DataParallelStrategy,
     DDP2Plugin,
     DDPPlugin,
     DDPShardedPlugin,
@@ -628,7 +628,7 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("ddp", DDPPlugin),
         ("ddp_find_unused_parameters_false", DDPPlugin),
         ("ddp2", DDP2Plugin),
-        ("dp", DataParallelPlugin),
+        ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedPlugin),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
         pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
