@@ -1,17 +1,26 @@
 .. _test_set:
 
-Test set
-========
-Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.
-Testing is performed using the ``trainer`` object's ``.test()`` method.
+==========
+Evaluation
+==========
+
+*******
+Testing
+*******
+
+Lightning allows the user to test their models with any compatible test dataloaders. This can be done before/after training
+and is completely agnostic to :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call. The logic used here is defined under
+:meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
+
+Testing is performed using the ``Trainer`` object's ``.test()`` method.
 
 .. automethod:: pytorch_lightning.trainer.Trainer.test
     :noindex:
 
-----------
 
-Test after fit
---------------
+Test after Fit
+==============
+
 To run the test set after training completes, use this method.
 
 .. code-block:: python
@@ -28,10 +37,10 @@ To run the test set after training completes, use this method.
     # (3) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
 
-----------
 
-Test multiple models
---------------------
+Test Multiple Models
+====================
+
 You can run the test set on multiple models using the same trainer instance.
 
 .. code-block:: python
@@ -43,10 +52,10 @@ You can run the test set on multiple models using the same trainer instance.
     trainer.test(model1)
     trainer.test(model2)
 
-----------
 
-Test pre-trained model
-----------------------
+Test Pre-Trained Model
+======================
+
 To run the test set on a pre-trained model, use this method.
 
 .. code-block:: python
@@ -66,11 +75,11 @@ To run the test set on a pre-trained model, use this method.
 In this  case, the options you pass to trainer will be used when
 running the test set (ie: 16-bit, dp, ddp, etc...)
 
-----------
 
-Test with additional data loaders
----------------------------------
-You can still run inference on a test set even if the `test_dataloader` method hasn't been
+Test with Additional DataLoaders
+================================
+
+You can still run inference on a test set even if the :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader` method hasn't been
 defined within your :doc:`lightning module <../common/lightning_module>` instance. This would be the case when your test data
 is not available at the time your model was declared.
 
@@ -85,7 +94,7 @@ is not available at the time your model was declared.
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,
 you can also pass in an :doc:`datamodules <../extensions/datamodules>` that have overridden the
-:ref:`datamodule-test-dataloader-label` method.
+:ref:`datamodule_test_dataloader_label` method.
 
 .. code-block:: python
 
@@ -101,3 +110,21 @@ you can also pass in an :doc:`datamodules <../extensions/datamodules>` that have
 
     # test (pass in datamodule)
     trainer.test(datamodule=dm)
+
+----------
+
+**********
+Validation
+**********
+
+Lightning allows the user to validate their models with any compatible val dataloaders. This can be done before/after training.
+The logic used here is defined under :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
+
+Apart from this ``.validate`` has same API as that of ``.test`` as defined above.
+
+.. note::
+    ``.validate`` method uses the same validation logic being used under validation happening within
+    :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call.
+
+.. automethod:: pytorch_lightning.trainer.Trainer.validate
+    :noindex:
