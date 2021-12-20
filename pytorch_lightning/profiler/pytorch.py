@@ -377,10 +377,8 @@ class PyTorchProfiler(BaseProfiler):
 
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
-            try:
+            if torch.autograd._profiler_enabled():
                 torch.autograd._disable_profiler()
-            except (AttributeError, RuntimeError):
-                pass
 
             if self._schedule is not None:
                 self._schedule.setup(action_name)
