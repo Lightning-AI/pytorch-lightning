@@ -72,6 +72,7 @@ class LSFEnvironment(ClusterEnvironment):
         os.environ["MASTER_PORT"] = str(self._main_port)
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
+    @property
     def creates_processes_externally(self) -> bool:
         """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
         return True
