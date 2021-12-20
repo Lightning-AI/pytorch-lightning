@@ -376,7 +376,7 @@ Custom Checkpoint IO Plugin
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
