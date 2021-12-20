@@ -8,22 +8,22 @@
 
 
 #######################
-Speed up model training
+Speed up Model Training
 #######################
 
 When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
 without affecting the model's performance. There are multiple ways you can speed up your model's time to convergence.
 
 
-****************
-GPU/TPU training
-****************
+************************
+Training on Accelerators
+************************
 
 **Use when:** Whenever possible!
 
 With Lightning, running on GPUs, TPUs, IPUs on multiple node is a simple switch of a flag.
 
-GPU training
+GPU Training
 ============
 
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
@@ -63,7 +63,7 @@ Prefer DDP over DP
 Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations: moving data to device and transfer and sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP plugins, set find_unused_parameters=False
+When using DDP Plugins, set find_unused_parameters=False
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
@@ -90,7 +90,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
-When using DDP on a multi-node cluster, set NCCL parameters
+When using DDP on a Multi-Node Cluster, set NCCL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
@@ -111,7 +111,8 @@ NCCL parameters can be adjusted via environment variables.
     export NCCL_SOCKET_NTHREADS=2
 
 Dataloaders
-^^^^^^^^^^^
+"""""""""""
+
 When building your DataLoader set ``num_workers>0`` and ``pin_memory=True`` (only for GPUs).
 
 .. code-block:: python
@@ -157,14 +158,14 @@ your script has to be callable like so:
 
     python my_program.py
 
-Persistent workers
+Persistent Workers
 """"""""""""""""""
 
 When using ``strategy="ddp_spawn"`` and ``num_workers > 0``, consider setting ``persistent_workers=True`` inside your DataLoader since it can result in data-loading bottlenecks and slowdowns.
 This is a limitation of Python ``.spawn()`` and PyTorch.
 
 
-TPU training
+TPU Training
 ============
 
 You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or 8 cores.
@@ -198,7 +199,7 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 -----------
 
 **************
-Early stopping
+Early Stopping
 **************
 
 Usually long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence. Here Early Stopping can help you stop
@@ -210,9 +211,11 @@ You can read more about it :ref:`here <early_stopping>`.
 .. _speed_amp:
 
 *********************************
-Mixed precision (16-bit) training
+Mixed precision (16-bit) Training
 *********************************
-<TODO: improve this once docs/precision is merged>
+
+Lower precision, such as the 16-bit floating-point, enables the training and deployment of marge neural networks since they require less memory, enhances data transfer operations since they required
+less memory bandwidth and run match operations much faster on GPUs that support Tensor Core.
 
 **Use when:**
 
@@ -240,6 +243,9 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=4)
+
+
+Read more about mixed-precision training :ref:`here <amp>`
 
 
 ----------------
