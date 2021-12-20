@@ -350,6 +350,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        self._move_optimizer_state()
         self.init_deepspeed()
         self.barrier()
 
