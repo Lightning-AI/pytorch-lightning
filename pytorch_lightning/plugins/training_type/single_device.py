@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
 class SingleDeviceStrategy(Strategy):
-    """Plugin that handles communication on a single device."""
+    """Strategy that handles communication on a single device."""
 
     def __init__(
         self,
