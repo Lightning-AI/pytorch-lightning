@@ -74,13 +74,12 @@ class LSFEnvironment(ClusterEnvironment):
 
     @property
     def creates_processes_externally(self) -> bool:
-        """LSF creates subprocesses -- i.e. PyTorch Lightning does not need to spawn them."""
+        """LSF creates subprocesses, i.e., PyTorch Lightning does not need to spawn them."""
         return True
 
     @property
     def main_address(self) -> str:
-        """The main address is read from an OpenMPI host rank file in the environment variable
-        ``LSB_DJOB_RANKFILE``"""
+        """The main address is read from an OpenMPI host rank file in the environment variable ``LSB_DJOB_RANKFILE``."""
         return self._main_address
 
     @property
@@ -98,7 +97,8 @@ class LSFEnvironment(ClusterEnvironment):
         """The world size is read from the environment variable ``JSM_NAMESPACE_SIZE``."""
         return self._world_size
 
-    def _get_world_size(self) -> int:
+    @staticmethod
+    def _get_world_size() -> int:
         """A helper function for getting the world size.
 
         Read this from the environment variable ``JSM_NAMESPACE_SIZE``
@@ -118,10 +118,11 @@ class LSFEnvironment(ClusterEnvironment):
         """The world size is read from the environment variable ``JSM_NAMESPACE_RANK``."""
         return self._global_rank
 
-    def _get_global_rank(self) -> int:
-        """A helper function for getting the global rank.
+    @staticmethod
+    def _get_global_rank() -> int:
+        """A helper method for getting the global rank.
 
-        Read this from the environment variable ``JSM_NAMESPACE_LOCAL_RANK``
+        Read this from the environment variable ``JSM_NAMESPACE_RANK``
         """
         var = "JSM_NAMESPACE_RANK"
         global_rank = os.environ.get(var)
@@ -139,8 +140,9 @@ class LSFEnvironment(ClusterEnvironment):
         """The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`."""
         return self._local_rank
 
-    def _get_local_rank(self) -> int:
-        """A helper function for getting the local rank.
+    @staticmethod
+    def _get_local_rank() -> int:
+        """A helper method for getting the local rank.
 
         Read this from the environment variable ``JSM_NAMESPACE_LOCAL_RANK``
         """
@@ -158,10 +160,10 @@ class LSFEnvironment(ClusterEnvironment):
         return self._node_rank
 
     def _get_node_rank(self) -> int:
-        """A helper function for getting the node rank.
+        """A helper method for getting the node rank.
 
-        Node rank is determined by the position of the current node in the hosts used in the job. This is calculated by
-        reading all hosts from LSB_DJOB_RANKFILE and finding this nodes hostname in the list.
+        The node rank is determined by the position of the current node in the list of hosts used in the job.
+        This is calculated by reading all hosts from ``LSB_DJOB_RANKFILE`` and finding this node's hostname in the list.
         """
         hosts = self._read_hosts()
         count: Dict[str, int] = {}
