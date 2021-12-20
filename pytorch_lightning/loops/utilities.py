@@ -161,8 +161,8 @@ def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -
 
 @contextmanager
 def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelStrategy`. This is
-    useful for example when when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelStrategy`. This
+    is useful for example when when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         trainer: the trainer instance with a reference to a training type plugin
