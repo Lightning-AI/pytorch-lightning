@@ -46,7 +46,7 @@ from pytorch_lightning.plugins import (
     ParallelPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    TrainingTypePlugin,
+    Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -165,7 +165,7 @@ class Trainer(
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
@@ -1109,11 +1109,10 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
-        self.training_type_plugin.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1147,15 +1146,17 @@ class Trainer(
         self.logger_connector.reset_results()
         self.logger_connector.reset_metrics()
 
+        # strategy will configure model and move it to the device
+        self.training_type_plugin.setup(self)
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        # plugin will move model to device
-        self._pre_dispatch()
+        self._log_hyperparams()
 
-        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
@@ -1184,10 +1185,6 @@ class Trainer(
             results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         return results
-
-    def _pre_dispatch(self):
-        self.training_type_plugin.pre_dispatch(self)
-        self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
         # log hyper-parameters
@@ -1477,7 +1474,7 @@ class Trainer(
                 output = model_fx(*args, **kwargs)
 
             # *Bad code alert*
-            # The `Accelerator` mostly calls the `TrainingTypePlugin` but some of those calls are deprecated.
+            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
             # The following logic selectively chooses which hooks are called on each object.
             # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
             # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
@@ -1525,8 +1522,7 @@ class Trainer(
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
 
-        # TODO: when profiling separate hook name by hook object name (e.g. Callback, LM)
-        with self.profiler.profile(hook_name):
+        with self.profiler.profile(f"[LightningModule]{pl_module.__class__.__name__}.{hook_name}"):
             output = fn(*args, **kwargs)
 
         # restore current_fx when nested context
@@ -1566,7 +1562,7 @@ class Trainer(
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    with self.profiler.profile(hook_name):
+                    with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
                         fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
@@ -1593,8 +1589,7 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    # TODO: rename to _call_strategy_hook and eventually no longer need this
-    def _call_ttp_hook(
+    def _call_strategy_hook(
         self,
         hook_name: str,
         *args: Any,
@@ -1608,7 +1603,7 @@ class Trainer(
         if not callable(fn):
             return
 
-        with self.profiler.profile(hook_name):
+        with self.profiler.profile(f"[Strategy]{self.training_type_plugin.__class__.__name__}.{hook_name}"):
             output = fn(*args, **kwargs)
 
         # restore current_fx when nested context
@@ -1700,7 +1695,7 @@ class Trainer(
         return self.training_type_plugin.accelerator
 
     @property
-    def training_type_plugin(self) -> TrainingTypePlugin:
+    def training_type_plugin(self) -> Strategy:
         return self._accelerator_connector.training_type_plugin
 
     @property

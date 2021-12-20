@@ -24,12 +24,12 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
-class ParallelPlugin(TrainingTypePlugin, ABC):
+class ParallelPlugin(Strategy, ABC):
     """Plugin for training with multiple processes in parallel."""
 
     def __init__(

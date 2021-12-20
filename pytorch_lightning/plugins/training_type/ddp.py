@@ -151,6 +151,24 @@ class DDPPlugin(ParallelPlugin):
         self.setup_distributed()
         super().setup_environment()
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        super().setup(trainer)
+        # share ddp pids to all processes
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
@@ -340,24 +358,6 @@ class DDPPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
-        # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
-        if self._should_run_deadlock_detection():
-            self._share_information_to_prevent_deadlock()
-
-        # move the model to the correct device
-        self.model_to_device()
-
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():

@@ -529,8 +529,7 @@ class _ResultCollection(dict):
         return (
             (k, v)
             for k, v in self.items()
-            if not (isinstance(v, _ResultMetric) and v.has_reset)
-            and self.dataloader_idx in (None, v.meta.dataloader_idx)
+            if not (isinstance(v, _ResultMetric) and v.has_reset) and self.dataloader_idx == v.meta.dataloader_idx
         )
 
     def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> Tuple[str, str]:
