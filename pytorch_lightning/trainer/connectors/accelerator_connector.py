@@ -787,15 +787,14 @@ class AcceleratorConnector:
             return self.distributed_backend
 
         if self.use_gpu:
-            acc_cls = GPUAccelerator
+            accelerator = GPUAccelerator(benchmark=self.benchmark)
         elif self.use_tpu:
-            acc_cls = TPUAccelerator
+            accelerator = TPUAccelerator()
         elif self.use_ipu:
-            acc_cls = IPUAccelerator
+            accelerator = IPUAccelerator()
         else:
-            acc_cls = CPUAccelerator
+            accelerator = CPUAccelerator()
 
-        accelerator = acc_cls()
         return accelerator
 
     def select_cluster_environment(self) -> ClusterEnvironment:

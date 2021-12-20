@@ -30,6 +30,9 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
 
+    def __init__(self, benchmark=False):
+        self._benchmark = benchmark
+
     def setup_environment(self, root_device: torch.device) -> None:
         """
         Raises:
@@ -46,7 +49,7 @@ class GPUAccelerator(Accelerator):
         # clear cache before training
         torch.cuda.empty_cache()
         # benchmarking
-        torch.backends.cudnn.benchmark = trainer.benchmark
+        torch.backends.cudnn.benchmark = self._benchmark
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
@@ -77,6 +80,9 @@ class GPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return torch.cuda.device_count()
+
+    def teardown(self) -> None:
+        torch.backends.cudnn.benchmark = False
 
 
 def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
