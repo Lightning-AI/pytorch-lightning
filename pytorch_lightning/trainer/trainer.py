@@ -1568,6 +1568,49 @@ class Trainer(
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
+    # dedicated functions for calling callbacks' `on_save_checkpoint` and `on_load_checkpoint`
+    # hooks to include special logic for storing of callback_states
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
+        """
+        Called when saving a model checkpoint. Calls every callback's `on_save_checkpoint` hook.
+        """
+        callback_states = {}
+        for callback in self.callbacks:
+            # TODO: Add profiling for on_save_checkpoint hook
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            if state:
+                callback_states[callback.state_key] = state
+        return callback_states
+
+    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """
+        Called when loading a model checkpoint. Calls every callback's `on_load_checkpoint` hook.
+        """
+        # Todo: the `callback_states` are dropped with TPUSpawn as they
+        # can't be saved using `xm.save`
+        # https://github.com/pytorch/xla/issues/2773
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        difference = callback_states.keys() - current_callbacks_keys
+        if difference:
+            rank_zero_warn(
+                "Be aware that when using `ckpt_path`,"
+                " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
+                f" Please add the following callbacks: {list(difference)}.",
+            )
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                # TODO: Add profiling for on_load_checkpoint hook
+                callback.on_load_checkpoint(self, self.lightning_module, state)
+
     def _call_strategy_hook(
         self,
         hook_name: str,
@@ -2288,45 +2331,6 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
-
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """
-        Called when saving a model checkpoint. Calls every callback's `on_save_checkpoint` hook.
-        """
-        callback_states = {}
-        for callback in self.callbacks:
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
-            if state:
-                callback_states[callback.state_key] = state
-        return callback_states
-
-    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Called when loading a model checkpoint. Calls every callback's `on_load_checkpoint` hook.
-        """
-        # Todo: the `callback_states` are dropped with TPUSpawn as they
-        # can't be saved using `xm.save`
-        # https://github.com/pytorch/xla/issues/2773
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
-
-        if callback_states is None:
-            return
-
-        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
-        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        difference = callback_states.keys() - current_callbacks_keys
-        if difference:
-            rank_zero_warn(
-                "Be aware that when using `ckpt_path`,"
-                " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
-                f" Please add the following callbacks: {list(difference)}.",
-            )
-
-        for callback in self.callbacks:
-            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
-            if state:
-                state = deepcopy(state)
-                callback.on_load_checkpoint(self, self.lightning_module, state)
 
 
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
