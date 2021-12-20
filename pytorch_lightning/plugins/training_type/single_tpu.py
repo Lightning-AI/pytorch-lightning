@@ -19,7 +19,6 @@ from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
@@ -86,9 +85,3 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def teardown(self) -> None:
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
-
-    @SingleDevicePlugin.checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
-        if io is not None and not isinstance(io, XLACheckpointIO):
-            raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
-        self._checkpoint_io = io
