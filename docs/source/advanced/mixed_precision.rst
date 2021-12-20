@@ -129,14 +129,14 @@ NVIDIA APEX
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(gpus=1, amp_backend="apex")
+    Trainer(gpus=1, amp_backend="apex", precision=16)
 
 Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(gpus=1, amp_backend="apex", amp_level="O2")
+    Trainer(gpus=1, amp_backend="apex", amp_level="O2", precision=16)
 
 
 BFloat16 Mixed Precision
@@ -203,7 +203,6 @@ You can also customize and pass your own Precision Plugin by subclassing the :cl
 
 - Perform pre and post backward/optimizer step operations such as scaling gradients.
 - Provide context managers for forward, training_step, etc.
-- Configure Gradient clipping.
 
 .. code-block:: python
 
@@ -214,3 +213,11 @@ You can also customize and pass your own Precision Plugin by subclassing the :cl
 
 
     trainer = Trainer(plugins=[CustomPrecisionPlugin()])
+
+
+***************
+8-bit Optimizer
+***************
+
+It is possible to grill down the precision more using third-party libraries like `bitsandbytes <https://github.com/facebookresearch/bitsandbytes>`_. Although,
+Lightning doesn't support it out of the box yet but you can still use it by configuring it in your LightningModule and setting ``Trainer(precision=32)``.
