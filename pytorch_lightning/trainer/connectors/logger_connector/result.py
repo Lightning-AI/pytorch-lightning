@@ -407,7 +407,7 @@ class _ResultCollection(dict):
         return o
 
     def _extract_batch_size(
-        self, value: Union[ResultMetric, ResultMetricCollection], batch_size: Optional[int], meta: _Metadata
+        self, value: Union[_ResultMetric, _ResultMetricCollection], batch_size: Optional[int], meta: _Metadata
     ) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
