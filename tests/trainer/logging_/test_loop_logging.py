@@ -20,7 +20,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from tests.helpers.boring_model import BoringModel
 
@@ -39,13 +39,13 @@ def test_default_level_for_hooks_that_support_logging():
     model.trainer = trainer
     extra_kwargs = {
         k: ANY
-        for k in inspect.signature(ResultCollection.log).parameters
+        for k in inspect.signature(_ResultCollection.log).parameters
         if k not in ["self", "fx", "name", "value", "on_step", "on_epoch"]
     }
     all_logging_hooks = {k for k in _FxValidator.functions if _FxValidator.functions[k]}
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result.ResultCollection.log", return_value=None
+        "pytorch_lightning.trainer.connectors.logger_connector.result._ResultCollection.log", return_value=None
     ) as result_mock:
         trainer.state.stage = RunningStage.TRAINING
         hooks = [

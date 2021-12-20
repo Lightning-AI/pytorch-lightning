@@ -208,7 +208,6 @@ class ProgressBarBase(Callback):
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
                 f" `self.log('{duplicates[0]}', ..., prog_bar=True)` will overwrite this value. "
                 " If this is undesired, change the name or override `get_metrics()` in the progress bar callback.",
-                UserWarning,
             )
 
         return {**standard_metrics, **pbar_metrics}
