@@ -94,7 +94,7 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
 
 
-def test_fsdp_plugins_registry(tmpdir):
+def test_fsdp_strategys_registry(tmpdir):
 
     plugin = "fsdp"
 

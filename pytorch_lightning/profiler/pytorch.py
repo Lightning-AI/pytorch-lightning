@@ -131,51 +131,51 @@ class ScheduleWrapper:
 
     @property
     def is_training(self) -> bool:
-        return self._current_action is not None and (
-            self._current_action.startswith("optimizer_step_with_closure_") or self._current_action == "training_step"
+        return self._current_action.startswith("optimizer_step_with_closure_") or self._current_action.endswith(
+            "training_step"
         )
 
     @property
     def num_step(self) -> int:
         if self.is_training:
             return self._num_optimizer_step_with_closure
-        if self._current_action == "validation_step":
+        if self._current_action.endswith("validation_step"):
             return self._num_validation_step
-        if self._current_action == "test_step":
+        if self._current_action.endswith("test_step"):
             return self._num_test_step
-        if self._current_action == "predict_step":
+        if self._current_action.endswith("predict_step"):
             return self._num_predict_step
         return 0
 
     def _step(self) -> None:
         if self.is_training:
             self._num_optimizer_step_with_closure += 1
-        elif self._current_action == "validation_step":
-            if self._start_action_name == "on_fit_start":
+        elif self._current_action.endswith("validation_step"):
+            if self._start_action_name.endswith("on_fit_start"):
                 if self._num_optimizer_step_with_closure > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
-        elif self._current_action == "test_step":
+        elif self._current_action.endswith("test_step"):
             self._num_test_step += 1
-        elif self._current_action == "predict_step":
+        elif self._current_action.endswith("predict_step"):
             self._num_predict_step += 1
 
     @property
     def has_finished(self) -> bool:
         if self.is_training:
             return self._optimizer_step_with_closure_reached_end
-        if self._current_action == "validation_step":
+        if self._current_action.endswith("validation_step"):
             return self._validation_step_reached_end
-        if self._current_action == "test_step":
+        if self._current_action.endswith("test_step"):
             return self._test_step_reached_end
-        if self._current_action == "predict_step":
+        if self._current_action.endswith("predict_step"):
             return self._predict_step_reached_end
         return False
 
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
-        if self.has_finished:
+        if self._current_action is None or self.has_finished:
             return ProfilerAction.NONE
 
         self._step()
@@ -183,11 +183,11 @@ class ScheduleWrapper:
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_with_closure_reached_end = True
-            elif self._current_action == "validation_step":
+            elif self._current_action.endswith("validation_step"):
                 self._validation_step_reached_end = True
-            elif self._current_action == "test_step":
+            elif self._current_action.endswith("test_step"):
                 self._test_step_reached_end = True
-            elif self._current_action == "predict_step":
+            elif self._current_action.endswith("predict_step"):
                 self._predict_step_reached_end = True
         return action
 
@@ -340,11 +340,11 @@ class PyTorchProfiler(BaseProfiler):
         trainer = self._lightning_module.trainer
         if self._schedule.is_training:
             return trainer.num_training_batches
-        if self._schedule._current_action == "validation_step":
+        if self._schedule._current_action.endswith("validation_step"):
             return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
-        if self._schedule._current_action == "test_step":
+        if self._schedule._current_action.endswith("test_step"):
             return sum(trainer.num_test_batches)
-        if self._schedule._current_action == "predict_step":
+        if self._schedule._current_action.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
 
     def _should_override_schedule(self) -> bool:
@@ -373,14 +373,11 @@ class PyTorchProfiler(BaseProfiler):
         return activities
 
     def start(self, action_name: str) -> None:
-        if self.profiler is None and action_name in self._record_functions_start:
-
+        if self.profiler is None and any(action_name.endswith(func) for func in self._record_functions_start):
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
-            try:
+            if torch.autograd._profiler_enabled():
                 torch.autograd._disable_profiler()
-            except (AttributeError, RuntimeError):
-                pass
 
             if self._schedule is not None:
                 self._schedule.setup(action_name)
@@ -405,7 +402,10 @@ class PyTorchProfiler(BaseProfiler):
 
         if (
             self.profiler is not None
-            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
+            and (
+                any(action_name.endswith(func) for func in self._record_functions)
+                or action_name.startswith(self.RECORD_FUNCTION_PREFIX)
+            )
             and action_name not in self._recording_map
         ):
 
@@ -422,9 +422,9 @@ class PyTorchProfiler(BaseProfiler):
             return
 
         if self.profiler is not None and (
-            action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
+            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
+            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
         ):
-
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 

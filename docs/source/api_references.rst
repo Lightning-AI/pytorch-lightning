@@ -146,7 +146,7 @@ Training Type Plugins
     :nosignatures:
     :template: classtemplate.rst
 
-    TrainingTypePlugin
+    Strategy
     SingleDevicePlugin
     ParallelPlugin
     DataParallelPlugin

@@ -344,7 +344,7 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        hparams = yaml.load(fp, Loader=yaml.UnsafeLoader)
+        hparams = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE:
         if use_omegaconf:
