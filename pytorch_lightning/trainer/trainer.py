@@ -1523,8 +1523,7 @@ class Trainer(
         prev_fx_name = pl_module._current_fx_name
         pl_module._current_fx_name = hook_name
 
-        # TODO: when profiling separate hook name by hook object name (e.g. Callback, LM)
-        with self.profiler.profile(hook_name):
+        with self.profiler.profile(f"[LightningModule]{pl_module.__class__.__name__}.{hook_name}"):
             output = fn(*args, **kwargs)
 
         # restore current_fx when nested context
@@ -1563,7 +1562,7 @@ class Trainer(
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
                 if callable(fn):
-                    with self.profiler.profile(hook_name):
+                    with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
                         fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
@@ -1584,7 +1583,7 @@ class Trainer(
         if not callable(fn):
             return
 
-        with self.profiler.profile(hook_name):
+        with self.profiler.profile(f"[Strategy]{self.training_type_plugin.__class__.__name__}.{hook_name}"):
             output = fn(*args, **kwargs)
 
         # restore current_fx when nested context
