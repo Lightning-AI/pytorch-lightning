@@ -2,9 +2,9 @@
 
     from pytorch_lightning.core.lightning import LightningModule
 
-================================
+################################
 Transfer Learning and Finetuning
-================================
+################################
 
 Transfer learning is a training methodology where an existing pre-trained model developed for another task is used as a backbone or a starting point
 to train models for new tasks. It is expected that since the existing pre-trained model is already a SOTA model, it can be used to generate better
