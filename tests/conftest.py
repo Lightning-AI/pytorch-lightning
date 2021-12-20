@@ -213,6 +213,6 @@ def pytest_collection_modifyitems(items):
             item
             for item in items
             for marker in item.own_markers
-            # has `@RunIf(tpu=True)`
+            # has `@RunIf(ipu=True)`
             if marker.name == "skipif" and marker.kwargs.get("ipu")
         ]
