@@ -30,7 +30,7 @@ We expose Accelerators and Plugins mainly for expert users that want to extend L
 There are two types of Plugins in Lightning with different responsibilities:
 
 Strategy
-------------------
+--------
 
 - Launching and teardown of training processes (if applicable)
 - Setup communication between processes (NCCL, GLOO, MPI, ...)
