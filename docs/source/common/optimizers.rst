@@ -523,7 +523,7 @@ Configure Gradient Clipping
 
 To configure custom gradient clipping, consider overriding
 the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
-Attributes ``gradient_clip_val`` and ``gradient_clip_algorithm`` from trainer will be passed in the
+Attributes ``gradient_clip_val`` and ``gradient_clip_algorithm`` from Trainer will be passed in the
 respective arguments here and Lightning will handle gradient clipping for you. In case you want to set
 different values for your arguments of your choice and let Lightning handle the gradient clipping, you can
 use the inbuilt :meth:`~pytorch_lightning.core.lightning.LightningModule.clip_gradients` method and pass
