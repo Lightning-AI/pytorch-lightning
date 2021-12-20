@@ -24,7 +24,7 @@ What is Pytorch Lightning
 =========================
 
 PyTorch has all you need to train your models. But there's a lot more to deep learning more than just attaching some layers together. It provides you the APIs required to build models, datasets etc.
-but when it comes to actual training there's a lot of boiler-plate code involved that you need to write by youself and if you need to scale your training/inferencing on multiple devices/machines there's another
+but when it comes to actual training, there's a lot of boiler-plate code involved that you need to write by youself and if you need to scale your training/inferencing on multiple devices/machines there's another
 set of integrations you might need to do by yourself. So here PyTorch Lightning comes into picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
 Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training accross multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
 and a lot more. Now all you need is to take care of your research code and leave the engineering to us.
@@ -43,7 +43,7 @@ We test the framework across multiple Python/PyTorch versions to ensure its reac
 
 
 *****************
-Started Templates
+Starter Templates
 *****************
 
 Before installing anything, if you want to give it a try, please try out the following templates to try it out live:
@@ -269,13 +269,13 @@ then call fit with both the data and model.
 The :class:`~pytorch_lightning.trainer.Trainer` automates:
 
 * Epoch and batch iteration
-* ``optimizer.step()``, ``loss.backward()``, `optimizer.zero_grad()`` calls
+* ``optimizer.step()``, ``loss.backward()``, ``optimizer.zero_grad()`` calls
 * Calling of ``model.eval()``, enabling/disabling grads during evaluation
 * :doc:`Checkpoint Saving and Loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
 * :doc:`Accelerator Support <../extensions/accelerators>`
 * :doc:`Multi-GPU <../advanced/multi_gpu>` support
-* :ref:`16-bit precision AMP <precision>` support
+* :ref:`16-bit precision AMP <amp>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode (ie: RL, GANs, etc...).
 
@@ -343,8 +343,8 @@ Turn off automatic optimization and you control the optimization!
 Loop Customization
 ==================
 
-If you need even more flexibility, you can fully customize the training loop to its core.
-Learn more about loops :doc:`here <../extensions/loops>`.
+If you need even more flexibility, you can fully customize the training loop to its core. These are usually required to be customized
+for advanced use-cases. Learn more inside :doc:`Loops docs <../extensions/loops>`.
 
 
 Predict or Deploy
@@ -421,7 +421,7 @@ You can also add a forward method to do predictions however you want.
 Option 3: Production
 --------------------
 
-For production systems, `Onnx <https://pytorch.org/docs/stable/onnx.html>`_ or `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ are much faster.
+For production systems, `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ or `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ are much faster.
 Make sure you have added a ``forward`` method or trace only the sub-models you need.
 
 * TorchScript using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript` method.
@@ -445,53 +445,58 @@ Using Accelerators
 
 It's trivial to use CPUs, GPUs, TPUs or IPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.trainer.Trainer` options.
 
+CPU
+---
+
 .. testcode::
 
     # train on CPU
     trainer = Trainer()
 
-.. testcode::
-
     # train on 8 CPUs
     trainer = Trainer(num_processes=8)
 
-.. code-block:: python
-
     # train on 1024 CPUs across 128 machines
     trainer = pl.Trainer(num_processes=8, num_nodes=128)
+
+GPU
+---
 
 .. code-block:: python
 
     # train on 1 GPU
     trainer = pl.Trainer(gpus=1)
 
-.. code-block:: python
-
     # train on multiple GPUs across nodes (32 gpus here)
     trainer = pl.Trainer(gpus=4, num_nodes=8)
-
-.. code-block:: python
 
     # train on gpu 1, 3, 5 (3 gpus total)
     trainer = pl.Trainer(gpus=[1, 3, 5])
 
-.. code-block:: python
-
     # Multi GPU with mixed precision
     trainer = pl.Trainer(gpus=2, precision=16)
 
+TPU
+---
+
 .. code-block:: python
 
-    # Train on TPUs
+    # Train on 8 TPU cores
     trainer = pl.Trainer(tpu_cores=8)
 
-Without changing a SINGLE line of your code, you can now do the following with the above code:
+    # Train on single TPU core
+    trainer = pl.Trainer(tpu_cores=1)
 
-.. code-block:: python
+    # Train on 7th TPU core
+    trainer = pl.Trainer(tpu_cores=[7])
 
+    # without changing a SINGLE line of your code, you can
     # train on TPUs using 16 bit precision
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
+
+IPU
+---
 
 .. code-block:: python
 
@@ -520,7 +525,7 @@ If you prefer to do it manually, here's the equivalent
     model = LitModel()
     model.load_state_dict(ckpt["state_dict"])
 
-Read more about :ref:`Checkpoint docs <checkpointing>`.
+Learn more inside :ref:`Checkpoint docs <checkpointing>`.
 
 
 Data Flow
@@ -530,7 +535,7 @@ Each loop (training, validation, test, predict) has three hooks you can implemen
 
 - x_step
 - x_step_end (optional)
-- x_epoch_end
+- x_epoch_end (optional)
 
 To illustrate how data flows, we'll use the training loop (i.e: x=training)
 
@@ -556,7 +561,7 @@ The equivalent in Lightning is:
         for out in outs:
             ...
 
-In the event that you use DP or DDP2 distributed modes (i.e: split a batch across devices), checkout Training with DataParallel `here <lightning_module>`,
+In the event that you use DP or DDP2 distributed modes (i.e: split a batch across devices), checkout *Training with DataParallel* section :ref:`here <lightning_module>`.
 The validation, test and prediction loops have the same structure.
 
 
@@ -584,12 +589,18 @@ Debugging
 
 Lightning has many tools for debugging. Here is an example of just a few of them:
 
+Limit Batches
+=============
+
 .. testcode::
 
     # use only 10 train batches and 3 val batches per epoch
     trainer = Trainer(limit_train_batches=10, limit_val_batches=3)
     # use 20% of total train batches and 10% of total val batches per epoch
     trainer = Trainer(limit_train_batches=0.2, limit_val_batches=0.1)
+
+Overfit Batches
+===============
 
 .. testcode::
 
@@ -599,6 +610,9 @@ Lightning has many tools for debugging. Here is an example of just a few of them
     # use only 20% of total train batches
     trainer = Trainer(overfit_batches=0.2)
 
+Fast Dev Run
+============
+
 .. testcode::
 
     # unit test all the code - hits every line of your code once to see if you have bugs,
@@ -607,6 +621,9 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
     # unit test all the code - hits every line of your code with 4 batches
     trainer = Trainer(fast_dev_run=4)
+
+Val Check Interval
+==================
 
 .. testcode::
 
