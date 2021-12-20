@@ -103,11 +103,11 @@ class LSFEnvironment(ClusterEnvironment):
 
         Read this from the environment variable ``JSM_NAMESPACE_SIZE``
         """
-        var = "JSM_NAMESPACE_SIZE"
-        world_size = os.environ.get(var)
+        world_size = os.environ.get("JSM_NAMESPACE_SIZE")
         if world_size is None:
             raise ValueError(
-                f"Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun"
+                "Cannot determine world size. Environment variable `JSM_NAMESPACE_SIZE` not found."
+                "Make sure you run your executable with `jsrun`."
             )
         return int(world_size)
 
@@ -124,12 +124,11 @@ class LSFEnvironment(ClusterEnvironment):
 
         Read this from the environment variable ``JSM_NAMESPACE_RANK``
         """
-        var = "JSM_NAMESPACE_RANK"
-        global_rank = os.environ.get(var)
+        global_rank = os.environ.get("JSM_NAMESPACE_RANK")
         if global_rank is None:
             raise ValueError(
-                "Cannot determine global rank -- expected in %s "
-                "-- make sure you run your executable with jsrun" % var
+                "Cannot determine global rank. Environment variable `JSM_NAMESPACE_RANK` not found."
+                "Make sure you run your executable with `jsrun`."
             )
         return int(global_rank)
 
@@ -146,11 +145,11 @@ class LSFEnvironment(ClusterEnvironment):
 
         Read this from the environment variable ``JSM_NAMESPACE_LOCAL_RANK``
         """
-        var = "JSM_NAMESPACE_LOCAL_RANK"
-        local_rank = os.environ.get(var)
+        local_rank = os.environ.get("JSM_NAMESPACE_LOCAL_RANK")
         if local_rank is None:
             raise ValueError(
-                f"Cannot determine local rank -- expected in {var} -- make sure you run your executable with jsrun"
+                "Cannot determine local rank. Environment variable `JSM_NAMESPACE_LOCAL_RANK` not found."
+                "Make sure you run your executable with `jsrun`."
             )
         return int(local_rank)
 
