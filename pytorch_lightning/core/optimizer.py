@@ -349,6 +349,13 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
         )
 
 
+def _convert_to_lightning_optimizer(trainer: "pl.Trainer", optimizer: Optimizer):
+    if not isinstance(optimizer, LightningOptimizer):
+        optimizer = LightningOptimizer(optimizer)
+    optimizer._on_trainer_init(trainer)
+    return optimizer
+
+
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
     `configure_optimizers`."""

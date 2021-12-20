@@ -31,7 +31,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizer, LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -2287,12 +2287,6 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
     def _convert_to_lightning_optimizers(self):
-        def _convert_to_lightning_optimizer(trainer, optimizer):
-            if not isinstance(optimizer, LightningOptimizer):
-                optimizer = LightningOptimizer(optimizer)
-            optimizer._on_trainer_init(trainer)
-            return optimizer
-
         self._lightning_optimizers = {
             opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
         }
