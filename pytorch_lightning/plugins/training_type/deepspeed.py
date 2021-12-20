@@ -877,6 +877,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None:
             raise MisconfigurationException("DeepSpeed does not support custom `CheckpointIO` plugin.")
+        self._checkpoint_io = io
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
