@@ -71,7 +71,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
-        self.start_method = None
+        self.start_method = "fork"
 
     @property
     def global_rank(self) -> int:
@@ -134,10 +134,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.setup_optimizers(trainer)
         self.precision_plugin.connect(self.model, None, None)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
-        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model
