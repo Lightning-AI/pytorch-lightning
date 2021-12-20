@@ -254,25 +254,23 @@ If you want to call schedulers that require a metric value after each epoch, con
 
 Bring your own Custom Learning Rate Schedulers
 ----------------------------------------------
-Lightning allows custom learning rate schedulers which are not present in
-`PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
-One good example is `Timm Schedulers <https://github.com/rwightman/pytorch-image-models/blob/master/timm/scheduler/scheduler.py>`_.
-You can configure how your learning rate will be updated based on your custom implementation
-and lightning will handle when they should be updated based on the scheduler config provided inside
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`. For you custom
-implementation you must override :meth:`~pytorch_lightning.core.lightning.LightningModule.lr_scheduler_step`
-if necessary. If you are using native PyTorch schedulers, there is no need to override this hook since
-Lightning will handle it optimally by default.
+Lightning allows using custom learning rate schedulers that aren't available in `PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+One good example is `Timm Schedulers <https://github.com/rwightman/pytorch-image-models/blob/master/timm/scheduler/scheduler.py>`_. When using custom learning rate schedulers
+relying on a different API from Native PyTorch ones, you should override the :meth:`~pytorch_lightning.core.lightning.LightningModule.lr_scheduler_step` with your desired logic.
+If you are using native PyTorch schedulers, there is no need to override this hook since Lightning will handle it optimally by default.
 
-.. testcode:: python
+.. code-block:: python
+
+    from timm.scheduler import TanhLRScheduler
+
 
     def configure_optimizers(self):
         optimizer = ...
-        scheduler = ...
-        return [optimizer], [scheduler]
+        scheduler = TanhLRScheduler(optimizer, ...)
+        return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
 
 
-    def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val=None):
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metrics=None):
         scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
 
 -----

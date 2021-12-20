@@ -699,10 +699,10 @@ def test_lr_scheduler_step_hook(tmpdir):
         def training_epoch_end(self, *args, **kwargs):
             pass
 
-        def lr_scheduler_step(self, scheduler, optimizer_idx, monitor_val=None):
+        def lr_scheduler_step(self, scheduler, optimizer_idx, metrics=None):
             # step-level
             if optimizer_idx == 0:
-                super().lr_scheduler_step(scheduler, optimizer_idx, monitor_val)
+                super().lr_scheduler_step(scheduler, optimizer_idx, metrics)
             # epoch-level
             elif optimizer_idx == 1:
                 scheduler.step(epoch=self.current_epoch)

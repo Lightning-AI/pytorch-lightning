@@ -507,11 +507,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                     "lr_scheduler_step",
                     lr_scheduler["scheduler"],
                     optimizer_idx=lr_scheduler["opt_idx"],
-                    monitor_val=monitor_val,
+                    metrics=monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
 
-    def _get_monitor_value(self, key: str) -> Optional[Union[float, torch.Tensor]]:
+    def _get_monitor_value(self, key: str) -> Any:
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 
