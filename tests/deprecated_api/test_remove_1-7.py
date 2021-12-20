@@ -574,7 +574,7 @@ def test_v1_7_0_deprecate_trainer_callback_hook_mixin():
         "on_epoch_end",
         "on_train_start",
         "on_train_end",
-        #"on_pretrain_routine_start",
+        # "on_pretrain_routine_start",
         "on_pretrain_routine_end",
         "on_batch_start",
         "on_batch_end",
