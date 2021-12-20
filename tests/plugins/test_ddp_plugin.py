@@ -114,7 +114,7 @@ def test_ddp_configure_ddp():
     trainer.training_type_plugin.setup_environment()
     assert isinstance(trainer.model, LightningModule)
     trainer.training_type_plugin.setup(trainer)
-    # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
+    # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
     trainer = Trainer(
@@ -127,5 +127,5 @@ def test_ddp_configure_ddp():
     trainer.lightning_module.trainer = trainer
     trainer.training_type_plugin.setup_environment()
     trainer.training_type_plugin.setup(trainer)
-    # in DDPPlugin configure_ddp(), model are still LightningModule
+    # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
