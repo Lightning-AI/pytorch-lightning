@@ -232,7 +232,6 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 
 |
 
-
 Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
 Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
@@ -245,7 +244,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     trainer = Trainer(precision=16, gpus=4)
 
 
-Read more about mixed-precision training :ref:`here <amp>`
+Read more about :ref:`mixed-precision training <amp>`.
 
 
 ----------------
