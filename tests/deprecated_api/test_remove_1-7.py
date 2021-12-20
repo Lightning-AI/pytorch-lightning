@@ -41,6 +41,7 @@ from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 from tests.loggers.test_base import CustomLogger
+from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -528,11 +529,8 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
         def is_using_torchelastic():
             pass
 
-    hosts = "batch\n10.10.10.0\n10.10.10.1\n10.10.10.2\n10.10.10.3"
-    p = tmp_path / "lsb_djob_rankfile"
-    p.write_text(hosts)
     environ = {
-        "LSB_DJOB_RANKFILE": str(p),
+        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
         "LSB_JOBID": "1234",
         "JSM_NAMESPACE_SIZE": "4",
         "JSM_NAMESPACE_RANK": "3",
