@@ -1,8 +1,8 @@
 .. _optimization:
 
-============
+############
 Optimization
-============
+############
 
 Lightning offers two modes for managing the optimization process:
 
@@ -406,7 +406,7 @@ Under the hood, Lightning will call each optimizer sequentially:
 
 
 Step Optimizeres at Arbitrary Intervals
-======================================
+=======================================
 
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_step` function.
