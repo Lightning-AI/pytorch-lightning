@@ -122,7 +122,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
-        super().setup(trainer)
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        self._move_optimizer_state()
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
