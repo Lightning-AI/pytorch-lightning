@@ -28,18 +28,18 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     dispatch is called."""
 
     class TestPlugin(SingleDevicePlugin):
-        predispatched_called = False
+        setup_called = False
 
-        def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-            super().pre_dispatch(trainer)
-            self.predispatched_called = True
+        def setup(self, trainer: "pl.Trainer") -> None:
+            super().setup(trainer)
+            self.setup_called = True
 
         @property
         def restore_checkpoint_after_pre_dispatch(self) -> bool:
             return restore_after_pre_dispatch
 
         def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Dict[str, Any]:
-            assert self.predispatched_called == restore_after_pre_dispatch
+            assert self.setup_called == restore_after_pre_dispatch
             return super().load_checkpoint(checkpoint_path)
 
     model = BoringModel()
@@ -60,5 +60,5 @@ def test_restore_checkpoint_after_pre_dispatch(tmpdir, restore_after_pre_dispatc
     trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, fast_dev_run=True)
     trainer.fit(model, ckpt_path=checkpoint_path)
     for func in (trainer.test, trainer.validate, trainer.predict):
-        plugin.predispatched_called = False
+        plugin.setup_called = False
         func(model, ckpt_path=checkpoint_path)
