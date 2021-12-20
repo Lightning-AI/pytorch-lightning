@@ -198,7 +198,7 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -378,7 +378,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer.on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
