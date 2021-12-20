@@ -293,7 +293,7 @@ def test_tpu_invalid_raises():
         Trainer(strategy=training_type_plugin)
 
     training_type_plugin = DDPPlugin(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         Trainer(strategy=training_type_plugin)
 
 
@@ -306,7 +306,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
     accelerator = TPUAccelerator()
     training_type_plugin = DDPPlugin(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
-        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin"
+        ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnPlugin"
     ):
         Trainer(strategy=training_type_plugin)
 

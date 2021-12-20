@@ -31,7 +31,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUStrategy
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 
@@ -59,7 +59,7 @@ __all__ = [
     "ShardedNativeMixedPrecisionPlugin",
     "FullyShardedNativeMixedPrecisionPlugin",
     "SingleDevicePlugin",
-    "SingleTPUPlugin",
+    "SingleTPUStrategy",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
     "TPUSpawnPlugin",

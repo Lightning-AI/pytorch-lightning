@@ -27,7 +27,7 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
-class SingleTPUPlugin(SingleDevicePlugin):
+class SingleTPUStrategy(SingleDevicePlugin):
     """Plugin for training on a single TPU device."""
 
     def __init__(
