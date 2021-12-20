@@ -40,7 +40,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, Un
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
-    DDPFullyShardedPlugin,
+    DDPFullyShardedStrategy,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -2210,7 +2210,7 @@ def test_detect_anomaly_nan(tmpdir):
             dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDPFullyShardedPlugin(), gpus=2),
+            dict(strategy=DDPFullyShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
                 _device_type=_AcceleratorType.GPU,

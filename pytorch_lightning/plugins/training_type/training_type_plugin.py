@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 TBroadcast = TypeVar("TBroadcast")
 
 
-class TrainingTypePlugin(ABC):
+class Strategy(ABC):
     """Base class for all training type plugins that change the behaviour of the training, validation and test-
     loop."""
 
@@ -55,7 +55,7 @@ class TrainingTypePlugin(ABC):
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
-        if is_overridden("post_dispatch", self, parent=TrainingTypePlugin):
+        if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
@@ -121,6 +121,7 @@ class TrainingTypePlugin(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        self._move_optimizer_state()
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
@@ -489,10 +490,6 @@ class TrainingTypePlugin(ABC):
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
