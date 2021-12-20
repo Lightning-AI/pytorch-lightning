@@ -47,11 +47,10 @@ class Strategy(ABC):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self._accelerator = accelerator
+        self.accelerator = accelerator
         self._model: Optional[Module] = None
-        checkpoint_io = checkpoint_io if checkpoint_io is not None else TorchCheckpointIO()
-        self._checkpoint_io = checkpoint_io
-        self._precision_plugin = precision_plugin
+        self.checkpoint_io = checkpoint_io
+        self.precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
         self.lr_schedulers: List[_LRScheduler] = []
         self.optimizer_frequencies: List[int] = []
@@ -71,7 +70,11 @@ class Strategy(ABC):
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
+        return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -80,10 +83,6 @@ class Strategy(ABC):
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
         self._precision_plugin = precision_plugin
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        self._checkpoint_io = plugin
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
@@ -121,6 +120,7 @@ class Strategy(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        self._move_optimizer_state()
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
@@ -381,7 +381,7 @@ class Strategy(ABC):
         return trainer.init_optimizers(model)
 
     @property
-    def restore_checkpoint_after_pre_dispatch(self) -> bool:
+    def restore_checkpoint_after_setup(self) -> bool:
         """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
         requires all the setup hooks to run before loading checkpoint.
 
@@ -484,10 +484,6 @@ class Strategy(ABC):
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""

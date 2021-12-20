@@ -1108,11 +1108,10 @@ class Trainer(
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
-        if not self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if not self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
-        self.training_type_plugin.setup(self)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1146,15 +1145,17 @@ class Trainer(
         self.logger_connector.reset_results()
         self.logger_connector.reset_metrics()
 
+        # strategy will configure model and move it to the device
+        self.training_type_plugin.setup(self)
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        # plugin will move model to device
-        self._pre_dispatch()
+        self._log_hyperparams()
 
-        if self.training_type_plugin.restore_checkpoint_after_pre_dispatch:
+        if self.training_type_plugin.restore_checkpoint_after_setup:
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
@@ -1183,10 +1184,6 @@ class Trainer(
             results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         return results
-
-    def _pre_dispatch(self):
-        self.training_type_plugin.pre_dispatch(self)
-        self._log_hyperparams()
 
     def _log_hyperparams(self) -> None:
         # log hyper-parameters

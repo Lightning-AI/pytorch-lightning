@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -47,7 +47,7 @@ __all__ = [
     "DDP2Plugin",
     "DDPPlugin",
     "DDPSpawnPlugin",
-    "DDPFullyShardedPlugin",
+    "DDPFullyShardedStrategy",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
