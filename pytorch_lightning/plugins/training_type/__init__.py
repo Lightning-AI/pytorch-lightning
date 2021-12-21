@@ -1,6 +1,6 @@
 from pytorch_lightning.plugins.training_type.ddp import DDPStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Strategy  # noqa: F401
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy  # noqa: F401

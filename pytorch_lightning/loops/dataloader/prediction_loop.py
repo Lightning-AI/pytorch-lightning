@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
@@ -29,14 +29,14 @@ class PredictionLoop(DataLoaderLoop):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        # `DDPSpawnPlugin` plugins and derivatives don't support return predictions.
-        is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin)
+        # `DDPSpawnStrategy` plugins and derivatives don't support return predictions.
+        is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnStrategy)
         if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using the `DDPSpawnPlugin` or children class. "
+                "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
                 f"Found {return_predictions} with training_type_plugin {type(self.trainer.training_type_plugin)}."
             )
-        # For non `DDPSpawnPlugin` plugin, the `return_predictions` is True by default unless user decide otherwise.
+        # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
 
     @property

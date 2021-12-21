@@ -43,7 +43,7 @@ from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    DDPSpawnPlugin,
+    DDPSpawnStrategy,
     NativeMixedPrecisionPlugin,
     ParallelPlugin,
     PLUGIN_INPUT,
@@ -673,7 +673,7 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+            if isinstance(self.training_type_plugin, DDPSpawnStrategy):
                 spawn_output: _SpawnOutput = self.training_type_plugin.spawn(trainer_fn, *args, **kwargs)
                 self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
                 return spawn_output.trainer_results
@@ -1183,7 +1183,7 @@ class Trainer(
             self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+        if isinstance(self.training_type_plugin, DDPSpawnStrategy):
             results = self.training_type_plugin._collect_rank_zero_results(self, results)
 
         return results
@@ -1420,7 +1420,7 @@ class Trainer(
         if not is_on_meta_device(self.lightning_module):
             return
 
-        if isinstance(self.training_type_plugin, DDPSpawnPlugin):
+        if isinstance(self.training_type_plugin, DDPSpawnStrategy):
             raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
 
         materialize_module(self.lightning_module)

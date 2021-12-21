@@ -154,11 +154,12 @@ Training Type Plugins
     DDP2Strategy
     DDPShardedStrategy
     DDPSpawnShardedPlugin
-    DDPSpawnPlugin
+    DDPSpawnStrategy
     DeepSpeedStrategy
     HorovodStrategy
     SingleTPUStrategy
     TPUSpawnStrategy
+
 
 Precision Plugins
 ^^^^^^^^^^^^^^^^^
