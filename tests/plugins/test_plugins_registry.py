@@ -20,8 +20,8 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
-    DeepSpeedStrategy,
     DDPStrategy,
+    DeepSpeedStrategy,
     TPUSpawnPlugin,
     TrainingTypePluginsRegistry,
 )
