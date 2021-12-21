@@ -20,8 +20,7 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
