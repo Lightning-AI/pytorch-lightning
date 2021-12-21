@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 import logging
+import sys
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -23,7 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import AMPType, DeviceType, ModelSummaryMode, rank_zero_deprecation
+from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -282,12 +284,17 @@ class ModelSummary:
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)
 
-        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
-            model.forward = torch.cuda.amp.autocast()(model.forward)
-
         mode = model.training
         model.eval()
-        with torch.no_grad():
+
+        if trainer is not None:
+            forward_context = trainer.precision_plugin.forward_context()
+        elif sys.version_info >= (3, 7):
+            forward_context = contextlib.nullcontext()
+        else:
+            forward_context = contextlib.suppress()
+
+        with torch.no_grad(), forward_context:
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)
