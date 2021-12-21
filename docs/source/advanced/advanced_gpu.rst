@@ -711,7 +711,7 @@ DDP Optimizations
 Gradients as Bucket View
 """"""""""""""""""""""""
 
-Enabling ``gradient_as_bucket_view=True`` in the ``DDPPlugin`` will make gradients views point to different offsets of the ``allreduce`` communication buckets. See `DistributedDataParallel <https://pytorch.org/docs/master/_modules/torch/nn/parallel/distributed.html#DistributedDataParallel>`__ for more information.
+Enabling ``gradient_as_bucket_view=True`` in the ``DDPStrategy`` will make gradients views point to different offsets of the ``allreduce`` communication buckets. See `DistributedDataParallel <https://pytorch.org/docs/master/_modules/torch/nn/parallel/distributed.html#DistributedDataParallel>`__ for more information.
 
 This can reduce peak memory usage and throughput as saved memory will be equal to the total gradient memory + removes the need to copy gradients to the ``allreduce`` communication buckets.
 
@@ -722,10 +722,10 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DDPPlugin(gradient_as_bucket_view=True))
+    trainer = Trainer(gpus=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
     trainer.fit(model)
 
 DDP Communication Hooks
@@ -741,14 +741,14 @@ Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorc
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
     )
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DDPPlugin(ddp_comm_hook=default.fp16_compress_hook))
+    trainer = Trainer(gpus=4, strategy=DDPStrategy(ddp_comm_hook=default.fp16_compress_hook))
     trainer.fit(model)
 
 Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#powersgd-communication-hook>`__:
@@ -760,13 +760,13 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 
     model = MyModel()
     trainer = Trainer(
         gpus=4,
-        strategy=DDPPlugin(
+        strategy=DDPStrategy(
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
                 matrix_approximation_rank=1,
@@ -786,7 +786,7 @@ Combine hooks for accumulated benefit:
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
@@ -795,7 +795,7 @@ Combine hooks for accumulated benefit:
     model = MyModel()
     trainer = Trainer(
         gpus=4,
-        strategy=DDPPlugin(
+        strategy=DDPStrategy(
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
                 matrix_approximation_rank=1,
