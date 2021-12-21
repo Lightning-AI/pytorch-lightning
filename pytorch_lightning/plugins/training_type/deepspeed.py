@@ -31,7 +31,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -82,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
-class DeepSpeedPlugin(DDPPlugin):
+class DeepSpeedPlugin(DDPStrategy):
     distributed_backend = _StrategyType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
@@ -857,7 +857,7 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_optimizer_device="nvme",
         )
 
-    @DDPPlugin.checkpoint_io.setter
+    @DDPStrategy.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None:
             raise MisconfigurationException("DeepSpeed does not support custom `CheckpointIO` plugin.")
