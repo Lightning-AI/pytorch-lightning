@@ -299,13 +299,6 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save_path(self, folderpath: str) -> str:
-        folderpath = str(folderpath)  # because the tests pass a path object
-        max_suffix = self.max_ckpt_version_in_folder(folderpath)
-        ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
-        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
-        return filepath
-
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
         Args:
@@ -392,43 +385,6 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def max_ckpt_version_in_folder(self, dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
-        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
-
-        Args:
-            dir_path: path of directory which may contain files whose name include `name_key`
-            name_key: file name prefix
-        Returns:
-            None if no-corresponding-file else maximum suffix number
-        """
-
-        # check directory existence
-        fs = get_filesystem(dir_path)
-        if not fs.exists(dir_path):
-            return None
-
-        # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
-        files = [x for x in files if name_key in x]
-        if len(files) == 0:
-            return None
-
-        # extract suffix number
-        ckpt_vs = []
-        for name in files:
-            name = name.split(name_key)[-1]
-            name = re.sub("[^0-9]", "", name)
-            ckpt_vs.append(int(name))
-
-        return max(ckpt_vs)
-
-    def get_max_ckpt_path_from_folder(self, folder_path: _PATH) -> str:
-        """Get path of maximum-epoch checkpoint in the folder."""
-
-        max_suffix = self.max_ckpt_version_in_folder(folder_path)
-        ckpt_number = max_suffix if max_suffix is not None else 0
-        return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
-
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -466,3 +422,54 @@ class CheckpointConnector:
             "test_loop": self.trainer.test_loop.state_dict(),
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
+
+    # ----------------------------------
+    # UTILITIES
+    # ----------------------------------
+
+    @staticmethod
+    def max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
+        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
+
+        Args:
+            dir_path: path of directory which may contain files whose name include `name_key`
+            name_key: file name prefix
+        Returns:
+            None if no-corresponding-file else maximum suffix number
+        """
+
+        # check directory existence
+        fs = get_filesystem(dir_path)
+        if not fs.exists(dir_path):
+            return None
+
+        # check corresponding file existence
+        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [x for x in files if name_key in x]
+        if len(files) == 0:
+            return None
+
+        # extract suffix number
+        ckpt_vs = []
+        for name in files:
+            name = name.split(name_key)[-1]
+            name = re.sub("[^0-9]", "", name)
+            ckpt_vs.append(int(name))
+
+        return max(ckpt_vs)
+
+    @staticmethod
+    def get_max_ckpt_path_from_folder(folder_path: _PATH) -> str:
+        """Get path of maximum-epoch checkpoint in the folder."""
+
+        max_suffix = CheckpointConnector.max_ckpt_version_in_folder(folder_path)
+        ckpt_number = max_suffix if max_suffix is not None else 0
+        return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
+
+    @staticmethod
+    def hpc_save_path(folderpath: str) -> str:
+        folderpath = str(folderpath)  # because the tests pass a path object
+        max_suffix = CheckpointConnector.max_ckpt_version_in_folder(folderpath)
+        ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
+        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
+        return filepath
