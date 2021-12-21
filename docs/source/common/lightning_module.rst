@@ -703,7 +703,7 @@ Research projects tend to test different approaches to the same dataset.
 This is very easy to do in Lightning with inheritance.
 
 For example, imagine we now want to train an ``AutoEncoder`` to use as a feature extractor for MNIST images.
-The only things that change in the ``Autoencoder`` model are the init, forward, training, validation and test step.
+The only things that change in the ``AutoEncoder`` model are the init, forward, training, validation and test step.
 
 .. code-block:: python
 
@@ -979,7 +979,8 @@ usually do not need to use this property, but it is useful to know how to access
             self.log("global_step", self.trainer.global_step)
 
 global_step
-~~~~~~~~~
+~~~~~~~~~~~
+
 The current step (does not reset each epoch)
 
 .. code-block:: python
