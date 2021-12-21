@@ -20,6 +20,7 @@ from torch import optim
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -42,18 +43,7 @@ class TrainerOptimizersMixin(ABC):
             "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
         )
         pl_module = self.lightning_module or model
-        self._lightning_optimizers = None
-        optim_conf = self._call_lightning_module_hook("configure_optimizers", pl_module=pl_module)
-        if optim_conf is None:
-            rank_zero_warn(
-                "`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer",
-            )
-            optim_conf = _MockOptimizer()
-
-        optimizers, lr_schedulers, optimizer_frequencies, monitor = self._configure_optimizers(optim_conf)
-        lr_schedulers = self._configure_schedulers(lr_schedulers, monitor, not pl_module.automatic_optimization)
-        _validate_scheduler_optimizer(optimizers, lr_schedulers)
-        return optimizers, lr_schedulers, optimizer_frequencies
+        return _init_optimizers_and_lr_schedulers(pl_module)
 
     @staticmethod
     def _configure_optimizers(
