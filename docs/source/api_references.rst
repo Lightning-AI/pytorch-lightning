@@ -146,19 +146,19 @@ Training Type Plugins
     :nosignatures:
     :template: classtemplate.rst
 
-    TrainingTypePlugin
+    Strategy
     SingleDevicePlugin
     ParallelPlugin
     DataParallelPlugin
-    DDPPlugin
+    DDPStrategy
     DDP2Plugin
-    DDPShardedPlugin
+    DDPShardedStrategy
     DDPSpawnShardedPlugin
     DDPSpawnPlugin
-    DeepSpeedPlugin
-    HorovodPlugin
+    DeepSpeedStrategy
+    HorovodStrategy
     SingleTPUPlugin
-    TPUSpawnPlugin
+    TPUSpawnStrategy
 
 Precision Plugins
 ^^^^^^^^^^^^^^^^^

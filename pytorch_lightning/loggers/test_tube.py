@@ -176,7 +176,6 @@ class TestTubeLogger(LightningLoggerBase):
                     "Could not log computational graph since neither the"
                     " `model.example_input_array` attribute is set nor"
                     " `input_array` was given",
-                    UserWarning,
                 )
 
     @rank_zero_only
