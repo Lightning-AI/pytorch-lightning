@@ -313,7 +313,17 @@ class TPUSpawnStrategy(DDPSpawnPlugin):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
+        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+
+    def remove_checkpoint(self, filepath: _PATH) -> None:
+        """Remove checkpoint filepath from the filesystem.
+
+        Args:
+            filepath: Path to checkpoint
+        """
+        if self.local_rank == 0:
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
@@ -331,10 +341,6 @@ class TPUSpawnStrategy(DDPSpawnPlugin):
 
     def teardown(self) -> None:
         os.environ.pop("PT_XLA_DEBUG", None)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.local_rank == 0
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
