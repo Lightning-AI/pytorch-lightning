@@ -3,8 +3,10 @@
 
 .. _lightning_module:
 
+###############
 LightningModule
-===============
+###############
+
 A :class:`~LightningModule` organizes your PyTorch code into 6 sections:
 
 - Computations (init).
@@ -85,8 +87,9 @@ Thus, to use Lightning, you just need to organize your code which takes about 30
 
 ------------
 
-Minimal Example
----------------
+***************
+Starter Example
+***************
 
 Here are the only required methods.
 
@@ -147,11 +150,13 @@ The LightningModule has many convenience methods, but the core ones you need to 
 
 ----------
 
+********
 Training
---------
+********
 
 Training Loop
-^^^^^^^^^^^^^
+=============
+
 To activate the training loop, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method.
 
 .. code-block:: python
@@ -171,13 +176,12 @@ Under the hood, Lightning does the following (pseudocode):
 
 .. code-block:: python
 
-    # put model in train mode
+    # put model in train mode and enable gradient calculation
     model.train()
     torch.set_grad_enabled(True)
 
     losses = []
     for batch in train_dataloader:
-        # forward
         loss = training_step(batch)
         losses.append(loss.detach())
 
@@ -191,8 +195,9 @@ Under the hood, Lightning does the following (pseudocode):
         optimizer.step()
 
 
-Training Epoch-Level Metrics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Train Epoch-Level Metrics
+=========================
+
 If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
 
 .. code-block:: python
@@ -230,7 +235,8 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
     epoch_metric = torch.mean(torch.stack([x["train_loss"] for x in outs]))
 
 Train Epoch-Level Operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+============================
+
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end` method.
 
@@ -270,7 +276,8 @@ The matching pseudocode is:
     training_epoch_end(outs)
 
 Training with DataParallel
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+==========================
+
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).
 
@@ -327,8 +334,13 @@ Here is the Lightning training pseudo-code for DP:
 
 ------------------
 
+**********
+Validation
+**********
+
 Validation Loop
-^^^^^^^^^^^^^^^
+===============
+
 To activate the validation loop while training, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method.
 
 .. code-block:: python
@@ -374,7 +386,8 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
     trainer.validate(model)
 
 Validation Epoch-Level Metrics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+==============================
+
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
 
@@ -393,7 +406,8 @@ override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation
          ...
 
 Validating with DataParallel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+============================
+
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).
 
@@ -450,8 +464,13 @@ Here is the Lightning validation pseudo-code for DP:
 
 ----------------
 
+*******
+Testing
+*******
+
 Test Loop
-^^^^^^^^^
+=========
+
 The process for enabling a test loop is the same as the process for enabling a validation loop. Please refer to
 the section above for details. For this you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method.
 
@@ -484,116 +503,56 @@ There are two ways to call ``test()``:
 
 ----------
 
-Inference (Prediction Loop)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For research, LightningModules are best structured as systems.
+*********
+Inference
+*********
+
+Prediction Loop
+===============
+
+To activate the prediction loop, you may need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method
+since Lightning under the hood do a forward pass through your LightningModule by default.
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    import torch
-    from torch import nn
+    class LitModel(pl.LightningModule):
+        def predict_step(self, batch, batch_idx):
+            x, y = batch
+            pred = self(x)
+            return pred
 
-
-    class Autoencoder(pl.LightningModule):
-        def __init__(self, latent_dim=2):
-            super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
-            self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
-
-        def training_step(self, batch, batch_idx):
-            x, _ = batch
-
-            # encode
-            x = x.view(x.size(0), -1)
-            z = self.encoder(x)
-
-            # decode
-            recons = self.decoder(z)
-
-            # reconstruction
-            reconstruction_loss = nn.functional.mse_loss(recons, x)
-            return reconstruction_loss
-
-        def validation_step(self, batch, batch_idx):
-            x, _ = batch
-            x = x.view(x.size(0), -1)
-            z = self.encoder(x)
-            recons = self.decoder(z)
-            reconstruction_loss = nn.functional.mse_loss(recons, x)
-            self.log("val_reconstruction", reconstruction_loss)
-
-        def predict_step(self, batch, batch_idx, dataloader_idx=0):
-            x, _ = batch
-
-            # encode
-            # for predictions, we could return the embedding or the reconstruction or both based on our need.
-            x = x.view(x.size(0), -1)
-            return self.encoder(x)
-
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.0002)
-
-Which can be trained like this:
+Under the hood, Lightning does the following (pseudocode):
 
 .. code-block:: python
 
-    autoencoder = Autoencoder()
-    trainer = pl.Trainer(gpus=1)
-    trainer.fit(autoencoder, train_dataloader, val_dataloader)
+    # disable grads + batchnorm + dropout
+    torch.set_grad_enabled(False)
+    model.eval()
+    all_preds = []
 
-This simple model generates examples that look like this (the encoders and decoders are too weak)
+    for batch in predict_dataloader:
+        pred = model.predict_step()
+        all_preds.append(pred)
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/ae_docs.png
-    :width: 300
-
-The methods above are part of the LightningModule interface:
-
-- training_step
-- validation_step
-- test_step
-- predict_step
-- configure_optimizers
-
-Note that in this case, the train loop and val loop are exactly the same. We can, of course, reuse this code.
+There are two ways to call ``predict()``:
 
 .. code-block:: python
 
-    class Autoencoder(pl.LightningModule):
-        def __init__(self, latent_dim=2):
-            super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
-            self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
+    # call after training
+    trainer = Trainer()
+    trainer.fit(model)
 
-        def training_step(self, batch, batch_idx):
-            loss = self.shared_step(batch)
+    # automatically auto-loads the best weights from the previous run
+    predictions = trainer.predict(dataloaders=predict_dataloader)
 
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            loss = self.shared_step(batch)
-            self.log("val_loss", loss)
-
-        def shared_step(self, batch):
-            x, _ = batch
-
-            # encode
-            x = x.view(x.size(0), -1)
-            z = self.encoder(x)
-
-            # decode
-            recons = self.decoder(z)
-
-            # loss
-            return nn.functional.mse_loss(recons, x)
-
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.0002)
-
-We create a new method called ``shared_step`` that all loops can use. This method name is arbitrary and NOT reserved.
+    # or call with pretrained model
+    model = MyLightningModule.load_from_checkpoint(PATH)
+    trainer = Trainer()
+    predictions = trainer.predict(model, dataloaders=test_dataloader)
 
 Inference in Research
-^^^^^^^^^^^^^^^^^^^^^
+=====================
+
 If you want to perform inference with the system, you can add a ``forward`` method to the LightningModule.
 
 .. note:: When using forward, you are responsible to call :func:`~torch.nn.Module.eval` and use the :func:`~torch.no_grad` context manager.
@@ -644,7 +603,8 @@ In the case where you want to scale your inference, you should be using
     trainer.predict(model, data_module)
 
 Inference in Production
-^^^^^^^^^^^^^^^^^^^^^^^
+=======================
+
 For cases like production, you might want to iterate different models inside a LightningModule.
 
 .. code-block:: python
@@ -731,13 +691,90 @@ a ``LightningModule``.
     with torch.no_grad():
         y_hat = model(x)
 
+
 -----------
 
+
+*************
+Child Modules
+*************
+
+Research projects tend to test different approaches to the same dataset.
+This is very easy to do in Lightning with inheritance.
+
+For example, imagine we now want to train an ``AutoEncoder`` to use as a feature extractor for MNIST images.
+The only things that change in the ``Autoencoder`` model are the init, forward, training, validation and test step.
+
+.. code-block:: python
+
+    class Encoder(torch.nn.Module):
+        pass
+
+
+    class Decoder(torch.nn.Module):
+        pass
+
+
+    class AutoEncoder(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.encoder = Encoder()
+            self.decoder = Decoder()
+            self.metric = MSE()
+
+        def forward(self, x):
+            return self.encoder(x)
+
+        def training_step(self, batch, batch_idx):
+            x, _ = batch
+
+            representation = self.encoder(x)
+            x_hat = self.decoder(representation)
+
+            loss = self.metric(x, x_hat)
+            return loss
+
+        def validation_step(self, batch, batch_idx):
+            self._shared_eval(batch, batch_idx, "val")
+
+        def test_step(self, batch, batch_idx):
+            self._shared_eval(batch, batch_idx, "test")
+
+        def _shared_eval(self, batch, batch_idx, prefix):
+            x, _ = batch
+            representation = self.encoder(x)
+            x_hat = self.decoder(representation)
+
+            loss = self.metric(x, x_hat)
+            self.log(f"{prefix}_loss", loss)
+
+
+and we can train this using the same Trainer instance:
+
+.. code-block:: python
+
+    autoencoder = AutoEncoder()
+    trainer = Trainer()
+    trainer.fit(autoencoder, train_dataloader, val_dataloader)
+
+And remember that the forward method should define the practical use of a LightningModule.
+In this case, we want to use the `AutoEncoder` to extract image representations
+
+.. code-block:: python
+
+    some_images = torch.Tensor(32, 1, 28, 28)
+    representations = autoencoder(some_images)
+
+
+-----------
+
+*******************
 LightningModule API
--------------------
+*******************
+
 
 Methods
-^^^^^^^
+=======
 
 all_gather
 ~~~~~~~~~~
@@ -900,16 +937,15 @@ validation_epoch_end
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
-------------
 
 Properties
-^^^^^^^^^^
-These are properties available in a LightningModule.
+==========
 
------------
+These are properties available in a LightningModule.
 
 current_epoch
 ~~~~~~~~~~~~~
+
 The current epoch
 
 .. code-block:: python
@@ -918,10 +954,9 @@ The current epoch
         if self.current_epoch == 0:
             ...
 
--------------
-
 device
 ~~~~~~
+
 The device the module is on. Use it to keep your code device agnostic.
 
 .. code-block:: python
@@ -929,10 +964,9 @@ The device the module is on. Use it to keep your code device agnostic.
     def training_step(self):
         z = torch.rand(2, 3, device=self.device)
 
--------------
-
 global_rank
 ~~~~~~~~~~~
+
 The ``global_rank`` is the index of the current process across all nodes and devices.
 Lightning will perform some operations such as logging, weight checkpointing only when ``global_rank=0``. You
 usually do not need to use this property, but it is useful to know how to access it if needed.
@@ -944,10 +978,8 @@ usually do not need to use this property, but it is useful to know how to access
             # do something only once across all the nodes
             self.log("global_step", self.trainer.global_step)
 
--------------
-
 global_step
-~~~~~~~~~~~
+~~~~~~~~~
 The current step (does not reset each epoch)
 
 .. code-block:: python
@@ -955,10 +987,9 @@ The current step (does not reset each epoch)
     def training_step(self):
         self.logger.experiment.log_image(..., step=self.global_step)
 
--------------
-
 hparams
 ~~~~~~~
+
 The arguments passed through ``LightningModule.__init__()`` and saved by calling
 :meth:`~pytorch_lightning.core.mixins.hparams_mixin.HyperparametersMixin.save_hyperparameters` could be accessed by the ``hparams`` attribute.
 
@@ -971,10 +1002,9 @@ The arguments passed through ``LightningModule.__init__()`` and saved by calling
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
---------------
-
 logger
 ~~~~~~
+
 The current logger being used (tensorboard or other supported logger)
 
 .. code-block:: python
@@ -986,10 +1016,9 @@ The current logger being used (tensorboard or other supported logger)
         # the particular logger
         tensorboard_logger = self.logger.experiment
 
---------------
-
 local_rank
 ~~~~~~~~~~~
+
 The ``global_rank`` is the index of the current process across all the devices for the current node.
 You usually do not need to use this property, but it is useful to know how to access it if needed.
 For example, if using 10 machines (or nodes), the GPU at index 0 on each machine has local_rank = 0.
@@ -1001,10 +1030,9 @@ For example, if using 10 machines (or nodes), the GPU at index 0 on each machine
             # do something only once across each node
             self.log("global_step", self.trainer.global_step)
 
------------
-
 precision
 ~~~~~~~~~
+
 The type of precision used:
 
 .. code-block:: python
@@ -1013,10 +1041,9 @@ The type of precision used:
         if self.precision == 16:
             ...
 
-------------
-
 trainer
 ~~~~~~~
+
 Pointer to the trainer
 
 .. code-block:: python
@@ -1025,16 +1052,14 @@ Pointer to the trainer
         max_steps = self.trainer.max_steps
         any_flag = self.trainer.any_flag
 
-------------
-
 use_amp
 ~~~~~~~
-``True`` if using Automatic Mixed Precision (AMP)
 
-------------
+``True`` if using Automatic Mixed Precision (AMP)
 
 prepare_data_per_node
 ~~~~~~~~~~~~~~~~~~~~~
+
 If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
 If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
 
@@ -1045,10 +1070,9 @@ If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
             super().__init__()
             self.prepare_data_per_node = True
 
-------------
-
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
+
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
@@ -1092,10 +1116,9 @@ Manual optimization is most useful for research topics like reinforcement learni
         self.manual_backward(disc_loss)
         opt_b.step()
 
---------------
-
 example_input_array
 ~~~~~~~~~~~~~~~~~~~
+
 Set and access example_input_array, which basically represents a single batch.
 
 .. code-block:: python
@@ -1109,10 +1132,9 @@ Set and access example_input_array, which basically represents a single batch.
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
 
---------------
-
 datamodule
 ~~~~~~~~~~
+
 Set or access your datamodule.
 
 .. code-block:: python
@@ -1121,16 +1143,13 @@ Set or access your datamodule.
         num_training_samples = len(self.trainer.datamodule.train_dataloader())
         ...
 
---------------
-
 model_size
 ~~~~~~~~~~
+
 Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
 
---------------
-
 truncated_bptt_steps
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 
 Truncated Backpropagation Through Time (TBPTT) performs perform backpropogation every k steps of
 a much longer sequence. This is made possible by passing training batches
@@ -1205,7 +1224,8 @@ override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split
 --------------
 
 Hooks
-^^^^^
+=====
+
 This is the pseudocode to describe the structure of :meth:`~pytorch_lightning.trainer.Trainer.fit`.
 The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
 for more information.
