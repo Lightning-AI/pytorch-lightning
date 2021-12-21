@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -31,7 +31,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 
-class DDPFullyShardedPlugin(DDPPlugin):
+class DDPFullyShardedStrategy(DDPStrategy):
 
     distributed_backend = _StrategyType.DDP_FULLY_SHARDED
 
@@ -129,6 +129,19 @@ class DDPFullyShardedPlugin(DDPPlugin):
             )
         super().setup_distributed()
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        self._move_optimizer_state()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        self.configure_ddp()
+        self.barrier()
+        self.setup_optimizers(trainer)
+
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         precision = self.precision_plugin.precision
@@ -162,14 +175,6 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
         # setup optimizers after fully sharded has wrapped the lightning module
         self.setup_optimizers(self.lightning_module.trainer)
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        self._move_optimizer_state()
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-        self.configure_ddp()
-        self.barrier()
-        self.setup_optimizers(trainer)
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module

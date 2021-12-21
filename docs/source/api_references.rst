@@ -150,7 +150,7 @@ Training Type Plugins
     SingleDevicePlugin
     ParallelStrategy
     DataParallelPlugin
-    DDPPlugin
+    DDPStrategy
     DDP2Plugin
     DDPShardedPlugin
     DDPSpawnShardedPlugin

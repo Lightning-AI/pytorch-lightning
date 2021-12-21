@@ -1202,3 +1202,37 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     )
     trainer.fit(model)
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
+
+
+def test_model_checkpoint_saveload_ckpt(tmpdir):
+    ckpt = {
+        "monitor": "random_value",
+        "best_model_path": "epoch=10-step=1436.ckpt",
+        "best_model_score": torch.tensor(2.246),
+        "current_score": torch.tensor(1.5),
+        "dirpath": tmpdir,
+        "best_k_models": {"epoch=10-step=1436.ckpt": torch.tensor(2.246)},
+        "kth_best_model_path": "epoch=10-step=1436.ckpt",
+        "kth_value": torch.tensor(2.246),
+        "last_model_path": "last2245.ckpt",
+    }
+
+    # test on_save_checkpoint
+    cb_write = ModelCheckpoint(dirpath=tmpdir, monitor="random_value", save_top_k=-1, save_last=True)
+    for key, val in ckpt.items():
+        setattr(cb_write, key, val)
+    written_ckpt = cb_write.on_save_checkpoint("", "", "")
+    for state in ckpt:
+        assert ckpt[state] == written_ckpt[state]
+
+    # test on_load_checkpoint
+    # Note: "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
+    # We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
+    # "current_score" is left as initialized, i.e. None, and can therefore also be asserted
+    cb_restore = ModelCheckpoint(dirpath=tmpdir + "restore", monitor=None, save_top_k=-1, save_last=True)
+    cb_restore.on_load_checkpoint("", "", written_ckpt)
+    for key, val in written_ckpt.items():
+        if key not in ("current_score", "dirpath", "monitor"):
+            assert getattr(cb_restore, key) == val
+        else:
+            assert getattr(cb_restore, key) != val

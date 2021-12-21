@@ -120,6 +120,17 @@ class DDPSpawnPlugin(ParallelStrategy):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)
 
+        # move the model to the correct device
+        self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
@@ -169,20 +180,6 @@ class DDPSpawnPlugin(ParallelStrategy):
         init_dist_connection(
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
-
-        # move the model to the correct device
-        self.model_to_device()
-
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`

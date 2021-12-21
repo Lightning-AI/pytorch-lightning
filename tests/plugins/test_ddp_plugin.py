@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins import DDPStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
@@ -35,10 +35,10 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
-    """Tests if device is set correctely when training and after teardown for DDPPlugin."""
+    """Tests if device is set correctely when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
     local_rank = trainer.training_type_plugin.local_rank
@@ -100,33 +100,32 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_ddp_configure_ddp():
-    """Tests with ddp plugin."""
+    """Tests with ddp strategy."""
     model = BoringModel()
-    ddp_plugin = DDPPlugin()
+    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.connect(model)
-    trainer.training_type_plugin.setup_environment()
-    trainer.training_type_plugin.setup(trainer)
     trainer.lightning_module.trainer = trainer
+    trainer.training_type_plugin.setup_environment()
     assert isinstance(trainer.model, LightningModule)
-    trainer._pre_dispatch()
-    # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
+    trainer.training_type_plugin.setup(trainer)
+    # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test do not wrap the model if trainerFN is not fitting
+    trainer.state.fn = TrainerFn.VALIDATING
     trainer.training_type_plugin.connect(model)
+    trainer.lightning_module.trainer = trainer
     trainer.training_type_plugin.setup_environment()
     trainer.training_type_plugin.setup(trainer)
-    trainer.lightning_module.trainer = trainer
-    trainer._pre_dispatch()
-    # in DDPPlugin configure_ddp(), model are still LightningModule
+    # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)

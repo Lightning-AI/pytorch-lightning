@@ -104,8 +104,8 @@ def test_first_logger_call_in_subprocess(tmpdir):
     """
 
     class LoggerCallsObserver(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            # this hook is executed directly before Trainer.pre_dispatch
+        def setup(self, trainer, pl_module, stage):
+            # this hook is executed after Strategy has setup the environment
             # logger should not write any logs until this point
             assert not trainer.logger.method_calls
             assert not os.listdir(trainer.logger.save_dir)

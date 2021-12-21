@@ -126,14 +126,6 @@ class IPUPlugin(ParallelStrategy):
 
         super().setup(trainer)
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 
@@ -163,6 +155,12 @@ class IPUPlugin(ParallelStrategy):
         elif trainer_fn == TrainerFn.PREDICTING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
+        if len(self.optimizers) > 1:
+            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     @property
     def replication_factor(self) -> int:

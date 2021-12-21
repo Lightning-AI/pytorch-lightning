@@ -79,10 +79,9 @@ class HorovodPlugin(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+
         super().setup(trainer)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 
