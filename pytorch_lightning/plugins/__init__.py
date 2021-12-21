@@ -23,7 +23,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Strategy
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy
-from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
+from pytorch_lightning.plugins.training_type.dp import DataParallelStrategy
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
 from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy
 from pytorch_lightning.plugins.training_type.ipu import IPUStrategy
@@ -43,7 +43,7 @@ __all__ = [
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
-    "DataParallelPlugin",
+    "DataParallelStrategy",
     "DDP2Strategy",
     "DDPStrategy",
     "DDPSpawnPlugin",
