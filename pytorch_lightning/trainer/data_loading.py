@@ -486,10 +486,10 @@ class TrainerDataLoadingMixin(ABC):
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs
+        return n_epochs and (self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs)
 
     @property
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs
+        return n_epochs and (self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs)
