@@ -338,7 +338,7 @@ class TPUSpawnStrategy(DDPSpawnPlugin):
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
+        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True)
 
     @DDPSpawnPlugin.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
