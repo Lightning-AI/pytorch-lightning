@@ -111,7 +111,7 @@ Training Type Plugins
     DataParallelPlugin
     DDPPlugin
     DDP2Plugin
-    DDPShardedPlugin
+    DDPShardedStrategy
     DDPSpawnShardedPlugin
     DDPSpawnPlugin
     DeepSpeedPlugin

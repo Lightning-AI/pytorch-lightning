@@ -18,7 +18,7 @@ from pytorch_lightning.plugins import (
     CheckpointIO,
     DDPFullyShardedStrategy,
     DDPPlugin,
-    DDPShardedPlugin,
+    DDPShardedStrategy,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
@@ -112,7 +112,7 @@ def test_fsdp_strategys_registry(tmpdir):
         ("ddp_find_unused_parameters_false", DDPPlugin),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
         ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedPlugin),
-        ("ddp_sharded_find_unused_parameters_false", DDPShardedPlugin),
+        ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
     ],
 )
 def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):
