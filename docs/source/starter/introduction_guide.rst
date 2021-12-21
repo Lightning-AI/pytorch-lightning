@@ -973,6 +973,10 @@ And pass the callbacks into the trainer
 
 ----------------
 
+*************
+Child Modules
+*************
+
 .. include:: ../common/child_modules.rst
 
 ----------------
