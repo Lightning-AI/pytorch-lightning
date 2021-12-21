@@ -19,7 +19,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -32,7 +32,7 @@ if _FAIRSCALE_AVAILABLE:
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
-class DDPSpawnShardedPlugin(DDPSpawnPlugin):
+class DDPSpawnShardedPlugin(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
     distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
