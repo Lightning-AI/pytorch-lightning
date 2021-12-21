@@ -108,7 +108,7 @@ LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.
 
 
 class LRSchedulerConfig(TypedDict):
-    scheduler: LRSchedulerTypeUnion
+    scheduler: Union[_LRScheduler, ReduceLROnPlateau]
     name: Optional[str]
     interval: str
     frequency: int
