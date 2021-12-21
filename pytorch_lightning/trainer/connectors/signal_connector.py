@@ -90,10 +90,6 @@ class SignalConnector:
             else:
                 log.warning("requeue failed...")
 
-            # close experiment to avoid issues
-            if self.trainer.logger:
-                self.trainer.logger.finalize("finished")
-
     def fault_tolerant_sigterm_handler_fn(self, signum: Signals, frame: FrameType) -> None:
         log.info(f"Received signal {signum}. Saving a fault-tolerant checkpoint and terminating.")
         self.trainer._terminate_gracefully = True
