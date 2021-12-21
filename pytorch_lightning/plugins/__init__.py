@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
-from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
+from pytorch_lightning.plugins.training_type.ddp2 import DDP2Strategy
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy
 from pytorch_lightning.plugins.training_type.dp import DataParallelStrategy
@@ -44,7 +44,7 @@ __all__ = [
     "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelStrategy",
-    "DDP2Plugin",
+    "DDP2Strategy",
     "DDPStrategy",
     "DDPSpawnPlugin",
     "DDPFullyShardedStrategy",

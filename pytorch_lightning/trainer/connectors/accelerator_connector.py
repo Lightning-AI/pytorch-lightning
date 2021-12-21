@@ -28,7 +28,7 @@ from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
     DataParallelStrategy,
-    DDP2Plugin,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnPlugin,
@@ -700,7 +700,7 @@ class AcceleratorConnector:
         ):
             plugin = self.distributed_backend.training_type_plugin
         elif self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Strategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
