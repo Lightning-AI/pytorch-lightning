@@ -18,12 +18,14 @@ import os
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
+from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
 from weakref import proxy
 
 import torch
+from packaging.version import Version
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -1565,6 +1567,48 @@ class Trainer(
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
+
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
+        """Called when saving a model checkpoint.
+
+        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for returning callback_states.
+        """
+        callback_states = {}
+        for callback in self.callbacks:
+            # TODO: Add profiling for on_save_checkpoint hook
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            if state:
+                callback_states[callback.state_key] = state
+        return callback_states
+
+    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint.
+
+        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for getting callback_states.
+        """
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        difference = callback_states.keys() - current_callbacks_keys
+        if difference:
+            rank_zero_warn(
+                "Be aware that when using `ckpt_path`,"
+                " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
+                f" Please add the following callbacks: {list(difference)}.",
+            )
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                # TODO: Add profiling for on_load_checkpoint hook
+                callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def _call_strategy_hook(
         self,
