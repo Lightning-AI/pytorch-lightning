@@ -14,7 +14,7 @@
 from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
@@ -29,8 +29,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.warnings import WarningCache
 
-# TODO(@tchaton): Typing-pickle issue on python<3.7 (https://github.com/cloudpipe/cloudpickle/pull/318)
-_IN_METRIC = Any  # Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
+_IN_METRIC = Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[torch.Tensor, Dict[str, torch.Tensor]]
 _PBAR_METRIC = Union[float, Dict[str, float]]
 _OUT_DICT = Dict[str, _OUT_METRIC]
@@ -217,6 +216,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
         if self.is_tensor:
+            value = cast(torch.Tensor, value)
             if not torch.is_floating_point(value):
                 dtype = torch.get_default_dtype()
                 warning_cache.warn(
@@ -244,6 +244,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             elif self.meta.is_sum_reduction:
                 self.value += value.mean()
         else:
+            value = cast(Metric, value)
             self.value = value
             self._forward_cache = value._forward_cache
 
@@ -405,7 +406,9 @@ class _ResultCollection(dict):
         apply_to_collection(list(self.values()), _ResultMetric, append_fn)
         return o
 
-    def _extract_batch_size(self, value: _METRIC_COLLECTION, batch_size: Optional[int], meta: _Metadata) -> int:
+    def _extract_batch_size(
+        self, value: Union[_ResultMetric, _ResultMetricCollection], batch_size: Optional[int], meta: _Metadata
+    ) -> int:
         # check if we have extracted the batch size already
         if batch_size is None:
             batch_size = self.batch_size
