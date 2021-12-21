@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import DDPPlugin, TPUPrecisionPlugin, TPUSpawnStrategy, XLACheckpointIO
+from pytorch_lightning.plugins import DDPStrategy, TPUPrecisionPlugin, TPUSpawnStrategy, XLACheckpointIO
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -292,7 +292,7 @@ def test_tpu_invalid_raises():
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=training_type_plugin)
 
-    training_type_plugin = DDPPlugin(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
+    training_type_plugin = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUPlugin`"):
         Trainer(strategy=training_type_plugin)
 
@@ -304,7 +304,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
         Trainer(strategy=training_type_plugin)
 
     accelerator = TPUAccelerator()
-    training_type_plugin = DDPPlugin(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
+    training_type_plugin = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
         ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnStrategy"
     ):

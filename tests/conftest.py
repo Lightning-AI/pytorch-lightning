@@ -67,7 +67,7 @@ def restore_env_variables():
         "WANDB_MODE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
+        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         # set by XLA
         "TF2_BEHAVIOR",
         "XRT_MESH_SERVICE_ADDRESS",
