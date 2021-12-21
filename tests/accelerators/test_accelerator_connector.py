@@ -349,7 +349,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
     assert isinstance(trainer.precision_plugin, Prec)
-    assert trainer._accelerator_connector.training_type_plugin is ttp
+    assert trainer._accelerator_connector.strategy is ttp
 
     class DistributedPlugin(DDPStrategy):
         pass
@@ -359,7 +359,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, DistributedPlugin)
     assert isinstance(trainer.precision_plugin, Prec)
-    assert trainer._accelerator_connector.training_type_plugin is ttp
+    assert trainer._accelerator_connector.strategy is ttp
 
 
 @mock.patch.dict(

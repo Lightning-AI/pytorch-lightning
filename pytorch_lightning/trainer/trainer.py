@@ -1742,7 +1742,7 @@ class Trainer(
 
     @property
     def training_type_plugin(self) -> Strategy:
-        return self._accelerator_connector.training_type_plugin
+        return self._accelerator_connector.strategy
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
