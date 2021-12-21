@@ -27,8 +27,8 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
-    DataParallelPlugin,
-    DDP2Plugin,
+    DataParallelStrategy,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnPlugin,
@@ -45,7 +45,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDeviceStrategy,
-    SingleTPUPlugin,
+    SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
@@ -700,7 +700,7 @@ class AcceleratorConnector:
         ):
             plugin = self.distributed_backend.training_type_plugin
         elif self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Strategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
@@ -745,11 +745,11 @@ class AcceleratorConnector:
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
-            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+            plugin = DataParallelStrategy(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodStrategy(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
-            plugin = SingleTPUPlugin(self.tpu_id)
+            plugin = SingleTPUStrategy(self.tpu_id)
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
@@ -1026,8 +1026,8 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self.training_type_plugin.precision_plugin}."
                 )
-            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnStrategy)):
+            if not isinstance(self.training_type_plugin, (SingleTPUStrategy, TPUSpawnStrategy)):
                 raise ValueError(
-                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnStrategy`,"
+                    "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
                     f" found {self.training_type_plugin}."
                 )

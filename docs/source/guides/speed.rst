@@ -67,7 +67,7 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.plugins.training_type.DataParallelPlugin` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.plugins.training_type.DataParallelStrategy` performs three GPU transfers for EVERY batch:
 
 1. Copy model to device.
 2. Copy data to device.

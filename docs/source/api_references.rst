@@ -149,15 +149,15 @@ Training Type Plugins
     Strategy
     SingleDeviceStrategy
     ParallelPlugin
-    DataParallelPlugin
+    DataParallelStrategy
     DDPStrategy
-    DDP2Plugin
+    DDP2Strategy
     DDPShardedStrategy
     DDPSpawnShardedPlugin
     DDPSpawnPlugin
     DeepSpeedStrategy
     HorovodStrategy
-    SingleTPUPlugin
+    SingleTPUStrategy
     TPUSpawnStrategy
 
 Precision Plugins

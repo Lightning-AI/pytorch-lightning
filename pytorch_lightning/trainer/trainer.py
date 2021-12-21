@@ -49,7 +49,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
     Strategy,
-    TPUSpawnPlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -1489,7 +1488,7 @@ class Trainer(
                 accelerator_output = accelerator_hook(*args, **kwargs)
                 # Rely on the accelerator output if lightningModule hook returns nothing
                 # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel plugin
+                # todo: move this data parallel logic into the data parallel strategy
                 output = accelerator_output if output is None else output
 
             # call the ttp hook
@@ -1774,7 +1773,7 @@ class Trainer(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
         ttp = self.training_type_plugin
-        return isinstance(ttp, TPUSpawnPlugin) and ttp.local_rank == 0 or ttp.is_global_zero
+        return isinstance(ttp, pl.plugins.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
