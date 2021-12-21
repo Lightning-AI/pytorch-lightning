@@ -33,7 +33,6 @@ from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -564,21 +563,11 @@ class DeepSpeedStrategy(DDPStrategy):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        """Creates optimizers and schedulers.
-
-        Args:
-            trainer: the Trainer, these optimizers should be connected to
-        """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return
+    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
-        # empty optimizers, schedulers and frequencies
-        self.optimizers = []
-        self.lr_schedulers = []
-        self.optimizer_frequencies = []
+        return [], [], []  # empty optimizers, schedulers and frequencies
 
     @property
     def handles_gradient_accumulation(self) -> bool:

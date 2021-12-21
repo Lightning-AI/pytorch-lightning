@@ -105,8 +105,8 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
-            self.lightning_module
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(
+            trainer=trainer, model=self.lightning_module
         )
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -374,6 +374,9 @@ class Strategy(ABC):
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return dataloader
+
+    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
+        return _init_optimizers_and_lr_schedulers(model)
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
