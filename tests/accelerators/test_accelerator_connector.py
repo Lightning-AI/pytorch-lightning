@@ -31,7 +31,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DDPStrategy,
-    DeepSpeedPlugin,
+    DeepSpeedStrategy,
     ParallelPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
@@ -420,7 +420,7 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
         ("ddp_spawn", DDPSpawnPlugin),
         ("ddp_sharded", DDPShardedPlugin),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -631,7 +631,7 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("dp", DataParallelPlugin),
         ("ddp_sharded", DDPShardedPlugin),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):

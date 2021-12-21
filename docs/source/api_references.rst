@@ -155,7 +155,7 @@ Training Type Plugins
     DDPShardedPlugin
     DDPSpawnShardedPlugin
     DDPSpawnPlugin
-    DeepSpeedPlugin
+    DeepSpeedStrategy
     HorovodStrategy
     SingleTPUPlugin
     TPUSpawnPlugin

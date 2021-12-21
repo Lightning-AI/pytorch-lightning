@@ -21,7 +21,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DDPStrategy,
-    DeepSpeedPlugin,
+    DeepSpeedStrategy,
     TPUSpawnPlugin,
     TrainingTypePluginsRegistry,
 )
@@ -69,7 +69,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == init_params
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
+    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
@@ -78,7 +78,7 @@ def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
     trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, precision=16)
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
 
 
 def test_tpu_spawn_debug_plugins_registry(tmpdir):
