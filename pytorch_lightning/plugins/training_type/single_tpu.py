@@ -84,6 +84,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def teardown(self) -> None:
+        super().teardown()
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
 
