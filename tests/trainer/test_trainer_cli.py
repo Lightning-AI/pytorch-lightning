@@ -147,7 +147,6 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     "cli_args,expected",
     [("", False), ("--fast_dev_run=0", False), ("--fast_dev_run=True", True), ("--fast_dev_run 2", 2)],
@@ -180,7 +179,6 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
     assert trainer.data_parallel_device_ids == expected_device_ids
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     ["cli_args", "extra_args"],
     [

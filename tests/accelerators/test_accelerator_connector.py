@@ -26,12 +26,12 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
-    DDP2Plugin,
-    DDPShardedPlugin,
+    DDP2Strategy,
+    DDPShardedStrategy,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DDPStrategy,
-    DeepSpeedPlugin,
+    DeepSpeedStrategy,
     ParallelPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
@@ -128,7 +128,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
     assert trainer._accelerator_connector._is_slurm_managing_tasks()
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDP2Plugin)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
     assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
     assert trainer.training_type_plugin.local_rank == 1
@@ -176,7 +176,7 @@ def test_accelerator_choice_ddp2_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDP2Plugin)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
     assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
     assert trainer.training_type_plugin.local_rank == 1
@@ -406,11 +406,11 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     else:
         with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
             trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
         trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
 
 @pytest.mark.parametrize(
@@ -418,9 +418,9 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -627,11 +627,11 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("ddp2", DDP2Plugin),
+        ("ddp2", DDP2Strategy),
         ("dp", DataParallelPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
@@ -733,12 +733,12 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp2", DDP2Plugin()])
+@pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
 def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
     assert trainer._accelerator_connector._is_slurm_managing_tasks()
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDP2Plugin)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
     assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
     assert trainer.training_type_plugin.local_rank == 1
@@ -784,7 +784,7 @@ def test_strategy_choice_ddp_te(*_):
 def test_strategy_choice_ddp2_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDP2Plugin)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
     assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
     assert trainer.training_type_plugin.local_rank == 1

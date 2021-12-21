@@ -39,9 +39,9 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
-    DDP2Plugin,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
-    DDPShardedPlugin,
+    DDPShardedStrategy,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DDPStrategy,
@@ -2202,7 +2202,7 @@ def test_detect_anomaly_nan(tmpdir):
             dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDP2Plugin(), gpus=2),
+            dict(strategy=DDP2Strategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
@@ -2228,7 +2228,7 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPShardedPlugin(), gpus=2),
+            dict(strategy=DDPShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
             ),
