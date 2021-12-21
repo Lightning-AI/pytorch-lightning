@@ -34,8 +34,8 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
-    DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
+    DeepSpeedStrategy,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
@@ -638,7 +638,7 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+        if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)
 
         if self.precision == 32:
@@ -702,7 +702,7 @@ class AcceleratorConnector:
         elif self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
-            plugin = DeepSpeedPlugin(
+            plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:

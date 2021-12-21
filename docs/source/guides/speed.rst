@@ -45,7 +45,7 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
 
 * :class:`~pytorch_lightning.plugins.training_type.DDPPlugin`
 * :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
-* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
+* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedStrategy`
 
 .. code-block:: python
 
