@@ -353,9 +353,9 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 def _convert_to_lightning_optimizer(trainer: "pl.Trainer", optimizer: Optimizer) -> LightningOptimizer:
     if not isinstance(optimizer, LightningOptimizer):
-        lightning_optimizer = LightningOptimizer(optimizer)
-    lightning_optimizer._on_trainer_init(trainer)
-    return lightning_optimizer
+        optimizer = LightningOptimizer(optimizer) #type: ignore [assignment]
+    optimizer._on_trainer_init(trainer)
+    return optimizer #type: ignore [return-value]
 
 
 class _MockOptimizer(Optimizer):
