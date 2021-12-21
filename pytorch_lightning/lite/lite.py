@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, Strategy, TPUSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedStrategy, PLUGIN_INPUT, Strategy, TPUSpawnStrategy
 from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -238,7 +238,7 @@ class LightningLite(ABC):
         _auto_add_worker_init_fn(dataloader, self.global_rank)
 
         dataloader = self._strategy.process_dataloader(dataloader)
-        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
+        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnStrategy) else None
         lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
         lite_dataloader = cast(DataLoader, lite_dataloader)
         return lite_dataloader
@@ -257,7 +257,7 @@ class LightningLite(ABC):
             model as argument here.
         """
         module = model.module if model is not None else model
-        if isinstance(self._strategy, DeepSpeedPlugin):
+        if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
                     raise MisconfigurationException(
@@ -413,7 +413,7 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        if isinstance(self._strategy, TPUSpawnPlugin):
+        if isinstance(self._strategy, TPUSpawnStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
             # remains invalid. We need to update the references to point to the parameter tensors on the device.

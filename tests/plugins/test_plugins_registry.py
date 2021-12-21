@@ -17,12 +17,12 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
     CheckpointIO,
     DDPFullyShardedStrategy,
-    DDPPlugin,
     DDPShardedStrategy,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
-    DeepSpeedPlugin,
-    TPUSpawnPlugin,
+    DDPStrategy,
+    DeepSpeedStrategy,
+    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from tests.helpers.runif import RunIf
@@ -69,7 +69,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == init_params
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
+    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
@@ -78,7 +78,7 @@ def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
     trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, precision=16)
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
 
 
 def test_tpu_spawn_debug_plugins_registry(tmpdir):
@@ -87,11 +87,11 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 
     assert plugin in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
+    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnStrategy
 
     trainer = Trainer(strategy=plugin)
 
-    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
 
 
 def test_fsdp_strategys_registry(tmpdir):
@@ -109,7 +109,7 @@ def test_fsdp_strategys_registry(tmpdir):
 @pytest.mark.parametrize(
     "plugin_name, plugin",
     [
-        ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
         ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedPlugin),
         ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
@@ -139,14 +139,14 @@ def test_custom_registered_training_plugin_to_strategy():
 
     custom_checkpoint_io = CustomCheckpointIO()
 
-    # Register the DDP Plugin with your custom CheckpointIO plugin
+    # Register the DDP Strategy with your custom CheckpointIO plugin
     TrainingTypePluginsRegistry.register(
         "ddp_custom_checkpoint_io",
-        DDPPlugin,
-        description="DDP Plugin with custom checkpoint io plugin",
+        DDPStrategy,
+        description="DDP Strategy with custom checkpoint io plugin",
         checkpoint_io=custom_checkpoint_io,
     )
     trainer = Trainer(strategy="ddp_custom_checkpoint_io", accelerator="cpu", devices=2)
 
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert trainer.training_type_plugin.checkpoint_io == custom_checkpoint_io
