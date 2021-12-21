@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDP2Plugin, DDPShardedPlugin, DDPStrategy, DeepSpeedPlugin
+from pytorch_lightning.plugins import DDP2Plugin, DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.runif import RunIf
@@ -56,7 +56,7 @@ def environment_combinations():
 
 @pytest.mark.parametrize(
     "plugin_cls",
-    [DDPStrategy, DDPShardedPlugin, DDP2Plugin, pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True))],
+    [DDPStrategy, DDPShardedStrategy, DDP2Plugin, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
     """Test that the rank information is readily available after Trainer initialization."""

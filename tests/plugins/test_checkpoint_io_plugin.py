@@ -20,7 +20,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin, TPUSpawnPlugin
+from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin, TPUSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
@@ -84,7 +84,7 @@ def test_checkpoint_plugin_called(tmpdir):
 
 def test_no_checkpoint_io_plugin_support():
     with pytest.raises(MisconfigurationException, match="must be a `XLA"):
-        TPUSpawnPlugin(checkpoint_io=CustomCheckpointIO())
+        TPUSpawnStrategy(checkpoint_io=CustomCheckpointIO())
 
     with pytest.raises(MisconfigurationException, match="must be a `XLA"):
-        TPUSpawnPlugin().checkpoint_io = CustomCheckpointIO()
+        TPUSpawnStrategy().checkpoint_io = CustomCheckpointIO()

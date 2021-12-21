@@ -27,11 +27,11 @@ from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
-    DDPShardedPlugin,
+    DDPShardedStrategy,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DDPStrategy,
-    DeepSpeedPlugin,
+    DeepSpeedStrategy,
     ParallelPlugin,
     PrecisionPlugin,
     SingleDevicePlugin,
@@ -406,11 +406,11 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     else:
         with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
             trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
         trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
 
 @pytest.mark.parametrize(
@@ -418,9 +418,9 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -629,9 +629,9 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp2", DDP2Plugin),
         ("dp", DataParallelPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):

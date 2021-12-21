@@ -22,17 +22,17 @@ from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
 from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
+from pytorch_lightning.plugins.training_type.ipu import IPUStrategy
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedStrategy
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnStrategy
 from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
@@ -48,11 +48,11 @@ __all__ = [
     "DDPStrategy",
     "DDPSpawnPlugin",
     "DDPFullyShardedStrategy",
-    "DeepSpeedPlugin",
+    "DeepSpeedStrategy",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "HorovodStrategy",
-    "IPUPlugin",
+    "IPUStrategy",
     "IPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
@@ -62,10 +62,10 @@ __all__ = [
     "SingleTPUPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
-    "TPUSpawnPlugin",
+    "TPUSpawnStrategy",
     "Strategy",
     "ParallelPlugin",
-    "DDPShardedPlugin",
+    "DDPShardedStrategy",
     "DDPSpawnShardedPlugin",
 ]
 
