@@ -323,7 +323,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed double evaluation bug with fault-tolerance enabled where the second call was completely skipped ([#11119](https://github.com/PyTorchLightning/pytorch-lightning/pull/11119))
 
 
-- Avoided torch amp cuda warning with `bf16` on cpu when summarizing ([#11161](https://github.com/PyTorchLightning/pytorch-lightning/pull/11161))
+- Fixed an incorrect warning being produced by the model summary when using `bf16` precision on CPU ([#11161](https://github.com/PyTorchLightning/pytorch-lightning/pull/11161))
 
 
 -
