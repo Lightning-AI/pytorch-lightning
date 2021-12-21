@@ -147,7 +147,10 @@ def test_hpc_max_ckpt_version(tmpdir):
 
     assert trainer.checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
     assert trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
-    assert trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
+    assert (
+        trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        is None
+    )
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
