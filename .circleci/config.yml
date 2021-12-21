@@ -37,6 +37,8 @@ references:
     run:
       name: Make Documentation
       command: |
+        # the image uses python 2.7 by default, force a different version
+        pyenv global 3.7.3
         python --version
         pip install -r requirements/docs.txt
         pip list
