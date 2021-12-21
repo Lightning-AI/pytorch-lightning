@@ -16,6 +16,7 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
@@ -107,12 +108,13 @@ LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
 
 
-class LRSchedulerConfig(TypedDict):
+@dataclass
+class LRSchedulerConfig:
     scheduler: Union[_LRScheduler, ReduceLROnPlateau]
-    name: Optional[str]
-    interval: str
-    frequency: int
-    reduce_on_plateau: bool
-    monitor: Optional[str]
-    strict: bool
-    opt_idx: Optional[int]
+    name: Optional[str] = None  # no custom name
+    interval: str = "epoch"  # after epoch is over
+    frequency: int = 1  # every epoch/batch
+    reduce_on_plateau: bool = False  # most often not ReduceLROnPlateau scheduler
+    monitor: Optional[str] = None  # value to monitor for ReduceLROnPlateau
+    strict: bool = True  # enforce that the monitor exists for ReduceLROnPlateau
+    opt_idx: Optional[int] = None  # necessary to store opt_idx when optimizer frequencies are specified

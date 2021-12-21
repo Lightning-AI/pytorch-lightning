@@ -24,9 +24,9 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
 
@@ -182,16 +182,15 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
-            default_scheduler_cfg = _get_default_scheduler_config()
-            assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
-            default_scheduler_cfg["scheduler"] = self._swa_scheduler
+            default_scheduler_cfg = LRSchedulerConfig(scheduler=self._swa_scheduler)
+            assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
             if trainer.lr_schedulers:
                 scheduler_cfg = trainer.lr_schedulers[0]
-                if scheduler_cfg["interval"] != "epoch" or scheduler_cfg["frequency"] != 1:
+                if scheduler_cfg.interval != "epoch" or scheduler_cfg.frequency != 1:
                     rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
                 rank_zero_info(
-                    f"Swapping scheduler `{scheduler_cfg['scheduler'].__class__.__name__}`"
+                    f"Swapping scheduler `{scheduler_cfg.scheduler.__class__.__name__}`"
                     f" for `{self._swa_scheduler.__class__.__name__}`"
                 )
                 trainer.lr_schedulers[0] = default_scheduler_cfg

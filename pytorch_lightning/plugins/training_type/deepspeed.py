@@ -32,7 +32,6 @@ from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -42,7 +41,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT, LRSchedulerConfig
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -456,7 +455,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else _get_default_scheduler_config(),
+            schedulers[0] if schedulers else LRSchedulerConfig(scheduler=None),  # TODO: fix type
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -466,7 +465,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_train(self, model):
         if "optimizer" in self.config:
-            optimizer, lr_scheduler = None, _get_default_scheduler_config()
+            optimizer, lr_scheduler = None, LRSchedulerConfig()
         else:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
@@ -474,7 +473,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
-        scheduler = lr_scheduler["scheduler"]
+        scheduler = lr_scheduler.scheduler
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
@@ -485,7 +484,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if deepspeed_scheduler is not None:
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
-            lr_scheduler["scheduler"] = deepspeed_scheduler
+            lr_scheduler.scheduler = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
         self.model = model
 

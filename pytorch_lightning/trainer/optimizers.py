@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
+from dataclasses import fields
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -126,7 +127,6 @@ class TrainerOptimizersMixin(ABC):
     ) -> List[LRSchedulerConfig]:
         """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
-        default_config = _get_default_scheduler_config()
         for scheduler in schedulers:
             if is_manual_optimization:
                 if isinstance(scheduler, dict):
@@ -141,13 +141,13 @@ class TrainerOptimizersMixin(ABC):
                         )
 
                     scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
-                    lr_schedulers.append({**default_config, **scheduler})
+                    lr_schedulers.append(LRSchedulerConfig(**scheduler))
                 else:
-                    lr_schedulers.append({**default_config, "scheduler": scheduler})
+                    lr_schedulers.append(LRSchedulerConfig(scheduler=scheduler))
             else:
                 if isinstance(scheduler, dict):
                     # check provided keys
-                    extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
+                    extra_keys = [k for k in scheduler.keys() if k not in fields(LRSchedulerConfig)]
                     if extra_keys:
                         rank_zero_warn(
                             f"Found unsupported keys in the lr scheduler dict: {extra_keys}", category=RuntimeWarning
@@ -177,7 +177,7 @@ class TrainerOptimizersMixin(ABC):
                             " Are you sure you didn't mean 'interval': 'step'?",
                             category=RuntimeWarning,
                         )
-                    lr_schedulers.append({**default_config, **scheduler})
+                    lr_schedulers.append(LRSchedulerConfig(**scheduler))
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                     if monitor is None:
                         raise MisconfigurationException(
@@ -186,10 +186,10 @@ class TrainerOptimizersMixin(ABC):
                             ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                         )
                     lr_schedulers.append(
-                        {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
+                        LRSchedulerConfig(scheduler=scheduler, reduce_on_plateau=True, monitor=monitor)
                     )
                 elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                    lr_schedulers.append({**default_config, "scheduler": scheduler})
+                    lr_schedulers.append(LRSchedulerConfig(scheduler=scheduler))
                 else:
                     raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
         return lr_schedulers
@@ -236,16 +236,3 @@ def _validate_scheduler_optimizer(optimizers, lr_schedulers):
         raise MisconfigurationException(
             "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
         )
-
-
-def _get_default_scheduler_config() -> Dict[str, Any]:
-    return {
-        "scheduler": None,
-        "name": None,  # no custom name
-        "interval": "epoch",  # after epoch is over
-        "frequency": 1,  # every epoch/batch
-        "reduce_on_plateau": False,  # most often not ReduceLROnPlateau scheduler
-        "monitor": None,  # value to monitor for ReduceLROnPlateau
-        "strict": True,  # enforce that the monitor exists for ReduceLROnPlateau
-        "opt_idx": None,  # necessary to store opt_idx when optimizer frequencies are specified
-    }
