@@ -49,7 +49,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
     Strategy,
-    TPUSpawnStrategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -102,12 +101,14 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerTypeUnion,
+    STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -1553,11 +1554,12 @@ class Trainer(
             pl_module._current_fx_name = hook_name
 
         # TODO: remove if block in v1.7
-        if hook_name in ("on_train_batch_start", "on_train_batch_end"):
-            fn = getattr(self, hook_name)
-            if callable(fn):
-                with self.profiler.profile(hook_name):
-                    fn(*args, **kwargs)
+        if hook_name == "on_train_batch_start":
+            with self.profiler.profile(hook_name):
+                self._on_train_batch_start(*args, **kwargs)
+        elif hook_name == "on_train_batch_end":
+            with self.profiler.profile(hook_name):
+                self._on_train_batch_end(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
@@ -1568,6 +1570,28 @@ class Trainer(
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
+
+    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
+    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
+        for callback in self.callbacks:
+            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
+
+    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
+    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
+        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
+        for callback in self.callbacks:
+            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint.
@@ -1749,7 +1773,7 @@ class Trainer(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
         ttp = self.training_type_plugin
-        return isinstance(ttp, TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
+        return isinstance(ttp, pl.plugins.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
