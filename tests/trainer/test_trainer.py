@@ -1951,7 +1951,7 @@ def test_ddp_terminate_when_deadlock_is_detected_oom(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=20, num_sanity_val_steps=0, gpus=2, accelerator="ddp"
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=20, num_sanity_val_steps=0, gpus=2, strategy="ddp"
     )
 
     # simulate random failure in training_step on rank 0
