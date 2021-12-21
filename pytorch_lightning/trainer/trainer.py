@@ -18,12 +18,14 @@ import os
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
+from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
 from weakref import proxy
 
 import torch
+from packaging.version import Version
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -99,12 +101,14 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerTypeUnion,
+    STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -1549,11 +1553,12 @@ class Trainer(
             pl_module._current_fx_name = hook_name
 
         # TODO: remove if block in v1.7
-        if hook_name in ("on_train_batch_start", "on_train_batch_end"):
-            fn = getattr(self, hook_name)
-            if callable(fn):
-                with self.profiler.profile(hook_name):
-                    fn(*args, **kwargs)
+        if hook_name == "on_train_batch_start":
+            with self.profiler.profile(hook_name):
+                self._on_train_batch_start(*args, **kwargs)
+        elif hook_name == "on_train_batch_end":
+            with self.profiler.profile(hook_name):
+                self._on_train_batch_end(*args, **kwargs)
         else:
             for callback in self.callbacks:
                 fn = getattr(callback, hook_name)
@@ -1564,6 +1569,70 @@ class Trainer(
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
+
+    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
+    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
+        for callback in self.callbacks:
+            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
+
+    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
+    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
+        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
+        for callback in self.callbacks:
+            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
+            else:
+                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
+
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
+        """Called when saving a model checkpoint.
+
+        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for returning callback_states.
+        """
+        callback_states = {}
+        for callback in self.callbacks:
+            # TODO: Add profiling for on_save_checkpoint hook
+            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            if state:
+                callback_states[callback.state_key] = state
+        return callback_states
+
+    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint.
+
+        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for getting callback_states.
+        """
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
+        current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
+        difference = callback_states.keys() - current_callbacks_keys
+        if difference:
+            rank_zero_warn(
+                "Be aware that when using `ckpt_path`,"
+                " callbacks used to create the checkpoint need to be provided during `Trainer` instantiation."
+                f" Please add the following callbacks: {list(difference)}.",
+            )
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                # TODO: Add profiling for on_load_checkpoint hook
+                callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def _call_strategy_hook(
         self,
@@ -1700,9 +1769,10 @@ class Trainer(
     @property
     def should_rank_save_checkpoint(self) -> bool:
         rank_zero_deprecation(
-            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8.", stacklevel=5
+            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
-        return self.training_type_plugin.should_rank_save_checkpoint
+        ttp = self.training_type_plugin
+        return isinstance(ttp, pl.plugins.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:

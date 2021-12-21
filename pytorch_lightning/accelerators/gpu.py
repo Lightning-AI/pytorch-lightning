@@ -110,8 +110,7 @@ def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     result = subprocess.run(
         [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
         encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+        capture_output=True,
         check=True,
     )
 

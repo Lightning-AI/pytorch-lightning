@@ -49,25 +49,29 @@ class CheckpointConnector:
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
-    def hpc_resume_path(self) -> Optional[str]:
+    def _hpc_resume_path(self) -> Optional[str]:
         if not os.path.isdir(self.trainer.weights_save_path):
             return None
         dir_path_hpc = str(self.trainer.weights_save_path)
         max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
-        auto_save_checkpoint = os.path.join(dir_path_hpc, ".pl_auto_save.ckpt")
-        if os.path.exists(auto_save_checkpoint):
-            return auto_save_checkpoint
+
+    @property
+    def _fault_tolerant_auto_resume_path(self) -> Optional[str]:
+        auto_saved_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
+        if os.path.exists(auto_saved_path):
+            return auto_saved_path
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
         1. from HPC weights if found
-        2. from `checkpoint_path` file if provided
-        3. don't restore
+        2. from fault-tolerant auto-saved checkpoint if found
+        3. from `checkpoint_path` file if provided
+        4. don't restore
         """
-        self.resume_checkpoint_path = self.hpc_resume_path or checkpoint_path
+        self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             return
@@ -162,7 +166,7 @@ class CheckpointConnector:
 
         # TODO: remove this in v1.8.
         # call hpc specific hook
-        if self.hpc_resume_path is not None:
+        if self._hpc_resume_path is not None:
             model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
@@ -198,7 +202,7 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -378,7 +382,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer.on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
