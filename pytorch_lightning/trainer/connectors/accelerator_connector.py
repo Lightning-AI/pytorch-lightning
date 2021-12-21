@@ -30,15 +30,15 @@ from pytorch_lightning.plugins import (
     DataParallelPlugin,
     DDP2Plugin,
     DDPFullyShardedStrategy,
-    DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
-    DeepSpeedPlugin,
+    DDPStrategy,
     DeepSpeedPrecisionPlugin,
+    DeepSpeedStrategy,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
-    HorovodPlugin,
+    HorovodStrategy,
     IPUPrecisionPlugin,
     IPUStrategy,
     NativeMixedPrecisionPlugin,
@@ -638,7 +638,7 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
 
-        if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+        if self._distrib_type == _StrategyType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)
 
         if self.precision == 32:
@@ -702,7 +702,7 @@ class AcceleratorConnector:
         elif self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
-            plugin = DeepSpeedPlugin(
+            plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
@@ -720,11 +720,11 @@ class AcceleratorConnector:
             use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
 
             if use_tpu_spawn:
-                ddp_plugin_cls = TPUSpawnPlugin
+                ddp_strategy_cls = TPUSpawnPlugin
             elif use_ddp_sharded:
-                ddp_plugin_cls = DDPShardedPlugin
+                ddp_strategy_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
-                ddp_plugin_cls = DDPSpawnShardedPlugin
+                ddp_strategy_cls = DDPSpawnShardedPlugin
             elif (
                 use_ddp_cpu_slurm
                 or use_slurm_ddp
@@ -733,21 +733,21 @@ class AcceleratorConnector:
                 or use_kubeflow_ddp
                 or use_ddp_cpu_kubeflow
             ):
-                ddp_plugin_cls = DDPPlugin
+                ddp_strategy_cls = DDPStrategy
             elif use_ddp_spawn or use_ddp_cpu_spawn:
-                ddp_plugin_cls = DDPSpawnPlugin
+                ddp_strategy_cls = DDPSpawnPlugin
             elif use_ddp_fully_sharded:
-                ddp_plugin_cls = DDPFullyShardedStrategy
+                ddp_strategy_cls = DDPFullyShardedStrategy
             else:
-                ddp_plugin_cls = DDPPlugin
+                ddp_strategy_cls = DDPStrategy
 
-            plugin = ddp_plugin_cls(
+            plugin = ddp_strategy_cls(
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
-            plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+            plugin = HorovodStrategy(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.use_ipu:
