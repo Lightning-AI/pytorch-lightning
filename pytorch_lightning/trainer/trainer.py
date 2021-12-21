@@ -1571,11 +1571,11 @@ class Trainer(
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
-    # _on_train_batch_start and _on_train_batch_end are needed because of two different deprecations affecting
-    # the original functions in TrainerCallbackHookMixin: #9816 and #11148
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
     def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        """Called when the training batch begins."""
+        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
@@ -1584,7 +1584,9 @@ class Trainer(
 
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
     def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
-        """Called when the training batch ends."""
+        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
+        the original function in TrainerCallbackHookMixin: #9816 and #11148.
+        """
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
