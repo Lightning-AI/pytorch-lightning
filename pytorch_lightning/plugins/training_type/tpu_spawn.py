@@ -48,8 +48,8 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnPlugin(DDPSpawnPlugin):
-    """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
+class TPUSpawnStrategy(DDPSpawnPlugin):
+    """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
     def __init__(
         self,
@@ -112,10 +112,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         )
         for source in sources:
             if not source.is_module():
-                TPUSpawnPlugin._validate_dataloader(source.instance)
+                TPUSpawnStrategy._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnPlugin._validate_patched_dataloaders(model)
+        TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
@@ -152,7 +152,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
-        TPUSpawnPlugin._validate_dataloader(dataloader)
+        TPUSpawnStrategy._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset

@@ -49,7 +49,7 @@ from pytorch_lightning.plugins import (
     Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    TPUSpawnPlugin,
+    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
@@ -720,7 +720,7 @@ class AcceleratorConnector:
             use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
 
             if use_tpu_spawn:
-                ddp_plugin_cls = TPUSpawnPlugin
+                ddp_plugin_cls = TPUSpawnStrategy
             elif use_ddp_sharded:
                 ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
@@ -1026,8 +1026,8 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self.training_type_plugin.precision_plugin}."
                 )
-            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
+            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnStrategy)):
                 raise ValueError(
-                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin`,"
+                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnStrategy`,"
                     f" found {self.training_type_plugin}."
                 )
