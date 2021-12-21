@@ -236,7 +236,7 @@ def test_strategy_choice_tpu_str(tmpdir, strategy):
 
 
 @RunIf(tpu=True)
-def test_strategy_choice_tpu_plugin(tmpdir):
+def test_strategy_choice_tpu_strategy(tmpdir):
     trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
 
