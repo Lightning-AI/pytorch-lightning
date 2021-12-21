@@ -326,7 +326,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     )
 
     exception_type = Exception if ddp else RuntimeError
-    backward_patch = mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward)
+    backward_patch = mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward)
     with backward_patch, pytest.raises(exception_type):
         trainer.fit(model)
 
@@ -349,7 +349,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
         strategy=strategy,
     )
 
-    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
+    with mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward):
         trainer.fit(model, ckpt_path=checkpoint_path.as_posix())
 
 
@@ -385,6 +385,6 @@ def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "fsdp", 1)
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, min_gpus=1)
 def test_misconfiguration_error_with_deep_speed(tmpdir):
-    _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed")
+    _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed", 1)
