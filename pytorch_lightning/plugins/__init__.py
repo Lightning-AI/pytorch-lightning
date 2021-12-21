@@ -29,7 +29,7 @@ from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy
 from pytorch_lightning.plugins.training_type.ipu import IPUStrategy
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedStrategy
-from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedStrategy
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUStrategy
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnStrategy
@@ -66,7 +66,7 @@ __all__ = [
     "Strategy",
     "ParallelPlugin",
     "DDPShardedStrategy",
-    "DDPSpawnShardedPlugin",
+    "DDPSpawnShardedStrategy",
 ]
 
 FILE_ROOT = Path(__file__).parent

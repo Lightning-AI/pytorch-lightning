@@ -7,7 +7,7 @@ from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullySharde
 from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedStrategy  # noqa: F401
-from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnStrategy  # noqa: F401
