@@ -252,9 +252,61 @@ set is not available at the time your model was declared. Simply pass the test s
 
 --------------
 
+********************************************
+Accessing DataLoaders within LightningModule
+********************************************
+
+In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
+
+.. code-block:: python
+
+    def test_step(self, batch, batch_idx, dataloader_idx):
+        test_dl = self.trainer.test_dataloaders[dataloader_idx]
+        test_dataset = test_dl.dataset
+        # extract metadata, etc. from the dataset:
+        ...
+
+Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
+
+If you are using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, you can access the dataloaders using the following way:
+
+If using a list of dataloaders:
+
+.. code-block:: python
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+
+    def test_dataloader(self):
+        test_dl1 = ...
+        test_dl2 = ...
+        return CombinedLoader([test_dl1, test_dl2])
+
+
+    def test_step(self, batch, batch_idx):
+        test_dl1 = self.trainer.test_dataloaders[0].loaders[0]
+
+
+If using a dictionary of dataloaders:
+
+.. code-block:: python
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+
+    def test_dataloader(self):
+        test_dl1 = ...
+        test_dl2 = ...
+        return CombinedLoader({"dl1": test_dl1, "dl2": test_dl2})
+
+
+    def test_step(self, batch, batch_idx):
+        test_dl1 = self.trainer.test_dataloaders[0].loaders["dl1"]
+
+
+--------------
 
 .. _sequential-data:
-
 
 ***************
 Sequential Data
@@ -362,20 +414,3 @@ option when using sequential data.
 
     # Set limit_val_batches as an int
     trainer = Trainer(limit_val_batches=100)
-
-
-********************************************
-Accessing DataLoaders within LightningModules
-********************************************
-
-In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
-
-.. code-block:: python
-
-    def test_step(self, batch, batch_idx, dataloader_idx):
-        test_dl = self.trainer.test_dataloaders[dataloader_idx]
-        test_dataset = test_dl.dataset
-        # extract metadata, etc. from the dataset:
-        ...
-
-Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
