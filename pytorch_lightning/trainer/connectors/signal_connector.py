@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
 
 # copied from signal.pyi
@@ -62,9 +63,7 @@ class SignalConnector:
                 self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        if self.trainer.is_global_zero:
-            # save weights
-            log.info("handling SIGUSR1")
+        rank_zero_info("handling SIGUSR1")
 
         # save logger to make sure we get all the metrics
         if self.trainer.logger:

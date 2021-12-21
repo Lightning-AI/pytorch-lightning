@@ -96,7 +96,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     hpc_save_path = trainer.checkpoint_connector.hpc_save_path(ckpt_path)
     trainer.save_checkpoint(hpc_save_path)
     # test HPC loading
-    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    checkpoint_path = trainer.checkpoint_connector._CheckpointConnector__get_max_ckpt_path_from_folder(ckpt_path)
     trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
