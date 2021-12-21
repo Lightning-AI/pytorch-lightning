@@ -1416,10 +1416,10 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -1427,7 +1427,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
             )
 
 
-    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
     - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
