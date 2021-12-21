@@ -1746,6 +1746,9 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
 
     def compare_optimizers():
+        print(trainer.lightning_optimizers)
+        print(type(trainer.lightning_optimizers))
+        print(trainer.lightning_optimizers[0])
         assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
 
     model = BoringModel()

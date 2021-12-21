@@ -167,6 +167,7 @@ class LightningOptimizer:
 
 
 def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[List, List, List]:
+    """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     model.trainer._lightning_optimizers = None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
@@ -252,6 +253,7 @@ def _configure_schedulers(
     """Convert each scheduler into dict structure with relevant information."""
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
+    # TODO: move is_manual_optimization check out of for loop
     for scheduler in schedulers:
         if is_manual_optimization:
             if isinstance(scheduler, dict):
@@ -349,11 +351,11 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
         )
 
 
-def _convert_to_lightning_optimizer(trainer: "pl.Trainer", optimizer: Optimizer):
+def _convert_to_lightning_optimizer(trainer: "pl.Trainer", optimizer: Optimizer) -> LightningOptimizer:
     if not isinstance(optimizer, LightningOptimizer):
-        optimizer = LightningOptimizer(optimizer)
-    optimizer._on_trainer_init(trainer)
-    return optimizer
+        lightning_optimizer = LightningOptimizer(optimizer)
+    lightning_optimizer._on_trainer_init(trainer)
+    return lightning_optimizer
 
 
 class _MockOptimizer(Optimizer):

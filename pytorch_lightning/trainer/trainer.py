@@ -1849,7 +1849,7 @@ class Trainer(
         return SLURMEnvironment.job_id()
 
     @property
-    def lightning_optimizers(self) -> List[LightningOptimizer]:
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         if self._lightning_optimizers is None:
             self._convert_to_lightning_optimizers()
         return self._lightning_optimizers
@@ -2286,7 +2286,7 @@ class Trainer(
         )
         self._terminate_on_nan = val  # : 212
 
-    def _convert_to_lightning_optimizers(self):
+    def _convert_to_lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         self._lightning_optimizers = {
             opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
         }

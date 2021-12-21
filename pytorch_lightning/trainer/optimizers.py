@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class TrainerOptimizersMixin(ABC):
     r"""
     .. deprecated:: v1.6
-        The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.7.
+        The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.8.
     """
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
