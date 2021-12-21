@@ -4,6 +4,18 @@
 Evaluation
 ##########
 
+During and after training we need a way to evaluate our models to make sure they are not overfitting while training and
+generalize well on unseen or real-world data. There are generally 2 stages of evaluation: validation and testing. To some
+degree they serve the same purpose, to make sure models works on real data but they have some practical differences.
+
+Validation is usually done during training. It can be used for hyperparameter optimization or tracking model performance during training.
+It's a part of the training process.
+
+Testing is usually done once we are satisfied with the trained model and want to evaluate it's performance on unseen data where model acts
+as a black box.
+
+Let's see how these can be performed with Lightning.
+
 *******
 Testing
 *******
@@ -36,6 +48,13 @@ To run the test set after training completes, use this method.
 
     # (3) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
+
+.. note::
+
+    It is recommended to test on single device since Distributed Training such as DDP internally
+    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
+    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
+    benchmarking for research papers is done the right way.
 
 
 Test Multiple Models
