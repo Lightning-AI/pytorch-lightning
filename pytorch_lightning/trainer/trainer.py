@@ -49,7 +49,7 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
     Strategy,
-    TPUSpawnPlugin,
+    TPUSpawnStrategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
@@ -1774,7 +1774,7 @@ class Trainer(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
         ttp = self.training_type_plugin
-        return isinstance(ttp, TPUSpawnPlugin) and ttp.local_rank == 0 or ttp.is_global_zero
+        return isinstance(ttp, TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
