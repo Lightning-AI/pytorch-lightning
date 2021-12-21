@@ -211,7 +211,7 @@ class FitLoop(Loop[None]):
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
-        # reset outputs, they are not accumulated between epochs
+        # reset outputs here instead of in `reset` as they are not accumulated between epochs
         self._outputs = []
 
         if self.trainer.train_dataloader is not None and callable(
@@ -253,7 +253,7 @@ class FitLoop(Loop[None]):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = TrainingEpochLoop._prepare_outputs_training_epoch_end(
+            epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
                 self._outputs,
                 automatic=model.automatic_optimization,
                 num_optimizers=len(self.trainer.optimizers),
