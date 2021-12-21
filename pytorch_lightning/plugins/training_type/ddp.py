@@ -48,7 +48,7 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_10,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -73,7 +73,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class DDPPlugin(ParallelPlugin):
+class DDPStrategy(ParallelPlugin):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
     The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
@@ -84,6 +84,7 @@ class DDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -95,6 +96,7 @@ class DDPPlugin(ParallelPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -147,6 +149,25 @@ class DDPPlugin(ParallelPlugin):
             self._call_children_scripts()
 
         self.setup_distributed()
+        super().setup_environment()
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        super().setup(trainer)
+        # share ddp pids to all processes
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -289,7 +310,7 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
             )
         if _TORCH_GREATER_EQUAL_1_10:
             if not _IS_WINDOWS:
@@ -337,24 +358,6 @@ class DDPPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
-        # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
-        if self._should_run_deadlock_detection():
-            self._share_information_to_prevent_deadlock()
-
-        # move the model to the correct device
-        self.model_to_device()
-
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
 
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
@@ -425,7 +428,7 @@ class DDPPlugin(ParallelPlugin):
         plugin_registry.register(
             "ddp_find_unused_parameters_false",
             cls,
-            description="DDP Plugin with `find_unused_parameters` as False",
+            description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 
@@ -500,6 +503,9 @@ class DDPPlugin(ParallelPlugin):
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown

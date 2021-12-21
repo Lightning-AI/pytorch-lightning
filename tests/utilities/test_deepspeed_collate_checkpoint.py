@@ -16,7 +16,7 @@ import os
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DeepSpeedPlugin
+from pytorch_lightning.plugins import DeepSpeedStrategy
 from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -27,7 +27,7 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
