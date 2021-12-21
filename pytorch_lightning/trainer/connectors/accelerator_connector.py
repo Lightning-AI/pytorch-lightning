@@ -44,7 +44,7 @@ from pytorch_lightning.plugins import (
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
-    SingleDevicePlugin,
+    SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
@@ -754,7 +754,7 @@ class AcceleratorConnector:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
     def resolve_training_type_plugin(self, training_type: Strategy) -> Strategy:

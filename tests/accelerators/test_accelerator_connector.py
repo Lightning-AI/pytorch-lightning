@@ -34,7 +34,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedStrategy,
     ParallelPlugin,
     PrecisionPlugin,
-    SingleDevicePlugin,
+    SingleDeviceStrategy,
 )
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -50,7 +50,7 @@ from tests.helpers.runif import RunIf
 def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
+    assert isinstance(trainer.training_type_plugin, SingleDeviceStrategy)
 
 
 @pytest.mark.parametrize(("num_processes", "num_nodes"), ([(1, 1), (1, 2), (2, 1), (2, 2)]))
@@ -341,7 +341,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Prec(PrecisionPlugin):
         pass
 
-    class TrainTypePlugin(SingleDevicePlugin):
+    class TrainTypePlugin(SingleDeviceStrategy):
         pass
 
     ttp = TrainTypePlugin(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
@@ -486,7 +486,7 @@ def test_accelerator_cpu_with_multiple_gpus():
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnStrategy)])
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
 def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
@@ -508,7 +508,7 @@ def test_accelerator_cpu_with_num_processes_priority():
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "plugin"], [(1, SingleDevicePlugin), ([1], SingleDevicePlugin), (2, DDPSpawnStrategy)]
+    ["devices", "plugin"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, plugin):
 
