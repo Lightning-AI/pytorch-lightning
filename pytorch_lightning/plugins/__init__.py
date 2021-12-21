@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
 from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
+from pytorch_lightning.plugins.training_type.ipu import IPUStrategy
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
@@ -52,7 +52,7 @@ __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "HorovodStrategy",
-    "IPUPlugin",
+    "IPUStrategy",
     "IPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",

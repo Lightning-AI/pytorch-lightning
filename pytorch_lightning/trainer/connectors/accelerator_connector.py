@@ -39,8 +39,8 @@ from pytorch_lightning.plugins import (
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodStrategy,
-    IPUPlugin,
     IPUPrecisionPlugin,
+    IPUStrategy,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
@@ -463,7 +463,7 @@ class AcceleratorConnector:
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
-        if self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin):
+        if self.ipus is not None or isinstance(self._training_type_plugin, IPUStrategy):
             return True
         return self._map_devices_to_accelerator(_AcceleratorType.IPU)
 
@@ -564,7 +564,7 @@ class AcceleratorConnector:
     def num_ipus(self) -> int:
         if isinstance(self.ipus, int):
             return self.ipus
-        if isinstance(self._training_type_plugin, IPUPlugin):
+        if isinstance(self._training_type_plugin, IPUStrategy):
             return self._training_type_plugin.replication_factor
         return 0
 
@@ -751,7 +751,7 @@ class AcceleratorConnector:
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.use_ipu:
-            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
+            plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
@@ -962,9 +962,9 @@ class AcceleratorConnector:
         return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
-        # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
+        # This allows the poptorch.Options that are passed into the IPUStrategy to be the source of truth,
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
-        if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != _AcceleratorType.IPU:
+        if isinstance(self._training_type_plugin, IPUStrategy) and self._device_type != _AcceleratorType.IPU:
             self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
