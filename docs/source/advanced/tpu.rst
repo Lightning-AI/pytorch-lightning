@@ -334,7 +334,7 @@ Sometimes, there can still be old programs running on the TPUs, which would make
         .format(len(local_devices), len(kind_devices)))
     RuntimeError: Cannot replicate if number of devices (1) is different from 8
 
-This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Plugin for training on multiple tpu cores, we use XLA's `xmp.spawn`.
+This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Strategy for training on multiple tpu cores, we use XLA's `xmp.spawn`.
 Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 - **Unsupported datatype transfer to TPU**
@@ -349,7 +349,7 @@ Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cause issues if the User is trying to send some non-tensor objects through the DataLoader or during saving states.
 
-- **Using `tpu_spawn_debug` Plugin alias**
+- **Using `tpu_spawn_debug` Strategy alias**
 
 .. code-block:: python
 
@@ -373,7 +373,7 @@ Example Metrics report:
 
 A lot of PyTorch operations aren't lowered to XLA, which could lead to significant slowdown of the training process.
 These operations are moved to the CPU memory and evaluated, and then the results are transfered back to the XLA device(s).
-By using the `tpu_spawn_debug` plugin, users could create a metrics report to diagnose issues.
+By using the `tpu_spawn_debug` Strategy, users could create a metrics report to diagnose issues.
 
 The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
 

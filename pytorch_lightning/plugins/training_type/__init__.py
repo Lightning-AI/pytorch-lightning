@@ -10,5 +10,5 @@ from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # 
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy  # noqa: F401

@@ -22,7 +22,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
     DDPStrategy,
     DeepSpeedStrategy,
-    TPUSpawnPlugin,
+    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from tests.helpers.runif import RunIf
@@ -87,11 +87,11 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 
     assert plugin in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
+    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnStrategy
 
     trainer = Trainer(strategy=plugin)
 
-    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
 
 
 def test_fsdp_strategys_registry(tmpdir):
