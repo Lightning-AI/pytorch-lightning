@@ -1952,12 +1952,14 @@ def test_ddp_terminate_when_deadlock_is_detected_oom(tmpdir):
 
     # @TODO: this comment is just to get tests to run again
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=20, num_sanity_val_steps=0, gpus=2, strategy="ddp"
+        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=20, num_sanity_val_steps=0, gpus=2, strategy="ddp"
     )
 
     # simulate random failure in training_step on rank 0
     with pytest.raises(DeadlockDetectedException, match="RuntimeError"):
         trainer.fit(model)
+
+    assert trainer.current_epoch == 2, "Trainer didn't finish training"
 
 
 @RunIf(min_gpus=1)
