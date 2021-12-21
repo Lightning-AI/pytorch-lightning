@@ -45,7 +45,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
-    SingleTPUPlugin,
+    SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
@@ -749,7 +749,7 @@ class AcceleratorConnector:
         elif self.use_horovod:
             plugin = HorovodStrategy(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
-            plugin = SingleTPUPlugin(self.tpu_id)
+            plugin = SingleTPUStrategy(self.tpu_id)
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
@@ -1026,8 +1026,8 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self.training_type_plugin.precision_plugin}."
                 )
-            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnStrategy)):
+            if not isinstance(self.training_type_plugin, (SingleTPUStrategy, TPUSpawnStrategy)):
                 raise ValueError(
-                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnStrategy`,"
+                    "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
                     f" found {self.training_type_plugin}."
                 )
