@@ -17,7 +17,7 @@ It also returns the optional description and parameters for initialising the Plu
     # Training with DeepSpeed ZeRO Stage 3 and CPU Offload
     trainer = Trainer(strategy="deepspeed_stage_3_offload", accelerator="gpu", devices=3)
 
-    # Training with the TPU Spawn Plugin with `debug` as True
+    # Training with the TPU Spawn Strategy with `debug` as True
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
 
 
