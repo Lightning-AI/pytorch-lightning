@@ -34,10 +34,11 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
+    rank_zero_debug,
     rank_zero_only,
     ReduceOp,
     sync_ddp_if_available,
@@ -61,6 +62,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -71,6 +73,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         **kwargs: Any,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -117,6 +120,17 @@ class DDPSpawnPlugin(ParallelPlugin):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)
 
+        # move the model to the correct device
+        self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
@@ -131,23 +145,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
-
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self._recover_results_in_main_process(spawn_output, trainer)
-        # reset optimizers, since main process is never used for training and thus does not have a valid optim state
-        trainer.optimizers = []
-        return spawn_output.trainer_results
-
-    def start_evaluating(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self._recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
-
-    def start_predicting(self, trainer: "pl.Trainer") -> Any:
-        spawn_output: _SpawnOutput = self.spawn(self.new_process, trainer)
-        self._recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.
@@ -184,27 +181,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional["_SpawnOutput"]:
-        # move the model to the correct device
-        self.model_to_device()
-
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
-
-        self.barrier()
-
-        results = trainer.run_stage()
-        outputs = self._collect_rank_zero_results(trainer, results)
-
-        # ensure that spawned processes go through teardown before joining
-        trainer._call_teardown_hook()
-        return outputs
-
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
@@ -226,7 +202,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
         if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
             register_ddp_comm_hook(
-                model=self._model,
+                model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
@@ -234,7 +210,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        self._model = self._setup_model(LightningDistributedModule(self.model))
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
@@ -243,7 +219,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
-        rank_zero_warn("cleaning up ddp environment...")
+        rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
@@ -268,7 +244,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
-    def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer) -> None:
+    def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback:
             trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
@@ -398,6 +374,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
+
+        if self.sync_batchnorm:
+            self.model = _revert_sync_batchnorm(self.model)
 
         if self.on_gpu:
             # GPU teardown

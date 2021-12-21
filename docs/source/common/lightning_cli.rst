@@ -80,7 +80,7 @@ LightningCLI
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
 class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
-Lightning as :code:`pytorch-lightning[extra]` or install the package :code:`jsonargparse[signatures]`.
+Lightning as :code:`pytorch-lightning[extra]` or install the package :code:`pip install -U jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
 :code:`*_dataloader` methods, a :code:`trainer.py` tool can be as simple as:
@@ -757,6 +757,34 @@ Instantiation links are used to automatically determine the order of instantiati
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
 
 
+Variable Interpolation
+^^^^^^^^^^^^^^^^^^^^^^
+
+The linking of arguments is intended for things that are meant to be non-configurable. This improves the CLI user
+experience since it avoids the need for providing more parameters. A related concept is
+variable interpolation which in contrast keeps things being configurable.
+
+The YAML standard defines anchors and aliases which is a way to reuse the content in multiple places of the YAML. This is
+supported in the ``LightningCLI`` though it has limitations. Support for OmegaConf's more powerful `variable
+interpolation <https://omegaconf.readthedocs.io/en/2.1_branch/usage.html#variable-interpolation>`__ will be available
+out of the box if this package is installed. To install it run :code:`pip install omegaconf`. Then to enable the use
+of OmegaConf in a ``LightningCLI``, when instantiating a parameter needs to be given for the parser as follows:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
+
+With the encoder-decoder example model above a possible YAML that uses variable interpolation could be the following:
+
+.. code-block:: yaml
+
+    model:
+      encoder_layers: 12
+      decoder_layers:
+      - ${model.encoder_layers}
+      - 4
+
+
 Optimizers and learning rate schedulers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -927,6 +955,25 @@ You can also pass the class path directly, for example, if the optimizer hasn't 
         --gen_optimizer.init_args.lr=0.01 \
         --gen_discriminator.class_path=torch.optim.AdamW \
         --gen_discriminator.init_args.lr=0.0001
+
+
+Troubleshooting
+^^^^^^^^^^^^^^^
+
+The standard behavior for CLIs, when they fail, is to terminate the process with a non-zero exit code and a short message
+to hint the user about the cause. This is problematic while developing the CLI since there is no information to track
+down the root of the problem. A simple change in the instantiation of the ``LightningCLI`` can be used such that when
+there is a failure an exception is raised and the full stack trace printed.
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, parser_kwargs={"error_handler": None})
+
+.. note::
+
+    When asking about problems and reporting issues please set the ``error_handler`` to ``None`` and include the stack
+    trace in your description. With this, it is more likely for people to help out identifying the cause without needing
+    to create a reproducible script.
 
 
 Notes related to reproducibility

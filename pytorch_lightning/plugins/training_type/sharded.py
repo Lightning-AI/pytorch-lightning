@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
@@ -33,7 +33,7 @@ if _FAIRSCALE_AVAILABLE:
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
-class DDPShardedPlugin(DDPPlugin):
+class DDPShardedPlugin(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
     distributed_backend = _StrategyType.DDP_SHARDED
@@ -45,7 +45,7 @@ class DDPShardedPlugin(DDPPlugin):
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
-        self._model, optimizers = self._setup_model_and_optimizers(
+        self.model, optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
@@ -107,7 +107,7 @@ class DDPShardedPlugin(DDPPlugin):
                 "`DDPShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
+        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass

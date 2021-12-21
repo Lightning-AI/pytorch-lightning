@@ -125,7 +125,7 @@ class EarlyStopping(Callback):
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
-    def on_init_end(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
@@ -144,7 +144,7 @@ class EarlyStopping(Callback):
             if self.strict:
                 raise RuntimeError(error_msg)
             if self.verbose > 0:
-                rank_zero_warn(error_msg, RuntimeWarning)
+                rank_zero_warn(error_msg, category=RuntimeWarning)
 
             return False
 
