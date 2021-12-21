@@ -143,6 +143,9 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
 def test_v1_8_0_trainer_optimizers_mixin():
     trainer = Trainer()
     model = BoringModel()
+    trainer.training_type_plugin.connect(model)
+    trainer.lightning_module.trainer = trainer
+
     with pytest.deprecated_call(
         match=r"`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
     ):
