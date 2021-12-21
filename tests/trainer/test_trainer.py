@@ -38,13 +38,13 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import (
-    DataParallelPlugin,
-    DDP2Plugin,
+    DataParallelStrategy,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
-    DDPPlugin,
-    DDPShardedPlugin,
-    DDPSpawnShardedPlugin,
+    DDPShardedStrategy,
     DDPSpawnStrategy,
+    DDPSpawnShardedPlugin,
+    DDPStrategy,
 )
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
@@ -2194,19 +2194,19 @@ def test_detect_anomaly_nan(tmpdir):
             dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDPPlugin(), num_processes=2, gpus=None),
+            dict(strategy=DDPStrategy(), num_processes=2, gpus=None),
             dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(strategy=DDPPlugin(), gpus=2),
+            dict(strategy=DDPStrategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDP2Plugin(), gpus=2),
+            dict(strategy=DDP2Strategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DataParallelPlugin(), gpus=2),
+            dict(strategy=DataParallelStrategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
@@ -2228,7 +2228,7 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPShardedPlugin(), gpus=2),
+            dict(strategy=DDPShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
             ),

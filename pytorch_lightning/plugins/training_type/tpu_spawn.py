@@ -48,8 +48,8 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnPlugin(DDPSpawnStrategy):
-    """Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
+class TPUSpawnStrategy(DDPSpawnStrategy):
+    """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
     def __init__(
         self,
@@ -112,10 +112,10 @@ class TPUSpawnPlugin(DDPSpawnStrategy):
         )
         for source in sources:
             if not source.is_module():
-                TPUSpawnPlugin._validate_dataloader(source.instance)
+                TPUSpawnStrategy._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnPlugin._validate_patched_dataloaders(model)
+        TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
@@ -152,7 +152,7 @@ class TPUSpawnPlugin(DDPSpawnStrategy):
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
-        TPUSpawnPlugin._validate_dataloader(dataloader)
+        TPUSpawnStrategy._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
@@ -313,7 +313,17 @@ class TPUSpawnPlugin(DDPSpawnStrategy):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
+        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+
+    def remove_checkpoint(self, filepath: _PATH) -> None:
+        """Remove checkpoint filepath from the filesystem.
+
+        Args:
+            filepath: Path to checkpoint
+        """
+        if self.local_rank == 0:
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
@@ -332,13 +342,11 @@ class TPUSpawnPlugin(DDPSpawnStrategy):
     def teardown(self) -> None:
         os.environ.pop("PT_XLA_DEBUG", None)
 
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.local_rank == 0
-
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
+        plugin_registry.register(
+            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
+        )
 
     @DDPSpawnStrategy.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
