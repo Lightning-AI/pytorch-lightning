@@ -42,8 +42,8 @@ from pytorch_lightning.plugins import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
-    DDPSpawnStrategy,
     DDPSpawnShardedPlugin,
+    DDPSpawnStrategy,
     DDPStrategy,
 )
 from pytorch_lightning.trainer.states import TrainerFn
