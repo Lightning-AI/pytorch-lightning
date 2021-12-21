@@ -19,7 +19,6 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
@@ -29,7 +28,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
-    from fairscale.optim.grad_scaler import ShardedGradScaler
 
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
@@ -41,7 +39,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
-        self._model, optimizers = self._setup_model_and_optimizers(
+        self.model, optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
@@ -106,20 +104,13 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
+        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
     def post_training_step(self):
         pass
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        # Ensure that the scaler points to the correct process group
-        # which is re-initialized in a new process
-        if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
-            self._precision_plugin.scaler = ShardedGradScaler()
-        return super().pre_dispatch(trainer)
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:

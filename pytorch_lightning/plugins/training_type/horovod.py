@@ -41,11 +41,13 @@ class HorovodPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=None,
             checkpoint_io=checkpoint_io,
@@ -77,10 +79,9 @@ class HorovodPlugin(ParallelPlugin):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+
         super().setup(trainer)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 

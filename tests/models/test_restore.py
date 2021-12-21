@@ -246,10 +246,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
-            max_steps=1,
+            limit_train_batches=1,
+            limit_val_batches=2,
+            max_epochs=1,
             logger=False,
             callbacks=[checkpoint, callback_capture],
-            limit_val_batches=2,
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -268,8 +269,15 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     for before, after in zip(callbacks_before_resume, callback_capture.callbacks):
         if isinstance(before, ModelCheckpoint):
-            assert before.best_model_path == after.best_model_path
-            assert before.best_model_score == after.best_model_score
+            for attribute in (
+                "best_model_path",
+                "best_model_score",
+                "best_k_models",
+                "kth_best_model_path",
+                "kth_value",
+                "last_model_path",
+            ):
+                assert getattr(before, attribute) == getattr(after, attribute)
 
 
 def test_callbacks_references_fit_ckpt_path(tmpdir):
@@ -345,7 +353,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
+        tpipes.run_model_prediction(pretrained_model, dataloader)
 
 
 @RunIf(min_gpus=2)
@@ -393,7 +401,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_model_prediction(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -539,7 +547,7 @@ def test_dp_resume(tmpdir):
             new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = dm.train_dataloader()
-            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
+            tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
             self.on_pretrain_routine_end_called = True
 
     # new model

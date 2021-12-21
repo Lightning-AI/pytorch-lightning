@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnPlugin
@@ -54,20 +53,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
-            parallel_devices=parallel_devices, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            parallel_devices=parallel_devices,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
-        self.start_method = None
+        self.start_method = "fork"
 
     @property
     def global_rank(self) -> int:
@@ -116,13 +119,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.start_method = "fork"
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
         self._move_optimizer_state()
+
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
-
-        if self.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
-            trainer.progress_bar_callback.disable()
 
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
@@ -132,11 +137,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             set_shared_parameters(self.model.module, shared_params)
 
         self.setup_optimizers(trainer)
-        self.precision_plugin.connect(self._model, None, None)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
-        super().setup(trainer)
+        self.precision_plugin.connect(self.model, None, None)
 
     def _setup_model(self, model: Module) -> Module:
         return model
@@ -226,7 +227,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if _invalid_reduce_op or _invalid_reduce_op_str:
             raise MisconfigurationException(
-                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
             )
 
         output = xm.mesh_reduce("reduce", output, sum)
@@ -339,10 +340,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+    @DDPSpawnPlugin.checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+        if io is not None and not isinstance(io, XLACheckpointIO):
+            raise MisconfigurationException(f"{self.__class__.__name__}.checkpoint_io` must be a `XLACheckpointIO`.")
+        self._checkpoint_io = io

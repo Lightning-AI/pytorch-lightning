@@ -17,7 +17,7 @@ from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -122,7 +122,7 @@ def is_register_plugins_overridden(plugin: type) -> bool:
     plugin_attr = getattr(plugin, method_name)
     previous_super_cls = inspect.getmro(plugin)[1]
 
-    if issubclass(previous_super_cls, TrainingTypePlugin):
+    if issubclass(previous_super_cls, Strategy):
         super_attr = getattr(previous_super_cls, method_name)
     else:
         return False
@@ -133,5 +133,5 @@ def is_register_plugins_overridden(plugin: type) -> bool:
 def call_training_type_register_plugins(root: Path, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
+        if issubclass(mod, Strategy) and is_register_plugins_overridden(mod):
             mod.register_plugins(TrainingTypePluginsRegistry)

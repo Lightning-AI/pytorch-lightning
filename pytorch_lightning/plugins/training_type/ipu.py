@@ -62,6 +62,7 @@ class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
@@ -86,6 +87,7 @@ class IPUPlugin(ParallelPlugin):
                 created options for validation/testing and predicting.
         """
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -124,14 +126,6 @@ class IPUPlugin(ParallelPlugin):
 
         super().setup(trainer)
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 
@@ -161,6 +155,12 @@ class IPUPlugin(ParallelPlugin):
         elif trainer_fn == TrainerFn.PREDICTING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
+        if len(self.optimizers) > 1:
+            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     @property
     def replication_factor(self) -> int:
