@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+from unittest.mock import Mock
 
 import pytest
 import torch
 
+from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
@@ -41,3 +45,95 @@ def test_v1_8_0_deprecated_torchtext_batch():
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
+
+
+def test_v1_8_0_on_init_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_init_start(self, trainer):
+            print("Starting to init trainer!")
+
+        def on_init_end(self, trainer):
+            print("Trainer is init now")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+    with pytest.deprecated_call(
+        match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.validate(model)
+
+
+def test_v1_8_0_deprecated_call_hook():
+    trainer = Trainer(
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
+        trainer.call_hook("test_hook")
+
+
+def test_v1_8_0_deprecated_warning_positional_category():
+    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
+        rank_zero_warn("foo", FutureWarning)
+
+
+def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
+    class TestModelSave(BoringModel):
+        def on_hpc_save(self):
+            print("on_hpc_save override")
+
+    class TestModelLoad(BoringModel):
+        def on_hpc_load(self):
+            print("on_hpc_load override")
+
+    save_model = TestModelSave()
+    load_model = TestModelLoad()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
+
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(save_model)
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(load_model)
+
+
+def test_v1_8_0_deprecated_run_stage():
+    trainer = Trainer()
+    trainer._run_stage = Mock()
+    with pytest.deprecated_call(match="`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8."):
+        trainer.run_stage()
+
+
+def test_v1_8_0_trainer_verbose_evaluate():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
+        assert trainer.verbose_evaluate
+
+    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
+        trainer.verbose_evaluate = False
+
+
+def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in 1.8."
+    ):
+        _ = trainer.should_rank_save_checkpoint

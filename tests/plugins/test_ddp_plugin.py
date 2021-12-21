@@ -56,11 +56,11 @@ def test_ddp_with_2_gpus():
 
 class BarrierModel(BoringModel):
     def setup(self, stage=None):
-        assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert not isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier before model is wrapped")
 
     def on_train_start(self):
-        assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
 
 
@@ -110,11 +110,10 @@ def test_ddp_configure_ddp():
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
     trainer.lightning_module.trainer = trainer
+    trainer.training_type_plugin.setup_environment()
     assert isinstance(trainer.model, LightningModule)
-    trainer._pre_dispatch()
+    trainer.training_type_plugin.setup(trainer)
     # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
@@ -123,10 +122,10 @@ def test_ddp_configure_ddp():
         strategy=ddp_plugin,
     )
     # test do not wrap the model if trainerFN is not fitting
+    trainer.state.fn = TrainerFn.VALIDATING
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
     trainer.lightning_module.trainer = trainer
-    trainer._pre_dispatch()
+    trainer.training_type_plugin.setup_environment()
+    trainer.training_type_plugin.setup(trainer)
     # in DDPPlugin configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)

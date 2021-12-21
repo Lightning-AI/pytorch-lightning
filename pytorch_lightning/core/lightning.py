@@ -21,7 +21,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -31,6 +31,7 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
@@ -303,7 +304,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a key, value pair.
 
@@ -351,7 +352,7 @@ class LightningModule(
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(
-                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                "You are trying to `self.log()` but the loop's result collection is not registered"
                 " yet. This is most likely because you are trying to log in a `predict` hook,"
                 " but it doesn't support logging"
             )
@@ -441,7 +442,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a dictionary of values at once.
 
@@ -1119,15 +1120,16 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self):
+    def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
-        gets called, the list returned here will be merged with the list of callbacks passed to the Trainer's
-        ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks already
-        present in the Trainer's callbacks list, it will take priority and replace them. In addition, Lightning
-        will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
+        gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
+        Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
+        already present in the Trainer's callbacks list, it will take priority and replace them. In addition,
+        Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        run last.
 
         Return:
-            A list of callbacks which will extend the list of callbacks in the Trainer.
+            A callback or a list of callbacks which will extend the list of callbacks in the Trainer.
 
         Example::
 
@@ -1562,14 +1564,14 @@ class LightningModule(
                 using_native_amp,
                 using_lbfgs,
             ):
-                # warm up lr
+                # update params
+                optimizer.step(closure=optimizer_closure)
+
+                # manually warm up lr without a scheduler
                 if self.trainer.global_step < 500:
                     lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
                         pg["lr"] = lr_scale * self.learning_rate
-
-                # update params
-                optimizer.step(closure=optimizer_closure)
 
         """
         optimizer.step(closure=optimizer_closure)
@@ -1710,7 +1712,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1807,7 +1809,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if "example_outputs" not in kwargs:
+        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
             if isinstance(input_sample, Tuple):
                 kwargs["example_outputs"] = self(*input_sample)
@@ -1927,8 +1929,6 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.add_to_queue(self.trainer, queue)
 
     def get_from_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
@@ -1941,8 +1941,6 @@ class LightningModule(
             This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
             and will be removed in v1.7.
         """
-        if self.trainer and isinstance(self.trainer.training_type_plugin, pl.plugins.training_type.DDPSpawnPlugin):
-            self.trainer.training_type_plugin.get_from_queue(self.trainer, queue)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:

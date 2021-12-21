@@ -70,9 +70,14 @@ class PredictionLoop(DataLoaderLoop):
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
-        super().reset()
         self.predictions = []
         self.epoch_batch_indices = []
+
+        super().reset()
+        # when restarting, if we are running twice, since there's no concept of `max_epochs` we need to reset the
+        # current state when the loop has finished running
+        if self.done:
+            self.dataloader_progress.reset_on_run()
 
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls ``_on_predict_start`` hook."""
@@ -109,7 +114,7 @@ class PredictionLoop(DataLoaderLoop):
         # hook
         self.trainer._call_callback_hooks("on_predict_start")
         self.trainer._call_lightning_module_hook("on_predict_start")
-        self.trainer._call_ttp_hook("on_predict_start")
+        self.trainer._call_strategy_hook("on_predict_start")
 
         self.trainer._call_callback_hooks("on_predict_epoch_start")
         self.trainer._call_lightning_module_hook("on_predict_epoch_start")
@@ -137,7 +142,7 @@ class PredictionLoop(DataLoaderLoop):
         # hook
         self.trainer._call_callback_hooks("on_predict_end")
         self.trainer._call_lightning_module_hook("on_predict_end")
-        self.trainer._call_ttp_hook("on_predict_end")
+        self.trainer._call_strategy_hook("on_predict_end")
 
     def _on_predict_model_eval(self) -> None:
         """Calls ``on_predict_model_eval`` hook."""

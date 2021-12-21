@@ -21,9 +21,9 @@ import pytest
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests import _TEMP_PATH, RANDOM_PORTS
-from tests.base.model_template import EvalModelTemplate
+from tests.helpers.boring_model import BoringModel
 
 
 def get_default_logger(save_dir, version=None):
@@ -37,11 +37,6 @@ def get_data_path(expt_logger, path_dir=None):
 
     # each logger has to have these attributes
     name, version = expt_logger.name, expt_logger.version
-
-    # only the test-tube experiment has such attribute
-    if isinstance(expt_logger, TestTubeLogger):
-        expt = expt_logger.experiment if hasattr(expt_logger, "experiment") else expt_logger
-        return expt.get_data_path(name, version)
 
     # the other experiments...
     if not path_dir:
@@ -57,7 +52,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate):
+def load_model_from_checkpoint(logger, root_weights_dir, module_class=BoringModel):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, "loading model failed"
     return trained_model

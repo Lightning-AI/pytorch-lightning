@@ -15,6 +15,7 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -41,7 +42,10 @@ class HPCHookdedModel(BoringModel):
 def test_hpc_hook_calls(tmpdir):
     model = HPCHookdedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
     connector = trainer.checkpoint_connector
     connector.hpc_save(tmpdir, logger=Mock())
     assert model.hpc_save_called == 1
@@ -50,7 +54,10 @@ def test_hpc_hook_calls(tmpdir):
     # new training run, restore from hpc checkpoint file automatically
     assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 1
 
@@ -126,7 +133,7 @@ def test_hpc_max_ckpt_version(tmpdir):
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
 
-    assert trainer.checkpoint_connector.hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
+    assert trainer.checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir) == 33
     assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 from pytorch_lightning.callbacks import (
     Callback,
@@ -255,10 +255,11 @@ class CallbackConnector:
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
 
-    def attach_model_logging_functions(self, model):
+    def _attach_model_logging_functions(self):
+        lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
-            callback.log = model.log
-            callback.log_dict = model.log_dict
+            callback.log = lightning_module.log
+            callback.log_dict = lightning_module.log_dict
 
     def _attach_model_callbacks(self) -> None:
         """Attaches the callbacks defined in the model.
@@ -271,6 +272,8 @@ class CallbackConnector:
         model_callbacks = self.trainer._call_lightning_module_hook("configure_callbacks")
         if not model_callbacks:
             return
+
+        model_callbacks = [model_callbacks] if not isinstance(model_callbacks, Sequence) else model_callbacks
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in self.trainer.callbacks}
         override_types = model_callback_types.intersection(trainer_callback_types)
