@@ -263,14 +263,16 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
     def test_step(self, batch, batch_idx, dataloader_idx):
         test_dl = self.trainer.test_dataloaders[dataloader_idx]
         test_dataset = test_dl.dataset
+        test_sampler = test_dl.sampler
+        ...
         # extract metadata, etc. from the dataset:
         ...
 
 Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
 
-If you are using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, you can access the dataloaders using the following way:
+Evaluation dataloaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collection of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using in the same way as the provided structure.:
 
-If using a list of dataloaders:
+If you provided a list of dataloaders:
 
 .. code-block:: python
 
@@ -284,10 +286,12 @@ If using a list of dataloaders:
 
 
     def test_step(self, batch, batch_idx):
-        test_dl1 = self.trainer.test_dataloaders[0].loaders[0]
+        combined_loader = self.trainer.test_dataloaders[0]
+        list_of_loaders = combined_loader.loaders
+        test_dl1 = list_of_loaders.loaders[0]
 
 
-If using a dictionary of dataloaders:
+If you provided dictionary of dataloaders:
 
 .. code-block:: python
 
@@ -301,7 +305,9 @@ If using a dictionary of dataloaders:
 
 
     def test_step(self, batch, batch_idx):
-        test_dl1 = self.trainer.test_dataloaders[0].loaders["dl1"]
+        combined_loader = self.trainer.test_dataloaders[0]
+        dictionarry_of_loaders = combined_loader.loaders
+        test_dl1 = dictionarry_of_loaders["dl1"]
 
 
 --------------
