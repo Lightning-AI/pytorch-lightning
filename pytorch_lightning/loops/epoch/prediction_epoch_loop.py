@@ -68,8 +68,9 @@ class PredictionEpochLoop(Loop):
         void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
-        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         self.return_predictions = return_predictions
+        # this call requires that `self.return_predictions` is set
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
 
     def advance(  # type: ignore[override]
         self,

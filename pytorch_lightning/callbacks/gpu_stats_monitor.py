@@ -214,8 +214,7 @@ class GPUStatsMonitor(Callback):
                 f"--id={gpu_ids}",
             ],
             encoding="utf-8",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+            capture_output=True,
             check=True,
         )
 

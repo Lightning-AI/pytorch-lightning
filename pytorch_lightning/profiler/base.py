@@ -129,9 +129,9 @@ class BaseProfiler(AbstractProfiler):
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
-        # there are pickling issues with open file handles in Python 3.6
-        # so to avoid them, we open and close the files within this function
-        # by calling `_prepare_streams` and `teardown`
+        # users might call `describe` directly as the profilers can be used by themselves.
+        # to allow this, we open and close the files within this function by calling `_prepare_streams` and `teardown`
+        # manually instead of letting the `Trainer` do it through `setup` and `teardown`
         self._prepare_streams()
         summary = self.summary()
         if summary:
