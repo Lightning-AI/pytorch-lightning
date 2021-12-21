@@ -6,6 +6,14 @@ from typing import Sequence
 
 import fire
 
+REQUIREMENT_FILES = (
+    "requirements.txt",
+    "requirements/extra.txt",
+    "requirements/loggers.txt",
+    "requirements/test.txt",
+    "requirements/examples.txt",
+)
+
 
 class AssistantCLI:
 
@@ -13,6 +21,7 @@ class AssistantCLI:
 
     @staticmethod
     def prepare_nightly_version(proj_root: str = _PATH_ROOT) -> None:
+        """Replace semantic version by date."""
         path_info = os.path.join(proj_root, "pytorch_lightning", "__about__.py")
         # get today date
         now = datetime.datetime.now()
@@ -26,7 +35,8 @@ class AssistantCLI:
             fp.write(init)
 
     @staticmethod
-    def requirements_prune_pkgs(req_file: str, packages: Sequence[str]):
+    def requirements_prune_pkgs(req_file: str, packages: Sequence[str]) -> None:
+        """Remove some packages from given requirement files."""
         with open(req_file) as fp:
             lines = fp.readlines()
 
@@ -37,6 +47,17 @@ class AssistantCLI:
         with open(req_file, "w") as fp:
             fp.writelines(lines)
 
+    @staticmethod
+    def _replace_min(fname: str) -> None:
+        req = open(fname).read().replace(">=", "==")
+        open(fname, "w").write(req)
 
-if __name__ == '__main__':
+    @staticmethod
+    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES) -> None:
+        """Replace the min package version by fixed one."""
+        for fname in requirement_fnames:
+            AssistantCLI._replace_min(fname)
+
+
+if __name__ == "__main__":
     fire.Fire(AssistantCLI)
