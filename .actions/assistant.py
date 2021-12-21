@@ -10,7 +10,7 @@ REQUIREMENT_FILES = (
     "requirements.txt",
     "requirements/extra.txt",
     "requirements/loggers.txt",
-    "requirements/test.txt",
+    # "requirements/test.txt",
     "requirements/examples.txt",
 )
 
