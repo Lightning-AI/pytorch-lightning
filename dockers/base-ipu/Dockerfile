@@ -81,7 +81,8 @@ COPY ./.actions/asssistant.py assistant.py
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python adjust-versions.py requirements-extra.txt && \
+    python adjust_versions.py requirements-extra.txt && \
+    pip install -q fire && \
     python assistant.py requirements_prune_pkgsrequirements-extra.txt --packages "fairscale" "horovod" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \

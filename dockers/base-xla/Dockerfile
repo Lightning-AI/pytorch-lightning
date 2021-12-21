@@ -91,6 +91,7 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
+    pip install -q fire && \
     # drop packages installed with XLA
     python .actions/assistant.py requirements_prune_pkgs requirements.txt --packages "torch" && \
     python .actions/assistant.py requirements_prune_pkgs requirements/examples.txt --packages "torchvision" && \

@@ -53,6 +53,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
+        pip install -q fire
         python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages "horovod"
 
     - name: Set min. dependencies
