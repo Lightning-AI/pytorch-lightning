@@ -38,7 +38,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
-    HorovodPlugin,
+    HorovodStrategy,
     IPUPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
@@ -747,7 +747,7 @@ class AcceleratorConnector:
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
-            plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
+            plugin = HorovodStrategy(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.use_ipu:
