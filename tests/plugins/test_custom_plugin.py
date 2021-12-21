@@ -18,12 +18,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, SingleDeviceStrategy
+from pytorch_lightning.plugins import DDPStrategy, SingleDeviceStrategy
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class CustomParallelPlugin(DDPPlugin):
+class CustomParallelPlugin(DDPStrategy):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.

@@ -310,12 +310,12 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         gpus=2,
     )
     trainer.fit(model)
-    expected = {"[Strategy]DDPPlugin.validation_step"}
+    expected = {"[Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
             "training_step_and_backward",
-            "[Strategy]DDPPlugin.training_step",
-            "[Strategy]DDPPlugin.backward",
+            "[Strategy]DDPStrategy.training_step",
+            "[Strategy]DDPStrategy.backward",
         }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
@@ -333,7 +333,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
-        assert any(f"{local_rank}-[Strategy]DDPPlugin.validation_step" in f for f in files)
+        assert any(f"{local_rank}-[Strategy]DDPStrategy.validation_step" in f for f in files)
 
 
 @RunIf(standalone=True)
