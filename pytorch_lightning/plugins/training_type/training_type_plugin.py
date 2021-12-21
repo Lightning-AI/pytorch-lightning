@@ -105,9 +105,12 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(
+        optimizers, lr_schedulers, optimizer_frequencies = self.init_optimizers(
             trainer=trainer, model=self.lightning_module
         )
+        self.optimizers = optimizers
+        self.lr_schedulers = lr_schedulers
+        self.optimizer_frequencies = optimizer_frequencies
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Setup plugins for the trainer fit and creates optimizers.

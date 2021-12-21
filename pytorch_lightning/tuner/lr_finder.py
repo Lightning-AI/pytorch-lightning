@@ -106,7 +106,7 @@ class _LRFinder:
 
         @wraps(init_optimizers)
         def func(trainer, model):
-            # Decide the structure of the output from _init_optimizers_and_lr_schedulers
+            # Decide the structure of the output from trainer.training_type_plugin.init_optimizers
             optimizers, _, _ = init_optimizers(trainer, model)
 
             if len(optimizers) != 1:
