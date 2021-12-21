@@ -28,8 +28,8 @@ from pytorch_lightning.plugins import (
     DataParallelStrategy,
     DDP2Strategy,
     DDPShardedStrategy,
-    DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelPlugin,
@@ -58,7 +58,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     no_spawn = num_processes == 1 and num_nodes > 1
-    assert isinstance(trainer.training_type_plugin, DDPStrategy if no_spawn else DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy if no_spawn else DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -80,7 +80,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     with pytest.deprecated_call(match=r"accelerator='ddp_spawn'\)` has been deprecated"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -272,7 +272,7 @@ def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
 @RunIf(skip_windows=True, skip_49370=True)
 def test_accelerator_choice_ddp_cpu_and_strategy_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
+    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnStrategy)
 
 
 def _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class):
@@ -417,7 +417,7 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     ["accelerator", "plugin"],
     [
         ("ddp", DDPStrategy),
-        ("ddp_spawn", DDPSpawnPlugin),
+        ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
@@ -486,7 +486,7 @@ def test_accelerator_cpu_with_multiple_gpus():
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnPlugin)])
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnStrategy)])
 def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
@@ -508,7 +508,7 @@ def test_accelerator_cpu_with_num_processes_priority():
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "plugin"], [(1, SingleDevicePlugin), ([1], SingleDevicePlugin), (2, DDPSpawnPlugin)]
+    ["devices", "plugin"], [(1, SingleDevicePlugin), ([1], SingleDevicePlugin), (2, DDPSpawnStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, plugin):
 
@@ -602,8 +602,8 @@ def test_exception_invalid_strategy():
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [
-        ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
@@ -613,7 +613,7 @@ def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPStrategy])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_strategy_choice_cpu_plugin(tmpdir, plugin):
     trainer = Trainer(strategy=plugin(), accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
@@ -623,8 +623,8 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [
-        ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp2", DDP2Strategy),
@@ -640,14 +640,14 @@ def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPStrategy])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_strategy_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPStrategy])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
     trainer = Trainer(strategy=plugin(), gpus=2)
@@ -671,7 +671,7 @@ def test_amp_level_raises_error_with_native():
 def test_strategy_choice_ddp_spawn_cpu(tmpdir):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -691,7 +691,7 @@ def test_strategy_choice_ddp(cuda_available_mock, device_count_mock):
 def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 

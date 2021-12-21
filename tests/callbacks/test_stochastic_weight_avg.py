@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnStrategy
 from pytorch_lightning.plugins.training_type import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -99,7 +99,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+        if not isinstance(trainer.training_type_plugin, DDPSpawnStrategy):
             # check backward call count. the batchnorm update epoch should not backward
             assert trainer.training_type_plugin.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
