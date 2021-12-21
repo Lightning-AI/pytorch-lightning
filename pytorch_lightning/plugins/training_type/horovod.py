@@ -34,7 +34,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-class HorovodPlugin(ParallelPlugin):
+class HorovodStrategy(ParallelPlugin):
     """Plugin for Horovod distributed training integration."""
 
     distributed_backend = _StrategyType.HOROVOD
