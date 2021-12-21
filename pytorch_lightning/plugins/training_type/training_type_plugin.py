@@ -437,7 +437,6 @@ class Strategy(ABC):
         """
         yield
 
-    @abstractmethod
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
