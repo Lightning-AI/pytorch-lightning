@@ -321,7 +321,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert state_dict["items"]["validation_step.v"]["value"].device.type == device
 
             # sync fn should be kept
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
 
             # sync fn dropped from the state dict
             assert "fn" not in state_dict["items"]["validation_step.v"]["meta"]["_sync"]
@@ -331,7 +331,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert results["validation_step.v"].value.device.type == device
 
             # sync fn was preserved in the original result
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
 
             # default sync fn
             new_results = _ResultCollection(False, device)
@@ -458,7 +458,7 @@ def result_collection_reload(**kwargs):
     assert not model.has_validated_sum
 
     tmpdir = (
-        trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0)
+        trainer.strategy.broadcast(trainer_kwargs["default_root_dir"], 0)
         if num_processes >= 2
         else trainer_kwargs["default_root_dir"]
     )

@@ -340,7 +340,7 @@ def test_accuracy_metric_horovod():
         metric = Accuracy(
             compute_on_step=True,
             dist_sync_on_step=True,
-            dist_sync_fn=trainer.training_type_plugin.all_gather,
+            dist_sync_fn=trainer.strategy.all_gather,
             threshold=threshold,
         )
 
