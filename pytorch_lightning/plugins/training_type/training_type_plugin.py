@@ -437,13 +437,13 @@ class Strategy(ABC):
         """
         yield
 
-    @abstractmethod
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
         self._move_optimizer_state(torch.device("cpu"))
+        self.precision_plugin.teardown()
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:

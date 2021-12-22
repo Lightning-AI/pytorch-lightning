@@ -74,6 +74,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         self.model.to(self.root_device)
 
     def teardown(self) -> None:
+        super().teardown()
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
 
