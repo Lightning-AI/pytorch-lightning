@@ -5,7 +5,7 @@ from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy 
 from pytorch_lightning.plugins.training_type.dp import DataParallelStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy  # noqa: F401
-from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy # noqa: F401
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedStrategy  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDeviceStrategy  # noqa: F401
