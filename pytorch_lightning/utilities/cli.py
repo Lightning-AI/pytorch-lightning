@@ -417,7 +417,7 @@ class SaveConfigCallback(Callback):
                     " or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file."
                 )
             # make sure all processes finished `isfile` before letting rank 0 write
-            trainer.training_type_plugin.barrier()
+            trainer.strategy.barrier()
         if trainer.is_global_zero:
             # save only on rank zero to avoid race conditions on DDP.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
