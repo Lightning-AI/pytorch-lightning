@@ -8,7 +8,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
-from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins import SingleDeviceStrategy
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from tests.helpers.boring_model import BoringModel
@@ -16,7 +16,7 @@ from tests.helpers.boring_model import BoringModel
 
 def test_restore_checkpoint_after_pre_setup_default():
     """Assert default for restore_checkpoint_after_setup is False."""
-    plugin = SingleDevicePlugin(
+    plugin = SingleDeviceStrategy(
         accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
     )
     assert not plugin.restore_checkpoint_after_setup
@@ -27,7 +27,7 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
     """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre-
     dispatch is called."""
 
-    class TestPlugin(SingleDevicePlugin):
+    class TestPlugin(SingleDeviceStrategy):
         setup_called = False
 
         def setup(self, trainer: "pl.Trainer") -> None:

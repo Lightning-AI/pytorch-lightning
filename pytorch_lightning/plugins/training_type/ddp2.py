@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
-class DDP2Plugin(DDPStrategy):
+class DDP2Strategy(DDPStrategy):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
     distributed_backend = _StrategyType.DDP2
