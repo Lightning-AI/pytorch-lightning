@@ -67,14 +67,9 @@ def test_logger_collection_unique_names():
 
 
 def test_logger_collection_names_order():
-    logger1 = CustomLogger(name="name1")
-    logger2 = CustomLogger(name="name2")
-    logger3 = CustomLogger(name="name1")
-    logger4 = CustomLogger(name="name3")
-
-    logger = LoggerCollection([logger1, logger2, logger3, logger4])
-
-    assert logger.name == f"{logger1.name}_{logger2.name}_{logger4.name}"
+    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")
+    logger = LoggerCollection(loggers)
+    assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
 
 
 def test_logger_collection_unique_versions():
@@ -88,14 +83,9 @@ def test_logger_collection_unique_versions():
 
 
 def test_logger_collection_versions_order():
-    logger1 = CustomLogger(version="1")
-    logger2 = CustomLogger(version="2")
-    logger3 = CustomLogger(version="1")
-    logger4 = CustomLogger(version="3")
-
-    logger = LoggerCollection([logger1, logger2, logger3, logger4])
-
-    assert logger.version == f"{logger1.version}_{logger2.version}_{logger4.version}"
+    loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
+    logger = LoggerCollection(loggers)
+    assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
 
 
 class CustomLogger(LightningLoggerBase):
