@@ -19,7 +19,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
@@ -50,7 +50,7 @@ class DDPShardedStrategy(DDPStrategy):
             optimizers=trainer.optimizers,
         )
         trainer.optimizers = optimizers
-        trainer._convert_to_lightning_optimizers()
+        _convert_to_lightning_optimizers(trainer)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.

@@ -16,7 +16,11 @@ from abc import ABC
 from typing import List, Optional, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
+from pytorch_lightning.core.optimizer import (
+    _convert_to_lightning_optimizers,
+    _init_optimizers_and_lr_schedulers,
+    LightningOptimizer,
+)
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
@@ -48,13 +52,4 @@ class TrainerOptimizersMixin(ABC):
             "`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
             "v1.8."
         )
-
-        def _convert_to_lightning_optimizer(trainer, optimizer):
-            if not isinstance(optimizer, LightningOptimizer):
-                optimizer = LightningOptimizer(optimizer)
-            optimizer._on_trainer_init(trainer)
-            return optimizer
-
-        self._lightning_optimizers = {
-            opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
-        }
+        _convert_to_lightning_optimizers(self)

@@ -33,7 +33,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizer, LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -480,7 +480,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        self._lightning_optimizers: Optional[List[LightningOptimizer]] = None
+        self._lightning_optimizers: Optional[Dict[int, LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -1927,7 +1927,7 @@ class Trainer(
     @property
     def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         if self._lightning_optimizers is None:
-            self._convert_to_lightning_optimizers()
+            _convert_to_lightning_optimizers(self)
         return self._lightning_optimizers
 
     @property
@@ -2361,11 +2361,6 @@ class Trainer(
             f" Please set `Trainer(detect_anomaly={val})` instead."
         )
         self._terminate_on_nan = val  # : 212
-
-    def _convert_to_lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        self._lightning_optimizers = {
-            opt_idx: _convert_to_lightning_optimizer(self, opt) for opt_idx, opt in enumerate(self.optimizers)
-        }
 
 
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:

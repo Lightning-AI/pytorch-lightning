@@ -351,11 +351,16 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
         )
 
 
-def _convert_to_lightning_optimizer(trainer: "pl.Trainer", optimizer: Optimizer) -> LightningOptimizer:
-    if not isinstance(optimizer, LightningOptimizer):
-        optimizer = LightningOptimizer(optimizer)  # type: ignore [assignment]
-    optimizer._on_trainer_init(trainer)
-    return optimizer  # type: ignore [return-value]
+def _convert_to_lightning_optimizers(trainer: "pl.Trainer") -> None:
+    def _convert_to_lightning_optimizer(optimizer: Optimizer) -> LightningOptimizer:
+        if not isinstance(optimizer, LightningOptimizer):
+            optimizer = LightningOptimizer(optimizer)  # type: ignore [assignment]
+        optimizer._on_trainer_init(trainer)
+        return optimizer  # type: ignore [return-value]
+
+    trainer._lightning_optimizers = {  # type: ignore [assignment]
+        opt_idx: _convert_to_lightning_optimizer(opt) for opt_idx, opt in enumerate(trainer.optimizers)
+    }
 
 
 class _MockOptimizer(Optimizer):
