@@ -86,6 +86,7 @@ class SingleDeviceStrategy(Strategy):
         return obj
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()

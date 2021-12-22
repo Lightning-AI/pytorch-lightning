@@ -107,7 +107,7 @@ from pytorch_lightning.utilities.types import (
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
-    LRSchedulerTypeUnion,
+    LRSchedulerConfig,
     STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
@@ -1839,11 +1839,11 @@ class Trainer(
         self.strategy.optimizers = new_optims
 
     @property
-    def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
+    def lr_schedulers(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_schedulers
 
     @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
+    def lr_schedulers(self, new_schedulers: List[LRSchedulerConfig]) -> None:
         self.strategy.lr_schedulers = new_schedulers
 
     @property
