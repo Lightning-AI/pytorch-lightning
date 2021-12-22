@@ -5,11 +5,11 @@
 
 .. _training_tricks:
 
-###############
-Training Tricks
-###############
+#############################
+Effective Training Techniques
+#############################
 
-Lightning implements various tricks to help during training:
+Lightning implements various techniques to help during training that can help make the training smoother.
 
 ----------
 
@@ -17,44 +17,7 @@ Lightning implements various tricks to help during training:
 Accumulate Gradients
 ********************
 
-Accumulated gradients runs K small batches of size N before doing a backwards pass. The effect is a large effective batch size of size KxN, where N is the batch size.
-Internally it doesn't stack up the batches and do a forward pass, rather it accumulates the gradients for K batches and then do an ``optimizer.step`` to make sure the
-effective batch size is increased but there is no memory overhead.
-
-.. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
-
-.. testcode::
-
-    # DEFAULT (ie: no accumulated grads)
-    trainer = Trainer(accumulate_grad_batches=1)
-
-    # Accumulate gradients for 7 batches
-    trainer = Trainer(accumulate_grad_batches=7)
-
-    # DEFAULT (ie: no accumulated grads)
-    trainer = Trainer(accumulate_grad_batches=1)
-
-You can set different different values for it at different epochs by passing a dictionary, where key represent the epoch at which the value for gradient accumulation
-should be updated.
-
-.. testcode::
-
-        # from epoch 5, it starts accumulating every 2 batches. Here we have 4 instead of 5
-        # because epoch (key) should be zero-indexed.
-        trainer = Trainer(accumulate_grad_batches={4: 2})
-
-Or, you can create custom :class:`~pytorch_lightning.callbacks.gradient_accumulation_scheduler.GradientAccumulationScheduler`
-
-.. testcode::
-
-        from pytorch_lightning.callbacks import GradientAccumulationScheduler
-
-
-        # from epoch 5, it starts accumulating every 2 batches. Here we have 4 instead of 5
-        # because epoch (key) should be zero-indexed.
-        accumulator = GradientAccumulationScheduler(scheduling={4: 2})
-        trainer = Trainer(callbacks=[accumulator])
-
+.. include:: ../common/gradient_accumulation.rst
 
 ----------
 

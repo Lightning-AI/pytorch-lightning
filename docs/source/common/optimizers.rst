@@ -366,6 +366,12 @@ output of the closure (e.g. the loss) or need to call the closure several times 
 
 -----
 
+Accumulate Gradients
+--------------------
+
+.. include:: ../common/gradient_accumulation.rst
+
+
 Use multiple optimizers (like GANs)
 -----------------------------------
 To use multiple optimizers (optionally with learning rate schedulers), return two or more optimizers from
