@@ -28,7 +28,7 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
     check_finite_loss,
 )
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler
+from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import _AcceleratorType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -132,22 +132,18 @@ class Closure(AbstractClosure[ClosureResult]):
         self._step_fn = step_fn
         self._backward_fn = backward_fn
         self._zero_grad_fn = zero_grad_fn
-        self._profiler = PassThroughProfiler() if profiler is None else profiler
 
     def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
-        with self._profiler.profile("training_step_and_backward"):
-            step_output = self._step_fn()
+        step_output = self._step_fn()
 
-            if step_output.closure_loss is None:
-                self.warning_cache.warn(
-                    "`training_step` returned `None`. If this was on purpose, ignore this warning..."
-                )
+        if step_output.closure_loss is None:
+            self.warning_cache.warn("`training_step` returned `None`. If this was on purpose, ignore this warning...")
 
-            if self._zero_grad_fn is not None:
-                self._zero_grad_fn()
+        if self._zero_grad_fn is not None:
+            self._zero_grad_fn()
 
-            if self._backward_fn is not None and step_output.closure_loss is not None:
-                self._backward_fn(step_output.closure_loss)
+        if self._backward_fn is not None and step_output.closure_loss is not None:
+            self._backward_fn(step_output.closure_loss)
 
         return step_output
 
@@ -400,7 +396,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        self.trainer._call_strategy_hook(
+        self.trainer._call_lightning_module_hook(
             "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx
         )
         self.optim_progress.optimizer.zero_grad.increment_completed()
