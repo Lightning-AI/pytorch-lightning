@@ -13,7 +13,7 @@
 # limitations under the License.
 import weakref
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -203,7 +203,7 @@ def _configure_optimizers(
     ):
         opt, sch = optim_conf
         optimizers = opt
-        lr_schedulers = sch if isinstance(sch, Sequence) else [sch]
+        lr_schedulers = sch if isinstance(sch, list) else [sch]
     # single dictionary
     elif isinstance(optim_conf, dict):
         _validate_optim_conf(optim_conf)
