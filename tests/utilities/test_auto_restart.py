@@ -1139,17 +1139,15 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
                 status = "EvaluationEpochLoop:advance"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
-                status = (
-                    "TrainingEpochLoop:on_run_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
-                )
+                status = "FitLoop:on_advance_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
         else:
             status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
     else:
         if val_check_interval == 1.0:
-            status = "TrainingEpochLoop:on_run_end"
+            status = "FitLoop:on_advance_end"
         else:
             # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
-            status = "TrainingEpochLoop:on_run_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
+            status = "FitLoop:on_advance_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
 
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
