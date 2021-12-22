@@ -37,10 +37,7 @@ references:
     run:
       name: Make Documentation
       command: |
-        # First run the same pipeline as Read-The-Docs
-        # apt-get update && apt-get install -y cmake
-        # using: https://hub.docker.com/r/readthedocs/build
-        # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+        # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
         pip install -r requirements/docs.txt

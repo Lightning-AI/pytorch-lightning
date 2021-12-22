@@ -19,7 +19,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -32,7 +31,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -52,7 +51,7 @@ class Strategy(ABC):
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
-        self.lr_schedulers: List[_LRScheduler] = []
+        self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
@@ -415,8 +414,8 @@ class Strategy(ABC):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        if self.should_rank_save_checkpoint:
-            return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        if self.is_global_zero:
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -424,8 +423,8 @@ class Strategy(ABC):
         Args:
             filepath: Path to checkpoint
         """
-        if self.should_rank_save_checkpoint:
-            return self.checkpoint_io.remove_checkpoint(filepath)
+        if self.is_global_zero:
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -437,22 +436,17 @@ class Strategy(ABC):
         """
         yield
 
-    @abstractmethod
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
         self._move_optimizer_state(torch.device("cpu"))
+        self.precision_plugin.teardown()
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:
         pass
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        """Returns whether the checkpoint should be saved (rank based)"""
-        return self.is_global_zero
 
     def on_train_start(self) -> None:
         """Called when train begins."""

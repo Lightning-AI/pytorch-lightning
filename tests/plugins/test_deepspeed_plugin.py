@@ -16,7 +16,7 @@ from torchmetrics import Accuracy
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin, DeepSpeedStrategy
-from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.meta import init_meta_context
@@ -133,8 +133,8 @@ def test_deepspeed_plugin_string(tmpdir, plugin):
         fast_dev_run=True, default_root_dir=tmpdir, strategy=plugin if isinstance(plugin, str) else plugin()
     )
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
-    assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")]
+    assert isinstance(trainer.strategy, DeepSpeedStrategy)
+    assert trainer.strategy.parallel_devices == [torch.device("cpu")]
 
 
 @RunIf(deepspeed=True)
@@ -147,7 +147,7 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
     trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
 
-    plugin = trainer.training_type_plugin
+    plugin = trainer.strategy
     assert isinstance(plugin, DeepSpeedStrategy)
     assert plugin.parallel_devices == [torch.device("cpu")]
     assert plugin.config == deepspeed_config
@@ -169,9 +169,9 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
         fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed", amp_backend=amp_backend, precision=precision
     )
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
-    assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.training_type_plugin.precision_plugin.precision == precision
+    assert isinstance(trainer.strategy, DeepSpeedStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -240,8 +240,8 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmp
 
     class AssertCallback(Callback):
         def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
-            assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
-            config = trainer.training_type_plugin.config
+            assert isinstance(trainer.strategy, DeepSpeedStrategy)
+            config = trainer.strategy.config
 
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
@@ -336,11 +336,11 @@ def test_deepspeed_custom_precision_params(tmpdir):
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
-            assert trainer.training_type_plugin.config["fp16"]["loss_scale"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["initial_scale_power"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["loss_scale_window"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["hysteresis"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["min_loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 10
+            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 10
+            assert trainer.strategy.config["fp16"]["hysteresis"] == 10
+            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 10
             raise SystemExit()
 
     model = BoringModel()
@@ -406,7 +406,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, trainer, pl_module) -> None:
-            assert trainer.training_type_plugin.config["zero_optimization"]["offload_optimizer"] is False
+            assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 
     model = BoringModel()
@@ -478,7 +478,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=1, fast_dev_run=True, precision=16
     )
-    plugin = trainer.training_type_plugin
+    plugin = trainer.strategy
     assert isinstance(plugin, DeepSpeedStrategy)
     assert not plugin.load_full_weights
     with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
@@ -491,7 +491,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
         fast_dev_run=True,
         precision=16,
     )
-    plugin = trainer.training_type_plugin
+    plugin = trainer.strategy
     assert isinstance(plugin, DeepSpeedStrategy)
     assert plugin.load_full_weights
     trainer.test(model, ckpt_path=checkpoint_path)
@@ -690,8 +690,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         def on_train_batch_start(
             self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
         ) -> None:
-            original_deepspeed_plugin = initial_trainer.training_type_plugin
-            current_deepspeed_plugin = trainer.training_type_plugin
+            original_deepspeed_plugin = initial_trainer.strategy
+            current_deepspeed_plugin = trainer.strategy
 
             assert isinstance(original_deepspeed_plugin, DeepSpeedStrategy)
             assert isinstance(current_deepspeed_plugin, DeepSpeedStrategy)
@@ -731,7 +731,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
             self.on_train_batch_start_called = False
 
         def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int) -> None:
-            deepspeed_engine = trainer.training_type_plugin.model
+            deepspeed_engine = trainer.strategy.model
             assert trainer.global_step == deepspeed_engine.global_steps
             self.on_train_batch_start_called = True
 
@@ -830,7 +830,7 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
     When using windows, ranks environment variables should not be set, and deepspeed should handle this.
     """
     trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3))
-    plugin = trainer.training_type_plugin
+    plugin = trainer.strategy
     assert isinstance(plugin, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as mock_platform:
         plugin._init_deepspeed_distributed()
@@ -840,18 +840,18 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
         # assert no env variables have been set within the DeepSpeedStrategy
         assert all(k not in os.environ for k in ("MASTER_PORT", "MASTER_ADDR", "RANK", "WORLD_SIZE", "LOCAL_RANK"))
     else:
-        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.main_address)
-        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.main_port)
-        assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
-        assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
-        assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
+        assert os.environ["MASTER_ADDR"] == str(trainer.strategy.cluster_environment.main_address)
+        assert os.environ["MASTER_PORT"] == str(trainer.strategy.cluster_environment.main_port)
+        assert os.environ["RANK"] == str(trainer.strategy.global_rank)
+        assert os.environ["WORLD_SIZE"] == str(trainer.strategy.world_size)
+        assert os.environ["LOCAL_RANK"] == str(trainer.strategy.local_rank)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.training_type_plugin.barrier()
+    trainer.strategy.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:
