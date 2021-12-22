@@ -118,7 +118,7 @@ def test_accelerator_tpu_with_devices():
     trainer = Trainer(accelerator="tpu", devices=8)
 
     assert trainer.tpu_cores == 8
-    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
@@ -232,13 +232,13 @@ def test_ddp_cpu_not_supported_on_tpus():
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "tpu_spawn_debug"])
 def test_strategy_choice_tpu_str(tmpdir, strategy):
     trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
-    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
 def test_strategy_choice_tpu_strategy(tmpdir):
     trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
-    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
@@ -314,11 +314,11 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
 @RunIf(tpu=True)
 def test_xla_checkpoint_plugin_being_default():
     trainer = Trainer(tpu_cores=8)
-    assert isinstance(trainer.training_type_plugin.checkpoint_io, XLACheckpointIO)
+    assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
 @RunIf(tpu=True)
-@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+@patch("pytorch_lightning.strategies.tpu_spawn.xm")
 def test_mp_device_dataloader_attribute(_):
     dataset = RandomDataset(32, 64)
     dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))

@@ -329,9 +329,7 @@ class Loop(ABC, Generic[T]):
                 # Python primitives. However, their states are saved with the model's `state_dict`.
                 # On reload, we need to re-attach the `Metric`s back to the `_ResultCollection`.
                 # The references are provided through the `metric_attributes` dictionary.
-                v.load_state_dict(
-                    state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
-                )
+                v.load_state_dict(state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.strategy.reduce)
 
                 if not self.trainer.is_global_zero:
                     v.reset(metrics=False)

@@ -1432,7 +1432,7 @@ def predict(
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if not isinstance(trainer.training_type_plugin, DDPSpawnStrategy):
+    if not isinstance(trainer.strategy, DDPSpawnStrategy):
         if use_callbacks:
             assert cb.write_on_batch_end_called
             assert not cb.write_on_epoch_end_called
@@ -1530,7 +1530,7 @@ def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
     trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
@@ -1948,7 +1948,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     class Check(Callback):
         def on_epoch_start(self, trainer, *_):
-            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+            assert isinstance(trainer.strategy.model, DistributedDataParallel)
 
     def current_memory():
         # before measuring the memory force release any leftover allocations, including CUDA tensors
@@ -1969,7 +1969,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.training_type_plugin.model is model
+    assert trainer.strategy.model is model
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 

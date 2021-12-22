@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
-        assert self.device == torch.device(f"cuda:{self.trainer.training_type_plugin.local_rank}")
+        assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
@@ -38,11 +38,11 @@ def test_ddp_with_2_gpus():
     """Tests if device is set correctely when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.training_type_plugin, DDPStrategy)
-    assert trainer.training_type_plugin.on_gpu
-    assert not trainer.training_type_plugin.on_tpu
-    local_rank = trainer.training_type_plugin.local_rank
-    assert trainer.training_type_plugin.root_device == torch.device(f"cuda:{local_rank}")
+    assert isinstance(trainer.strategy, DDPStrategy)
+    assert trainer.strategy.on_gpu
+    assert not trainer.strategy.on_tpu
+    local_rank = trainer.strategy.local_rank
+    assert trainer.strategy.root_device == torch.device(f"cuda:{local_rank}")
 
     model = BoringModelGPU()
 
@@ -56,12 +56,12 @@ def test_ddp_with_2_gpus():
 
 class BarrierModel(BoringModel):
     def setup(self, stage=None):
-        assert not isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
-        self.trainer.training_type_plugin.barrier("barrier before model is wrapped")
+        assert not isinstance(self.trainer.strategy.model, DistributedDataParallel)
+        self.trainer.strategy.barrier("barrier before model is wrapped")
 
     def on_train_start(self):
-        assert isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
-        self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
+        assert isinstance(self.trainer.strategy.model, DistributedDataParallel)
+        self.trainer.strategy.barrier("barrier after model is wrapped")
 
 
 @RunIf(min_gpus=4, standalone=True)
@@ -109,11 +109,11 @@ def test_ddp_configure_ddp():
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
-    trainer.training_type_plugin.connect(model)
+    trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
-    trainer.training_type_plugin.setup_environment()
+    trainer.strategy.setup_environment()
     assert isinstance(trainer.model, LightningModule)
-    trainer.training_type_plugin.setup(trainer)
+    trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
@@ -123,9 +123,9 @@ def test_ddp_configure_ddp():
     )
     # test do not wrap the model if trainerFN is not fitting
     trainer.state.fn = TrainerFn.VALIDATING
-    trainer.training_type_plugin.connect(model)
+    trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
-    trainer.training_type_plugin.setup_environment()
-    trainer.training_type_plugin.setup(trainer)
+    trainer.strategy.setup_environment()
+    trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)

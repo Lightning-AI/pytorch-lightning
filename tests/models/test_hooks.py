@@ -113,7 +113,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch(
-    "pytorch_lightning.plugins.training_type.training_type_plugin.Strategy.lightning_module",
+    "pytorch_lightning.strategies.training_type_plugin.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock):
@@ -160,7 +160,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model
-    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
     assert model.on_before_batch_transfer_hook_rank == 0
     assert model.transfer_batch_to_device_hook_rank == 1

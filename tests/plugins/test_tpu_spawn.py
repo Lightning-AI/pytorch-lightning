@@ -20,7 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.training_type import TPUSpawnStrategy
+from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
@@ -56,7 +56,7 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
         (None, [_loader, _loader_no_len], None, None),
     ],
 )
-@mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.xm")
 def test_error_iterable_dataloaders_passed_to_fit(
     _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
@@ -77,7 +77,7 @@ def test_error_iterable_dataloaders_passed_to_fit(
         TPUSpawnStrategy(MagicMock()).connect(model)
 
 
-@mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+@mock.patch("pytorch_lightning.strategies.tpu_spawn.xm")
 def test_error_process_iterable_dataloader(_):
     with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
@@ -95,10 +95,10 @@ def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctely when training and after teardown for TPUSpawnStrategy."""
     trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
-    assert not trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.on_tpu
-    assert trainer.training_type_plugin.root_device == torch.device("xla", index=1)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert not trainer.strategy.on_gpu
+    assert trainer.strategy.on_tpu
+    assert trainer.strategy.root_device == torch.device("xla", index=1)
     model = BoringModelTPU()
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ
