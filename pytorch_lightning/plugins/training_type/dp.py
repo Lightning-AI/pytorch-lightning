@@ -20,14 +20,14 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
 
-class DataParallelPlugin(ParallelPlugin):
+class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
