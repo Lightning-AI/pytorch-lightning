@@ -45,7 +45,7 @@ from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DDPSpawnStrategy,
     NativeMixedPrecisionPlugin,
-    ParallelPlugin,
+    ParallelStrategy,
     PLUGIN_INPUT,
     PrecisionPlugin,
     Strategy,
@@ -1933,7 +1933,7 @@ class Trainer(
 
     @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
-        if isinstance(self.strategy, ParallelPlugin):
+        if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
 
     @property
