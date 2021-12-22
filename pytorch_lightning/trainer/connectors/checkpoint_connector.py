@@ -81,7 +81,7 @@ class CheckpointConnector:
 
     def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         with pl_legacy_patch():
-            loaded_checkpoint = self.trainer.training_type_plugin.load_checkpoint(checkpoint_path)
+            loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
         if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"
@@ -113,7 +113,7 @@ class CheckpointConnector:
         torch.cuda.empty_cache()
 
         # wait for all to catch up
-        self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
+        self.trainer.strategy.barrier("CheckpointConnector.resume_end")
 
     def restore(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempt to restore everything at once from a 'PyTorch-Lightning checkpoint' file through file-read and
@@ -170,7 +170,7 @@ class CheckpointConnector:
             model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
-        self.trainer.training_type_plugin.load_model_state_dict(self._loaded_checkpoint)
+        self.trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
 
         # reset metrics states on non-rank 0 as all states have been accumulated on rank 0 via syncing on checkpointing.
         if not self.trainer.is_global_zero:
@@ -258,10 +258,7 @@ class CheckpointConnector:
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
-        if (
-            not self._loaded_checkpoint
-            or not self.trainer.training_type_plugin.lightning_restore_optimizer_and_schedulers
-        ):
+        if not self._loaded_checkpoint or not self.trainer.strategy.lightning_restore_optimizer_and_schedulers:
             return
 
         # validation
@@ -279,7 +276,7 @@ class CheckpointConnector:
             return
 
         # restore the optimizers
-        self.trainer.training_type_plugin.load_optimizer_state_dict(self._loaded_checkpoint)
+        self.trainer.strategy.load_optimizer_state_dict(self._loaded_checkpoint)
         for optimizer in self.trainer.optimizers:
             # move optimizer to GPU 1 weight at a time
             # avoids OOM
@@ -387,7 +384,7 @@ class CheckpointConnector:
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.training_type_plugin.optimizer_state(optimizer)
+                optimizer_state = self.trainer.strategy.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint["optimizer_states"] = optimizer_states
@@ -463,7 +460,7 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.training_type_plugin.save_checkpoint(_checkpoint, filepath)
+        self.trainer.strategy.save_checkpoint(_checkpoint, filepath)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (
@@ -476,7 +473,7 @@ class CheckpointConnector:
             metric.persistent(True)
             metric.sync()
 
-        state_dict = self.trainer.training_type_plugin.lightning_module_state_dict()
+        state_dict = self.trainer.strategy.lightning_module_state_dict()
 
         for metric in metrics:
             # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check

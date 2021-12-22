@@ -47,7 +47,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
-            strategy = trainer.training_type_plugin
+            strategy = trainer.strategy
             _, strategy.optimizers = amp.initialize(
                 trainer.lightning_module, strategy.optimizers, opt_level=self.amp_level
             )

@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPShardedStrategy, DDPSpawnShardedPlugin
+from pytorch_lightning.plugins import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from tests.helpers.boring_model import BoringModel
@@ -32,22 +32,22 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
 def test_sharded_ddp_choice(tmpdir, strategy, expected):
     """Test to ensure that plugin is correctly chosen."""
     trainer = Trainer(fast_dev_run=True, strategy=strategy)
-    assert isinstance(trainer.training_type_plugin, expected)
+    assert isinstance(trainer.strategy, expected)
 
 
 @RunIf(min_gpus=1, fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
 def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
-    assert isinstance(trainer.training_type_plugin, expected)
+    assert isinstance(trainer.strategy, expected)
 
 
 @RunIf(skip_windows=True, fairscale=True)
@@ -232,7 +232,7 @@ def test_configure_ddp(tmpdir):
 
 @RunIf(skip_windows=True, fairscale=True)
 @mock.patch("pytorch_lightning.plugins.DDPShardedStrategy._wrap_optimizers", autospec=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedPlugin])
+@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
