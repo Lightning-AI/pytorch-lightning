@@ -68,8 +68,9 @@ class PredictionEpochLoop(Loop):
         void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
-        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         self.return_predictions = return_predictions
+        # this call requires that `self.return_predictions` is set
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
 
     def advance(  # type: ignore[override]
         self,
@@ -96,13 +97,11 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        with self.trainer.profiler.profile("predict_batch_to_device"):
-            batch = self.trainer.training_type_plugin.batch_to_device(batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
-        with self.trainer.profiler.profile("predict_step"):
-            self._predict_step(batch, batch_idx, dataloader_idx)
+        self._predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
@@ -130,7 +129,7 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_started()
 
-        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
+        predictions = self.trainer._call_strategy_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 
@@ -164,7 +163,8 @@ class PredictionEpochLoop(Loop):
     def _get_batch_indices(self, dataloader_idx: int) -> List[List[int]]:
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
-        batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
+        # the batch_sampler is not be defined in case of CombinedDataLoaders
+        batch_sampler = getattr(self.trainer.predict_dataloaders[dataloader_idx], "batch_sampler", None)
         if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
             return batch_sampler.seen_batch_indices
 

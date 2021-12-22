@@ -391,8 +391,8 @@ class DataHooks:
                     # don't do this
                     self.something = else
 
-                def setup(stage):
-                    data = Load_data(...)
+                def setup(self, stage):
+                    data = load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
         """
 
@@ -408,7 +408,7 @@ class DataHooks:
 
         Return:
             A collection of :class:`torch.utils.data.DataLoader` specifying training samples.
-            In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
         The dataloader you return will not be reloaded unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_n_epochs` to

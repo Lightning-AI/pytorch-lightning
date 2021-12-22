@@ -18,20 +18,21 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
-class SingleDevicePlugin(TrainingTypePlugin):
-    """Plugin that handles communication on a single device."""
+class SingleDeviceStrategy(Strategy):
+    """Strategy that handles communication on a single device."""
 
     def __init__(
         self,
         device: torch.device,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
-        super().__init__(checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.device: torch.device = device
         self.global_rank = 0
         self.local_rank = 0
@@ -68,7 +69,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return self.device
 
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
@@ -85,6 +86,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return obj
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()

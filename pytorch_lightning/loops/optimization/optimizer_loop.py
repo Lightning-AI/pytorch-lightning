@@ -243,7 +243,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         if (
             # when the training type plugin handles accumulation, we want to always call the optimizer step
-            not self.trainer.training_type_plugin.handles_gradient_accumulation
+            not self.trainer.strategy.handles_gradient_accumulation
             and self.trainer.fit_loop._should_accumulate()
         ):
             # For gradient accumulation
@@ -318,7 +318,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             return None
 
         def backward_fn(loss: Tensor) -> None:
-            self.trainer._call_ttp_hook("backward", loss, optimizer, opt_idx)
+            self.trainer._call_strategy_hook("backward", loss, optimizer, opt_idx)
 
             # check if model weights are nan
             if self.trainer._terminate_on_nan:
@@ -400,7 +400,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        self.trainer._call_ttp_hook("optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        self.trainer._call_strategy_hook(
+            "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx
+        )
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
     def _training_step(self, split_batch: Any, batch_idx: int, opt_idx: int) -> ClosureResult:
@@ -424,14 +426,14 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             )
 
             # manually capture logged metrics
-            training_step_output = self.trainer._call_ttp_hook("training_step", *step_kwargs.values())
-            self.trainer.training_type_plugin.post_training_step()
+            training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+            self.trainer.strategy.post_training_step()
 
             del step_kwargs
 
             model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-            ttp_output = self.trainer._call_ttp_hook("training_step_end", training_step_output)
-            training_step_output = ttp_output if model_output is None else model_output
+            strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+            training_step_output = strategy_output if model_output is None else model_output
 
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 

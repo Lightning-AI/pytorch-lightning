@@ -106,7 +106,7 @@ class DataConnector:
 
         elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
             # note: this is an experimental feature
-            if not self.trainer.training_type_plugin.on_gpu:
+            if not self.trainer.strategy.on_gpu:
                 raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
 
@@ -118,7 +118,7 @@ class DataConnector:
         data_fetcher.setup(
             dataloader,
             stage=stage,
-            batch_to_device=partial(self.trainer.training_type_plugin.batch_to_device, dataloader_idx=dataloader_idx),
+            batch_to_device=partial(self.trainer.strategy.batch_to_device, dataloader_idx=dataloader_idx),
             profiler=self.trainer.profiler,
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)

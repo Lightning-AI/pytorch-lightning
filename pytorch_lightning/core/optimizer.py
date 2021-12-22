@@ -161,4 +161,4 @@ class LightningOptimizer:
         trainer = self._trainer
         assert trainer is not None
         with trainer.profiler.profile(profiler_action):
-            trainer.training_type_plugin.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+            trainer.strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)

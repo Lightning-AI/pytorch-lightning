@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
@@ -34,18 +34,20 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-class HorovodPlugin(ParallelPlugin):
+class HorovodStrategy(ParallelStrategy):
     """Plugin for Horovod distributed training integration."""
 
     distributed_backend = _StrategyType.HOROVOD
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=None,
             checkpoint_io=checkpoint_io,
@@ -77,10 +79,9 @@ class HorovodPlugin(ParallelPlugin):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
+
         super().setup(trainer)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 

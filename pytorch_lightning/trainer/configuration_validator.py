@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
-def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
     Checks that the model is configured correctly before the run is started.
 
@@ -28,6 +28,8 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
         model: The model to check the configuration.
 
     """
+    model = trainer.lightning_module
+
     if trainer.state.fn is None:
         raise ValueError("Unexpected: Trainer state fn must be set before validating loop configuration.")
     if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
@@ -261,12 +263,12 @@ def _check_add_get_queue(model: "pl.LightningModule") -> None:
     if is_overridden("add_to_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.add_to_queue`"
+            "favor of `DDPSpawnStrategy.add_to_queue`"
         )
     if is_overridden("get_from_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.get_from_queue`"
+            "favor of `DDPSpawnStrategy.get_from_queue`"
         )
 
 
