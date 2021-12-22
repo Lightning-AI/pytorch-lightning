@@ -344,7 +344,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `LightningCLI` race condition saving the config ([#11199](https://github.com/PyTorchLightning/pytorch-lightning/pull/11199))
 
-  
+
 - Fixed an issue with the `TPUSpawnPlugin` handling the `XLA_USE_BF16` environment variable incorrectly ([#10990](https://github.com/PyTorchLightning/pytorch-lightning/pull/10990))
 
 
