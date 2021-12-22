@@ -18,12 +18,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, SingleDevicePlugin
+from pytorch_lightning.plugins import DDPStrategy, SingleDeviceStrategy
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class CustomParallelPlugin(DDPPlugin):
+class CustomParallelStrategy(DDPStrategy):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.
@@ -34,7 +34,7 @@ class CustomParallelPlugin(DDPPlugin):
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
-    plugin = CustomParallelPlugin()
+    plugin = CustomParallelStrategy()
     assert plugin.sync_batchnorm is None
     trainer = Trainer(max_epochs=1, strategy=plugin, default_root_dir=tmpdir, sync_batchnorm=True)
     trainer.fit(model)
@@ -43,7 +43,7 @@ def test_sync_batchnorm_set(tmpdir):
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])
 def test_plugin_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers):
-    class TestPlugin(SingleDevicePlugin):
+    class TestPlugin(SingleDeviceStrategy):
         load_optimizer_state_dict_called = False
 
         @property

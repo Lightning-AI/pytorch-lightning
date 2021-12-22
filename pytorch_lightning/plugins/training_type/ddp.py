@@ -37,7 +37,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
@@ -73,7 +73,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class DDPPlugin(ParallelPlugin):
+class DDPStrategy(ParallelStrategy):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
     The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
@@ -310,7 +310,7 @@ class DDPPlugin(ParallelPlugin):
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
-                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP plugin."
+                "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
             )
         if _TORCH_GREATER_EQUAL_1_10:
             if not _IS_WINDOWS:
@@ -428,7 +428,7 @@ class DDPPlugin(ParallelPlugin):
         plugin_registry.register(
             "ddp_find_unused_parameters_false",
             cls,
-            description="DDP Plugin with `find_unused_parameters` as False",
+            description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 

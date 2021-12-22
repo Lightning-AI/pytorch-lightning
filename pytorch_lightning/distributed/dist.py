@@ -23,7 +23,8 @@ class LightningDistributed:
     """
     .. deprecated:: v1.5
         This class is deprecated in v1.5 and will be removed in v1.7.
-        The broadcast logic will be moved to the :class:`DDPPlugin` and :class`DDPSpawnPlugin` classes.
+        The broadcast logic will be moved to the :class:`DDPStrategy` and :class`DDPSpawnStrategy` classes.
+
     """
 
     def __init__(self, rank=None, device=None):

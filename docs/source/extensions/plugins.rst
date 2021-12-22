@@ -15,7 +15,7 @@ depending on the provided Trainer arguments. For example:
 .. code-block:: python
 
     # accelerator: GPUAccelerator
-    # training type: DDPPlugin
+    # training type: DDPStrategy
     # precision: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
@@ -60,10 +60,10 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -77,12 +77,12 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
 .. code-block:: python
 
     # custom plugins
-    trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
+    trainer = Trainer(strategy=CustomDDPStrategy(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
     accelerator = MyAccelerator()
     precision_plugin = MyPrecisionPlugin()
-    training_type_plugin = CustomDDPPlugin(accelerator=accelerator, precision_plugin=precision_plugin)
+    training_type_plugin = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
     trainer = Trainer(strategy=training_type_plugin)
 
 
@@ -106,18 +106,19 @@ Training Type Plugins
     :template: classtemplate.rst
 
     Strategy
-    SingleDevicePlugin
-    ParallelPlugin
-    DataParallelPlugin
-    DDPPlugin
-    DDP2Plugin
-    DDPShardedPlugin
-    DDPSpawnShardedPlugin
-    DDPSpawnPlugin
-    DeepSpeedPlugin
-    HorovodPlugin
-    SingleTPUPlugin
-    TPUSpawnPlugin
+    SingleDeviceStrategy
+    ParallelStrategy
+    DataParallelStrategy
+    DDPStrategy
+    DDP2Strategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    SingleTPUStrategy
+    TPUSpawnStrategy
+
 
 
 Precision Plugins

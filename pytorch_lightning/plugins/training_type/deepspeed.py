@@ -31,7 +31,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -82,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
-class DeepSpeedPlugin(DDPPlugin):
+class DeepSpeedStrategy(DDPStrategy):
     distributed_backend = _StrategyType.DEEPSPEED
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
@@ -136,7 +136,7 @@ class DeepSpeedPlugin(DDPPlugin):
         billion parameter models. `For more information: https://pytorch-
         lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
 
-        .. warning:: ``DeepSpeedPlugin`` is in beta and subject to change.
+        .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
         Defaults have been set to enable ZeRO-Offload and some have been taken from the link below.
         These defaults have been set generally, but may require tuning for optimum performance based on your model size.
@@ -619,7 +619,7 @@ class DeepSpeedPlugin(DDPPlugin):
                     deepspeed.utils.logging.logger.warning(
                         "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
                         "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
-                        "batch size, `Trainer(strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=batch_size))`."
+                        "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
                     )
         return batch_size
 
@@ -755,7 +755,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if client_state is None:
             raise MisconfigurationException(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(strategy=DeepSpeedPlugin(load_full_weights=True))`."
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedStrategy(load_full_weights=True))`."
             )
         return client_state
 
@@ -857,7 +857,7 @@ class DeepSpeedPlugin(DDPPlugin):
             offload_optimizer_device="nvme",
         )
 
-    @DDPPlugin.checkpoint_io.setter
+    @DDPStrategy.checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None:
             raise MisconfigurationException("DeepSpeed does not support custom `CheckpointIO` plugin.")

@@ -173,7 +173,7 @@ class Timer(Callback):
     def _check_time_remaining(self, trainer: "pl.Trainer") -> None:
         assert self._duration is not None
         should_stop = self.time_elapsed() >= self._duration
-        should_stop = trainer.training_type_plugin.broadcast(should_stop)
+        should_stop = trainer.strategy.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
             elapsed = timedelta(seconds=int(self.time_elapsed(RunningStage.TRAINING)))
