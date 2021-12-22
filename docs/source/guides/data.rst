@@ -270,7 +270,7 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
 
 Since Lightning automatically takes care of iterating over the DataLoader, this is generally unnecessary unless you need to access metadata.
 
-Evaluation dataloaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collection of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using in the same way as the provided structure.:
+Evaluation dataloaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collections of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using in the same way as the provided structure.:
 
 If you provided a list of dataloaders:
 
@@ -306,8 +306,8 @@ If you provided dictionary of dataloaders:
 
     def test_step(self, batch, batch_idx):
         combined_loader = self.trainer.test_dataloaders[0]
-        dictionarry_of_loaders = combined_loader.loaders
-        test_dl1 = dictionarry_of_loaders["dl1"]
+        dictionary_of_loaders = combined_loader.loaders
+        test_dl1 = dictionary_of_loaders["dl1"]
 
 
 --------------
