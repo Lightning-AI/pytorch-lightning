@@ -889,7 +889,7 @@ def test_unsupported_tpu_choice(monkeypatch):
 
 
 def test_unsupported_ipu_choice(monkeypatch):
-    import pytorch_lightning.plugins.training_type.ipu as ipu
+    import pytorch_lightning.strategies.ipu as ipu
     import pytorch_lightning.utilities.imports as imports
     from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
