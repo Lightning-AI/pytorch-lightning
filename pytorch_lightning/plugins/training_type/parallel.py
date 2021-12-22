@@ -29,7 +29,7 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
-class ParallelPlugin(Strategy, ABC):
+class ParallelStrategy(Strategy, ABC):
     """Plugin for training with multiple processes in parallel."""
 
     def __init__(

@@ -148,7 +148,7 @@ Training Type Plugins
 
     Strategy
     SingleDeviceStrategy
-    ParallelPlugin
+    ParallelStrategy
     DataParallelStrategy
     DDPStrategy
     DDP2Strategy
