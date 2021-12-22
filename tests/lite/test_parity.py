@@ -29,7 +29,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from tests.helpers.boring_model import RandomDataset
@@ -86,7 +86,7 @@ class LiteRunner(LightningLite):
                 self.backward(loss)
                 optimizer.step()
 
-        if isinstance(self._strategy, DDPSpawnPlugin) and tmpdir and self.global_rank == 0:
+        if isinstance(self._strategy, DDPSpawnStrategy) and tmpdir and self.global_rank == 0:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
             atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path
@@ -190,7 +190,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
         assert torch.equal(w_pure.cpu(), w_lite.cpu())
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [

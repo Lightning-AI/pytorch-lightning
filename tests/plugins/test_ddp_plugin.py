@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins import DDPStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
@@ -33,12 +33,12 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
-    """Tests if device is set correctely when training and after teardown for DDPPlugin."""
+    """Tests if device is set correctely when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
     local_rank = trainer.training_type_plugin.local_rank
@@ -56,15 +56,15 @@ def test_ddp_with_2_gpus():
 
 class BarrierModel(BoringModel):
     def setup(self, stage=None):
-        assert not isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert not isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier before model is wrapped")
 
     def on_train_start(self):
-        assert isinstance(self.trainer.accelerator.model, DistributedDataParallel)
+        assert isinstance(self.trainer.training_type_plugin.model, DistributedDataParallel)
         self.trainer.training_type_plugin.barrier("barrier after model is wrapped")
 
 
-@RunIf(min_gpus=4, special=True)
+@RunIf(min_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
@@ -100,33 +100,32 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 @RunIf(skip_windows=True)
 def test_ddp_configure_ddp():
-    """Tests with ddp plugin."""
+    """Tests with ddp strategy."""
     model = BoringModel()
-    ddp_plugin = DDPPlugin()
+    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test wrap the model if fitting
     trainer.state.fn = TrainerFn.FITTING
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
     trainer.lightning_module.trainer = trainer
+    trainer.training_type_plugin.setup_environment()
     assert isinstance(trainer.model, LightningModule)
-    trainer._pre_dispatch()
-    # in DDPPlugin configure_ddp(), model wrapped by DistributedDataParallel
+    trainer.training_type_plugin.setup(trainer)
+    # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
     trainer = Trainer(
         max_epochs=1,
-        strategy=ddp_plugin,
+        strategy=ddp_strategy,
     )
     # test do not wrap the model if trainerFN is not fitting
+    trainer.state.fn = TrainerFn.VALIDATING
     trainer.training_type_plugin.connect(model)
-    trainer.accelerator.setup_environment()
-    trainer.accelerator.setup(trainer)
     trainer.lightning_module.trainer = trainer
-    trainer._pre_dispatch()
-    # in DDPPlugin configure_ddp(), model are still LightningModule
+    trainer.training_type_plugin.setup_environment()
+    trainer.training_type_plugin.setup(trainer)
+    # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)

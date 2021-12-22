@@ -603,7 +603,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -1074,7 +1074,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+Uses this much data of the training set. If nonzero, will turn off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
@@ -1084,7 +1084,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set (and use the train set for val and test)
+    # use only 1% of the train set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
@@ -1131,6 +1131,16 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
+.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
+    in the following code:
+
+    .. testcode::
+
+        class LitDataModule(LightningDataModule):
+            def __init__(self):
+                super().__init__()
+                self.prepare_data_per_node = True
 
 .. raw:: html
 
@@ -1140,8 +1150,8 @@ prepare_data_per_node
 
 |
 
-If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
-If False will only call from NODE_RANK=0, LOCAL_RANK=0
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
 
 .. testcode::
 
@@ -1406,10 +1416,10 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -1417,7 +1427,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
             )
 
 
-    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
     - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.

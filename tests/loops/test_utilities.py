@@ -35,5 +35,5 @@ def test_extract_hiddens():
     with pytest.raises(MisconfigurationException, match='returned "hiddens" .* but `truncated_bptt_steps` is disabled'):
         _extract_hiddens(training_step_output, 0)
     # tbptt enabled, no hiddens return
-    with pytest.raises(MisconfigurationException, match='enabled `truncated_bptt_steps` but did not return "hiddens"'):
+    with pytest.raises(MisconfigurationException, match="enabled `truncated_bptt_steps` but did not `return"):
         _extract_hiddens(None, 1)

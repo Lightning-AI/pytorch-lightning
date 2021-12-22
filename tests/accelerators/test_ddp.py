@@ -108,7 +108,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
+@RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""

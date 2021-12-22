@@ -24,18 +24,17 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import (
-    DataParallelPlugin,
-    DDP2Plugin,
-    DDPPlugin,
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
+    DataParallelStrategy,
+    DDP2Strategy,
+    DDPShardedStrategy,
     DDPSpawnShardedPlugin,
-    DeepSpeedPlugin,
+    DDPSpawnStrategy,
+    DDPStrategy,
+    DeepSpeedStrategy,
     ParallelPlugin,
     PrecisionPlugin,
-    SingleDevicePlugin,
+    SingleDeviceStrategy,
 )
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -43,16 +42,15 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.utilities import _StrategyType, DeviceType
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
+    assert isinstance(trainer.training_type_plugin, SingleDeviceStrategy)
 
 
 @pytest.mark.parametrize(("num_processes", "num_nodes"), ([(1, 1), (1, 2), (2, 1), (2, 2)]))
@@ -60,7 +58,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir, num_processes: int, num_nodes: int):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=num_processes, num_nodes=num_nodes)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     no_spawn = num_processes == 1 and num_nodes > 1
-    assert isinstance(trainer.training_type_plugin, DDPPlugin if no_spawn else DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy if no_spawn else DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -71,7 +69,7 @@ def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -82,7 +80,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     with pytest.deprecated_call(match=r"accelerator='ddp_spawn'\)` has been deprecated"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -99,24 +97,16 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -132,26 +122,16 @@ def test_accelerator_choice_ddp_slurm(set_device_mock, device_count_mock, setup_
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDP2Plugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp2_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -167,25 +147,15 @@ def test_accelerator_choice_ddp2_slurm(set_device_mock, device_count_mock, setup
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_te(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -201,47 +171,29 @@ def test_accelerator_choice_ddp_te(set_device_mock, device_count_mock, setup_dis
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp2_te(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDP2Plugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp2_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
     os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_cpu_te(*_):
+    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -257,25 +209,15 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_kubeflow(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_kubeflow(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+        trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 @mock.patch.dict(
@@ -289,22 +231,14 @@ def test_accelerator_choice_ddp_kubeflow(set_device_mock, device_count_mock, set
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=1, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_cpu_kubeflow(*_):
+    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=1)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 @mock.patch.dict(
@@ -319,38 +253,29 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_accelerator_choice_ddp_cpu_slurm(*_):
+    trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.local_rank == 0
 
 
-@RunIf(skip_windows=True, special=True)
+@RunIf(skip_windows=True, standalone=True)
 def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
-    """Test that accelerator="ddp_cpu" can work together with an instance of DDPPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPPlugin)
+    """Test that accelerator="ddp_cpu" can work together with an instance of DDPStrategy."""
+    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPStrategy)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_accelerator_choice_ddp_cpu_and_strategy_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
-    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnPlugin)
+    _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnStrategy)
 
 
 def _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class):
-    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=ddp_strategy_class(find_unused_parameters=True),
@@ -362,7 +287,6 @@ def _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class):
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert trainer.training_type_plugin.num_processes == 2
     assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
-    trainer.fit(model)
 
 
 @mock.patch.dict(
@@ -393,16 +317,23 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
         default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="ddp_cpu", num_processes=2
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
 
 
 @mock.patch.dict(
     os.environ,
-    {"SLURM_NTASKS": "2", "SLURM_JOB_NAME": "SOME_NAME", "SLURM_NODEID": "0", "LOCAL_RANK": "0", "SLURM_LOCALID": "0"},
+    {
+        "SLURM_NTASKS": "2",
+        "SLURM_JOB_NAME": "SOME_NAME",
+        "SLURM_NODEID": "0",
+        "LOCAL_RANK": "0",
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
         pass
@@ -410,23 +341,21 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Prec(PrecisionPlugin):
         pass
 
-    class TrainTypePlugin(SingleDevicePlugin):
+    class TrainTypePlugin(SingleDeviceStrategy):
         pass
 
-    ttp = TrainTypePlugin(device=torch.device("cpu"))
-    accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-    trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
+    ttp = TrainTypePlugin(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, TrainTypePlugin)
     assert isinstance(trainer.precision_plugin, Prec)
     assert trainer._accelerator_connector.training_type_plugin is ttp
 
-    class DistributedPlugin(DDPPlugin):
+    class DistributedPlugin(DDPStrategy):
         pass
 
-    ttp = DistributedPlugin()
-    accelerator = Accel(training_type_plugin=ttp, precision_plugin=Prec())
-    trainer = Trainer(accelerator=accelerator, fast_dev_run=True, num_processes=2)
+    ttp = DistributedPlugin(accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.training_type_plugin, DistributedPlugin)
     assert isinstance(trainer.precision_plugin, Prec)
@@ -445,20 +374,12 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_dist_backend_accelerator_mapping(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_dist_backend_accelerator_mapping(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
@@ -485,21 +406,21 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     else:
         with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
             trainer = Trainer(accelerator=accelerator, plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
         trainer = Trainer(plugins=plugin, num_processes=2)
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPShardedPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPShardedStrategy)
 
 
 @pytest.mark.parametrize(
     ["accelerator", "plugin"],
     [
-        ("ddp", DDPPlugin),
-        ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp", DDPStrategy),
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -565,7 +486,7 @@ def test_accelerator_cpu_with_multiple_gpus():
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDevicePlugin), (5, DDPSpawnPlugin)])
+@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
 def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
@@ -587,7 +508,7 @@ def test_accelerator_cpu_with_num_processes_priority():
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "plugin"], [(1, SingleDevicePlugin), ([1], SingleDevicePlugin), (2, DDPSpawnPlugin)]
+    ["devices", "plugin"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, plugin):
 
@@ -656,7 +577,7 @@ def test_accelerator_ddp_for_cpu(tmpdir):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated"):
         trainer = Trainer(accelerator="ddp", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
 
 
 def test_exception_when_strategy_used_with_accelerator():
@@ -681,10 +602,10 @@ def test_exception_invalid_strategy():
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [
-        ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
-        ("ddp", DDPPlugin),
-        ("ddp_find_unused_parameters_false", DDPPlugin),
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp", DDPStrategy),
+        ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
 def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
@@ -692,7 +613,7 @@ def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_strategy_choice_cpu_plugin(tmpdir, plugin):
     trainer = Trainer(strategy=plugin(), accelerator="cpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
@@ -702,15 +623,15 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [
-        ("ddp_spawn", DDPSpawnPlugin),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
-        ("ddp", DDPPlugin),
-        ("ddp_find_unused_parameters_false", DDPPlugin),
-        ("ddp2", DDP2Plugin),
-        ("dp", DataParallelPlugin),
-        ("ddp_sharded", DDPShardedPlugin),
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp", DDPStrategy),
+        ("ddp_find_unused_parameters_false", DDPStrategy),
+        ("ddp2", DDP2Strategy),
+        ("dp", DataParallelStrategy),
+        ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
-        pytest.param("deepspeed", DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
@@ -719,19 +640,19 @@ def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_strategy_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.training_type_plugin, plugin)
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnPlugin, DDPPlugin])
+@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.training_type_plugin, plugin)
-    assert trainer._device_type == DeviceType.GPU
+    assert trainer._device_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
@@ -750,7 +671,7 @@ def test_amp_level_raises_error_with_native():
 def test_strategy_choice_ddp_spawn_cpu(tmpdir):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -760,7 +681,7 @@ def test_strategy_choice_ddp_spawn_cpu(tmpdir):
 def test_strategy_choice_ddp(cuda_available_mock, device_count_mock):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -770,7 +691,7 @@ def test_strategy_choice_ddp(cuda_available_mock, device_count_mock):
 def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
     assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
@@ -786,24 +707,16 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
         "SLURM_LOCALID": "1",
     },
 )
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp", DDPPlugin()])
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -819,26 +732,16 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp2", DDP2Plugin()])
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
 def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDP2Plugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
+    assert trainer._accelerator_connector._is_slurm_managing_tasks()
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -854,24 +757,14 @@ def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_di
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_te(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_strategy_choice_ddp_te(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -887,46 +780,28 @@ def test_strategy_choice_ddp_te(set_device_mock, device_count_mock, setup_distri
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp2_te(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDP2Plugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_strategy_choice_ddp2_te(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDP2Strategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
     os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
-            assert trainer.training_type_plugin.local_rank == 1
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_strategy_choice_ddp_cpu_te(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+    assert trainer.training_type_plugin.local_rank == 1
 
 
 @mock.patch.dict(
@@ -942,24 +817,14 @@ def test_strategy_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_kubeflow(set_device_mock, device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, GPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-    set_device_mock.assert_called_once()
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_strategy_choice_ddp_kubeflow(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 @mock.patch.dict(
@@ -973,22 +838,14 @@ def test_strategy_choice_ddp_kubeflow(set_device_mock, device_count_mock, setup_
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_mock):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+def test_strategy_choice_ddp_cpu_kubeflow(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
+    assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 @mock.patch.dict(
@@ -1003,23 +860,14 @@ def test_strategy_choice_ddp_cpu_kubeflow(device_count_mock, setup_distributed_m
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPPlugin.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp", DDPPlugin()])
+@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock, strategy):
-    class CB(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            assert trainer._accelerator_connector._is_slurm_managing_tasks()
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.local_rank == 0
-            raise SystemExit()
-
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, num_processes=2, callbacks=[CB()])
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, num_processes=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPStrategy)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
+    assert trainer.training_type_plugin.local_rank == 0
 
 
 def test_unsupported_tpu_choice(monkeypatch):
@@ -1031,10 +879,13 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16)
-    with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16)
+
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
 
 
 def test_unsupported_ipu_choice(monkeypatch):

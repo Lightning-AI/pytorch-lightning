@@ -16,7 +16,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        python-version: [3.6, 3.9]
+        python-version: [3.7, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -26,12 +26,11 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install check-manifest "twine==3.2" setuptools wheel
+          pip install "twine==3.2" setuptools wheel
 
       - name: Create package
         run: |
-          check-manifest
-          # python setup.py check --metadata --strict
+          python setup.py check --metadata --strict
           python setup.py sdist bdist_wheel
 
       - name: Check package

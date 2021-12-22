@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -25,25 +25,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import (
-    _LiteDataLoader,
-    _LiteModule,
-    _LiteOptimizer,
-    _replace_dataloader_init_method,
-)
-from pytorch_lightning.plugins import (
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DeepSpeedPlugin,
-    PLUGIN_INPUT,
-    TPUSpawnPlugin,
-    TrainingTypePlugin,
-)
+from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.plugins import DDPSpawnStrategy, DeepSpeedStrategy, PLUGIN_INPUT, Strategy, TPUSpawnStrategy
+from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.utilities import _StrategyType, DeviceType, move_data_to_device
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import has_iterable_dataset
+from pytorch_lightning.utilities.data import (
+    _auto_add_worker_init_fn,
+    _replace_dataloader_init_method,
+    _update_dataloader,
+    has_iterable_dataset,
+)
 from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -76,7 +69,7 @@ class LightningLite(ABC):
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
@@ -106,9 +99,9 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._accelerator = self._accelerator_connector.accelerator
-        self._strategy = self._accelerator.training_type_plugin
-        self._precision_plugin = self._accelerator.precision_plugin
+        self._strategy = self._accelerator_connector.training_type_plugin
+        self._accelerator = self._strategy.accelerator
+        self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -120,7 +113,7 @@ class LightningLite(ABC):
 
         Use this to create tensors directly on the device if needed.
         """
-        return self._accelerator.root_device
+        return self._strategy.root_device
 
     @property
     def global_rank(self) -> int:
@@ -179,7 +172,7 @@ class LightningLite(ABC):
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin)
-        optimizers = [_LiteOptimizer(optimizer=optimizer, accelerator=self._accelerator) for optimizer in optimizers]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
             # join both types in a list for API convenience
@@ -188,7 +181,7 @@ class LightningLite(ABC):
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[Iterable, List[Iterable]]:
+    ) -> Union[DataLoader, List[DataLoader]]:
         """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -209,11 +202,11 @@ class LightningLite(ABC):
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders
+        return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Iterable:
+    ) -> DataLoader:
         """Setup a single dataloader for accelerated training.
 
         Args:
@@ -239,14 +232,16 @@ class LightningLite(ABC):
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader = TrainerDataLoadingMixin._update_dataloader(dataloader, sampler)
+        dataloader = _update_dataloader(dataloader, sampler)
 
         # add worker_init_fn for correct seeding in worker processes
-        TrainerDataLoadingMixin._auto_add_worker_init_fn(dataloader, self.global_rank)
+        _auto_add_worker_init_fn(dataloader, self.global_rank)
 
         dataloader = self._strategy.process_dataloader(dataloader)
-        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
-        return _LiteDataLoader(dataloader=dataloader, device=device)
+        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnStrategy) else None
+        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = cast(DataLoader, lite_dataloader)
+        return lite_dataloader
 
     def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
@@ -262,7 +257,7 @@ class LightningLite(ABC):
             model as argument here.
         """
         module = model.module if model is not None else model
-        if isinstance(self._strategy, DeepSpeedPlugin):
+        if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
                     raise MisconfigurationException(
@@ -290,6 +285,18 @@ class LightningLite(ABC):
         with self._precision_plugin.forward_context():
             yield
 
+    @overload
+    def to_device(self, obj: nn.Module) -> nn.Module:
+        ...
+
+    @overload
+    def to_device(self, obj: Tensor) -> Tensor:
+        ...
+
+    @overload
+    def to_device(self, obj: Any) -> Any:
+        ...
+
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
         on that device.
@@ -303,7 +310,7 @@ class LightningLite(ABC):
         """
         if isinstance(obj, nn.Module):
             if self.device.type == "cuda":
-                # need to call this manually here again in case we spawned with DDPSpawnPlugin
+                # need to call this manually here again in case we spawned with DDPSpawnStrategy
                 # TODO: refactor to let plugin handle this cleanly
                 torch.cuda.set_device(self.device)
             return obj.to(self.device)
@@ -353,7 +360,7 @@ class LightningLite(ABC):
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
@@ -391,14 +398,13 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._set_plugin_specific_precision_variables()
-        self._accelerator.setup_environment()
+        self._strategy.setup_environment()
 
         # apply sharded context to prevent OOM
         run_method = partial(self._run_with_sharded_context, run_method)
 
-        if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, return_result=True, **kwargs)
+        if isinstance(self._strategy, DDPSpawnStrategy):
+            return self._strategy.spawn(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
@@ -406,15 +412,8 @@ class LightningLite(ABC):
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 
-    def _set_plugin_specific_precision_variables(self) -> None:
-        # todo: these are hacks as plugins rely on access to the precision plugin
-        if isinstance(self._strategy, DeepSpeedPlugin):
-            self._set_deepspeed_precision_variables()
-        if isinstance(self._strategy, DDPShardedPlugin):
-            self._strategy._precision = self._accelerator_connector.precision
-
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        if isinstance(self._strategy, TPUSpawnPlugin):
+        if isinstance(self._strategy, TPUSpawnStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
             # remains invalid. We need to update the references to point to the parameter tensors on the device.
@@ -430,13 +429,6 @@ class LightningLite(ABC):
         else:
             model = self.to_device(model)
         return model
-
-    def _set_deepspeed_precision_variables(self) -> None:
-        # TODO: Refactor this once precision pluging is part of the strategy.
-        amp_type = self._accelerator_connector.amp_type
-        amp_level = self._accelerator_connector.amp_level
-        precision = self._accelerator_connector.precision
-        self._strategy._amp_level, self._strategy._amp_type, self._strategy._precision = amp_level, amp_type, precision
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
@@ -459,21 +451,21 @@ class LightningLite(ABC):
                 f" Choose one of {supported} or pass in a `Accelerator` instance."
             )
 
-    def _check_strategy_support(self, strategy: Optional[Union[str, TrainingTypePlugin]]) -> None:
+    def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
         supported = [t.lower() for t in self._supported_strategy_types()]
-        valid = strategy is None or isinstance(strategy, TrainingTypePlugin) or strategy in supported
+        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
         if not valid:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
+                f" Choose one of {supported} or pass in a `Strategy` instance."
             )
 
     @staticmethod
-    def _supported_device_types() -> Sequence[DeviceType]:
+    def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
-            DeviceType.CPU,
-            DeviceType.GPU,
-            DeviceType.TPU,
+            _AcceleratorType.CPU,
+            _AcceleratorType.GPU,
+            _AcceleratorType.TPU,
         )
 
     @staticmethod

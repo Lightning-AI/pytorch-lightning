@@ -52,6 +52,7 @@
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
 /.github/CODEOWNERS              @williamfalcon
+/SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
 /setup.py                        @williamfalcon @borda
 /pytorch_lightning/__about__.py  @williamfalcon @borda

@@ -10,32 +10,32 @@ from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
+from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
-from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
+from pytorch_lightning.plugins.training_type.ddp2 import DDP2Strategy
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy
+from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedStrategy
+from pytorch_lightning.plugins.training_type.dp import DataParallelStrategy
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedStrategy
+from pytorch_lightning.plugins.training_type.horovod import HorovodStrategy
+from pytorch_lightning.plugins.training_type.ipu import IPUStrategy
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedStrategy
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
-from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.training_type.single_device import SingleDeviceStrategy
+from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUStrategy
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnStrategy
+from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
 
-PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
+PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
@@ -43,29 +43,29 @@ __all__ = [
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
-    "DataParallelPlugin",
-    "DDP2Plugin",
-    "DDPPlugin",
-    "DDPSpawnPlugin",
-    "DDPFullyShardedPlugin",
-    "DeepSpeedPlugin",
+    "DataParallelStrategy",
+    "DDP2Strategy",
+    "DDPStrategy",
+    "DDPSpawnStrategy",
+    "DDPFullyShardedStrategy",
+    "DeepSpeedStrategy",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
-    "HorovodPlugin",
-    "IPUPlugin",
+    "HorovodStrategy",
+    "IPUStrategy",
     "IPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
     "FullyShardedNativeMixedPrecisionPlugin",
-    "SingleDevicePlugin",
-    "SingleTPUPlugin",
+    "SingleDeviceStrategy",
+    "SingleTPUStrategy",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
-    "TPUSpawnPlugin",
-    "TrainingTypePlugin",
+    "TPUSpawnStrategy",
+    "Strategy",
     "ParallelPlugin",
-    "DDPShardedPlugin",
+    "DDPShardedStrategy",
     "DDPSpawnShardedPlugin",
 ]
 

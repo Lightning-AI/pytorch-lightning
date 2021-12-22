@@ -65,7 +65,7 @@ def test_attributes_from_environment_variables():
     assert env.global_rank() == 3
     env.set_world_size(100)
     assert env.world_size() == 4
-    assert LSFEnvironment.is_using_lsf()
+    assert LSFEnvironment.detect()
 
 
 @mock.patch("socket.gethostname", return_value="host2")
@@ -73,3 +73,20 @@ def test_attributes_from_environment_variables():
 def test_node_rank(_):
     env = LSFEnvironment()
     assert env.node_rank() == 2
+
+
+def test_detect():
+    """Test the detection of a LSF environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not LSFEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "LSB_HOSTS": "",
+            "LSB_JOBID": "",
+            "JSM_NAMESPACE_SIZE": "",
+            "JSM_NAMESPACE_LOCAL_RANK": "",
+        },
+    ):
+        assert LSFEnvironment.detect()

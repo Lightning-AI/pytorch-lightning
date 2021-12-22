@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
+import os
+from re import escape
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
@@ -22,9 +26,12 @@ from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.plugins import SingleDeviceStrategy
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
@@ -118,9 +125,7 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
 
 def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `prepare_data_per_node` with the trainer flag is deprecated and will be removed in v1.7.0!"
-    ):
+    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
         _ = Trainer(prepare_data_per_node=False)
 
 
@@ -376,6 +381,12 @@ def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
         _ = Trainer(log_gpu_memory="min_max")
 
 
+def test_v1_7_0_deprecated_slurm_job_id():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
+        trainer.slurm_job_id
+
+
 @RunIf(min_gpus=1)
 def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
@@ -470,7 +481,7 @@ def test_v1_7_0_cluster_environment_master_address(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
 
@@ -490,6 +501,53 @@ def test_v1_7_0_cluster_environment_master_port(cls):
             pass
 
     with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in 1.7"
+        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in v1.7"
     ):
         MyClusterEnvironment()
+
+
+@pytest.mark.parametrize(
+    "cls,method_name",
+    [
+        (KubeflowEnvironment, "is_using_kubeflow"),
+        (LSFEnvironment, "is_using_lsf"),
+        (TorchElasticEnvironment, "is_using_torchelastic"),
+    ],
+)
+@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
+def test_v1_7_0_cluster_environment_detection(cls, method_name):
+    class MyClusterEnvironment(cls):
+        @staticmethod
+        def is_using_kubeflow():
+            pass
+
+        @staticmethod
+        def is_using_lsf():
+            pass
+
+        @staticmethod
+        def is_using_torchelastic():
+            pass
+
+    with pytest.deprecated_call(
+        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
+    ):
+        MyClusterEnvironment()
+
+
+def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
+    sampler = IndexBatchSamplerWrapper(Mock())
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
+        _ = sampler.batch_indices
+
+    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
+        sampler.batch_indices = []
+
+
+def test_v1_7_0_post_dispatch_hook():
+    class CustomPlugin(SingleDeviceStrategy):
+        def post_dispatch(self, trainer):
+            pass
+
+    with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
+        CustomPlugin(torch.device("cpu"))

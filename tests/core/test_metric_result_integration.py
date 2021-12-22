@@ -29,9 +29,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
+    _ResultCollection,
+    _ResultMetric,
     _Sync,
-    ResultCollection,
-    ResultMetric,
 )
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers import BoringModel
@@ -71,7 +71,7 @@ def _ddp_test_fn(rank, worldsize):
     metric_b = metric_b.to(f"cuda:{rank}")
     metric_c = metric_c.to(f"cuda:{rank}")
 
-    result = ResultCollection(True, torch.device(f"cuda:{rank}"))
+    result = _ResultCollection(True, torch.device(f"cuda:{rank}"))
 
     for _ in range(3):
         cumulative_sum = 0
@@ -114,7 +114,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True, torch.device("cpu"))
 
     for _ in range(3):
         cumulative_sum = 0
@@ -145,26 +145,26 @@ def test_result_metric_integration():
     result.minimize = torch.tensor(1.0)
     result.extra = {}
     assert str(result) == (
-        "ResultCollection("
+        "_ResultCollection("
         "{"
-        "'h.a': ResultMetric('a', value=DummyMetric()), "
-        "'h.b': ResultMetric('b', value=DummyMetric()), "
-        "'h.c': ResultMetric('c', value=DummyMetric())"
+        "'h.a': _ResultMetric('a', value=DummyMetric()), "
+        "'h.b': _ResultMetric('b', value=DummyMetric()), "
+        "'h.c': _ResultMetric('c', value=DummyMetric())"
         "})"
     )
     assert repr(result) == (
         "{"
         "True, "
         "device(type='cpu'), "
-        "{'h.a': ResultMetric('a', value=DummyMetric()), "
-        "'h.b': ResultMetric('b', value=DummyMetric()), "
-        "'h.c': ResultMetric('c', value=DummyMetric())"
+        "{'h.a': _ResultMetric('a', value=DummyMetric()), "
+        "'h.b': _ResultMetric('b', value=DummyMetric()), "
+        "'h.c': _ResultMetric('c', value=DummyMetric())"
         "}}"
     )
 
 
 def test_result_collection_simple_loop():
-    result = ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True, torch.device("cpu"))
     current_fx_name = None
     batch_idx = None
 
@@ -212,7 +212,7 @@ def my_sync_dist(x, *_, **__):
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
 
-    result = ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True, torch.device("cpu"))
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -253,7 +253,7 @@ def test_result_collection_restoration(tmpdir):
             assert set(batch_log["c_1"]) == {"1", "2"}
 
             result_copy = deepcopy(result)
-            new_result = ResultCollection(True, torch.device("cpu"))
+            new_result = _ResultCollection(True, torch.device("cpu"))
             state_dict = result.state_dict()
             # check the sync fn was dropped
             assert "fn" not in state_dict["items"]["training_step.a"]["meta"]["_sync"]
@@ -334,7 +334,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert results["validation_step.v"].meta.sync.fn == self.trainer.training_type_plugin.reduce
 
             # default sync fn
-            new_results = ResultCollection(False, device)
+            new_results = _ResultCollection(False, device)
             new_results.load_state_dict(state_dict, map_location="cpu")
             assert new_results["validation_step.v"].meta.sync.fn is None
 
@@ -373,7 +373,7 @@ class DummyMeanMetric(Metric):
 
 def result_collection_reload(**kwargs):
 
-    """This test is going to validate ResultCollection is properly being reload and final accumulation with Fault
+    """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
 
     if not _fault_tolerant_training():
@@ -480,7 +480,7 @@ def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
@@ -549,12 +549,42 @@ def test_metric_collections(tmpdir):
 
 def test_metric_result_computed_check():
     """Unittest ``_get_cache`` with multielement tensors."""
-    sync = _Sync()
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
-    metadata.sync = sync
-    rm = ResultMetric(metadata, is_tensor=True)
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
     computed_value = torch.tensor([1, 2, 3])
     rm._computed = computed_value
-    cache = ResultCollection._get_cache(rm, on_step=False)
+    cache = _ResultCollection._get_cache(rm, on_step=False)
     # `enable_graph=True` so no detach, identity works
     assert cache is computed_value
+
+
+@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
+def test_metric_result_respects_dtype(floating_dtype):
+    torch.set_default_dtype(floating_dtype)
+    fixed_dtype = torch.long  # default by PyTorch
+
+    metadata = _Metadata("foo", "bar")
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+
+    assert rm.value.dtype == floating_dtype
+    assert rm.cumulated_batch_size.dtype == fixed_dtype
+
+    # two fixed point numbers - should be converted
+    value, batch_size = torch.tensor(2), torch.tensor(3)
+    assert value.dtype == fixed_dtype
+    with pytest.warns(
+        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
+    ):
+        rm.update(value, batch_size)
+    # floating and fixed
+    rm.update(torch.tensor(4.0), torch.tensor(5))
+
+    total = rm.compute()
+
+    assert total == (2 * 3 + 4 * 5) / (5 + 3)
+    assert total.dtype == floating_dtype
+
+    # restore to avoid impacting other tests
+    torch.set_default_dtype(torch.float)
