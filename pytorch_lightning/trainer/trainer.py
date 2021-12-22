@@ -267,7 +267,7 @@ class Trainer(
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
 
                 .. deprecated:: v1.6
-                    ``gpus`` has been deprecated in v1.6 and will be removed in v1.8.
+                    ``gpus`` has been deprecated in v1.6 and will be removed in v2.0.
                     Please use ``accelerator='gpu'`` and ``devices=x`` instead.
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
@@ -358,7 +358,7 @@ class Trainer(
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
 
                 .. deprecated:: v1.6
-                    ``num_processes`` has been deprecated in v1.6 and will be removed in v1.8.
+                    ``num_processes`` has been deprecated in v1.6 and will be removed in v2.0.
                     Please use ``accelerator='cpu'`` and ``devices=x`` instead.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
@@ -396,13 +396,13 @@ class Trainer(
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
                 .. deprecated:: v1.6
-                    ``tpu_cores`` has been deprecated in v1.6 and will be removed in v1.8.
+                    ``tpu_cores`` has been deprecated in v1.6 and will be removed in v2.0.
                     Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
             ipus: How many IPUs to train on.
 
                 .. deprecated:: v1.6
-                    ``ipus`` has been deprecated in v1.6 and will be removed in v1.8.
+                    ``ipus`` has been deprecated in v1.6 and will be removed in v2.0.
                     Please use ``accelerator='ipu'`` and ``devices=x`` instead.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
