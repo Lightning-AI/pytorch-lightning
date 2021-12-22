@@ -148,7 +148,7 @@ def test_reducelronplateau_scheduling(tmpdir):
 def test_optimizer_return_options(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = BoringModel()
-    trainer.training_type_plugin.connect(model)
+    trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
 
     # single optimizer

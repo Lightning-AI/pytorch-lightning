@@ -99,14 +99,14 @@ class _LRFinder:
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
-        """Decorate `trainer.training_type_plugin.init_optimizers` method such that it returns the user's
+        """Decorate `trainer.strategy.init_optimizers` method such that it returns the user's
         originally specified optimizer together with a new scheduler that that takes care of the learning rate
         search."""
-        init_optimizers = trainer.training_type_plugin.init_optimizers
+        init_optimizers = trainer.strategy.init_optimizers
 
         @wraps(init_optimizers)
         def func(trainer, model):
-            # Decide the structure of the output from trainer.training_type_plugin.init_optimizers
+            # Decide the structure of the output from trainer.strategy.init_optimizers
             optimizers, _, _ = init_optimizers(trainer, model)
 
             if len(optimizers) != 1:
@@ -233,7 +233,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    trainer.training_type_plugin.init_optimizers = lr_finder._exchange_scheduler(trainer, model)
+    trainer.strategy.init_optimizers = lr_finder._exchange_scheduler(trainer, model)
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)
