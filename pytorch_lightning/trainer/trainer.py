@@ -1352,6 +1352,8 @@ class Trainer(
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
+            # reset the progress tracking state after sanity checking. we don't need to set the state before
+            # because sanity check only runs when we are not restarting
             self._reset_progress(val_loop)
 
             # reset the seed to what it was before sanity check
