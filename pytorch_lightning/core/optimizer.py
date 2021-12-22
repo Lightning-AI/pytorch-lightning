@@ -57,6 +57,7 @@ class LightningOptimizer:
         return self._optimizer
 
     def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
+        # check if trainer is already of type weakproxy since we can't call proxy on a weakproxy
         if isinstance(trainer, weakref.ProxyType):
             self._trainer = trainer
         else:
