@@ -1090,12 +1090,18 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         assert val_reload_epochs == [0, 2, 4]
 
 
-@pytest.mark.parametrize("n, train_reload_epochs_expect, val_reload_epochs_expect", [
-    # Sanity check at epoch 0 creates a validation dataloader, but validation is
-    # checked (and in this case reloaded) every n epochs starting from epoch n-1
-    (3, [0, 2, 4, 6, 8], [0, 2, 5, 8]),
-    (5, [0, 2, 4, 6, 8], [0, 4, 9])])
-def test_dataloaders_load_every_n_epochs_infrequent_val(tmpdir, n, train_reload_epochs_expect, val_reload_epochs_expect):
+@pytest.mark.parametrize(
+    "n, train_reload_epochs_expect, val_reload_epochs_expect",
+    [
+        # Sanity check at epoch 0 creates a validation dataloader, but validation is
+        # checked (and in this case reloaded) every n epochs starting from epoch n-1
+        (3, [0, 2, 4, 6, 8], [0, 2, 5, 8]),
+        (5, [0, 2, 4, 6, 8], [0, 4, 9]),
+    ],
+)
+def test_dataloaders_load_every_n_epochs_infrequent_val(
+    tmpdir, n, train_reload_epochs_expect, val_reload_epochs_expect
+):
     """Test dataloader reload behavior when infrequently checking validation set (via check_val_every_n_epoch)"""
     train_reload_epochs, val_reload_epochs = [], []
 
