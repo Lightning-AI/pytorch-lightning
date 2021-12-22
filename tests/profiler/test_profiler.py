@@ -22,7 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
+from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
@@ -310,10 +310,13 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         gpus=2,
     )
     trainer.fit(model)
-
-    expected = {"validation_step"}
+    expected = {"[Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
-        expected |= {"training_step_and_backward", "training_step", "backward"}
+        expected |= {
+            "training_step_and_backward",
+            "[Strategy]DDPStrategy.training_step",
+            "[Strategy]DDPStrategy.backward",
+        }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -330,7 +333,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
-        assert any(f"{local_rank}-validation_step" in f for f in files)
+        assert any(f"{local_rank}-[Strategy]DDPStrategy.validation_step" in f for f in files)
 
 
 @RunIf(standalone=True)
@@ -343,7 +346,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name == "[Strategy]SingleDeviceStrategy.validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -351,8 +354,6 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 @pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
@@ -365,7 +366,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
     getattr(trainer, fn)(model)
 
-    assert sum(e.name == f"{step_name}_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name.endswith(f"{step_name}_step") for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -373,8 +374,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"{fn}-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_nested(tmpdir):
@@ -418,11 +417,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-
     # Wrap the logger in a list so it becomes a LoggerCollection
     logger = [TensorBoardLogger(save_dir=tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
     assert look_for_trace(tmpdir)
@@ -552,3 +549,25 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
         getattr(trainer, trainer_fn)(model)
         assert trainer.profiler._schedule is None
         warning_cache.clear()
+
+
+def test_profile_callbacks(tmpdir):
+    """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
+
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        profiler=pytorch_profiler,
+        callbacks=[EarlyStopping("val_loss"), EarlyStopping("train_loss")],
+    )
+    trainer.fit(model)
+    assert sum(
+        e.name == "[Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )
+    assert sum(
+        e.name == "[Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )

@@ -51,4 +51,4 @@ You could learn more about the available filesystems with:
     print(known_implementations)
 
 
-You could also look into :doc:`CheckpointIO plugin <../advanced/checkpoint_io>` for more details on how to customize saving and loading checkpoints.
+You could also look into :ref:`CheckpointIO Plugin <common/checkpointing:Customize Checkpointing>` for more details on how to customize saving and loading checkpoints.

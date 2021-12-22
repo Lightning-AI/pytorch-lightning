@@ -86,7 +86,7 @@ class LearningRateMonitor(Callback):
 
     """
 
-    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False):
+    def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False) -> None:
         if logging_interval not in (None, "step", "epoch"):
             raise MisconfigurationException("logging_interval should be `step` or `epoch` or `None`.")
 
@@ -120,7 +120,7 @@ class LearningRateMonitor(Callback):
                 rank_zero_warn(
                     "You have set log_momentum=True, but some optimizers do not"
                     " have momentum. This will log a value 0 for the momentum.",
-                    RuntimeWarning,
+                    category=RuntimeWarning,
                 )
 
         # Find names for schedulers
@@ -146,6 +146,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        assert trainer.logger is not None
         if not trainer.logger_connector.should_update_logs:
             return
 
@@ -157,6 +158,7 @@ class LearningRateMonitor(Callback):
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
+        assert trainer.logger is not None
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)

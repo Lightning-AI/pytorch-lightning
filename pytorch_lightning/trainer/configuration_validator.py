@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
-def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
     Checks that the model is configured correctly before the run is started.
 
@@ -28,6 +28,10 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
         model: The model to check the configuration.
 
     """
+    model = trainer.lightning_module
+
+    if trainer.state.fn is None:
+        raise ValueError("Unexpected: Trainer state fn must be set before validating loop configuration.")
     if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
@@ -41,7 +45,7 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
 
     __verify_dp_batch_transfer_support(trainer, model)
     _check_add_get_queue(model)
-    # TODO(@daniellepintz): Delete _check_progress_bar in v1.7
+    # TODO: Delete _check_progress_bar in v1.7
     _check_progress_bar(model)
     # TODO: Delete _check_on_post_move_to_device in v1.7
     _check_on_post_move_to_device(model)
@@ -49,6 +53,10 @@ def verify_loop_configurations(trainer: "pl.Trainer", model: "pl.LightningModule
     _check_on_keyboard_interrupt(trainer)
     # TODO: Remove this in v1.7 (deprecation: #9816)
     _check_dl_idx_in_on_train_batch_hooks(trainer, model)
+    # TODO: Remove this in v1.8
+    _check_on_init_start_end(trainer)
+    # TODO: Delete _check_on_hpc_hooks in v1.8
+    _check_on_hpc_hooks(model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -221,7 +229,7 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
         )
 
 
-def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule"):
+def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
     """Check if the current `training_step` is requesting `dataloader_iter`."""
     training_step_fx = model.training_step
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
@@ -255,12 +263,12 @@ def _check_add_get_queue(model: "pl.LightningModule") -> None:
     if is_overridden("add_to_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.add_to_queue`"
+            "favor of `DDPSpawnStrategy.add_to_queue`"
         )
     if is_overridden("get_from_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.get_from_queue`"
+            "favor of `DDPSpawnStrategy.get_from_queue`"
         )
 
 
@@ -288,3 +296,29 @@ def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.Ligh
                     f"Base `Callback.{hook}` hook signature has changed in v1.5."
                     " The `dataloader_idx` argument will be removed in v1.7."
                 )
+
+
+def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
+    """Checks if on_init_start/end are overridden and sends a deprecation warning."""
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_init_start", instance=callback):
+            rank_zero_deprecation(
+                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+            )
+        if is_overridden(method_name="on_init_end", instance=callback):
+            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
+
+
+# TODO: Delete _check_on_hpc_hooks in v1.8
+def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
+    if is_overridden("on_hpc_save", model):
+        rank_zero_deprecation(
+            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
+        )
+
+    if is_overridden("on_hpc_load", model):
+        rank_zero_deprecation(
+            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
+            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
+        )

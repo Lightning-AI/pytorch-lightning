@@ -1226,7 +1226,6 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"
 
 
-@RunIf(min_python="3.7.3")  # bpo-17185: `autospec=True` and `inspect.signature` do not play well
 def test_lightning_cli_config_with_subcommand():
     config = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     with mock.patch("sys.argv", ["any.py", f"--config={config}"]), mock.patch(
@@ -1238,7 +1237,6 @@ def test_lightning_cli_config_with_subcommand():
     assert cli.trainer.limit_test_batches == 1
 
 
-@RunIf(min_python="3.7.3")
 def test_lightning_cli_config_before_subcommand():
     config = {
         "validate": {"trainer": {"limit_val_batches": 1}, "verbose": False, "ckpt_path": "barfoo"},
@@ -1262,7 +1260,6 @@ def test_lightning_cli_config_before_subcommand():
     assert cli.trainer.limit_val_batches == 1
 
 
-@RunIf(min_python="3.7.3")
 def test_lightning_cli_config_before_subcommand_two_configs():
     config1 = {"validate": {"trainer": {"limit_val_batches": 1}, "verbose": False, "ckpt_path": "barfoo"}}
     config2 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
@@ -1284,7 +1281,6 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     assert cli.trainer.limit_val_batches == 1
 
 
-@RunIf(min_python="3.7.3")
 def test_lightning_cli_config_after_subcommand():
     config = {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
     with mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]), mock.patch(
@@ -1296,7 +1292,6 @@ def test_lightning_cli_config_after_subcommand():
     assert cli.trainer.limit_test_batches == 1
 
 
-@RunIf(min_python="3.7.3")
 def test_lightning_cli_config_before_and_after_subcommand():
     config1 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     config2 = {"trainer": {"fast_dev_run": 1}, "verbose": False, "ckpt_path": "foobar"}

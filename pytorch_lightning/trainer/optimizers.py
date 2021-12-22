@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 
 class TrainerOptimizersMixin(ABC):
@@ -36,7 +37,6 @@ class TrainerOptimizersMixin(ABC):
         if optim_conf is None:
             rank_zero_warn(
                 "`LightningModule.configure_optimizers` returned `None`, this fit will run with no optimizer",
-                UserWarning,
             )
             optim_conf = _MockOptimizer()
 
@@ -123,7 +123,7 @@ class TrainerOptimizersMixin(ABC):
     @staticmethod
     def _configure_schedulers(
         schedulers: list, monitor: Optional[str], is_manual_optimization: bool
-    ) -> List[Dict[str, Any]]:
+    ) -> List[LRSchedulerConfig]:
         """Convert each scheduler into dict structure with relevant information."""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
@@ -137,7 +137,7 @@ class TrainerOptimizersMixin(ABC):
                         rank_zero_warn(
                             f"The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored."
                             " You need to call `lr_scheduler.step()` manually in manual optimization.",
-                            RuntimeWarning,
+                            category=RuntimeWarning,
                         )
 
                     scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
@@ -149,7 +149,9 @@ class TrainerOptimizersMixin(ABC):
                     # check provided keys
                     extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
                     if extra_keys:
-                        rank_zero_warn(f"Found unsupported keys in the lr scheduler dict: {extra_keys}", RuntimeWarning)
+                        rank_zero_warn(
+                            f"Found unsupported keys in the lr scheduler dict: {extra_keys}", category=RuntimeWarning
+                        )
                     if "scheduler" not in scheduler:
                         raise MisconfigurationException(
                             'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
@@ -173,7 +175,7 @@ class TrainerOptimizersMixin(ABC):
                         rank_zero_warn(
                             "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
                             " Are you sure you didn't mean 'interval': 'step'?",
-                            RuntimeWarning,
+                            category=RuntimeWarning,
                         )
                     lr_schedulers.append({**default_config, **scheduler})
                 elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -224,7 +226,9 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
     valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
     extra_keys = optim_conf.keys() - valid_keys
     if extra_keys:
-        rank_zero_warn(f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", RuntimeWarning)
+        rank_zero_warn(
+            f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", category=RuntimeWarning
+        )
 
 
 def _validate_scheduler_optimizer(optimizers, lr_schedulers):

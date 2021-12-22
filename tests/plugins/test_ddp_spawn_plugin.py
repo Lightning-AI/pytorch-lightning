@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -50,14 +52,14 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_cpu():
-    """Tests if device is set correctly when training for DDPSpawnPlugin."""
+    """Tests if device is set correctly when training for DDPSpawnStrategy."""
     trainer = Trainer(num_processes=2, fast_dev_run=True)
     # assert training type plugin attributes for device setting
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert not trainer.training_type_plugin.on_gpu
-    assert not trainer.training_type_plugin.on_tpu
-    assert trainer.training_type_plugin.root_device == torch.device("cpu")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert not trainer.strategy.on_gpu
+    assert not trainer.strategy.on_tpu
+    assert trainer.strategy.root_device == torch.device("cpu")
 
     model = BoringModelDDPCPU()
 
@@ -66,25 +68,24 @@ def test_ddp_cpu():
 
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnPlugin and tests add_to_queue/get_from_queue with
-    Lightning Module (deprecated way)."""
+    """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
+    with Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert trainer.strategy.on_gpu
+    assert trainer.strategy.root_device == torch.device("cuda:0")
 
     val: float = 1.0
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
     assert model.test_val == "test_val"
 
 
-class TestDDPSpawnPlugin(DDPSpawnPlugin):
+class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
@@ -96,19 +97,18 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
-    """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
+    """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
 
-    ddp_spawn_plugin = TestDDPSpawnPlugin()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_plugin)
+    ddp_spawn_strategy = TestDDPSpawnStrategy()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_strategy)
 
     val: float = 1.0
     val_name: str = "val_acc"
     model = BoringCallbackDDPSpawnModel(val_name, val)
     dm = BoringDataModule()
-    with pytest.deprecated_call(match="add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert ddp_spawn_plugin.new_test_val == "new_test_val"
+    assert ddp_spawn_strategy.new_test_val == "new_test_val"
 
 
 class BoringModelDDP(BoringModel):
@@ -143,3 +143,30 @@ def test_ddp_spawn_configure_ddp(tmpdir):
     trainer.validate(model, dataloaders=model.val_dataloader())
     trainer.test(model, dataloaders=model.test_dataloader())
     trainer.predict(model, dataloaders=model.predict_dataloader())
+
+
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
+def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
+    """Tests that the spawn plugin transfers the new weights to the main process and deletes the temporary file."""
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    plugin = DDPSpawnStrategy()
+    plugin.model = model
+    trainer = Trainer(default_root_dir=tmpdir)
+    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
+    temp_file = Path(tmpdir, ".temp.ckpt")
+
+    assert not temp_file.exists()
+    spawn_output = plugin._collect_rank_zero_results(trainer, {})
+
+    model.state_dict.assert_called_once()
+    if trainer_fn == TrainerFn.FITTING:
+        assert spawn_output.weights_path == str(temp_file)
+        assert temp_file.exists()
+    else:
+        assert spawn_output.weights_path is None
+        assert not temp_file.exists()
+
+    # <-- here would normally be the multiprocessing boundary
+    plugin._recover_results_in_main_process(spawn_output, trainer)
+    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
+    assert not temp_file.exists()

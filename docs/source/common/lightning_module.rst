@@ -1193,7 +1193,7 @@ example above, we have set ``batch_first=True``.
     sub_batch = batch[0, 0:t, ...]
 
 To modify how the batch is split,
-override the :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch` method:
+override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch` method:
 
 .. testcode:: python
 
