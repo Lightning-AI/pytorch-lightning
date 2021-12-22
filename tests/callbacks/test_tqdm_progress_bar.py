@@ -337,7 +337,7 @@ def test_main_progress_bar_update_amount(
 
 
 @pytest.mark.parametrize("test_batches,refresh_rate,updates", [[1, 3, [1]], [3, 1, [1, 2, 3]], [5, 3, [3, 5]]])
-def test_test_progress_bar_update_amount(tmpdir, monkeypatch, test_batches: int, refresh_rate: int, updates: list):
+def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, updates: list):
     """Test that test progress updates with the correct amount."""
     model = BoringModel()
     progress_bar = TQDMProgressBar(refresh_rate=refresh_rate)
