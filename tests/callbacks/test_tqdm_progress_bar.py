@@ -174,20 +174,14 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
-            if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
-                assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            if not self.is_disabled and self.val_batch_idx % self.refresh_rate == 0:
-                assert self.val_progress_bar.n == self.val_batch_idx
             self.val_batches_seen += 1
 
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            if not self.is_disabled and self.test_batch_idx % self.refresh_rate == 0:
-                assert self.test_progress_bar.n == self.test_batch_idx
             self.test_batches_seen += 1
 
     progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)

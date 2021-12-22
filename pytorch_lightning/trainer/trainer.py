@@ -1355,6 +1355,7 @@ class Trainer(
             # current and total for progress tracking
             val_loop.dataloader_progress.reset_on_run()
             val_loop.epoch_loop.batch_progress.reset_on_run()
+            val_loop.epoch_loop.batch_progress.total.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training

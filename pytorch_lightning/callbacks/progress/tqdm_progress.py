@@ -135,6 +135,15 @@ class TQDMProgressBar(ProgressBarBase):
     def is_disabled(self) -> bool:
         return not self.is_enabled
 
+    @property
+    def _val_processed(self):
+        if self.trainer is None:
+            return 0
+        if self.trainer.state.fn == "fit":
+            # use total in case validation runs more than once per training epoch
+            return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
+        return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
+
     def disable(self) -> None:
         self._enabled = False
 
@@ -231,11 +240,11 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         if self._should_update(self.train_batch_idx):
-            _update_n(self.main_progress_bar, self.train_batch_idx)
+            _update_n(self.main_progress_bar, self.train_batch_idx + self._val_processed)
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        _update_n(self.main_progress_bar, self.train_batch_idx + self.val_batch_idx)
+        _update_n(self.main_progress_bar, self.train_batch_idx + self._val_processed)
         if not self.main_progress_bar.disable:
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
@@ -250,13 +259,13 @@ class TQDMProgressBar(ProgressBarBase):
             self.val_progress_bar.total = self.total_val_batches
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        if self._should_update(self.val_batch_idx):
-            _update_n(self.val_progress_bar, self.val_batch_idx)
+        if self._should_update(self._val_processed):
+            _update_n(self.val_progress_bar, self._val_processed)
             if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
-                _update_n(self.main_progress_bar, self.train_batch_idx + self.val_batch_idx)
+                _update_n(self.main_progress_bar, self.train_batch_idx + self._val_processed)
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        _update_n(self.val_progress_bar, self.val_batch_idx)
+        _update_n(self.val_progress_bar, self._val_processed)
 
     def on_validation_end(self, trainer, pl_module):
         if self.main_progress_bar is not None and trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:

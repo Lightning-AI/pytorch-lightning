@@ -181,8 +181,8 @@ class BatchProgress(Progress):
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        total: Tracks the total dataloader progress.
-        current: Tracks the current dataloader progress.
+        total: Tracks the total batch progress.
+        current: Tracks the current batch progress.
         is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
     """
 
