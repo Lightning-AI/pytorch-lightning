@@ -110,7 +110,7 @@ class AcceleratorConnector:
         self._distrib_type = None
         self._accelerator_type = None
 
-        self.strategy_flag = strategy.lower() if isinstance(strategy, str) else strategy
+        self._strategy_flag = strategy.lower() if isinstance(strategy, str) else strategy
         # TODO: Rename this to something else once all the distributed flags are moved to strategy
         self.distributed_backend = accelerator
 
@@ -158,7 +158,7 @@ class AcceleratorConnector:
 
         self.select_accelerator_type()
 
-        if self.strategy_flag is not None:
+        if self._strategy_flag is not None:
             self._set_strategy()
         else:
             self.set_distributed_mode()
@@ -283,37 +283,37 @@ class AcceleratorConnector:
                 f"Passing `Trainer(accelerator={self.distributed_backend!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={self.distributed_backend!r})` instead."
             )
-            if self.strategy_flag is not None:
+            if self._strategy_flag is not None:
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy_flag!r})` but have"
+                    f"You have passed `Trainer(strategy={self._strategy_flag!r})` but have"
                     f" also passed `Trainer(accelerator={self.distributed_backend!r})`."
-                    f" HINT: Use just `Trainer(strategy={self.strategy_flag!r})` instead."
+                    f" HINT: Use just `Trainer(strategy={self._strategy_flag!r})` instead."
                 )
-        if self.strategy_flag == _StrategyType.TPU_SPAWN:
+        if self._strategy_flag == _StrategyType.TPU_SPAWN:
             raise MisconfigurationException(
                 "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
                 " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
             )
-        if self.strategy_flag == _StrategyType.DDP_CPU:
+        if self._strategy_flag == _StrategyType.DDP_CPU:
             raise MisconfigurationException(
                 "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
                 " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
             )
 
     def _set_strategy(self) -> None:
-        if isinstance(self.strategy_flag, str) and self.strategy_flag in TrainingTypePluginsRegistry:
-            self._strategy = TrainingTypePluginsRegistry.get(self.strategy_flag)
-        if isinstance(self.strategy_flag, str):
-            self.set_distributed_mode(self.strategy_flag)
-        elif isinstance(self.strategy_flag, Strategy):
-            self._strategy = self.strategy_flag
+        if isinstance(self._strategy_flag, str) and self._strategy_flag in TrainingTypePluginsRegistry:
+            self._strategy = TrainingTypePluginsRegistry.get(self._strategy_flag)
+        if isinstance(self._strategy_flag, str):
+            self.set_distributed_mode(self._strategy_flag)
+        elif isinstance(self._strategy_flag, Strategy):
+            self._strategy = self._strategy_flag
 
     def handle_given_plugins(self) -> None:
 
         for plug in self.plugins:
-            if self.strategy_flag is not None and self._is_plugin_training_type(plug):
+            if self._strategy_flag is not None and self._is_plugin_training_type(plug):
                 raise MisconfigurationException(
-                    f"You have passed `Trainer(strategy={self.strategy_flag!r})`"
+                    f"You have passed `Trainer(strategy={self._strategy_flag!r})`"
                     f" and you can only specify one training type plugin, but you have passed {plug} as a plugin."
                 )
             if self._is_plugin_training_type(plug):
@@ -322,15 +322,15 @@ class AcceleratorConnector:
                     f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plug})` instead."
                 )
 
-        training_type = self._strategy or None
+        strategy = self._strategy or None
         checkpoint = None
         precision = None
         cluster_environment = None
 
         for plug in self.plugins:
             if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
-                if training_type is None:
-                    training_type = TrainingTypePluginsRegistry.get(plug)
+                if strategy is None:
+                    strategy = TrainingTypePluginsRegistry.get(plug)
                 else:
                     raise MisconfigurationException(
                         "You can only specify one precision and one training type plugin."
@@ -344,13 +344,13 @@ class AcceleratorConnector:
                 self.set_distributed_mode(plug)
 
             elif isinstance(plug, Strategy):
-                if training_type is None:
-                    training_type = plug
+                if strategy is None:
+                    strategy = plug
 
                 else:
                     raise MisconfigurationException(
                         "You can only specify one training type plugin."
-                        f" Available: {type(training_type).__name__}, given: {type(plug).__name__}"
+                        f" Available: {type(strategy).__name__}, given: {type(plug).__name__}"
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
@@ -380,7 +380,7 @@ class AcceleratorConnector:
                     f"Found invalid type for plugin {plug}. Expected a precision or training type plugin."
                 )
 
-        self._strategy = training_type
+        self._strategy = strategy
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
         self._cluster_environment = cluster_environment
@@ -403,13 +403,13 @@ class AcceleratorConnector:
         if self._checkpoint_io is not None:
             self._strategy.checkpoint_io = self._checkpoint_io
         if (
-            isinstance(self.strategy_flag, Strategy) and self.strategy_flag._precision_plugin is None
-        ) or not isinstance(self.strategy_flag, Strategy):
+                isinstance(self._strategy_flag, Strategy) and self._strategy_flag._precision_plugin is None
+        ) or not isinstance(self._strategy_flag, Strategy):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
                 self._strategy.precision_plugin = precision_plugin
-        if (isinstance(self.strategy_flag, Strategy) and self.strategy_flag.accelerator is None) or not isinstance(
-            self.strategy_flag, Strategy
+        if (isinstance(self._strategy_flag, Strategy) and self._strategy_flag.accelerator is None) or not isinstance(
+            self._strategy_flag, Strategy
         ):
             self._strategy.accelerator = self.select_accelerator()
         return self._strategy
@@ -965,7 +965,7 @@ class AcceleratorConnector:
             self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_strategy_passed(self) -> None:
-        if isinstance(self.strategy_flag, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
+        if isinstance(self._strategy_flag, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
             if self._accelerator_type is not None:
                 if self.use_ipu:
                     self._device_type = _AcceleratorType.IPU
