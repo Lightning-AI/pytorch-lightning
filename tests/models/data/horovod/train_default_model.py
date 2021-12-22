@@ -58,8 +58,8 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
             assert self.device == expected_device
 
         def training_epoch_end(self, outputs) -> None:
-            res = self.trainer.training_type_plugin.reduce(torch.tensor(1.0, device=self.device), reduce_op="sum")
-            assert res.sum() == self.trainer.training_type_plugin.world_size
+            res = self.trainer.strategy.reduce(torch.tensor(1.0, device=self.device), reduce_op="sum")
+            assert res.sum() == self.trainer.strategy.world_size
 
     model = TestModel()
     trainer = Trainer(**trainer_options)

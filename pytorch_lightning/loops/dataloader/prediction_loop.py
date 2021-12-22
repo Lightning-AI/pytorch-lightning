@@ -30,11 +30,11 @@ class PredictionLoop(DataLoaderLoop):
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
         # `DDPSpawnStrategy` plugins and derivatives don't support return predictions.
-        is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnStrategy)
+        is_ddp_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
         if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
                 "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
-                f"Found {return_predictions} with training_type_plugin {type(self.trainer.training_type_plugin)}."
+                f"Found {return_predictions} with training_type_plugin {type(self.trainer.strategy)}."
             )
         # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
@@ -86,7 +86,7 @@ class PredictionLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
         void(*args, **kwargs)
-        dataloader = self.trainer.training_type_plugin.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self.max_batches[self.current_dataloader_idx]
 

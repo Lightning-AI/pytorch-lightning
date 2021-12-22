@@ -17,7 +17,7 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.training_type.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -25,7 +25,7 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
-class SingleTPUStrategy(SingleDevicePlugin):
+class SingleTPUStrategy(SingleDeviceStrategy):
     """Strategy for training on a single TPU device."""
 
     def __init__(
@@ -73,5 +73,6 @@ class SingleTPUStrategy(SingleDevicePlugin):
         self.model.to(self.root_device)
 
     def teardown(self) -> None:
+        super().teardown()
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
