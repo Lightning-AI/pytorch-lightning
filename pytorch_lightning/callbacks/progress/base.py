@@ -55,7 +55,7 @@ class ProgressBarBase(Callback):
 
     @property
     def train_batch_idx(self) -> int:
-        """The number of batches completed during training.
+        """The number of batches processed during training.
 
         Use this to update your progress bar.
         """
@@ -65,7 +65,7 @@ class ProgressBarBase(Callback):
 
     @property
     def val_batch_idx(self) -> int:
-        """The number of batches completed during validation.
+        """The number of batches processed during validation.
 
         Use this to update your progress bar.
         """
@@ -77,23 +77,23 @@ class ProgressBarBase(Callback):
 
     @property
     def test_batch_idx(self) -> int:
-        """The number of batches completed during testing.
+        """The number of batches processed during testing.
 
         Use this to update your progress bar.
         """
         if self.trainer is None:
             return 0
-        return self.trainer.test_loop.epoch_loop.batch_progress.current.completed
+        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def predict_batch_idx(self) -> int:
-        """The number of batches completed during prediction.
+        """The number of batches processed during prediction.
 
         Use this to update your progress bar.
         """
         if self.trainer is None:
             return 0
-        return self.trainer.predict_loop.epoch_loop.batch_progress.current.completed
+        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def total_train_batches(self) -> int:
