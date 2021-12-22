@@ -37,7 +37,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
+from pytorch_lightning.loops import Loop, PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
@@ -71,6 +71,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -1275,7 +1276,7 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self._run_sanity_check(self.lightning_module)
+        self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1316,12 +1317,14 @@ class Trainer(
         with torch.no_grad():
             return self.predict_loop.run()
 
-    def _run_sanity_check(self, ref_model):
+    def _run_sanity_check(self) -> None:
+        val_loop = self.fit_loop.epoch_loop.val_loop
+
         should_sanity_check = (
             self.enable_validation
             and self.num_sanity_val_steps > 0
             # do not sanity check if restarting because it would mess up the loaded state
-            and not self._evaluation_loop.restarting
+            and not val_loop.restarting
         )
 
         # run tiny validation (if validation defined)
@@ -1337,11 +1340,11 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_start")
 
             # reload dataloaders
-            self._evaluation_loop._reload_evaluation_dataloaders()
+            val_loop._reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self._evaluation_loop.run()
+                val_loop.run()
 
             self._call_callback_hooks("on_sanity_check_end")
 
@@ -1349,12 +1352,21 @@ class Trainer(
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
 
+            self._reset_progress(val_loop)
+
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
+
+    def _reset_progress(self, loop: Loop) -> None:
+        for k, v in vars(loop).items():
+            if isinstance(v, BaseProgress):
+                v.reset()
+            elif isinstance(v, Loop):
+                self._reset_progress(v)
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         if model_provided and ckpt_path is None:
