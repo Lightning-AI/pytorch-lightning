@@ -40,7 +40,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -63,7 +63,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -87,7 +87,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -132,7 +132,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         sync_batchnorm=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.training_type_plugin.model.get_ddp_logging_data().comm_hook
+    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
     expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"

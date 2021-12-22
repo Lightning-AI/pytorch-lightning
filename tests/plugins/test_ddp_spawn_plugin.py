@@ -56,10 +56,10 @@ def test_ddp_cpu():
     trainer = Trainer(num_processes=2, fast_dev_run=True)
     # assert training type plugin attributes for device setting
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
-    assert not trainer.training_type_plugin.on_gpu
-    assert not trainer.training_type_plugin.on_tpu
-    assert trainer.training_type_plugin.root_device == torch.device("cpu")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert not trainer.strategy.on_gpu
+    assert not trainer.strategy.on_tpu
+    assert trainer.strategy.root_device == torch.device("cpu")
 
     model = BoringModelDDPCPU()
 
@@ -72,9 +72,9 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     with Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnStrategy)
-    assert trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert trainer.strategy.on_gpu
+    assert trainer.strategy.root_device == torch.device("cuda:0")
 
     val: float = 1.0
     val_name: str = "val_acc"

@@ -171,8 +171,8 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
     Returns:
         context manager with sync behaviour off
     """
-    if isinstance(trainer.training_type_plugin, ParallelStrategy) and block:
-        with trainer.training_type_plugin.block_backward_sync():
+    if isinstance(trainer.strategy, ParallelStrategy) and block:
+        with trainer.strategy.block_backward_sync():
             yield None
     else:
         yield None
