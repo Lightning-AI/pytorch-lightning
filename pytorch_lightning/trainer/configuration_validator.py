@@ -263,12 +263,12 @@ def _check_add_get_queue(model: "pl.LightningModule") -> None:
     if is_overridden("add_to_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.add_to_queue`"
+            "favor of `DDPSpawnStrategy.add_to_queue`"
         )
     if is_overridden("get_from_queue", model):
         rank_zero_deprecation(
             "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnPlugin.get_from_queue`"
+            "favor of `DDPSpawnStrategy.get_from_queue`"
         )
 
 

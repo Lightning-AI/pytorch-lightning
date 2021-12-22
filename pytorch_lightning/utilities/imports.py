@@ -35,11 +35,7 @@ def _module_available(module_path: str) -> bool:
     """
     try:
         return find_spec(module_path) is not None
-    except AttributeError:
-        # Python 3.6
-        return False
     except ModuleNotFoundError:
-        # Python 3.7+
         return False
 
 

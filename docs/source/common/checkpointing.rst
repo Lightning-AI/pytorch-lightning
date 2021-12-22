@@ -348,7 +348,7 @@ Custom Checkpoint IO Plugin
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import ModelCheckpoint
-    from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin
+    from pytorch_lightning.plugins import CheckpointIO, SingleDeviceStrategy
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -376,11 +376,11 @@ Custom Checkpoint IO Plugin
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
 
 .. note::
 
-    Some ``TrainingTypePlugins`` like ``DeepSpeedPlugin`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
