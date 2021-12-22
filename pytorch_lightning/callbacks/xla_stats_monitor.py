@@ -85,6 +85,7 @@ class XLAStatsMonitor(Callback):
         self._start_time = time.time()
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        assert trainer.logger is not None
         logs = {}
         memory_info = xm.get_memory_info(pl_module.device)
         epoch_time = time.time() - self._start_time
@@ -92,9 +93,9 @@ class XLAStatsMonitor(Callback):
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
 
-        free_memory = trainer.strategy.reduce(free_memory) * 0.001
-        peak_memory = trainer.strategy.reduce(peak_memory) * 0.001
-        epoch_time = trainer.strategy.reduce(epoch_time)
+        free_memory = float(trainer.strategy.reduce(free_memory)) * 0.001
+        peak_memory = float(trainer.strategy.reduce(peak_memory)) * 0.001
+        epoch_time = float(trainer.strategy.reduce(epoch_time))
 
         logs["avg. free memory (MB)"] = free_memory
         logs["avg. peak memory (MB)"] = peak_memory
