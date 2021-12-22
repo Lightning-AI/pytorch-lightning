@@ -1,8 +1,8 @@
 Research projects tend to test different approaches to the same dataset.
 This is very easy to do in Lightning with inheritance.
 
-For example, imagine we now want to train an ``AutoEncoder`` to use as a feature extractor for MNIST images.
-The only things that change in the ``AutoEncoder`` model are the init, forward, training, validation and test step.
+For example, imagine we now want to train an ``LitAutoEncoder`` to use as a feature extractor for MNIST images.
+The only things that change in the ``LitAutoEncoder`` model are the init, forward, training, validation and test step.
 
 .. code-block:: python
 
@@ -14,22 +14,28 @@ The only things that change in the ``AutoEncoder`` model are the init, forward, 
         pass
 
 
-    class AutoEncoder(LightningModule):
+    class AutoEncoder(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.encoder = Encoder()
             self.decoder = Decoder()
+
+        def forward(self, x):
+            return self.decoder(self.encoder(x))
+
+
+    class LitAutoEncoder(LightningModule):
+        def __init__(self, auto_encoder):
+            super().__init__()
+            self.auto_encoder = auto_encoder
             self.metric = MSE()
 
         def forward(self, x):
-            return self.encoder(x)
+            return self.auto_encoder.encoder(x)
 
         def training_step(self, batch, batch_idx):
             x, _ = batch
-
-            representation = self.encoder(x)
-            x_hat = self.decoder(representation)
-
+            x_hat = self.auto_encoder(x)
             loss = self.metric(x, x_hat)
             return loss
 
@@ -41,23 +47,22 @@ The only things that change in the ``AutoEncoder`` model are the init, forward, 
 
         def _shared_eval(self, batch, batch_idx, prefix):
             x, _ = batch
-            representation = self.encoder(x)
-            x_hat = self.decoder(representation)
-
+            x_hat = self.auto_encoder(x)
             loss = self.metric(x, x_hat)
             self.log(f"{prefix}_loss", loss)
 
 
-and we can train this using the same Trainer instance:
+and we can train this using the ``Trainer``:
 
 .. code-block:: python
 
-    autoencoder = AutoEncoder()
+    model = AutoEncoder()
+    autoencoder = LitAutoEncoder(model)
     trainer = Trainer()
     trainer.fit(autoencoder, train_dataloader, val_dataloader)
 
 And remember that the forward method should define the practical use of a LightningModule.
-In this case, we want to use the `AutoEncoder` to extract image representations
+In this case, we want to use the ``LitAutoEncoder`` to extract image representations
 
 .. code-block:: python
 

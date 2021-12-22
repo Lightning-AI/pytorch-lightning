@@ -10,10 +10,10 @@ LightningModule
 A :class:`~LightningModule` organizes your PyTorch code into 6 sections:
 
 - Computations (init).
-- Train loop (training_step)
-- Validation loop (validation_step)
-- Test loop (test_step)
-- Prediction loop (predict_step)
+- Train Loop (training_step)
+- Validation Loop (validation_step)
+- Test Loop (test_step)
+- Prediction Loop (predict_step)
 - Optimizers and LR Schedulers (configure_optimizers)
 
 |
@@ -385,6 +385,14 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
     trainer = Trainer()
     trainer.validate(model)
 
+.. note::
+
+    It is recommended to validate on single device since Distributed Training such as DDP internally
+    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
+    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
+    benchmarking for research papers is done the right way.
+
+
 Validation Epoch-Level Metrics
 ==============================
 
@@ -501,6 +509,13 @@ There are two ways to call ``test()``:
     trainer = Trainer()
     trainer.test(model, dataloaders=test_dataloader)
 
+.. note::
+
+    It is recommended to test on single device since Distributed Training such as DDP internally
+    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
+    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
+    benchmarking for research papers is done the right way.
+
 ----------
 
 *********
@@ -510,15 +525,26 @@ Inference
 Prediction Loop
 ===============
 
-To activate the prediction loop, you may need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method
-since Lightning under the hood do a forward pass through your LightningModule by default.
+By default, the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method runs the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method. In order to customize this behaviour,
+simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+
+For the example let's override ``predict_step`` and try out `Monte Carlo Dropout <https://arxiv.org/pdf/1506.02142.pdf>`_:
 
 .. code-block:: python
 
     class LitModel(pl.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.linear = nn.Linear(4, 5)
+            self.dropout = nn.Dropout()
+
         def predict_step(self, batch, batch_idx):
-            x, y = batch
-            pred = self(x)
+            # enable Monte Carlo Dropout
+            self.dropout.train()
+
+            # take average of 7 iterations
+            pred = torch.vstack([self.dropout(self.linear(x)).unsqueeze(0) for _ in range(7)]).mean(dim=0)
             return pred
 
 Under the hood, Lightning does the following (pseudocode):
@@ -675,8 +701,8 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
 a ``LightningModule``.
 
-- You can export to onnx using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_onnx`.
-- Or trace using Jit using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`.
+- You can export to `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_onnx`.
+- Or trace using `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`.
 - Or run in the Python runtime.
 
 .. code-block:: python
@@ -699,72 +725,7 @@ a ``LightningModule``.
 Child Modules
 *************
 
-Research projects tend to test different approaches to the same dataset.
-This is very easy to do in Lightning with inheritance.
-
-For example, imagine we now want to train an ``AutoEncoder`` to use as a feature extractor for MNIST images.
-The only things that change in the ``AutoEncoder`` model are the init, forward, training, validation and test step.
-
-.. code-block:: python
-
-    class Encoder(torch.nn.Module):
-        pass
-
-
-    class Decoder(torch.nn.Module):
-        pass
-
-
-    class AutoEncoder(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.encoder = Encoder()
-            self.decoder = Decoder()
-            self.metric = MSE()
-
-        def forward(self, x):
-            return self.encoder(x)
-
-        def training_step(self, batch, batch_idx):
-            x, _ = batch
-
-            representation = self.encoder(x)
-            x_hat = self.decoder(representation)
-
-            loss = self.metric(x, x_hat)
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            self._shared_eval(batch, batch_idx, "val")
-
-        def test_step(self, batch, batch_idx):
-            self._shared_eval(batch, batch_idx, "test")
-
-        def _shared_eval(self, batch, batch_idx, prefix):
-            x, _ = batch
-            representation = self.encoder(x)
-            x_hat = self.decoder(representation)
-
-            loss = self.metric(x, x_hat)
-            self.log(f"{prefix}_loss", loss)
-
-
-and we can train this using the same Trainer instance:
-
-.. code-block:: python
-
-    autoencoder = AutoEncoder()
-    trainer = Trainer()
-    trainer.fit(autoencoder, train_dataloader, val_dataloader)
-
-And remember that the forward method should define the practical use of a LightningModule.
-In this case, we want to use the `AutoEncoder` to extract image representations
-
-.. code-block:: python
-
-    some_images = torch.Tensor(32, 1, 28, 28)
-    representations = autoencoder(some_images)
-
+.. include:: ../common/child_modules.rst
 
 -----------
 
