@@ -12,8 +12,8 @@ Precision
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
-Lower precision, such as the 16-bit floating-point, enables the training and deployment of marge neural networks since they require less memory, enhances data transfer operations since they required
-less memory bandwidth and run match operations much faster on GPUs that support Tensor Core. [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
+Lower precision, such as the 16-bit floating-point, enables the training and deployment of large neural networks since they require less memory, enhances data transfer operations since they require
+less memory bandwidth and run batch operations much faster on GPUs that support Tensor Core. [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 Higher precision, such as the 64-bit floating-point, can be used for highly sensitive use-cases.
 
@@ -57,7 +57,7 @@ Mixed Precision
 PyTorch, like most deep learning frameworks, trains on 32-bit floating-point (FP32) arithmetic by default. However, many deep learning models do not require this to reach complete accuracy. By conducting
 operations in half-precision format while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network, mixed precision training delivers
 significant computational speedup. Switching to mixed precision has resulted in considerable training speedups since the introduction of Tensor Cores in the Volta and Turing architectures. It combines
-FP32 and lower-bit floating-points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation. It accomplishes this by recognising the steps that require
+FP32 and lower-bit floating-points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation. It accomplishes this by recognizing the steps that require
 complete accuracy and employing a 32-bit floating-point for those steps only, while using a 16-bit floating-point for the rest. When compared to complete precision training, mixed precision training
 delivers all of these benefits while ensuring that no task-specific accuracy is lost. [`2 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
@@ -69,7 +69,7 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
 .. warning::
 
     Do not cast anything to other dtypes manually using ``torch.autocast`` when using native precision because
-    this can bring unstability.
+    this can bring instability.
 
     .. code-block:: python
 
@@ -191,8 +191,8 @@ Lightning supports training models with double precision/64-bit. You can set it 
 
 .. note::
 
-    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and using a GPU with limited memory.
-    It is recommended using single precision for better speed with the price of a possible negligible loss of precision.
+    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resouces.
+    It is recommended using single precision for better speed. Altough you can still use it if you want for your particular use-case.
 
 
 *****************
@@ -219,5 +219,5 @@ You can also customize and pass your own Precision Plugin by subclassing the :cl
 8-bit Optimizer
 ***************
 
-It is possible to grill down the precision more using third-party libraries like `bitsandbytes <https://github.com/facebookresearch/bitsandbytes>`_. Although,
+It is possible to further reduce the precision using third-party libraries like `bitsandbytes <https://github.com/facebookresearch/bitsandbytes>`_. Although,
 Lightning doesn't support it out of the box yet but you can still use it by configuring it in your LightningModule and setting ``Trainer(precision=32)``.
