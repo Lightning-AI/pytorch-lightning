@@ -13,7 +13,7 @@
 # limitations under the License.
 import weakref
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
 from weakref import proxy
 
 import torch
@@ -58,10 +58,7 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
         # check if trainer is already of type weakproxy since we can't call proxy on a weakproxy
-        if isinstance(trainer, weakref.ProxyType):
-            self._trainer = trainer
-        else:
-            self._trainer = proxy(trainer)
+        self._trainer = trainer if isinstance(trainer, weakref.ProxyType) else proxy(trainer)
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
@@ -206,7 +203,7 @@ def _configure_optimizers(
     ):
         opt, sch = optim_conf
         optimizers = opt
-        lr_schedulers = sch if isinstance(sch, list) else [sch]
+        lr_schedulers = sch if isinstance(sch, Sequence) else [sch]
     # single dictionary
     elif isinstance(optim_conf, dict):
         _validate_optim_conf(optim_conf)
@@ -242,11 +239,11 @@ def _configure_optimizers(
     else:
         raise MisconfigurationException(
             "Unknown configuration for model optimizers."
-            " Output from `model.configure_optimizers()` should either be:\n"
-            " * `torch.optim.Optimizer`\n"
-            " * [`torch.optim.Optimizer`]\n"
-            " * ([`torch.optim.Optimizer`], [`torch.optim.lr_scheduler`])\n"
-            ' * {"optimizer": `torch.optim.Optimizer`, (optional) "lr_scheduler": `torch.optim.lr_scheduler`}\n'
+            " Output from `model.configure_optimizers()` should be one of:\n"
+            " * `Optimizer`\n"
+            " * [`Optimizer`]\n"
+            " * ([`Optimizer`], [`_LRScheduler`])\n"
+            ' * {"optimizer": `Optimizer`, (optional) "lr_scheduler": `_LRScheduler`}\n'
             ' * A list of the previously described dict format, with an optional "frequency" key (int)'
         )
     return optimizers, lr_schedulers, optimizer_frequencies, monitor
@@ -381,7 +378,7 @@ class _MockOptimizer(Optimizer):
     def load_state_dict(self, state_dict: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
-    def state_dict(self) -> Dict[Any, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
     def step(self, closure: Callable = None) -> None:
