@@ -67,7 +67,7 @@ def test_logger_collection_unique_names():
 
 
 def test_logger_collection_names_order():
-    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")
+    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
     logger = LoggerCollection(loggers)
     assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
 
