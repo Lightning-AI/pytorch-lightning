@@ -22,7 +22,7 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.plugins import ParallelStrategy
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
@@ -161,8 +161,8 @@ def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -
 
 @contextmanager
 def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelPlugin`. This is
-    useful for example when when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~pytorch_lightning.plugins.training_type.parallel.ParallelStrategy`. This
+    is useful for example when when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         trainer: the trainer instance with a reference to a training type plugin
@@ -171,7 +171,7 @@ def _block_parallel_sync_behavior(trainer: "pl.Trainer", block: bool = True) -> 
     Returns:
         context manager with sync behaviour off
     """
-    if isinstance(trainer.training_type_plugin, ParallelPlugin) and block:
+    if isinstance(trainer.training_type_plugin, ParallelStrategy) and block:
         with trainer.training_type_plugin.block_backward_sync():
             yield None
     else:

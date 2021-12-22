@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
+from pytorch_lightning.plugins import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from tests.helpers.boring_model import BoringModel
@@ -32,7 +32,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
 def test_sharded_ddp_choice(tmpdir, strategy, expected):
     """Test to ensure that plugin is correctly chosen."""
@@ -42,7 +42,7 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
 
 @RunIf(min_gpus=1, fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected", [("ddp_sharded", DDPShardedPlugin), ("ddp_sharded_spawn", DDPSpawnShardedPlugin)]
+    "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
 def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
@@ -219,7 +219,7 @@ class BoringModelSharded(BoringModel):
 
 @RunIf(skip_windows=True, fairscale=True)
 def test_configure_ddp(tmpdir):
-    """Tests with ddp sharded plugin."""
+    """Tests with ddp sharded strategy."""
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
 
     model = BoringModelSharded()
@@ -231,14 +231,14 @@ def test_configure_ddp(tmpdir):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-@mock.patch("pytorch_lightning.plugins.DDPShardedPlugin._wrap_optimizers", autospec=True)
-@pytest.mark.parametrize("cls", [DDPShardedPlugin, DDPSpawnShardedPlugin])
+@mock.patch("pytorch_lightning.plugins.DDPShardedStrategy._wrap_optimizers", autospec=True)
+@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     plugin = cls(reduce_fp16=True)
     plugin.model = Mock(spec=LightningModule)
     plugin.model.trainer = Mock()
-    class_name = "sharded" if isinstance(plugin, DDPShardedPlugin) else "sharded_spawn"
+    class_name = "sharded" if isinstance(plugin, DDPShardedStrategy) else "sharded_spawn"
 
     with mock.patch(
         f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
@@ -250,12 +250,12 @@ def test_custom_kwargs_sharded(tmpdir, cls):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-@mock.patch("pytorch_lightning.plugins.DDPShardedPlugin._wrap_optimizers", autospec=True)
+@mock.patch("pytorch_lightning.plugins.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
 @pytest.mark.parametrize("num_nodes", [1, 2])
 def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes):
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
-    plugin = DDPShardedPlugin(**params)
+    plugin = DDPShardedStrategy(**params)
     plugin.num_nodes = num_nodes
     plugin.model = Mock(spec=LightningModule)
     plugin.model.trainer = Mock()
@@ -269,14 +269,14 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
 
     if num_nodes > 1 and len(params) == 0:
         # If user has not specified a buffer size and we're using multiple nodes, check to see if default is set
-        assert kwargs["reduce_buffer_size"] == DDPShardedPlugin._REDUCE_BUFFER_SIZE_DEFAULT
+        assert kwargs["reduce_buffer_size"] == DDPShardedStrategy._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
 
 
 @RunIf(skip_windows=True, fairscale=True)
 def test_block_backward_sync(tmpdir):
-    plugin = DDPShardedPlugin()
+    plugin = DDPShardedStrategy()
     model = mock.MagicMock(spec=ShardedDataParallel)
     with mock.patch.object(plugin, "_model", model):
         with plugin.block_backward_sync():

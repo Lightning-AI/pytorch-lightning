@@ -49,7 +49,7 @@ repos:
     rev: v2.29.0
     hooks:
       - id: pyupgrade
-        args: [--py36-plus]
+        args: [--py37-plus]
         name: Upgrade code
 
   - repo: https://github.com/myint/docformatter
@@ -80,8 +80,8 @@ repos:
     rev: v1.11.0
     hooks:
       - id: blacken-docs
-        args: [ --line-length=120 ]
-        additional_dependencies: [ black==21.7b0 ]
+        args: [--line-length=120]
+        additional_dependencies: [black==21.7b0]
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.10

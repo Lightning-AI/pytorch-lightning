@@ -27,29 +27,29 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
-    DataParallelPlugin,
-    DDP2Plugin,
+    DataParallelStrategy,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DDPSpawnShardedPlugin,
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedPrecisionPlugin,
     DeepSpeedStrategy,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     HorovodStrategy,
-    IPUPlugin,
     IPUPrecisionPlugin,
+    IPUStrategy,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
-    SingleDevicePlugin,
-    SingleTPUPlugin,
+    SingleDeviceStrategy,
+    SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    TPUSpawnPlugin,
+    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
@@ -463,7 +463,7 @@ class AcceleratorConnector:
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
-        if self.ipus is not None or isinstance(self._training_type_plugin, IPUPlugin):
+        if self.ipus is not None or isinstance(self._training_type_plugin, IPUStrategy):
             return True
         return self._map_devices_to_accelerator(_AcceleratorType.IPU)
 
@@ -536,7 +536,7 @@ class AcceleratorConnector:
 
     @property
     def _is_sharded_training_type(self) -> bool:
-        return isinstance(self._training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
+        return isinstance(self._training_type_plugin, (DDPShardedStrategy, DDPSpawnShardedStrategy))
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
@@ -564,7 +564,7 @@ class AcceleratorConnector:
     def num_ipus(self) -> int:
         if isinstance(self.ipus, int):
             return self.ipus
-        if isinstance(self._training_type_plugin, IPUPlugin):
+        if isinstance(self._training_type_plugin, IPUStrategy):
             return self._training_type_plugin.replication_factor
         return 0
 
@@ -700,7 +700,7 @@ class AcceleratorConnector:
         ):
             plugin = self.distributed_backend.training_type_plugin
         elif self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Strategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
@@ -720,11 +720,11 @@ class AcceleratorConnector:
             use_ddp_fully_sharded = self._distrib_type == _StrategyType.DDP_FULLY_SHARDED
 
             if use_tpu_spawn:
-                ddp_strategy_cls = TPUSpawnPlugin
+                ddp_strategy_cls = TPUSpawnStrategy
             elif use_ddp_sharded:
-                ddp_strategy_cls = DDPShardedPlugin
+                ddp_strategy_cls = DDPShardedStrategy
             elif use_ddp_sharded_spawn:
-                ddp_strategy_cls = DDPSpawnShardedPlugin
+                ddp_strategy_cls = DDPSpawnShardedStrategy
             elif (
                 use_ddp_cpu_slurm
                 or use_slurm_ddp
@@ -735,7 +735,7 @@ class AcceleratorConnector:
             ):
                 ddp_strategy_cls = DDPStrategy
             elif use_ddp_spawn or use_ddp_cpu_spawn:
-                ddp_strategy_cls = DDPSpawnPlugin
+                ddp_strategy_cls = DDPSpawnStrategy
             elif use_ddp_fully_sharded:
                 ddp_strategy_cls = DDPFullyShardedStrategy
             else:
@@ -745,16 +745,16 @@ class AcceleratorConnector:
                 parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment
             )
         elif self.use_dp:
-            plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
+            plugin = DataParallelStrategy(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
             plugin = HorovodStrategy(parallel_devices=self.parallel_devices)
         elif self.use_tpu and isinstance(self.tpu_cores, list):
-            plugin = SingleTPUPlugin(self.tpu_id)
+            plugin = SingleTPUStrategy(self.tpu_id)
         elif self.use_ipu:
-            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
+            plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
     def resolve_training_type_plugin(self, training_type: Strategy) -> Strategy:
@@ -962,9 +962,9 @@ class AcceleratorConnector:
         return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
     def update_device_type_if_ipu_plugin(self) -> None:
-        # This allows the poptorch.Options that are passed into the IPUPlugin to be the source of truth,
+        # This allows the poptorch.Options that are passed into the IPUStrategy to be the source of truth,
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
-        if isinstance(self._training_type_plugin, IPUPlugin) and self._device_type != _AcceleratorType.IPU:
+        if isinstance(self._training_type_plugin, IPUStrategy) and self._device_type != _AcceleratorType.IPU:
             self._device_type = _AcceleratorType.IPU
 
     def update_device_type_if_training_type_plugin_passed(self) -> None:
@@ -1026,8 +1026,8 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self.training_type_plugin.precision_plugin}."
                 )
-            if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
+            if not isinstance(self.training_type_plugin, (SingleTPUStrategy, TPUSpawnStrategy)):
                 raise ValueError(
-                    "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin`,"
+                    "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
                     f" found {self.training_type_plugin}."
                 )
