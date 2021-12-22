@@ -406,19 +406,25 @@ class SaveConfigCallback(Callback):
         # and we want to save before processes are spawned
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
-        fs = get_filesystem(log_dir)
+        is_global_zero = trainer.is_global_zero
         config_path = os.path.join(log_dir, self.config_filename)
+        fs = get_filesystem(log_dir)
+
         if not self.overwrite:
-            if fs.isfile(config_path):
+            # check if the file exists on rank 0
+            file_exists = fs.isfile(config_path) if is_global_zero else False
+            # broadcast whether to fail to all ranks
+            file_exists = trainer.strategy.broadcast(file_exists)
+            if file_exists:
                 raise RuntimeError(
                     f"{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting"
                     " results of a previous run. You can delete the previous config file,"
                     " set `LightningCLI(save_config_callback=None)` to disable config saving,"
                     " or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file."
                 )
-            # make sure all processes finished `isfile` before letting rank 0 write
-            trainer.strategy.barrier()
-        if trainer.is_global_zero:
+
+        # save the file on rank 0
+        if is_global_zero:
             # save only on rank zero to avoid race conditions on DDP.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
