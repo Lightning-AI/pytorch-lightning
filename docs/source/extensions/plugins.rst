@@ -106,13 +106,13 @@ Training Type Plugins
     :template: classtemplate.rst
 
     Strategy
-    SingleDevicePlugin
+    SingleDeviceStrategy
     ParallelPlugin
     DataParallelStrategy
     DDPStrategy
     DDP2Strategy
     DDPShardedStrategy
-    DDPSpawnShardedPlugin
+    DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DeepSpeedStrategy
     HorovodStrategy

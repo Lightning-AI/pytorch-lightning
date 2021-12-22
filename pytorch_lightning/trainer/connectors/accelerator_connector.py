@@ -31,7 +31,7 @@ from pytorch_lightning.plugins import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
-    DDPSpawnShardedPlugin,
+    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedPrecisionPlugin,
@@ -44,7 +44,7 @@ from pytorch_lightning.plugins import (
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
-    SingleDevicePlugin,
+    SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
@@ -536,7 +536,7 @@ class AcceleratorConnector:
 
     @property
     def _is_sharded_training_type(self) -> bool:
-        return isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedPlugin))
+        return isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy))
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
@@ -721,7 +721,7 @@ class AcceleratorConnector:
             elif use_ddp_sharded:
                 ddp_strategy_cls = DDPShardedStrategy
             elif use_ddp_sharded_spawn:
-                ddp_strategy_cls = DDPSpawnShardedPlugin
+                ddp_strategy_cls = DDPSpawnShardedStrategy
             elif (
                 use_ddp_cpu_slurm
                 or use_slurm_ddp
@@ -751,7 +751,7 @@ class AcceleratorConnector:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
         return plugin
 
     def resolve_strategy(self, training_type: Strategy) -> Strategy:
