@@ -426,10 +426,6 @@ class CheckpointConnector:
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
 
-    # ----------------------------------
-    # UTILITIES
-    # ----------------------------------
-
     @staticmethod
     def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
@@ -470,8 +466,7 @@ class CheckpointConnector:
         return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
     @staticmethod
-    def hpc_save_path(folderpath: str) -> str:
-        folderpath = str(folderpath)  # because the tests pass a path object
+    def hpc_save_path(folderpath: _PATH) -> str:
         max_suffix = CheckpointConnector.__max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
         filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
