@@ -146,7 +146,7 @@ def plugin_parity_test(
     custom_plugin_model = model_cls()
 
     trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_sharded_spawn")
-    assert isinstance(trainer.training_type_plugin, DDPSpawnShardedStrategy)
+    assert isinstance(trainer.strategy, DDPSpawnShardedStrategy)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
         trainer=trainer, model=custom_plugin_model, use_cuda=use_cuda
