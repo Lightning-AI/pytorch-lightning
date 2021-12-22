@@ -19,7 +19,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -32,7 +32,7 @@ if _FAIRSCALE_AVAILABLE:
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
-class DDPSpawnShardedPlugin(DDPSpawnPlugin):
+class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
     distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
@@ -101,7 +101,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
-                "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
+                "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
         return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
@@ -117,6 +117,6 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         plugin_registry.register(
             "ddp_sharded_spawn_find_unused_parameters_false",
             cls,
-            description="DDP Spawn Sharded Plugin with `find_unused_parameters` as False",
+            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )

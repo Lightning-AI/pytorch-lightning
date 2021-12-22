@@ -318,7 +318,7 @@ Customize Checkpointing
 
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
-that is managed by the ``TrainingTypePlugin``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
+that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
 what's saved in the checkpoint.
 
@@ -342,13 +342,13 @@ Built-in Checkpoint IO Plugins
 Custom Checkpoint IO Plugin
 ===========================
 
-``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``TrainingTypePlugin`` as shown below:
+``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``Strategy`` as shown below:
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import ModelCheckpoint
-    from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin
+    from pytorch_lightning.plugins import CheckpointIO, SingleDeviceStrategy
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -372,15 +372,15 @@ Custom Checkpoint IO Plugin
     )
     trainer.fit(model)
 
-    # or pass into TrainingTypePlugin
+    # or pass into Strategy
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
 
 .. note::
 
-    Some ``TrainingTypePlugins`` like ``DeepSpeedPlugin`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.

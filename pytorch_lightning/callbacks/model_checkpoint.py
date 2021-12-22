@@ -286,7 +286,7 @@ class ModelCheckpoint(Callback):
             skip_time = prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds()
             # in case we have time differences across ranks
             # broadcast the decision on whether to checkpoint from rank 0 to avoid possible hangs
-            skip_time = trainer.training_type_plugin.broadcast(skip_time)
+            skip_time = trainer.strategy.broadcast(skip_time)
 
         if skip_batch and skip_time:
             return
@@ -344,6 +344,10 @@ class ModelCheckpoint(Callback):
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
             "dirpath": self.dirpath,
+            "best_k_models": self.best_k_models,
+            "kth_best_model_path": self.kth_best_model_path,
+            "kth_value": self.kth_value,
+            "last_model_path": self.last_model_path,
         }
 
     def on_load_checkpoint(
@@ -351,6 +355,10 @@ class ModelCheckpoint(Callback):
     ) -> None:
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
+        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+        self.kth_value = callback_state.get("kth_value", self.kth_value)
+        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
@@ -484,7 +492,7 @@ class ModelCheckpoint(Callback):
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
-        should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
+        should_update_best_and_save = trainer.strategy.reduce_boolean_decision(should_update_best_and_save)
 
         return should_update_best_and_save
 
@@ -590,7 +598,7 @@ class ModelCheckpoint(Callback):
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
-        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
+        ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
@@ -638,7 +646,7 @@ class ModelCheckpoint(Callback):
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.last_model_path and self.last_model_path != filepath:
-            trainer.training_type_plugin.remove_checkpoint(self.last_model_path)
+            trainer.strategy.remove_checkpoint(self.last_model_path)
 
         self.last_model_path = filepath
 
@@ -663,7 +671,7 @@ class ModelCheckpoint(Callback):
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
-            trainer.training_type_plugin.remove_checkpoint(self.best_model_path)
+            trainer.strategy.remove_checkpoint(self.best_model_path)
 
         self.best_model_path = filepath
 
@@ -710,7 +718,7 @@ class ModelCheckpoint(Callback):
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if del_filepath is not None and filepath != del_filepath:
-            trainer.training_type_plugin.remove_checkpoint(del_filepath)
+            trainer.strategy.remove_checkpoint(del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
         """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML
@@ -725,4 +733,4 @@ class ModelCheckpoint(Callback):
         """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
-        return trainer.training_type_plugin.broadcast(exists)
+        return trainer.strategy.broadcast(exists)

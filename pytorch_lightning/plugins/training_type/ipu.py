@@ -23,7 +23,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -57,7 +57,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         return batch
 
 
-class IPUPlugin(ParallelPlugin):
+class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 
     def __init__(
@@ -126,14 +126,6 @@ class IPUPlugin(ParallelPlugin):
 
         super().setup(trainer)
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
-
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
-        super().pre_dispatch(trainer)
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
 
@@ -163,6 +155,12 @@ class IPUPlugin(ParallelPlugin):
         elif trainer_fn == TrainerFn.PREDICTING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
+        if len(self.optimizers) > 1:
+            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     @property
     def replication_factor(self) -> int:
