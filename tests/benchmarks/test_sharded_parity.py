@@ -19,7 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins import DDPSpawnShardedPlugin
+from pytorch_lightning.plugins import DDPSpawnShardedStrategy
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -146,7 +146,7 @@ def plugin_parity_test(
     custom_plugin_model = model_cls()
 
     trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_sharded_spawn")
-    assert isinstance(trainer.strategy, DDPSpawnShardedPlugin)
+    assert isinstance(trainer.strategy, DDPSpawnShardedStrategy)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
         trainer=trainer, model=custom_plugin_model, use_cuda=use_cuda
@@ -199,7 +199,7 @@ def plugin_parity_test(
         ),
     ],
 )
-def test_ddp_spawn_sharded_plugin(kwargs):
+def test_ddp_spawn_sharded_strategy(kwargs):
     if kwargs["gpus"] > 1:
         # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
         kwargs["max_percent_speed_diff"] = 0.25

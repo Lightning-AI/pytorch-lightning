@@ -31,7 +31,7 @@ from pytorch_lightning.plugins import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
-    DDPSpawnShardedPlugin,
+    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedPrecisionPlugin,
@@ -536,7 +536,7 @@ class AcceleratorConnector:
 
     @property
     def _is_sharded_training_type(self) -> bool:
-        return isinstance(self._training_type_plugin, (DDPShardedStrategy, DDPSpawnShardedPlugin))
+        return isinstance(self._training_type_plugin, (DDPShardedStrategy, DDPSpawnShardedStrategy))
 
     @property
     def _is_fully_sharded_training_type(self) -> bool:
@@ -724,7 +724,7 @@ class AcceleratorConnector:
             elif use_ddp_sharded:
                 ddp_strategy_cls = DDPShardedStrategy
             elif use_ddp_sharded_spawn:
-                ddp_strategy_cls = DDPSpawnShardedPlugin
+                ddp_strategy_cls = DDPSpawnShardedStrategy
             elif (
                 use_ddp_cpu_slurm
                 or use_slurm_ddp

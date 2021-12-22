@@ -42,7 +42,7 @@ from pytorch_lightning.plugins import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
-    DDPSpawnShardedPlugin,
+    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
 )
@@ -2219,7 +2219,7 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPSpawnShardedPlugin(), gpus=2),
+            dict(strategy=DDPSpawnShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED_SPAWN,
                 _device_type=_AcceleratorType.GPU,

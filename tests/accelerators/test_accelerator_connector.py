@@ -28,7 +28,7 @@ from pytorch_lightning.plugins import (
     DataParallelStrategy,
     DDP2Strategy,
     DDPShardedStrategy,
-    DDPSpawnShardedPlugin,
+    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -419,7 +419,7 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
+        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -630,7 +630,7 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("ddp2", DDP2Strategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedPlugin),
+        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
