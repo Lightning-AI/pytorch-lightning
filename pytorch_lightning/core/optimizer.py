@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import weakref
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from weakref import proxy
@@ -56,7 +57,10 @@ class LightningOptimizer:
         return self._optimizer
 
     def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
-        self._trainer = proxy(trainer)
+        if isinstance(trainer, weakref.ProxyType):
+            self._trainer = trainer
+        else:
+            self._trainer = proxy(trainer)
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
