@@ -230,7 +230,7 @@ class TrainerDataLoadingMixin(ABC):
         module = model or self.lightning_module or self.datamodule
         self.num_training_batches = (
             len(self.train_dataloader)
-            if has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module)
+            if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
 
@@ -257,7 +257,7 @@ class TrainerDataLoadingMixin(ABC):
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
                 )
         else:
-            if not has_len_all_ranks(self.train_dataloader, self.training_type_plugin, module):
+            if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
@@ -323,9 +323,7 @@ class TrainerDataLoadingMixin(ABC):
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 orig_num_batches = num_batches = (
-                    len(dataloader)
-                    if has_len_all_ranks(dataloader, self.training_type_plugin, module)
-                    else float("inf")
+                    len(dataloader) if has_len_all_ranks(dataloader, self.strategy, module) else float("inf")
                 )
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
@@ -430,7 +428,7 @@ class TrainerDataLoadingMixin(ABC):
             dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
-        self.training_type_plugin.barrier("get_dataloaders")
+        self.strategy.barrier("get_dataloaders")
         _validate_fault_tolerant_automatic(dataloader, stage)
         return dataloader
 

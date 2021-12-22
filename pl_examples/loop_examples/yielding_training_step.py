@@ -77,7 +77,7 @@ class YieldLoop(OptimizerLoop):
         # Here we are basically calling `lightning_module.training_step()`
         # and this returns a generator! The `training_step` is handled by the
         # accelerator to enable distributed training.
-        return self.trainer.training_type_plugin.training_step(*step_kwargs.values())
+        return self.trainer.strategy.training_step(*step_kwargs.values())
 
     def _training_step(self, generator):
         # required for logging
@@ -86,7 +86,7 @@ class YieldLoop(OptimizerLoop):
         # Here, instead of calling `lightning_module.training_step()`
         # we call next() on the generator!
         training_step_output = next(generator)
-        self.trainer.training_type_plugin.post_training_step()
+        self.trainer.strategy.post_training_step()
 
         model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)

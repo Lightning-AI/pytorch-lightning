@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.plugins import DDPSpawnStrategy
 from pytorch_lightning.plugins.training_type import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -121,9 +121,9 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+        if not isinstance(trainer.strategy, DDPSpawnStrategy):
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.training_type_plugin.backward.call_count == (
+            assert trainer.strategy.backward.call_count == (
                 (trainer.max_epochs - self.first_epoch) * trainer.limit_train_batches
             )
 
@@ -156,7 +156,7 @@ def train_with_swa(
         num_processes=num_processes,
     )
 
-    with mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward):
+    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
         trainer.fit(model)
 
     # check the model is the expected
@@ -326,7 +326,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     )
 
     exception_type = Exception if ddp else RuntimeError
-    backward_patch = mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward)
+    backward_patch = mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)
     with backward_patch, pytest.raises(exception_type):
         trainer.fit(model)
 
@@ -349,7 +349,7 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
         strategy=strategy,
     )
 
-    with mock.patch.object(Strategy, "backward", wraps=trainer.training_type_plugin.backward):
+    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
         trainer.fit(model, ckpt_path=checkpoint_path.as_posix())
 
 

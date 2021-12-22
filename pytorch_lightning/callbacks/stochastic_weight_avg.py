@@ -152,7 +152,7 @@ class StochasticWeightAveraging(Callback):
         optimizers = trainer.optimizers
         lr_schedulers = trainer.lr_schedulers
 
-        if isinstance(trainer.training_type_plugin, (DDPFullyShardedStrategy, DeepSpeedStrategy)):
+        if isinstance(trainer.strategy, (DDPFullyShardedStrategy, DeepSpeedStrategy)):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
         if len(optimizers) != 1:

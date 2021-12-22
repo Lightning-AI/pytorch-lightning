@@ -15,13 +15,11 @@ import os
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin, TPUSpawnStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.plugins import CheckpointIO, SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
 
@@ -48,7 +46,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
     )
@@ -67,7 +65,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDevicePlugin(device),
+        strategy=SingleDeviceStrategy(device),
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
@@ -80,11 +78,3 @@ def test_checkpoint_plugin_called(tmpdir):
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
     checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
-
-
-def test_no_checkpoint_io_plugin_support():
-    with pytest.raises(MisconfigurationException, match="must be a `XLA"):
-        TPUSpawnStrategy(checkpoint_io=CustomCheckpointIO())
-
-    with pytest.raises(MisconfigurationException, match="must be a `XLA"):
-        TPUSpawnStrategy().checkpoint_io = CustomCheckpointIO()

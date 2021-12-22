@@ -260,7 +260,7 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
 
     num_batches = 128 / batch_size
     for dl in (train_dl, val_dl, test_dl):
-        if has_len_all_ranks(dl, trainer.training_type_plugin, model):
+        if has_len_all_ranks(dl, trainer.strategy, model):
             assert len(dl) == num_batches
         else:
             assert sum(1 for _ in dl) == num_batches
@@ -759,7 +759,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     # with __len__ defined
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
-    assert has_len_all_ranks(dataloader, trainer.training_type_plugin, model)
+    assert has_len_all_ranks(dataloader, trainer.strategy, model)
     assert has_iterable_dataset(dataloader)
     with pytest.warns(UserWarning, match="Your `IterableDataset` has `__len__` defined."):
         trainer.validate(model, dataloaders=[dataloader])
@@ -773,7 +773,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     # without __len__ defined
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     dataloader = DataLoader(IterableWithoutLen(), batch_size=16)
-    assert not has_len_all_ranks(dataloader, trainer.training_type_plugin, model)
+    assert not has_len_all_ranks(dataloader, trainer.strategy, model)
     assert has_iterable_dataset(dataloader)
     trainer.validate(model, dataloaders=dataloader)
     trainer.fit(model, train_dataloaders=dataloader, val_dataloaders=[dataloader])
