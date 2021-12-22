@@ -70,6 +70,6 @@ __all__ = [
 ]
 
 FILE_ROOT = Path(__file__).parent
-TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"
+TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.strategies"
 
 call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

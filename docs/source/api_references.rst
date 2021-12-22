@@ -136,10 +136,10 @@ Prediction
 Plugins API
 -----------
 
-Training Type Plugins
-^^^^^^^^^^^^^^^^^^^^^
+Training Strategies
+^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.strategies
 
 .. autosummary::
     :toctree: api

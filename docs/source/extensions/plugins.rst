@@ -15,7 +15,7 @@ depending on the provided Trainer arguments. For example:
 .. code-block:: python
 
     # accelerator: GPUAccelerator
-    # training type: DDPStrategy
+    # training strategy: DDPStrategy
     # precision: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
@@ -96,10 +96,10 @@ The full list of built-in plugins is listed below.
 ----------
 
 
-Training Type Plugins
----------------------
+Training Strategies
+-------------------
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.strategies
 
 .. autosummary::
     :nosignatures:
