@@ -24,6 +24,13 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDP2Strategy,
@@ -34,13 +41,6 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
-)
-from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
