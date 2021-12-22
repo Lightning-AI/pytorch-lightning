@@ -18,5 +18,6 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 def on_colab_kaggle() -> bool:
     rank_zero_deprecation(
         "`pl.plugins.training_type.utils.on_colab_kaggle` is deprecated in v1.6 and will be removed in v1.8."
-        " Use `pl.strategies.utils.on_colab_kaggle` instead.")
+        " Use `pl.strategies.utils.on_colab_kaggle` instead."
+    )
     return _on_colab_kaggle()

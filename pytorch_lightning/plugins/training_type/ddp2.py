@@ -22,4 +22,3 @@ class DDP2Plugin(DDP2Strategy):
             " Use `pl.strategies.ddp2.DDP2Strategy` instead."
         )
         super().__init__(*args, **kwargs)
-
