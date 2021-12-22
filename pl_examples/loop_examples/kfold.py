@@ -119,7 +119,7 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 
 
 class EnsembleVotingModel(LightningModule):
-    def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]):
+    def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]) -> None:
         super().__init__()
         # Create `num_folds` models with their associated fold weights
         self.models = torch.nn.ModuleList([model_cls.load_from_checkpoint(p) for p in checkpoint_paths])
@@ -162,7 +162,7 @@ class EnsembleVotingModel(LightningModule):
 
 
 class KFoldLoop(Loop):
-    def __init__(self, num_folds: int, export_path: str):
+    def __init__(self, num_folds: int, export_path: str) -> None:
         super().__init__()
         self.num_folds = num_folds
         self.current_fold: int = 0
@@ -172,7 +172,7 @@ class KFoldLoop(Loop):
     def done(self) -> bool:
         return self.current_fold >= self.num_folds
 
-    def connect(self, fit_loop: FitLoop):
+    def connect(self, fit_loop: FitLoop) -> None:
         self.fit_loop = fit_loop
 
     def reset(self) -> None:
@@ -243,11 +243,11 @@ class KFoldLoop(Loop):
 
 
 class LitImageClassifier(ImageClassifier):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.val_acc = Accuracy()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: Any, batch_idx: int) -> None:
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
