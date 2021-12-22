@@ -55,6 +55,10 @@ class Tqdm(_tqdm):
             n += "0" * (_PAD_SIZE - len(n))
         return n
 
+    def update_n(self, value: int) -> None:
+        self.n = value
+        self.refresh()
+
 
 class TQDMProgressBar(ProgressBarBase):
     r"""
@@ -232,11 +236,13 @@ class TQDMProgressBar(ProgressBarBase):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         if self._should_update(self.train_batch_idx):
             self.main_progress_bar.n = self.train_batch_idx
+            # no need for `update_n` because `set_postfix` will refresh
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
             self.main_progress_bar.n = self.train_batch_idx + self.val_batch_idx
+            # no need for `update_n` because `set_postfix` will refresh
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -251,13 +257,13 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_update(self.val_batch_idx):
-            self.val_progress_bar.n = self.val_batch_idx
+            self.val_progress_bar.update_n(self.val_batch_idx)
             if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
-                self.main_progress_bar.n = self.train_batch_idx + self.val_batch_idx
+                self.main_progress_bar.update_n(self.train_batch_idx + self.val_batch_idx)
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
-            self.val_progress_bar.n = self.val_batch_idx
+            self.val_progress_bar.update_n(self.val_batch_idx)
 
     def on_validation_end(self, trainer, pl_module):
         if self.main_progress_bar is not None and trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
@@ -270,11 +276,11 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_update(self.test_batch_idx):
-            self.test_progress_bar.n = self.test_batch_idx
+            self.test_progress_bar.update_n(self.test_batch_idx)
 
     def on_test_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
-            self.test_progress_bar.n = self.test_batch_idx
+            self.test_progress_bar.update_n(self.test_batch_idx)
 
     def on_test_end(self, trainer, pl_module):
         self.test_progress_bar.close()
@@ -285,7 +291,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_update(self.predict_batch_idx):
-            self.predict_progress_bar.n = self.predict_batch_idx
+            self.predict_progress_bar.update_n(self.predict_batch_idx)
 
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
