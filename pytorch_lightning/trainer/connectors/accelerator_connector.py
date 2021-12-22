@@ -403,7 +403,7 @@ class AcceleratorConnector:
         if self._checkpoint_io is not None:
             self._strategy.checkpoint_io = self._checkpoint_io
         if (
-                isinstance(self._strategy_flag, Strategy) and self._strategy_flag._precision_plugin is None
+            isinstance(self._strategy_flag, Strategy) and self._strategy_flag._precision_plugin is None
         ) or not isinstance(self._strategy_flag, Strategy):
             precision_plugin = self.precision_plugin
             if precision_plugin is not None:
