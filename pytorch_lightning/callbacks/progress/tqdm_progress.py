@@ -216,11 +216,9 @@ class TQDMProgressBar(ProgressBarBase):
         self.val_progress_bar.close()
 
     def on_train_start(self, trainer, pl_module):
-        super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
     def on_train_epoch_start(self, trainer, pl_module):
-        super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf") and total_val_batches != float("inf"):
@@ -228,43 +226,38 @@ class TQDMProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, total=total_batches, current=self.train_batch_idx)
+        self.main_progress_bar.total = convert_inf(total_batches)
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
         if self._should_update(self.train_batch_idx):
-            self._update_bar(self.main_progress_bar)
+            self.main_progress_bar.n = self.train_batch_idx
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
-            self._update_bar(self.main_progress_bar)
+            self.main_progress_bar.n = self.train_batch_idx + self.val_batch_idx
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.main_progress_bar.close()
 
     def on_validation_start(self, trainer, pl_module):
-        super().on_validation_start(trainer, pl_module)
         if trainer.sanity_checking:
-            reset(self.val_progress_bar, total=sum(trainer.num_sanity_val_batches), current=self.val_batch_idx)
+            self.val_progress_bar.total = sum(trainer.num_sanity_val_batches)
         else:
-            if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
-                self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
-            reset(self.val_progress_bar, total=self.total_val_batches, current=self.val_batch_idx)
+            self.val_progress_bar.total = self.total_val_batches
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.val_batch_idx):
-            self._update_bar(self.val_progress_bar)
+            self.val_progress_bar.n = self.val_batch_idx
             if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
-                self._update_bar(self.main_progress_bar)
+                self.main_progress_bar.n = self.train_batch_idx + self.val_batch_idx
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
-            self._update_bar(self.val_progress_bar)
+            self.val_progress_bar.n = self.val_batch_idx
 
     def on_validation_end(self, trainer, pl_module):
         if self.main_progress_bar is not None and trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
@@ -272,31 +265,27 @@ class TQDMProgressBar(ProgressBarBase):
         self.val_progress_bar.close()
 
     def on_test_start(self, trainer, pl_module):
-        super().on_test_start(trainer, pl_module)
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.test_batch_idx):
-            self._update_bar(self.test_progress_bar)
+            self.test_progress_bar.n = self.test_batch_idx
 
     def on_test_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled:
-            self._update_bar(self.test_progress_bar)
+            self.test_progress_bar.n = self.test_batch_idx
 
     def on_test_end(self, trainer, pl_module):
         self.test_progress_bar.close()
 
     def on_predict_epoch_start(self, trainer, pl_module):
-        super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar = self.init_predict_tqdm()
         self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.predict_batch_idx):
-            self._update_bar(self.predict_progress_bar)
+            self.predict_progress_bar.n = self.predict_batch_idx
 
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
@@ -322,18 +311,6 @@ class TQDMProgressBar(ProgressBarBase):
     def _should_update(self, idx: int) -> bool:
         return self.is_enabled and (idx % self.refresh_rate == 0)
 
-    def _update_bar(self, bar: Optional[Tqdm]) -> None:
-        """Updates the bar by the refresh rate without overshooting."""
-        if bar is None:
-            return
-        if bar.total is not None:
-            delta = min(self.refresh_rate, bar.total - bar.n)
-        else:
-            # infinite / unknown size
-            delta = self.refresh_rate
-        if delta > 0:
-            bar.update(delta)
-
     @staticmethod
     def _resolve_refresh_rate(refresh_rate: int) -> int:
         if os.getenv("COLAB_GPU") and refresh_rate == 1:
@@ -351,10 +328,3 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     if x is None or math.isinf(x) or math.isnan(x):
         return None
     return x
-
-
-def reset(bar: Tqdm, total: Optional[int] = None, current: int = 0) -> None:
-    """Resets the tqdm bar to the desired position and sets a new total, unless it is disabled."""
-    if not bar.disable:
-        bar.reset(total=convert_inf(total))
-        bar.n = current

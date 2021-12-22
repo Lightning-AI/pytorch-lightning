@@ -1275,7 +1275,7 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self._run_sanity_check(self.lightning_module)
+        self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1316,12 +1316,14 @@ class Trainer(
         with torch.no_grad():
             return self.predict_loop.run()
 
-    def _run_sanity_check(self, ref_model):
+    def _run_sanity_check(self) -> None:
+        val_loop = self.fit_loop.epoch_loop.val_loop
+
         should_sanity_check = (
             self.enable_validation
             and self.num_sanity_val_steps > 0
             # do not sanity check if restarting because it would mess up the loaded state
-            and not self._evaluation_loop.restarting
+            and not val_loop.restarting
         )
 
         # run tiny validation (if validation defined)
@@ -1337,17 +1339,22 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_start")
 
             # reload dataloaders
-            self._evaluation_loop._reload_evaluation_dataloaders()
+            val_loop._reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self._evaluation_loop.run()
+                val_loop.run()
 
             self._call_callback_hooks("on_sanity_check_end")
 
             # reset logger connector
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
+
+            # TODO(@carmocca): This should apply to all sub-loops, all progress instances and reset both
+            # current and total for progress tracking
+            val_loop.dataloader_progress.reset_on_run()
+            val_loop.epoch_loop.batch_progress.reset_on_run()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
