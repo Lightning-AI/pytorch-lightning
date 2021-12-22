@@ -14,7 +14,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins import SingleDeviceStrategy
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -22,7 +22,7 @@ from tests.helpers.runif import RunIf
 def test_single_cpu():
     """Tests if on_gpu and on_tpu is set correctly for single cpu plugin."""
     trainer = Trainer()
-    assert isinstance(trainer.strategy, SingleDevicePlugin)
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert not trainer.strategy.on_gpu
     assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cpu")
@@ -40,7 +40,7 @@ def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU plugin."""
     trainer = Trainer(gpus=1, fast_dev_run=True)
     # assert training type plugin attributes for device setting
-    assert isinstance(trainer.strategy, SingleDevicePlugin)
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert trainer.strategy.on_gpu
     assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cuda:0")

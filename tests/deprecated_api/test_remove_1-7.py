@@ -27,7 +27,7 @@ from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.plugins import SingleDevicePlugin
+from pytorch_lightning.plugins import SingleDeviceStrategy
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -545,7 +545,7 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
 
 
 def test_v1_7_0_post_dispatch_hook():
-    class CustomPlugin(SingleDevicePlugin):
+    class CustomPlugin(SingleDeviceStrategy):
         def post_dispatch(self, trainer):
             pass
 
