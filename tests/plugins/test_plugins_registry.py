@@ -17,12 +17,12 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import (
     CheckpointIO,
     DDPFullyShardedStrategy,
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DDPSpawnShardedPlugin,
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DDPSpawnStrategy,
     DDPStrategy,
-    DeepSpeedPlugin,
-    TPUSpawnPlugin,
+    DeepSpeedStrategy,
+    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from tests.helpers.runif import RunIf
@@ -69,7 +69,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == init_params
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
+    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
@@ -78,7 +78,7 @@ def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
     trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, precision=16)
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+    assert isinstance(trainer.training_type_plugin, DeepSpeedStrategy)
 
 
 def test_tpu_spawn_debug_plugins_registry(tmpdir):
@@ -87,11 +87,11 @@ def test_tpu_spawn_debug_plugins_registry(tmpdir):
 
     assert plugin in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnPlugin
+    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnStrategy
 
     trainer = Trainer(strategy=plugin)
 
-    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert isinstance(trainer.training_type_plugin, TPUSpawnStrategy)
 
 
 def test_fsdp_strategys_registry(tmpdir):
@@ -110,9 +110,9 @@ def test_fsdp_strategys_registry(tmpdir):
     "plugin_name, plugin",
     [
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnPlugin),
-        ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedPlugin),
-        ("ddp_sharded_find_unused_parameters_false", DDPShardedPlugin),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedStrategy),
+        ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
     ],
 )
 def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):

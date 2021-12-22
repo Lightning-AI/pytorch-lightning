@@ -54,7 +54,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class DDPSpawnPlugin(ParallelStrategy):
+class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 

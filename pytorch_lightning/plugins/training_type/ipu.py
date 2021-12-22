@@ -57,7 +57,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         return batch
 
 
-class IPUPlugin(ParallelStrategy):
+class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 
     def __init__(

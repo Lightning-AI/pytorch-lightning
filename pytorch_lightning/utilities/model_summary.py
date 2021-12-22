@@ -14,7 +14,6 @@
 
 import contextlib
 import logging
-import sys
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -267,10 +266,8 @@ class ModelSummary:
 
         if trainer is not None:
             forward_context = trainer.precision_plugin.forward_context()
-        elif sys.version_info >= (3, 7):
-            forward_context = contextlib.nullcontext()
         else:
-            forward_context = contextlib.suppress()
+            forward_context = contextlib.nullcontext()
 
         with torch.no_grad(), forward_context:
             # let the model hooks collect the input- and output shapes

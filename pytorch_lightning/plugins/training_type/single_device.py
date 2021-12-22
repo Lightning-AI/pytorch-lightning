@@ -22,8 +22,8 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Strateg
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
-class SingleDevicePlugin(Strategy):
-    """Plugin that handles communication on a single device."""
+class SingleDeviceStrategy(Strategy):
+    """Strategy that handles communication on a single device."""
 
     def __init__(
         self,

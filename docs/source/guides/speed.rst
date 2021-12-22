@@ -44,8 +44,8 @@ GPU training
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
 
 * :class:`~pytorch_lightning.plugins.training_type.DDPStrategy`
-* :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
-* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
+* :class:`~pytorch_lightning.plugins.training_type.DDPShardedStrategy`
+* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedStrategy`
 
 .. code-block:: python
 
@@ -67,7 +67,7 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.plugins.training_type.DataParallelPlugin` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.plugins.training_type.DataParallelStrategy` performs three GPU transfers for EVERY batch:
 
 1. Copy model to device.
 2. Copy data to device.
@@ -95,11 +95,11 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPSpawnPlugin
+    from pytorch_lightning.plugins import DDPSpawnStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPSpawnPlugin(find_unused_parameters=False),
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters

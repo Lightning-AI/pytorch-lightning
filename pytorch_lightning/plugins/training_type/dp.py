@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
 
-class DataParallelPlugin(ParallelStrategy):
+class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
