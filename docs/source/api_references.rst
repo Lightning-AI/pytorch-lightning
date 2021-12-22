@@ -50,11 +50,9 @@ Strategy API
     DDPStrategy
     DDP2Strategy
     DDPShardedStrategy
-    DDPFullyShardedStrategy
     DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DeepSpeedStrategy
-    IPUStrategy
     HorovodStrategy
     SingleTPUStrategy
     TPUSpawnStrategy

@@ -112,14 +112,13 @@ Training Strategies
     DDPStrategy
     DDP2Strategy
     DDPShardedStrategy
-    DDPFullyShardedStrategy
     DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DeepSpeedStrategy
-    IPUStrategy
     HorovodStrategy
     SingleTPUStrategy
     TPUSpawnStrategy
+
 
 
 Precision Plugins
