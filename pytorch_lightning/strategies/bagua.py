@@ -10,7 +10,8 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+
+from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
@@ -37,7 +38,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         return super().forward(*inputs, **kwargs)
 
 
-class BaguaPlugin(DDPPlugin):
+class BaguaStrategy(DDPStrategy):
 
     distributed_backend = _StrategyType.BAGUA
 
