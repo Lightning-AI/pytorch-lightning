@@ -88,6 +88,10 @@ class BaguaStrategy(DDPStrategy):
         model = LightningBaguaModule(self.model)
         self.configure_bagua_ddp(model)
 
+        # start the background communication for async algorithm
+        if self._bagua_algorithm == "async":
+            self.model.bagua_algorithm.resume(self.model)
+
     def _init_bagua_distributed(self):
 
         self._set_node_environment_variables()
@@ -134,14 +138,7 @@ class BaguaStrategy(DDPStrategy):
             gradient_as_bucket_view=self._bagua_gradient_as_bucket_view,
         )
 
-    def start_training(self, trainer: "pl.Trainer") -> Any:
-        # start the background communication for async algorithm
-        if self._bagua_algorithm == "async":
-            self.model.bagua_algorithm.resume(self.model)
-
-        return trainer.run_stage()
-
-    def train_step(self, *args, **kwargs):
+    def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
