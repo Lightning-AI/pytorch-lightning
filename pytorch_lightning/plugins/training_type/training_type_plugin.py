@@ -21,6 +21,6 @@ class TrainingTypePlugin(Strategy, ABC):
     def __init__(self, *args, **kwargs) -> None:
         rank_zero_deprecation(
             "The `pl.plugins.training_type.training_type_plugin.TrainingTypePlugin` is deprecated in v1.6 and will"
-            " be removed in v1.8. Use `pl.strategies.training_type_plugin.Strategy` instead."
+            " be removed in v1.8. Use `pl.strategies.strategy.Strategy` instead."
         )
         super().__init__(*args, **kwargs)
