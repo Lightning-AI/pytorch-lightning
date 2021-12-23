@@ -78,7 +78,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
-            log.verbose("`checkpoint_path` not specified. Skipping checkpoint loading.")
+            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")

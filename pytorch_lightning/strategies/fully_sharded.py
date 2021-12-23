@@ -147,7 +147,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        log.verbose(f"{self.__class__.__name__}: entered model_sharded_context.")
+        log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
         precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
@@ -169,10 +169,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
         ):
             yield
 
-        log.verbose(f"{self.__class__.__name__}: exiting model_sharded_context.")
+        log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
 
     def configure_ddp(self) -> None:
-        log.verbose(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
+        log.detail(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
@@ -184,7 +184,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
-        log.verbose(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 

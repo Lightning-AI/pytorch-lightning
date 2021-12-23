@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from abc import ABC
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Type, Union
@@ -23,6 +24,9 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+
+
+log = logging.getLogger(__name__)
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -384,6 +388,7 @@ class TrainerCallbackHookMixin(ABC):
             "`TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.8."
         )
         for callback in self.callbacks:
+            log.detail(f"calling callback {callback.__class__.__name__}.on_train_batch_start")
             if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
             else:
@@ -401,6 +406,7 @@ class TrainerCallbackHookMixin(ABC):
             "`TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.8."
         )
         for callback in self.callbacks:
+            log.detail(f"calling callback {callback.__class__.__name__}.on_train_batch_end")
             if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
             else:
@@ -597,6 +603,7 @@ class TrainerCallbackHookMixin(ABC):
         )
         callback_states = {}
         for callback in self.callbacks:
+            log.detail(f"calling callback {callback.__class__.__name__}.on_save_checkpoint")
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 callback_states[callback.state_key] = state
@@ -631,6 +638,7 @@ class TrainerCallbackHookMixin(ABC):
             )
 
         for callback in self.callbacks:
+            log.detail(f"calling callback {callback.__class__.__name__}.on_load_checkpoint")
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)

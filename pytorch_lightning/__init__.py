@@ -1,20 +1,21 @@
 """Root package info."""
 
 import logging
+from typing import Any
 
 from pytorch_lightning.__about__ import *  # noqa: F401, F403
 
-VERBOSE = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
+DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
 
 
-def verbose(self, message, *args, **kws):
-    if self.isEnabledFor(VERBOSE):
-        self._log(VERBOSE, message, args, **kws)
+def detail(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
+    if self.isEnabledFor(DETAIL):
+        self._log(DETAIL, message, *args, **kwargs)
 
 
-logging.addLevelName(VERBOSE, "VERBOSE")
-logging.verbose = verbose
-logging.Logger.verbose = verbose
+logging.addLevelName(DETAIL, "DETAIL")
+logging.detail = detail
+logging.Logger.detail = detail
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)

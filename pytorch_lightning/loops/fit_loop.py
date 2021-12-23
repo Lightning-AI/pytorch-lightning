@@ -208,6 +208,7 @@ class FitLoop(Loop[None]):
 
         # reset train dataloader
         if not self._is_fresh_start_epoch and self.trainer._data_connector._should_reload_train_dl:
+            log.detail("resetting train dataloader")
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
@@ -240,6 +241,7 @@ class FitLoop(Loop[None]):
 
     def advance(self) -> None:  # type: ignore[override]
         """Runs one whole epoch."""
+        log.detail("advancing fit loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
@@ -300,6 +302,7 @@ class FitLoop(Loop[None]):
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
+        log.detail("fit loop ended")
         # NOTE: the current_epoch is already incremented
         # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
         # To simulate that current behavior, we decrement here.

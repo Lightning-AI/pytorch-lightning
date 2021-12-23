@@ -432,6 +432,7 @@ class Trainer(
         """
         super().__init__()
         Trainer._log_api_event("init")
+        log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
         gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
@@ -744,6 +745,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> None:
         Trainer._log_api_event("fit")
+        log.detail("fitting")
 
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
@@ -821,6 +823,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("validate")
+        log.detail("validating")
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -906,6 +909,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("test")
+        log.detail("testing")
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -992,6 +996,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("predict")
+        log.detail("predicting")
 
         self.state.fn = TrainerFn.PREDICTING
         self.state.status = TrainerStatus.RUNNING
@@ -1107,19 +1112,23 @@ class Trainer(
         verify_loop_configurations(self)
 
         # hook
+        log.detail("preparing data")
         self._data_connector.prepare_data()
 
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
+        log.detail("setting up strategy environment")
         self.strategy.setup_environment()
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
+            log.detail(f"restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._restore_modules_and_callbacks(ckpt_path)
 
+        log.detail("configuring sharded model")
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
 
         # ----------------------------
@@ -1165,14 +1174,17 @@ class Trainer(
         self._log_hyperparams()
 
         if self.strategy.restore_checkpoint_after_setup:
+            log.detail(f"restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
+        log.detail("restoring training state")
         self.checkpoint_connector.restore_training_state()
 
         self.checkpoint_connector.resume_end()
 
         results = self._run_stage()
+        log.detail("tearing down trainer")
         self._teardown()
 
         # ----------------------------
@@ -1183,6 +1195,7 @@ class Trainer(
             self._call_callback_hooks("on_fit_end")
             self._call_lightning_module_hook("on_fit_end")
 
+        log.detail("calling teardown hooks")
         self._call_teardown_hook()
 
         if self.state.status != TrainerStatus.INTERRUPTED:
