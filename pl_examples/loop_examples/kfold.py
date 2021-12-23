@@ -104,10 +104,8 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset)
 
-    def __new__(cls, *args, **kwargs):
-        obj = object.__new__(cls)
-        LightningDataModule.__init__(obj, *args, **kwargs)
-        return obj
+    def __post_init__(cls):
+        super().__init__()
 
 
 #############################################################################################
@@ -206,7 +204,7 @@ class KFoldLoop(Loop):
         # restore the original weights + optimizers and schedulers.
         self.trainer.lightning_module.load_state_dict(self.lightning_module_state_dict)
         self.trainer.strategy.setup_optimizers(self.trainer)
-        self.replace(fit_loop=FitLoop(self.fit_loop.min_epochs, self.fit_loop.max_epochs))
+        self.replace(fit_loop=FitLoop)
 
     def on_run_end(self) -> None:
         """Used to compute the performance of the ensemble model on the test set."""
