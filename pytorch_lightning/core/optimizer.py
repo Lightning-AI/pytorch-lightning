@@ -255,9 +255,8 @@ def _configure_schedulers(
     """Convert each scheduler into dict structure with relevant information."""
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
-    # TODO: move is_manual_optimization check out of for loop
-    for scheduler in schedulers:
-        if is_manual_optimization:
+    if is_manual_optimization:
+        for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
                 keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
@@ -273,7 +272,8 @@ def _configure_schedulers(
                 lr_schedulers.append({**default_config, **scheduler})
             else:
                 lr_schedulers.append({**default_config, "scheduler": scheduler})
-        else:
+    else:
+        for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys
                 extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]

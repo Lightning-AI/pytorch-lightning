@@ -562,11 +562,21 @@ class DeepSpeedStrategy(DDPStrategy):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Tuple[List, List, List]:
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        """Creates optimizers and schedulers.
+
+        Args:
+            trainer: the Trainer, these optimizers should be connected to
+        """
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
-        return [], [], []  # empty optimizers, schedulers and frequencies
+        # empty optimizers, schedulers and frequencies
+        self.optimizers = []
+        self.lr_schedulers = []
+        self.optimizer_frequencies = []
 
     @property
     def handles_gradient_accumulation(self) -> bool:
