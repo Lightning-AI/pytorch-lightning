@@ -10,7 +10,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
@@ -22,7 +22,8 @@ if _BAGUA_AVAILABLE:
     from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
     from bagua.torch_api.communication import allreduce_inplace, barrier, broadcast_object, is_initialized, ReduceOp
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
-
+else:
+    ReduceOp = None
 
 log = logging.getLogger(__name__)
 
