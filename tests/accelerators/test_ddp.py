@@ -127,9 +127,9 @@ def test_ddp_wrapper(tmpdir, precision):
 
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
-            assert trainer.training_type_plugin.model.parameters_to_ignore == ("something")
-            assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ("something")
+            assert isinstance(trainer.strategy.model, DistributedDataParallel)
+            assert trainer.strategy.model.parameters_to_ignore == ("something")
+            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == ("something")
 
     model = CustomModel()
     trainer = Trainer(

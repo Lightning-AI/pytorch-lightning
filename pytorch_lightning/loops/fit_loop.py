@@ -17,7 +17,7 @@ from typing import Optional
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -136,7 +136,7 @@ class FitLoop(Loop):
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
-    def _results(self) -> ResultCollection:
+    def _results(self) -> _ResultCollection:
         if self.trainer.training:
             return self.epoch_loop._results
         if self.trainer.validating:
@@ -193,7 +193,9 @@ class FitLoop(Loop):
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
-        self.trainer.call_hook("on_train_start")
+        self.trainer._call_callback_hooks("on_train_start")
+        self.trainer._call_lightning_module_hook("on_train_start")
+        self.trainer._call_strategy_hook("on_train_start")
 
     def on_advance_start(self) -> None:  # type: ignore[override]
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
@@ -221,7 +223,7 @@ class FitLoop(Loop):
 
     def advance(self) -> None:  # type: ignore[override]
         """Runs one whole epoch."""
-        dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
@@ -248,10 +250,12 @@ class FitLoop(Loop):
         self.current_epoch = max(self.current_epoch - 1, 0)
 
         # hook
-        self.trainer.call_hook("on_train_end")
+        self.trainer._call_callback_hooks("on_train_end")
+        self.trainer._call_lightning_module_hook("on_train_end")
+        self.trainer._call_strategy_hook("on_train_end")
 
         # give accelerators a chance to finish
-        self.trainer.training_type_plugin.on_train_end()
+        self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
         self.epoch_loop.teardown()

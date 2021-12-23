@@ -43,9 +43,9 @@ GPU training
 
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
 
-* :class:`~pytorch_lightning.plugins.training_type.DDPPlugin`
-* :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
-* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
+* :class:`~pytorch_lightning.strategies.DDPStrategy`
+* :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
+* :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
 
@@ -67,39 +67,39 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.plugins.training_type.DataParallelPlugin` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.strategies.DataParallelStrategy` performs three GPU transfers for EVERY batch:
 
 1. Copy model to device.
 2. Copy data to device.
 3. Copy outputs of each device back to main device.
 
-Whereas :class:`~pytorch_lightning.plugins.training_type.DDPPlugin` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
+Whereas :class:`~pytorch_lightning.strategies.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
-When using DDP plugins, set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When using DDP strategies, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 This by default comes with a performance hit, and can be disabled in most cases.
 
 .. tip::
-    It applies to all DDP plugins that support ``find_unused_parameters`` as input.
+    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.plugins import DDPStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPPlugin(find_unused_parameters=False),
+        strategy=DDPStrategy(find_unused_parameters=False),
     )
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPSpawnPlugin
+    from pytorch_lightning.plugins import DDPSpawnStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPSpawnPlugin(find_unused_parameters=False),
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters
@@ -336,7 +336,7 @@ If you don't want to check 100% of the training/validation/test set set these fl
 
 If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
 
-.. note:: ``limit_train_batches``, ``limit_val_batches`` and ``limit_test_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches`` > 0. ``limit_val_batches`` will be ignored if ``fast_dev_run=True``.
+.. note:: ``limit_train_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches > 0`` and will turn off validation.
 
 .. note:: If you set ``limit_val_batches=0``, validation will be disabled.
 

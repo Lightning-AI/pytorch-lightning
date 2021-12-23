@@ -118,7 +118,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.TrainingTypePlugin",
+    training_type: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or

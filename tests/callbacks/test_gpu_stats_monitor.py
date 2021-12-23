@@ -85,7 +85,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
         trainer.fit(model)
 
-    assert log_metrics_mock.mock_calls[2:] == [
+    assert log_metrics_mock.mock_calls[1:] == [
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=0),
         mock.call({"batch_time/inter_step (ms)": mock.ANY}, step=1),
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=1),

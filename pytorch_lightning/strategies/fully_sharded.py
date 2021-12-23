@@ -16,25 +16,28 @@ from typing import Dict, Generator, List, Optional
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 
-class DDPFullyShardedPlugin(DDPPlugin):
+class DDPFullyShardedStrategy(DDPStrategy):
 
     distributed_backend = _StrategyType.DDP_FULLY_SHARDED
 
     def __init__(
         self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         cpu_offload: bool = False,
         flatten_parameters: bool = True,
         reshard_after_forward: bool = True,
@@ -96,6 +99,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         """
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -124,6 +128,19 @@ class DDPFullyShardedPlugin(DDPPlugin):
                 "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        self._move_optimizer_state()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        self.configure_ddp()
+        self.barrier()
+        self.setup_optimizers(trainer)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -159,32 +176,25 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # setup optimizers after fully sharded has wrapped the lightning module
         self.setup_optimizers(self.lightning_module.trainer)
 
-    def pre_dispatch(self) -> None:
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-        self.configure_ddp()
-        self.barrier()
-
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
-    @property
-    def setup_optimizers_in_pre_dispatch(self) -> bool:
-        # Setup optimizers after the Fully Sharded Model has been made
-        return True
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.train_step_context():
+            return self.model.training_step(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model.validation_step(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model.test_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         pass

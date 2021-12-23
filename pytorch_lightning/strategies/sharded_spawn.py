@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Optional, Tuple
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import _FakeQueue, DDPSpawnPlugin
+from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -29,19 +28,18 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
-    from fairscale.optim.grad_scaler import ShardedGradScaler
 
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
-class DDPSpawnShardedPlugin(DDPSpawnPlugin):
+class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
     distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
-        self._model, optimizers = self._setup_model_and_optimizers(
+        self.model, optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
@@ -103,10 +101,10 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
-                "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
+                "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
-        return unwrap_lightning_module_sharded(self._model) if self._model is not None else None
+        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
@@ -114,18 +112,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     def post_training_step(self):
         pass
 
-    def new_process(self, trainer: "pl.Trainer") -> Optional[Tuple[Optional[str], Optional[str], Any, _FakeQueue]]:
-        # Ensure that the scaler points to the correct process group
-        # which is re-initialized in a new process
-        if isinstance(self.precision_plugin, ShardedNativeMixedPrecisionPlugin):
-            self._precision_plugin.scaler = ShardedGradScaler()
-        return super().new_process(trainer)
-
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register(
             "ddp_sharded_spawn_find_unused_parameters_false",
             cls,
-            description="DDP Spawn Sharded Plugin with `find_unused_parameters` as False",
+            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )

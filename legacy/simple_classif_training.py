@@ -55,6 +55,9 @@ class SklearnDataModule(LightningDataModule):
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
             self._x, self._y, test_size=0.20, random_state=42
         )
+        self.x_train, self.x_predict, self.y_train, self.y_predict = train_test_split(
+            self._x, self._y, test_size=0.20, random_state=42
+        )
         self.x_train, self.x_valid, self.y_train, self.y_valid = train_test_split(
             self.x_train, self.y_train, test_size=0.40, random_state=42
         )
@@ -74,6 +77,11 @@ class SklearnDataModule(LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type), batch_size=self.batch_size
+        )
+
+    def predict_dataloader(self):
+        return DataLoader(
+            SklearnDataset(self.x_predict, self.y_predict, self._x_type, self._y_type), batch_size=self.batch_size
         )
 
 
