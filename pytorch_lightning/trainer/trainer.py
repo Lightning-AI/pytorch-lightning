@@ -43,12 +43,9 @@ from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    DDPSpawnStrategy,
     NativeMixedPrecisionPlugin,
-    ParallelStrategy,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
@@ -59,6 +56,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
+from pytorch_lightning.strategies import DDPSpawnStrategy, ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
