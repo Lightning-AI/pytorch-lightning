@@ -25,6 +25,21 @@ from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
+from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
+from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
+from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
 
 def test_v1_8_0_deprecated_distributed_type_enum():
@@ -256,3 +271,25 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
     trainer = Trainer()
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         trainer.training_type_plugin
+
+
+@pytest.mark.parametrize("cls", [
+    DDPPlugin,
+    DDP2Plugin,
+    DDPSpawnPlugin,
+    DeepSpeedPlugin,
+    DataParallelPlugin,
+    DDPFullyShardedPlugin,
+    HorovodPlugin,
+    IPUPlugin,
+    # ParallelPlugin,
+    DDPShardedPlugin,
+    DDPSpawnShardedPlugin,
+    SingleDevicePlugin,
+    SingleTPUPlugin,
+    TPUSpawnPlugin,
+    #TrainingTypePlugin,
+])
+def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
+    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+        cls()
