@@ -24,7 +24,14 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import (
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
+from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDP2Strategy,
     DDPShardedStrategy,
@@ -33,14 +40,7 @@ from pytorch_lightning.plugins import (
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
-    PrecisionPlugin,
     SingleDeviceStrategy,
-)
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
 )
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -97,7 +97,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -122,7 +122,7 @@ def test_accelerator_choice_ddp_slurm(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp2_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -147,7 +147,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -171,7 +171,7 @@ def test_accelerator_choice_ddp_te(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp2_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -186,7 +186,7 @@ def test_accelerator_choice_ddp2_te(*_):
     os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_cpu_te(*_):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -209,7 +209,7 @@ def test_accelerator_choice_ddp_cpu_te(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_kubeflow(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
@@ -231,7 +231,7 @@ def test_accelerator_choice_ddp_kubeflow(*_):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_cpu_kubeflow(*_):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=1)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -253,7 +253,7 @@ def test_accelerator_choice_ddp_cpu_kubeflow(*_):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_accelerator_choice_ddp_cpu_slurm(*_):
     trainer = Trainer(fast_dev_run=True, accelerator="ddp_cpu", num_processes=2)
     assert trainer._accelerator_connector._is_slurm_managing_tasks()
@@ -333,7 +333,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
         pass
@@ -374,7 +374,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_dist_backend_accelerator_mapping(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -707,7 +707,7 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
         "SLURM_LOCALID": "1",
     },
 )
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
@@ -732,7 +732,7 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
 def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
@@ -757,7 +757,7 @@ def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_di
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -780,7 +780,7 @@ def test_strategy_choice_ddp_te(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp2_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -794,7 +794,7 @@ def test_strategy_choice_ddp2_te(*_):
     os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -817,7 +817,7 @@ def test_strategy_choice_ddp_cpu_te(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_kubeflow(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -838,7 +838,7 @@ def test_strategy_choice_ddp_kubeflow(*_):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_kubeflow(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", num_processes=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -860,7 +860,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(*_):
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
-@mock.patch("pytorch_lightning.plugins.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, num_processes=2)
