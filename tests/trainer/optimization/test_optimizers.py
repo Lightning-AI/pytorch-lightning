@@ -140,7 +140,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
-        opt_idx=None,
+        opt_idx=0,
         name=None,
     )
 
@@ -182,7 +182,7 @@ def test_optimizer_return_options(tmpdir):
         monitor=None,
         strict=True,
         name=None,
-        opt_idx=None,
+        opt_idx=0,
     )
 
     # opt tuple of 2 lists
