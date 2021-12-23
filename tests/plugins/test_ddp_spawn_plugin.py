@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPSpawnStrategy
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
