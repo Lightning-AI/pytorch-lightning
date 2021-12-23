@@ -49,6 +49,7 @@ from pytorch_lightning.plugins.environments import (
 )
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
+    DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,

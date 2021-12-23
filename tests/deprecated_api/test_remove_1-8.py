@@ -25,15 +25,12 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
 from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
-from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin
 from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -283,7 +280,6 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
         pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
         DataParallelPlugin,
         DDPFullyShardedPlugin,
-        pytest.param(HorovodPlugin, marks=RunIf(horovod=True)),
         pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
         DDPShardedPlugin,
         DDPSpawnShardedPlugin,
