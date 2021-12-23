@@ -129,8 +129,8 @@ class DDPShardedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategies_registry: Dict) -> None:
+        strategies_registry.register(
             "ddp_sharded_find_unused_parameters_false",
             cls,
             description="DDP Sharded Strategy with `find_unused_parameters` as False",
