@@ -28,7 +28,6 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
     check_finite_loss,
 )
-from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import _AcceleratorType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -110,7 +109,6 @@ class Closure(AbstractClosure[ClosureResult]):
             Can be set to ``None`` to skip the backward operation.
         zero_grad_fn: A function that zeroes the gradients. Can be set to ``None`` to skip zero_grad, for example
             when accumulating gradients.
-        profiler: A profiler for profiling the actions of the passed in closure functions.
 
     Example:
 
@@ -126,7 +124,6 @@ class Closure(AbstractClosure[ClosureResult]):
         step_fn: Callable[[], ClosureResult],
         backward_fn: Optional[Callable[[Tensor], None]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
-        profiler: Optional[BaseProfiler] = None,
     ):
         super().__init__()
         self._step_fn = step_fn
