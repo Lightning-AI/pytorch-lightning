@@ -79,6 +79,15 @@ class BaguaStrategy(DDPStrategy):
 
         self._init_bagua_distributed()
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        super().setup(trainer)
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        model = LightningBaguaModule(self.model)
+        self.configure_bagua_ddp(model)
+
     def _init_bagua_distributed(self):
 
         self._set_node_environment_variables()
@@ -101,13 +110,6 @@ class BaguaStrategy(DDPStrategy):
         os.environ["NODE_RANK"] = str(self.node_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
-
-    def pre_dispatch(self):
-        # move the model to the correct device
-        self.model_to_device()
-
-        model = LightningBaguaModule(self.model)
-        self.configure_bagua_ddp(model)
 
     def _check_qadam_optimizer(self):
 
