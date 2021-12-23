@@ -221,7 +221,7 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
 
 
 def _reset_progress(loop: Loop) -> None:
-    for k, v in vars(loop).items():
+    for v in vars(loop).values():
         if isinstance(v, BaseProgress):
             v.reset()
         elif isinstance(v, Loop):
