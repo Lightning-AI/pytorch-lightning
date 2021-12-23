@@ -19,13 +19,6 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import DeviceType, DistributedType
-from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from tests.helpers.boring_model import BoringModel
-from tests.helpers.runif import RunIf
-from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -41,6 +34,13 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.enums import DeviceType, DistributedType
+from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
+from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
 def test_v1_8_0_deprecated_distributed_type_enum():
@@ -274,19 +274,22 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
         trainer.training_type_plugin
 
 
-@pytest.mark.parametrize("cls", [
-    DDPPlugin,
-    DDP2Plugin,
-    DDPSpawnPlugin,
-    pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-    DataParallelPlugin,
-    DDPFullyShardedPlugin,
-    pytest.param(HorovodPlugin, marks=RunIf(horovod=True)),
-    pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
-    DDPShardedPlugin,
-    DDPSpawnShardedPlugin,
-    TPUSpawnPlugin,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        DDPPlugin,
+        DDP2Plugin,
+        DDPSpawnPlugin,
+        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        DataParallelPlugin,
+        DDPFullyShardedPlugin,
+        pytest.param(HorovodPlugin, marks=RunIf(horovod=True)),
+        pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
+        DDPShardedPlugin,
+        DDPSpawnShardedPlugin,
+        TPUSpawnPlugin,
+    ],
+)
 def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         cls()

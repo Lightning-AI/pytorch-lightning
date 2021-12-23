@@ -47,9 +47,19 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, \
-    DeepSpeedStrategy, TPUSpawnStrategy, DDPStrategy, DDPSpawnStrategy, DataParallelStrategy, HorovodStrategy, \
-    SingleTPUStrategy, SingleDeviceStrategy
+from pytorch_lightning.strategies import (
+    DataParallelStrategy,
+    DDPFullyShardedStrategy,
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DDPSpawnStrategy,
+    DDPStrategy,
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    SingleDeviceStrategy,
+    SingleTPUStrategy,
+    TPUSpawnStrategy,
+)
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities import (
     _AcceleratorType,
