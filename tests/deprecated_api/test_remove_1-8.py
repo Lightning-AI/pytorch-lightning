@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
@@ -277,19 +278,26 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
     DDPPlugin,
     DDP2Plugin,
     DDPSpawnPlugin,
-    DeepSpeedPlugin,
+    pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
     DataParallelPlugin,
     DDPFullyShardedPlugin,
-    HorovodPlugin,
-    IPUPlugin,
-    # ParallelPlugin,
+    pytest.param(HorovodPlugin, marks=RunIf(horovod=True)),
+    pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
     DDPShardedPlugin,
     DDPSpawnShardedPlugin,
-    SingleDevicePlugin,
-    SingleTPUPlugin,
     TPUSpawnPlugin,
-    #TrainingTypePlugin,
 ])
 def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         cls()
+
+
+def test_v1_8_0_deprecated_single_device_plugin_class():
+    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+        SingleDevicePlugin(Mock())
+
+
+@RunIf(tpu=True)
+def test_v1_8_0_deprecated_single_tpu_plugin_class():
+    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+        SingleTPUPlugin(0)

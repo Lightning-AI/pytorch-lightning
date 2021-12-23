@@ -27,29 +27,16 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
-    DataParallelStrategy,
-    DDP2Strategy,
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
-    DDPStrategy,
     DeepSpeedPrecisionPlugin,
-    DeepSpeedStrategy,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
-    HorovodStrategy,
     IPUPrecisionPlugin,
-    IPUStrategy,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
-    SingleDeviceStrategy,
-    SingleTPUStrategy,
     Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    TPUSpawnStrategy,
     TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
@@ -60,6 +47,10 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, \
+    DeepSpeedStrategy, TPUSpawnStrategy, DDPStrategy, DDPSpawnStrategy, DataParallelStrategy, HorovodStrategy, \
+    SingleTPUStrategy, SingleDeviceStrategy
+from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities import (
     _AcceleratorType,
     _StrategyType,
