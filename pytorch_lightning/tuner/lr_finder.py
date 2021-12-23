@@ -99,8 +99,8 @@ class _LRFinder:
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
-        """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally
-        specified optimizer together with a new scheduler that takes care of the learning rate search."""
+        """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
+        optimizer together with a new scheduler that takes care of the learning rate search."""
         setup_optimizers = trainer.strategy.setup_optimizers
 
         @wraps(setup_optimizers)
