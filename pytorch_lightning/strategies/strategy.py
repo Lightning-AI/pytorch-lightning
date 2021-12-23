@@ -19,10 +19,10 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -52,7 +52,7 @@ class Strategy(ABC):
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
-        self.lr_schedulers: List[_LRScheduler] = []
+        self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
@@ -378,7 +378,7 @@ class Strategy(ABC):
         return dataloader
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
-        return trainer.init_optimizers(model)
+        return _init_optimizers_and_lr_schedulers(model)
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
@@ -437,13 +437,13 @@ class Strategy(ABC):
         """
         yield
 
-    @abstractmethod
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
         self._move_optimizer_state(torch.device("cpu"))
+        self.precision_plugin.teardown()
 
     @classmethod
     def register_plugins(cls, plugin_registry) -> None:

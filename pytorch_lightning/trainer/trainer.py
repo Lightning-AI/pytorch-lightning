@@ -33,7 +33,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -51,7 +51,6 @@ from pytorch_lightning.plugins import (
     Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -60,6 +59,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
+from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -107,7 +107,7 @@ from pytorch_lightning.utilities.types import (
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
-    LRSchedulerTypeUnion,
+    LRSchedulerConfig,
     STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
@@ -480,8 +480,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # Needed because of LightningOptimizer
-        self._lightning_optimizers = None
+        self._lightning_optimizers: Optional[Dict[int, LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -1746,7 +1745,7 @@ class Trainer(
 
     @property
     def strategy(self) -> Strategy:
-        return self._accelerator_connector.training_type_plugin
+        return self._accelerator_connector.strategy
 
     @property
     def training_type_plugin(self) -> Strategy:
@@ -1845,11 +1844,11 @@ class Trainer(
         self.strategy.optimizers = new_optims
 
     @property
-    def lr_schedulers(self) -> List[LRSchedulerTypeUnion]:
+    def lr_schedulers(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_schedulers
 
     @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: List[LRSchedulerTypeUnion]) -> None:
+    def lr_schedulers(self, new_schedulers: List[LRSchedulerConfig]) -> None:
         self.strategy.lr_schedulers = new_schedulers
 
     @property
@@ -1932,9 +1931,9 @@ class Trainer(
         return SLURMEnvironment.job_id()
 
     @property
-    def lightning_optimizers(self) -> List[LightningOptimizer]:
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         if self._lightning_optimizers is None:
-            self.convert_to_lightning_optimizers()
+            _convert_to_lightning_optimizers(self)
         return self._lightning_optimizers
 
     @property

@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION

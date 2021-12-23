@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPStrategy, SingleDeviceStrategy
+from pytorch_lightning.strategies import DDPStrategy, SingleDeviceStrategy
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 

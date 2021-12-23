@@ -27,12 +27,11 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -447,9 +446,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = self.lightning_module.trainer.init_optimizers(
-            self.lightning_module
-        )
+        optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
@@ -856,12 +853,6 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
-
-    @DDPStrategy.checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        if io is not None:
-            raise MisconfigurationException("DeepSpeed does not support custom `CheckpointIO` plugin.")
-        self._checkpoint_io = io
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
