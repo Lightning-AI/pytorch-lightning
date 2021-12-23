@@ -17,7 +17,7 @@ from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pytorch_lightning.strategies.training_type_plugin import Strategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
