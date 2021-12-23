@@ -1776,7 +1776,7 @@ class Trainer(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
         ttp = self.strategy
-        return isinstance(ttp, pl.plugins.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
+        return isinstance(ttp, pl.strategies.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
