@@ -24,7 +24,7 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

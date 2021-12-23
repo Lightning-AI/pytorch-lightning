@@ -24,7 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.plugins import TPUSpawnStrategy
+from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
@@ -122,7 +122,6 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
-    assert os.environ.get("XLA_USE_BF16") == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
@@ -144,7 +143,6 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
-    assert os.environ.get("XLA_USE_BF16") == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @RunIf(tpu=True)
