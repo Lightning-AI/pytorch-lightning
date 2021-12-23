@@ -33,7 +33,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -480,8 +480,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # Needed because of LightningOptimizer
-        self._lightning_optimizers = None
+        self._lightning_optimizers: Optional[Dict[int, LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -1926,9 +1925,9 @@ class Trainer(
         return SLURMEnvironment.job_id()
 
     @property
-    def lightning_optimizers(self) -> List[LightningOptimizer]:
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         if self._lightning_optimizers is None:
-            self.convert_to_lightning_optimizers()
+            _convert_to_lightning_optimizers(self)
         return self._lightning_optimizers
 
     @property
