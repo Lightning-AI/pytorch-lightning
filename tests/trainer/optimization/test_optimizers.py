@@ -21,7 +21,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import (
     _configure_optimizers,
-    _configure_schedulers,
+    _configure_schedulers_automatic_opt,
     _init_optimizers_and_lr_schedulers,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -110,7 +110,7 @@ def test_onecyclelr_with_epoch_interval_warns():
     optimizer = optim.Adam(model.parameters())
     lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
     with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
-        _configure_schedulers([lr_scheduler], None, False)
+        _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
 def test_reducelronplateau_scheduling(tmpdir):

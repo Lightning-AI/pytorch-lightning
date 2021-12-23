@@ -180,7 +180,10 @@ def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[Lis
         optim_conf = _MockOptimizer()
 
     optimizers, lr_schedulers, optimizer_frequencies, monitor = _configure_optimizers(optim_conf)
-    lr_schedulers = _configure_schedulers(lr_schedulers, monitor, not model.automatic_optimization)
+    _configure_schedulers = (
+        _configure_schedulers_automatic_opt if model.automatic_optimization else _configure_schedulers_manual_opt
+    )
+    lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
     _validate_scheduler_optimizer(optimizers, lr_schedulers)
     return optimizers, lr_schedulers, optimizer_frequencies
 
@@ -249,78 +252,79 @@ def _configure_optimizers(
     return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
 
-def _configure_schedulers(
-    schedulers: list, monitor: Optional[str], is_manual_optimization: bool
-) -> List[Dict[str, Any]]:
-    """Convert each scheduler into dict structure with relevant information."""
+def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+    """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
-    # TODO: move is_manual_optimization check out of for loop
     for scheduler in schedulers:
-        if is_manual_optimization:
-            if isinstance(scheduler, dict):
-                invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
-                keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
-
-                if keys_to_warn:
-                    rank_zero_warn(
-                        f"The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored."
-                        " You need to call `lr_scheduler.step()` manually in manual optimization.",
-                        category=RuntimeWarning,
-                    )
-
-                scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
-                lr_schedulers.append({**default_config, **scheduler})
-            else:
-                lr_schedulers.append({**default_config, "scheduler": scheduler})
+        if isinstance(scheduler, dict):
+            # check provided keys
+            extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
+            if extra_keys:
+                rank_zero_warn(
+                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}", category=RuntimeWarning
+                )
+            if "scheduler" not in scheduler:
+                raise MisconfigurationException(
+                    'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
+                )
+            if "interval" in scheduler and scheduler["interval"] not in ("step", "epoch"):
+                raise MisconfigurationException(
+                    'The "interval" key in lr scheduler dict must be "step" or "epoch"'
+                    f' but is "{scheduler["interval"]}"'
+                )
+            scheduler["reduce_on_plateau"] = isinstance(scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau)
+            if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
+                raise MisconfigurationException(
+                    "The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used."
+                    ' For example: {"optimizer": optimizer, "lr_scheduler":'
+                    ' {"scheduler": scheduler, "monitor": "your_loss"}}'
+                )
+            is_one_cycle = isinstance(scheduler["scheduler"], optim.lr_scheduler.OneCycleLR)
+            if is_one_cycle and scheduler.get("interval", "epoch") == "epoch":
+                rank_zero_warn(
+                    "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
+                    " Are you sure you didn't mean 'interval': 'step'?",
+                    category=RuntimeWarning,
+                )
+            lr_schedulers.append({**default_config, **scheduler})
+        elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+            if monitor is None:
+                raise MisconfigurationException(
+                    "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
+                    " scheduler is used. For example:"
+                    ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
+                )
+            lr_schedulers.append(
+                {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
+            )
+        elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
+            lr_schedulers.append({**default_config, "scheduler": scheduler})
         else:
-            if isinstance(scheduler, dict):
-                # check provided keys
-                extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
-                if extra_keys:
-                    rank_zero_warn(
-                        f"Found unsupported keys in the lr scheduler dict: {extra_keys}", category=RuntimeWarning
-                    )
-                if "scheduler" not in scheduler:
-                    raise MisconfigurationException(
-                        'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
-                    )
-                if "interval" in scheduler and scheduler["interval"] not in ("step", "epoch"):
-                    raise MisconfigurationException(
-                        'The "interval" key in lr scheduler dict must be "step" or "epoch"'
-                        f' but is "{scheduler["interval"]}"'
-                    )
-                scheduler["reduce_on_plateau"] = isinstance(
-                    scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau
+            raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
+    return lr_schedulers
+
+
+def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+    """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
+    lr_schedulers = []
+    default_config = _get_default_scheduler_config()
+    for scheduler in schedulers:
+        if isinstance(scheduler, dict):
+            invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
+            keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
+
+            if keys_to_warn:
+                rank_zero_warn(
+                    f"The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored."
+                    " You need to call `lr_scheduler.step()` manually in manual optimization.",
+                    category=RuntimeWarning,
                 )
-                if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
-                    raise MisconfigurationException(
-                        "The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used."
-                        ' For example: {"optimizer": optimizer, "lr_scheduler":'
-                        ' {"scheduler": scheduler, "monitor": "your_loss"}}'
-                    )
-                is_one_cycle = isinstance(scheduler["scheduler"], optim.lr_scheduler.OneCycleLR)
-                if is_one_cycle and scheduler.get("interval", "epoch") == "epoch":
-                    rank_zero_warn(
-                        "A `OneCycleLR` scheduler is using 'interval': 'epoch'."
-                        " Are you sure you didn't mean 'interval': 'step'?",
-                        category=RuntimeWarning,
-                    )
-                lr_schedulers.append({**default_config, **scheduler})
-            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                if monitor is None:
-                    raise MisconfigurationException(
-                        "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
-                        " scheduler is used. For example:"
-                        ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
-                    )
-                lr_schedulers.append(
-                    {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
-                )
-            elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-                lr_schedulers.append({**default_config, "scheduler": scheduler})
-            else:
-                raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
+
+            scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
+            lr_schedulers.append({**default_config, **scheduler})
+        else:
+            lr_schedulers.append({**default_config, "scheduler": scheduler})
     return lr_schedulers
 
 
