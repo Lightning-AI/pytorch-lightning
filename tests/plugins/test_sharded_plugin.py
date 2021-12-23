@@ -240,9 +240,7 @@ def test_custom_kwargs_sharded(tmpdir, cls):
     plugin.model.trainer = Mock()
     class_name = "sharded" if isinstance(plugin, DDPShardedStrategy) else "sharded_spawn"
 
-    with mock.patch(
-        f"pytorch_lightning.plugins.training_type.{class_name}.ShardedDataParallel", autospec=True
-    ) as mock_sharded:
+    with mock.patch(f"pytorch_lightning.strategies.{class_name}.ShardedDataParallel", autospec=True) as mock_sharded:
         plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
@@ -260,9 +258,7 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     plugin.model = Mock(spec=LightningModule)
     plugin.model.trainer = Mock()
 
-    with mock.patch(
-        "pytorch_lightning.plugins.training_type.sharded.ShardedDataParallel", autospec=True
-    ) as mock_sharded:
+    with mock.patch("pytorch_lightning.strategies.sharded.ShardedDataParallel", autospec=True) as mock_sharded:
         plugin.configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs

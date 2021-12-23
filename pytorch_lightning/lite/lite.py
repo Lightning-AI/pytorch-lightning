@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import DDPSpawnStrategy, DeepSpeedStrategy, PLUGIN_INPUT, Strategy, TPUSpawnStrategy
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
+from pytorch_lightning.strategies.training_type_plugin import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -99,7 +99,7 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._strategy = self._accelerator_connector.training_type_plugin
+        self._strategy = self._accelerator_connector.strategy
         self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
