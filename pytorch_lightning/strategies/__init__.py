@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pytorch_lightning.strategies.ddp import DDPStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp2 import DDP2Strategy  # noqa: F401
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
@@ -13,3 +15,9 @@ from pytorch_lightning.strategies.single_device import SingleDeviceStrategy  # n
 from pytorch_lightning.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from pytorch_lightning.strategies.strategy import Strategy  # noqa: F401
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
+from pytorch_lightning.strategies.strategies_registry import call_register_strategies, StrategiesRegistry  # noqa: F401
+
+FILE_ROOT = Path(__file__).parent
+STRATEGIES_BASE_MODULE = "pytorch_lightning.strategies"
+
+call_register_strategies(FILE_ROOT, STRATEGIES_BASE_MODULE)
