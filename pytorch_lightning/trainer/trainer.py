@@ -37,7 +37,7 @@ from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, L
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import Loop, PredictionLoop, TrainingEpochLoop
+from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
@@ -71,7 +71,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
@@ -1361,13 +1360,6 @@ class Trainer(
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
-
-    def _reset_progress(self, loop: Loop) -> None:
-        for k, v in vars(loop).items():
-            if isinstance(v, BaseProgress):
-                v.reset()
-            elif isinstance(v, Loop):
-                self._reset_progress(v)
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         if model_provided and ckpt_path is None:
