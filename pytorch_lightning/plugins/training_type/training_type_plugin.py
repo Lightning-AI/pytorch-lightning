@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC
 
-from pytorch_lightning.strategies import Strategy
+from pytorch_lightning.strategies.training_type_plugin import Strategy
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
