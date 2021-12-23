@@ -406,13 +406,12 @@ class SaveConfigCallback(Callback):
         # and we want to save before processes are spawned
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
-        is_global_zero = trainer.is_global_zero
         config_path = os.path.join(log_dir, self.config_filename)
         fs = get_filesystem(log_dir)
 
         if not self.overwrite:
             # check if the file exists on rank 0
-            file_exists = fs.isfile(config_path) if is_global_zero else False
+            file_exists = fs.isfile(config_path) if trainer.is_global_zero else False
             # broadcast whether to fail to all ranks
             file_exists = trainer.strategy.broadcast(file_exists)
             if file_exists:
@@ -424,7 +423,7 @@ class SaveConfigCallback(Callback):
                 )
 
         # save the file on rank 0
-        if is_global_zero:
+        if trainer.is_global_zero:
             # save only on rank zero to avoid race conditions on DDP.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
