@@ -16,7 +16,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class DDPPlugin(DDPStrategy):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
             "The `pl.plugins.training_type.ddp.DDPPlugin` is deprecated in v1.6 and will be removed in v1.8."
             " Use `pl.strategies.ddp.DDPStrategy` instead."
