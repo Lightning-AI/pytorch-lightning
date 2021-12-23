@@ -389,7 +389,7 @@ Additionally, you can pass in your custom training type strategy by configuring 
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     lite = Lite(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
 

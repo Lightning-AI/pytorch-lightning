@@ -61,7 +61,7 @@ You can also use pure 16-bit training, where the weights are also in 16-bit prec
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.plugins import IPUStrategy
+    from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
     model = model.half()
@@ -80,7 +80,7 @@ IPUs provide further optimizations to speed up training. By using the ``IPUStrat
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.plugins import IPUStrategy
+    from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(device_iterations=32))
@@ -92,7 +92,7 @@ Note that by default we return the last device iteration loss. You can override 
 
     import poptorch
     import pytorch_lightning as pl
-    from pytorch_lightning.plugins import IPUStrategy
+    from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
     inference_opts = poptorch.Options()
@@ -121,7 +121,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.plugins import IPUStrategy
+    from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
     trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
