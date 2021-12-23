@@ -32,8 +32,8 @@ from pytorch_lightning.strategies.sharded import DDPShardedStrategy
 from pytorch_lightning.strategies.sharded_spawn import DDPSpawnShardedStrategy
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.strategies.single_tpu import SingleTPUStrategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy
-from pytorch_lightning.strategies.training_type_plugin import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
 PLUGIN_INPUT = Union[PLUGIN, str]

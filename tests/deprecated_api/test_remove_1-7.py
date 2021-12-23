@@ -27,7 +27,6 @@ from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.plugins import SingleDeviceStrategy
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -35,6 +34,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel

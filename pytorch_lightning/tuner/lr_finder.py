@@ -24,8 +24,8 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.optimizer import _get_default_scheduler_config
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -98,15 +98,15 @@ class _LRFinder:
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, trainer: "pl.Trainer"):
-        """Decorate `trainer.init_optimizers` method such that it returns the users originally specified optimizer
-        together with a new scheduler that that takes care of the learning rate search."""
-        init_optimizers = trainer.init_optimizers
+    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
+        """Decorate `trainer.strategy.init_optimizers` method such that it returns the user's originally specified
+        optimizer together with a new scheduler that that takes care of the learning rate search."""
+        init_optimizers = trainer.strategy.init_optimizers
 
         @wraps(init_optimizers)
-        def func(model):
-            # Decide the structure of the output from init_optimizers
-            optimizers, _, _ = init_optimizers(model)
+        def func(trainer, model):
+            # Decide the structure of the output from trainer.strategy.init_optimizers
+            optimizers, _, _ = init_optimizers(trainer, model)
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -232,7 +232,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    trainer.init_optimizers = lr_finder._exchange_scheduler(trainer)
+    trainer.strategy.init_optimizers = lr_finder._exchange_scheduler(trainer, model)
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)
@@ -278,7 +278,6 @@ def __lr_finder_dump_params(trainer, model):
         "max_steps": trainer.max_steps,
         "checkpoint_callback": trainer.checkpoint_callback,
         "current_epoch": trainer.current_epoch,
-        "init_optimizers": trainer.init_optimizers,
     }
 
 
@@ -289,7 +288,6 @@ def __lr_finder_restore_params(trainer, model):
     trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
     trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
     trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
-    trainer.init_optimizers = trainer.__dumped_params["init_optimizers"]
     del trainer.__dumped_params
 
 

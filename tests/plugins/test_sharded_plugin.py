@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPShardedStrategy, DDPSpawnShardedStrategy
+from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from tests.helpers.boring_model import BoringModel
@@ -231,7 +231,7 @@ def test_configure_ddp(tmpdir):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-@mock.patch("pytorch_lightning.plugins.DDPShardedStrategy._wrap_optimizers", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_custom_kwargs_sharded(tmpdir, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
@@ -248,7 +248,7 @@ def test_custom_kwargs_sharded(tmpdir, cls):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-@mock.patch("pytorch_lightning.plugins.DDPShardedStrategy._wrap_optimizers", autospec=True)
+@mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
 @pytest.mark.parametrize("num_nodes", [1, 2])
 def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes):

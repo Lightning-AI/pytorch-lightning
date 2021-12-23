@@ -17,8 +17,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.plugins import DDPSpawnStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf

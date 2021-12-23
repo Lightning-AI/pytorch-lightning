@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -373,7 +374,7 @@ class Strategy(ABC):
         return dataloader
 
     def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
-        return trainer.init_optimizers(model)
+        return _init_optimizers_and_lr_schedulers(model)
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:

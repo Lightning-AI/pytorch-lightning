@@ -291,7 +291,7 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(gpus=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -310,7 +310,7 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(
@@ -335,7 +335,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
     import pytorch_lightning
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -379,7 +379,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -403,7 +403,7 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
 
     class MyModel(pl.LightningModule):
@@ -429,7 +429,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
 
     import torch.nn as nn
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -467,7 +467,7 @@ DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to re
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -496,7 +496,7 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -541,7 +541,7 @@ This saves memory when training larger models, however requires using a checkpoi
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -555,16 +555,16 @@ This saves memory when training larger models, however requires using a checkpoi
 
         def forward(self, x):
             # Use the DeepSpeed checkpointing function instead of calling the module directly
-            # checkpointing self.layer_h means the activations are deleted after use,
+            # checkpointing self.block_1 means the activations are deleted after use,
             # and re-calculated during the backward passes
-            x = torch.utils.checkpoint.checkpoint(self.block_1, x)
+            x = deepspeed.checkpointing.checkpoint(self.block_1, x)
             return self.block_2(x)
 
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -644,7 +644,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     deepspeed_config = {
         "zero_allow_untested_optimizer": True,
@@ -687,7 +687,7 @@ We support taking the config as a json formatted file:
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedStrategy
+    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(gpus=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16)
@@ -722,7 +722,7 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
     model = MyModel()
     trainer = Trainer(gpus=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
@@ -741,7 +741,7 @@ Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorc
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
@@ -760,7 +760,7 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 
     model = MyModel()
@@ -786,7 +786,7 @@ Combine hooks for accumulated benefit:
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
