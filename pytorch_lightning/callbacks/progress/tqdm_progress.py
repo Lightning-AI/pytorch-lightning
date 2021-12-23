@@ -256,7 +256,7 @@ class TQDMProgressBar(ProgressBarBase):
             self.val_progress_bar.total = sum(trainer.num_sanity_val_batches)
         else:
             self.val_progress_bar = self.init_validation_tqdm()
-            self.val_progress_bar.total = self.total_val_batches
+            self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_update(self.val_batch_idx):
