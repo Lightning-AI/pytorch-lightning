@@ -110,7 +110,7 @@ def test_onecyclelr_with_epoch_interval_warns():
     optimizer = optim.Adam(model.parameters())
     lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
     with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
-        _configure_schedulers_automatic_opt([lr_scheduler], None, False)
+        _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
 def test_reducelronplateau_scheduling(tmpdir):
