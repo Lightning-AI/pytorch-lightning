@@ -126,6 +126,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_run()
+            # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
+            # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
+            self.val_loop.epoch_loop.batch_progress.total.reset()
 
         self._outputs = []
 
