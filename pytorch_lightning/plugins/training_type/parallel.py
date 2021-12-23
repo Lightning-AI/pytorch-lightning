@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC
 
-from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
