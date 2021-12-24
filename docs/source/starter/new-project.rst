@@ -12,31 +12,49 @@
 
 .. _new_project:
 
-###########
-Quick Start
-###########
+############
+Introduction
+############
 
-*****************
-Pytorch Lightning
-*****************
-
-What is Pytorch Lightning
-=========================
+*************************
+What is PyTorch Lightning
+*************************
 
 PyTorch has all you need to train your models. But there's a lot more to deep learning more than just attaching some layers together. It provides you the APIs required to build models, datasets etc.
 but when it comes to actual training, there's a lot of boiler-plate code involved that you need to write by youself and if you need to scale your training/inferencing on multiple devices/machines there's another
-set of integrations you might need to do by yourself. So here PyTorch Lightning comes into picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
+set of integrations you might need to do by yourself.
+
+So here PyTorch Lightning comes into picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
 Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training accross multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
 and a lot more. Now all you need is to take care of your research code and leave the engineering to us.
 
+Code organization is the core of Lightning. It leaves core training and validation logic to you and automates the rest.
 
-Why Pytorch Lightning
-=====================
+----------
 
-Well, if you need one place that can help you with everything you need to train deep learning models, you are at the right place. The team makes sure that all the latest techniques are already integrated and maintained
-periodically to make sure you don't need to make any code changes.
+********************
+Lightning Philosophy
+********************
 
-We test the framework across multiple Python/PyTorch versions to ensure its reach. It's not just Keras for PyTorch but much more. Follow along with the guide below to find out why.
+Organizing your code with Lightning makes your code:
+
+* Keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
+* More readable by decoupling the research code from the engineering
+* Easier to reproduce
+* Less error-prone by automating most of the training loop and tricky engineering
+* Scalable to any hardware without changing your model
+
+Lightning is built for:
+
+* Researcher who want to focus on research without worrying about the engineering aspects of it
+* ML Engineers who want to built reproducible pipelines
+* Data Scientists who want to try out different models for their tasks and build-in ML techniques
+* Educators who seek to study and teach Deep Learning with PyTorch
+
+The team makes sure that all the latest techniques are already integrated and maintained periodically to make sure you don't
+have to worry about any engineering stuff and just focus on research.
+
+It is tested across multiple Python/PyTorch versions to ensure its reach.
 
 
 ----------
@@ -83,40 +101,9 @@ Before installing anything, if you want to give it a try, please try out the fol
 Installation
 ************
 
-You can install using `pip <https://pypi.org/project/pytorch-lightning/>`_
-
-.. code-block:: bash
-
-    pip install pytorch-lightning
-
-Or with `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ (see how to install conda `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_):
-
-.. code-block:: bash
-
-    conda install pytorch-lightning -c conda-forge
-
-You could also use conda environments
-
-.. code-block:: bash
-
-    conda activate my_env
-    pip install pytorch-lightning
-
-Install future patch release from the source
-
-.. code-block:: bash
-
-    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.5.x --upgrade
-
-Install nightly from the source (no guarantees)
-
-.. code-block:: bash
-
-    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
-
+Follow the :ref:`Installation Guide <installation>` to install PyTorch Lightning.
 
 ----------
-
 
 ********************
 Lightning Components

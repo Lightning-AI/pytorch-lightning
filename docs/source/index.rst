@@ -19,6 +19,7 @@ PyTorch Lightning
    :caption: Getting started
 
    starter/new-project
+   starter/installation
    starter/converting
    starter/lightning_lite
 
