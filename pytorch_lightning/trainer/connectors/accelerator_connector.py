@@ -57,11 +57,11 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     TPUSpawnStrategy,
 )
-from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities import (
     _AcceleratorType,
     _StrategyType,
