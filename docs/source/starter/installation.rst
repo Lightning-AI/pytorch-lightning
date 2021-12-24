@@ -29,7 +29,7 @@ Lightning can be installed with `conda <https://anaconda.org/conda-forge/pytorch
 
     conda install pytorch-lightning -c conda-forge
 
-You could also use `Conda Environments <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_:
+You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_:
 
 .. code-block:: bash
 

@@ -204,7 +204,7 @@ of the 20+ hooks found in :ref:`lightning_hooks`
 In Lightning we suggest separatating training from inference. The ``training_step`` defines
 the full training loop. We encourage users to use the ``forward`` to define inference actions.
 
-For example, in this case we could define the autoencoder to act as an embedding extractor:
+For example, in this case we can define the autoencoder to act as an embedding extractor:
 
 .. code-block:: python
 
