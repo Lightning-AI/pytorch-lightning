@@ -58,7 +58,8 @@ class DeviceStatsMonitor(Callback):
             return
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_start")
+        separator = trainer.logger.group_separator
+        prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
         assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
@@ -75,10 +76,11 @@ class DeviceStatsMonitor(Callback):
             return
 
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_end")
+        separator = trainer.logger.group_separator
+        prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
         assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
 
-def prefix_metrics_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
-    return {prefix + "." + k: v for k, v in metrics_dict.items()}
+def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+    return {prefix + separator + k: v for k, v in metrics_dict.items()}
