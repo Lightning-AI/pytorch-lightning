@@ -309,8 +309,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
 def test_v1_8_0_deprecated_single_tpu_plugin_class():
     with pytest.deprecated_call(
         match=(
-                f"SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8."
-                " Use `.*SingleTPUStrategy` instead."
+            f"SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8." " Use `.*SingleTPUStrategy` instead."
         )
     ):
         SingleTPUPlugin(0)
