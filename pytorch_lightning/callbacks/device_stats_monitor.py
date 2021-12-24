@@ -55,6 +55,9 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
+        if not trainer.logger:
+            raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
+
         if not trainer.logger_connector.should_update_logs:
             return
 
@@ -73,6 +76,9 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
+        if not trainer.logger:
+            raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
+
         if not trainer.logger_connector.should_update_logs:
             return
 
