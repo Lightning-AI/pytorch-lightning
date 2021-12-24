@@ -287,16 +287,30 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
     ],
 )
 def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+    old_name = cls.__name__
+    new_name = old_name.replace("Plugin", "Strategy")
+    with pytest.deprecated_call(
+        match=f"{old_name}` is deprecated in v1.6 and will be removed in v1.8. Use .*{new_name}` instead."
+    ):
         cls()
 
 
 def test_v1_8_0_deprecated_single_device_plugin_class():
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+    with pytest.deprecated_call(
+        match=(
+            f"SingleDevicePlugin` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `.*SingleDeviceStrategy` instead."
+        )
+    ):
         SingleDevicePlugin(Mock())
 
 
 @RunIf(tpu=True)
 def test_v1_8_0_deprecated_single_tpu_plugin_class():
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+    with pytest.deprecated_call(
+        match=(
+                f"SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8."
+                " Use `.*SingleTPUStrategy` instead."
+        )
+    ):
         SingleTPUPlugin(0)
