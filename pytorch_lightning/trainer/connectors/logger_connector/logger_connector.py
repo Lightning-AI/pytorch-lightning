@@ -102,13 +102,14 @@ class LoggerConnector:
         if self.trainer.logger is None or not metrics:
             return
 
+        if step is None:
+            step = metrics.pop("step", None)
+
+        # this is done prior to make sure logged_metrics always contain tensors
+        self._logged_metrics.update(metrics)
+
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
-
-        if step is None:
-            step = scalar_metrics.pop("step", None)
-
-        self._logged_metrics.update(scalar_metrics)
 
         if step is None:
             # added metrics for convenience

@@ -91,6 +91,9 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -128,6 +131,9 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -169,6 +175,9 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(
