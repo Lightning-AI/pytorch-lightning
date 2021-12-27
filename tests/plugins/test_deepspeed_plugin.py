@@ -15,8 +15,9 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin, DeepSpeedStrategy
-from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
+from pytorch_lightning.strategies import DeepSpeedStrategy
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.meta import init_meta_context

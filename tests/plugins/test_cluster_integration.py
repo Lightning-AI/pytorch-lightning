@@ -18,8 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDP2Strategy, DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.strategies import DDP2Strategy, DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.runif import RunIf
 
