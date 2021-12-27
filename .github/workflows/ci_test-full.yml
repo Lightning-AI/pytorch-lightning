@@ -141,6 +141,7 @@ jobs:
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         # pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
         gdb --return-child-result --batch -q -ex r -ex "thread apply all bt" --args "$(readlink -f $(which python))" -m pytest pytorch_lightning tests -p no:faulthandler -q
+        echo TESTINGISFINISHEDHERE
 
     # - name: Examples
     #   run: |
