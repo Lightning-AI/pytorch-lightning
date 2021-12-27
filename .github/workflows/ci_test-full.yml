@@ -142,16 +142,16 @@ jobs:
         # pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
         gdb --return-child-result --batch -q -ex r -ex "thread apply all bt" --args "$(readlink -f $(which python))" -m pytest pytorch_lightning tests -p no:faulthandler -q
 
-    - name: Examples
-      run: |
-        python -m pytest pl_examples -v --durations=10
+    # - name: Examples
+    #   run: |
+    #     python -m pytest pl_examples -v --durations=10
 
-    - name: Upload pytest results
-      uses: actions/upload-artifact@v2
-      with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-      if: failure()
+    # - name: Upload pytest results
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+    #     path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    #   if: failure()
 
     # - name: Statistics
     #   if: success()
