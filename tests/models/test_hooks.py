@@ -505,6 +505,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
+        dict(name="prepare_data"),
         # DeepSpeed needs the batch size to figure out throughput logging
         *([dict(name="train_dataloader")] if kwargs.get("strategy") == "deepspeed" else []),
         dict(name="prepare_data"),
