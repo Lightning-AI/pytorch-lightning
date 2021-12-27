@@ -79,19 +79,6 @@ class BaguaStrategy(DDPStrategy):
 
         self._init_bagua_distributed()
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
-
-        # move the model to the correct device
-        self.model_to_device()
-
-        model = LightningBaguaModule(self.model)
-        self.configure_bagua_ddp(model)
-
-        # start the background communication for async algorithm
-        if self._bagua_algorithm == "async":
-            self.model.bagua_algorithm.resume(self.model)
-
     def _init_bagua_distributed(self):
 
         self._set_node_environment_variables()
@@ -123,32 +110,26 @@ class BaguaStrategy(DDPStrategy):
         if not has_qadam_optimizer or len(trainer.optimizers) > 1 or len(trainer.lr_schedulers) > 1:
             raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
 
-    def configure_bagua_ddp(self, model: Module):
+    def configure_ddp(self):
+        model = LightningBaguaModule(self.model)
+        self._model = self._setup_model(model)
 
+        # start the background communication for async algorithm
+        if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
+            self.model.bagua_algorithm.resume(self.model)
+
+    def _setup_model(self, model: Module) -> BaguaDistributedDataParallel:
         if self._bagua_algorithm == "qadam":
             self._check_qadam_optimizer()
             self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
 
         algorithm = Algorithm.init(self._bagua_algorithm, **self._bagua_kwargs)
-
-        self._model = BaguaDistributedDataParallel(
+        return BaguaDistributedDataParallel(
             module=model,
             optimizers=self.optimizers,
             algorithm=algorithm,
             gradient_as_bucket_view=self._bagua_gradient_as_bucket_view,
         )
-
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def predict_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
@@ -162,8 +143,8 @@ class BaguaStrategy(DDPStrategy):
         plugin_registry.register("bagua", cls, description="Default Bagua Plugin")
 
     def teardown(self) -> None:
-        # abort the background communication for async algorithm, this operation is idempotent
-        if self._bagua_algorithm == "async":
+        # abort the background communication for async algorithm
+        if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)
 
         if self.on_gpu:

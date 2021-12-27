@@ -19,6 +19,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from pytorch_lightning.strategies.bagua import BaguaStrategy
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.ddp2 import DDP2Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
@@ -43,6 +44,7 @@ __all__ = [
     "TorchCheckpointIO",
     "XLACheckpointIO",
     "ApexMixedPrecisionPlugin",
+    "BaguaStrategy",
     "DataParallelStrategy",
     "DDP2Strategy",
     "DDPStrategy",

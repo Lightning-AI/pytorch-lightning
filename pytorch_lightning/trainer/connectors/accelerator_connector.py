@@ -26,8 +26,8 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    BaguaPlugin,
     CheckpointIO,
+    BaguaStrategy,
     DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
@@ -759,7 +759,7 @@ class AcceleratorConnector:
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         elif self.use_bagua:
-            plugin = BaguaPlugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = BaguaStrategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
