@@ -39,21 +39,33 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
 
 
 class BaguaStrategy(DDPStrategy):
-
     distributed_backend = _StrategyType.BAGUA
 
     def __init__(
         self,
         algorithm: str = "gradient_allreduce",
-        gradient_as_bucket_view: bool = True,
+        do_flatten: bool = True,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
+        """
+        Provides capabilities to run distributed training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library.
+
+        Arguments:
+            algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms include
+                "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and "async".
+            do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data pointer
+                of bucket tensors so that they can use faster code paths. Default: ``True``.
+            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm. More details can be found
+                in `API documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
+        """
 
         super().__init__(
+            accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
@@ -61,7 +73,7 @@ class BaguaStrategy(DDPStrategy):
         )
 
         self._bagua_algorithm = algorithm
-        self._bagua_gradient_as_bucket_view = gradient_as_bucket_view
+        self._bagua_do_flatten = do_flatten
         self._bagua_kwargs = kwargs
 
     def setup_environment(self) -> None:
@@ -119,6 +131,8 @@ class BaguaStrategy(DDPStrategy):
             self.model.bagua_algorithm.resume(self.model)
 
     def _setup_model(self, model: Module) -> BaguaDistributedDataParallel:
+        """Wraps the model into a Bagua distributed module."""
+
         if self._bagua_algorithm == "qadam":
             self._check_qadam_optimizer()
             self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
@@ -128,7 +142,7 @@ class BaguaStrategy(DDPStrategy):
             module=model,
             optimizers=self.optimizers,
             algorithm=algorithm,
-            gradient_as_bucket_view=self._bagua_gradient_as_bucket_view,
+            gradient_as_bucket_view=self._bagua_do_flatten,
         )
 
     @property
