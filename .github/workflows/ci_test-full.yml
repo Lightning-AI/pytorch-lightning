@@ -50,11 +50,17 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+        brew install gdb
 
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
         python .github/prune-packages.py requirements/extra.txt "horovod"
+
+    - name: Setup Ubuntu
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt install gdb
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
