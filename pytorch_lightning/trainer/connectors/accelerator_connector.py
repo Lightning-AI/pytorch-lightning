@@ -26,8 +26,8 @@ from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    CheckpointIO,
     BaguaStrategy,
+    CheckpointIO,
     DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
