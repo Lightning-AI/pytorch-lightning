@@ -17,7 +17,7 @@ import logging
 import os
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from pytorch_lightning.core.lightning import LightningModule
 
 if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+    from torch.profiler import ProfilerAction, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -69,7 +69,8 @@ class RegisterRecordFunction:
         self._handles: Dict[str, List["RemovableHandle"]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
-        record = record_function(record_name)
+        # Add [pl][module] in name for pytorch profiler to recognize
+        record = record_function("[pl][module]"+record_name)
         record.__enter__()
         self._records[record_name] = record
         return input
@@ -127,6 +128,7 @@ class ScheduleWrapper:
         self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
+        self._prev_schedule_action: Optional[ProfilerAction] = None
         self._start_action_name: Optional[str] = None
 
     @property
@@ -180,6 +182,11 @@ class ScheduleWrapper:
 
         self._step()
         action = self._schedule(max(self.num_step, 0))
+        if self._prev_schedule_action == ProfilerAction.RECORD and action == ProfilerAction.WARMUP:
+            # Work around the corner case when validation starts before train.
+            # In this case, the action is RECORD in validation loop, and then call into the train
+            # and the action is still WARMUP in train and pytorch will recognize this as error.
+            action = ProfilerAction.RECORD
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_with_closure_reached_end = True
@@ -189,19 +196,12 @@ class ScheduleWrapper:
                 self._test_step_reached_end = True
             elif self._current_action.endswith("predict_step"):
                 self._predict_step_reached_end = True
+        self._prev_schedule_action = action
         return action
 
 
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = {
-        "training_step",
-        "backward",
-        "validation_step",
-        "test_step",
-        "predict_step",
-    }
-    RECORD_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     STEP_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     AVAILABLE_SORT_KEYS = {
@@ -215,7 +215,6 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     }
-    START_RECORD_FUNCTIONS = {"on_fit_start", "on_validation_start", "on_test_start", "on_predict_start"}
 
     def __init__(
         self,
@@ -226,7 +225,6 @@ class PyTorchProfiler(BaseProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Set[str] = None,
         record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
@@ -266,9 +264,6 @@ class PyTorchProfiler(BaseProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: Set of profiled functions which will create a context manager on.
-                Any other will be pass through.
-
             record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
@@ -286,9 +281,6 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = record_functions or set()
-        self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
-        self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -327,8 +319,6 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
 
-        activities = profiler_kwargs.get("activities", None)
-        self._profiler_kwargs["activities"] = activities or self._default_activities()
         self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
         self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
@@ -361,18 +351,8 @@ class PyTorchProfiler(BaseProfiler):
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
 
-    def _default_activities(self) -> List["ProfilerActivity"]:
-        activities = []
-        if not _KINETO_AVAILABLE:
-            return activities
-        if self._profiler_kwargs.get("use_cpu", True):
-            activities.append(ProfilerActivity.CPU)
-        if self._profiler_kwargs.get("use_cuda", torch.cuda.is_available()):
-            activities.append(ProfilerActivity.CUDA)
-        return activities
-
     def start(self, action_name: str) -> None:
-        if self.profiler is None and any(action_name.endswith(func) for func in self._record_functions_start):
+        if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
             if torch.autograd._profiler_enabled():
@@ -401,21 +381,16 @@ class PyTorchProfiler(BaseProfiler):
 
         if (
             self.profiler is not None
-            and (
-                any(action_name.endswith(func) for func in self._record_functions)
-                or action_name.startswith(self.RECORD_FUNCTION_PREFIX)
-            )
             and action_name not in self._recording_map
         ):
 
-            recording = record_function(action_name)
+            # Add [pl][profile] in name for pytorch profiler to recognize
+            recording = record_function("[pl][profile]"+action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 
     def stop(self, action_name: str) -> None:
-        if action_name in self._recording_map:
-            self._recording_map[action_name].__exit__(None, None, None)
-            del self._recording_map[action_name]
+        self._clear_recording_map()
 
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
@@ -519,11 +494,14 @@ class PyTorchProfiler(BaseProfiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
-    def teardown(self, stage: Optional[str] = None) -> None:
-        self._delete_profilers()
+    def _clear_recording_map(self) -> None:
+        for _,v in self._recording_map.items():
+            v.__exit__(None, None, None)
+        self._recording_map.clear()
 
-        for k in self._recording_map:
-            self.stop(k)
-        self._recording_map = {}
+    def teardown(self, stage: Optional[str] = None) -> None:
+        self._clear_recording_map()
+
+        self._delete_profilers()
 
         super().teardown(stage=stage)
