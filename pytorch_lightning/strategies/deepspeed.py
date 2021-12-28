@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, LRSchedulerTypeUnion, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -444,7 +444,7 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[List[LRSchedulerConfig]], Optional[int]]:
         optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(schedulers) > 1:
             raise MisconfigurationException(

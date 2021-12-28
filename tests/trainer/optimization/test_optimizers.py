@@ -699,10 +699,10 @@ def test_lr_scheduler_step_hook(tmpdir):
         def training_epoch_end(self, *args, **kwargs):
             pass
 
-        def lr_scheduler_step(self, scheduler, optimizer_idx, metrics=None):
+        def lr_scheduler_step(self, scheduler, optimizer_idx, metric=None):
             # step-level
             if optimizer_idx == 0:
-                super().lr_scheduler_step(scheduler, optimizer_idx, metrics)
+                super().lr_scheduler_step(scheduler, optimizer_idx, metric)
             # epoch-level
             elif optimizer_idx == 1:
                 scheduler.step(epoch=self.current_epoch)
@@ -753,5 +753,6 @@ def test_invalid_lr_scheduler(tmpdir):
 
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir)
+    model.trainer = trainer
     with pytest.raises(ValueError, match="provided lr scheduler .* is invalid"):
-        trainer.init_optimizers(model)
+        _init_optimizers_and_lr_schedulers(model)

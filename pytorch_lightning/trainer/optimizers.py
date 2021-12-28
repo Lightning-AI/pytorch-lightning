@@ -14,13 +14,6 @@
 
 from abc import ABC
 from typing import List, Optional, Tuple
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable, Tuple, Union
-from typing import Any, Dict, List, Optional, Tuple, Union
-
-import torch
-from torch import optim
-from torch.optim.optimizer import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import (
@@ -29,20 +22,6 @@ from pytorch_lightning.core.optimizer import (
     LightningOptimizer,
 )
 from pytorch_lightning.utilities import rank_zero_deprecation
-
-
-@runtime_checkable
-class _SupportedLRScheduler(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportedLRScheduler)`"""
-
-    def step(self, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
 
 
 class TrainerOptimizersMixin(ABC):

@@ -19,10 +19,12 @@ from weakref import proxy
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 
 def do_nothing_closure() -> None:
@@ -168,7 +170,9 @@ class LightningOptimizer:
             trainer.strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
 
-def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[List, List, List]:
+def _init_optimizers_and_lr_schedulers(
+    model: "pl.LightningModule",
+) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     model.trainer._lightning_optimizers = None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
@@ -252,7 +256,7 @@ def _configure_optimizers(
     return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
 
-def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
@@ -298,14 +302,17 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             lr_schedulers.append(
                 {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
             )
-        elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-            lr_schedulers.append({**default_config, "scheduler": scheduler})
         else:
-            raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
+            lr_schedulers.append({**default_config, "scheduler": scheduler})
+
+        current_scheduler = lr_schedulers[-1]["scheduler"]
+        if not isinstance(current_scheduler, _SupportedLRScheduler):
+            raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
+
     return lr_schedulers
 
 
-def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
@@ -325,6 +332,11 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
             lr_schedulers.append({**default_config, **scheduler})
         else:
             lr_schedulers.append({**default_config, "scheduler": scheduler})
+
+        current_scheduler = lr_schedulers[-1]["scheduler"]
+        if not isinstance(current_scheduler, _SupportedLRScheduler):
+            raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
+
     return lr_schedulers
 
 
@@ -341,7 +353,7 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
     }
 
 
-def _validate_scheduler_optimizer(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
+def _validate_scheduler_optimizer(optimizers: List[Optimizer], lr_schedulers: List[LRSchedulerConfig]) -> None:
     if any(sch["scheduler"].optimizer not in optimizers for sch in lr_schedulers):
         raise MisconfigurationException(
             "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
@@ -394,3 +406,17 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self) -> str:
         return "No Optimizer"
+
+
+@runtime_checkable
+class _SupportedLRScheduler(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportedLRScheduler)`"""
+
+    def step(self, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...

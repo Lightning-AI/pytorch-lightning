@@ -507,7 +507,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                     "lr_scheduler_step",
                     lr_scheduler["scheduler"],
                     optimizer_idx=lr_scheduler["opt_idx"],
-                    metrics=monitor_val,
+                    metric=monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
 

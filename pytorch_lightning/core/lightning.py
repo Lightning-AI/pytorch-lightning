@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -1495,9 +1495,9 @@ class LightningModule(
 
     def lr_scheduler_step(
         self,
-        scheduler: Any,
+        scheduler: LRSchedulerTypeUnion,
         optimizer_idx: Optional[int] = None,
-        metrics: Optional[Union[float, torch.Tensor]] = None,
+        metric: Optional[Union[float, torch.Tensor]] = None,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1507,27 +1507,27 @@ class LightningModule(
 
         Args:
             scheduler: Learning rate scheduler.
-            optimizer_idx: Index of the optimizer associated with scheduler.
-            monitor_val: Value of the metric used for schedulers like ``ReduceLROnPlateau``.
+            optimizer_idx: Index of the optimizer associated with this scheduler.
+            metric: Value of the metric used for schedulers like ``ReduceLROnPlateau``.
 
         Examples::
 
             # DEFAULT
-            def lr_scheduler_step(self, scheduler, optimizer_idx, metrics):
-                if monitor_val is None:
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                if metric is None:
                     scheduler.step()
                 else:
-                    scheduler.step(monitor_val)
+                    scheduler.step(metric)
 
             # Alternative way to update schedulers if it requires an epoch value
-            def lr_scheduler_step(self, scheduler, optimizer_idx, metrics):
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
                 scheduler.step(epoch=self.current_epoch)
 
         """
-        if metrics is None:
+        if metric is None:
             scheduler.step()
         else:
-            scheduler.step(metrics=metrics)
+            scheduler.step(metric)
 
     def optimizer_step(
         self,
