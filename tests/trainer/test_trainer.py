@@ -774,6 +774,16 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
             trainer_fn(model, ckpt_path="best")
 
 
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_best_ckpt_evaluate_raises_error_with_multiple_ckpt_callbacks(tmpdir, fn):
+    """Test that an error is raised if best ckpt callback is used for evaluation configured with multiple
+    checkpoints."""
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[ModelCheckpoint(), ModelCheckpoint()])
+    trainer_fn = getattr(trainer, fn)
+    with pytest.raises(MisconfigurationException, match="not supported with multiple `ModelCheckpoint` callbacks"):
+        trainer_fn(BoringModel(), ckpt_path="best")
+
+
 def test_disabled_training(tmpdir):
     """Verify that `limit_train_batches=0` disables the training loop unless `fast_dev_run=True`."""
 

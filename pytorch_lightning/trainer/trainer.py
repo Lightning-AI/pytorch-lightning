@@ -1381,15 +1381,21 @@ class Trainer(
             ckpt_path = "best"
 
         if ckpt_path == "best":
-            # if user requests the best checkpoint but we don't have it, error
+            if len(self.checkpoint_callbacks) > 1:
+                raise MisconfigurationException(
+                    f'.{fn}(ckpt_path="best" is not supported with multiple `ModelCheckpoint` callbacks.'
+                    " Please pass in the exact checkpoint path."
+                )
+
             if not self.checkpoint_callback:
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
+
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
-                        f"You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do"
+                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True` unless you do'
                         f" `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting."
                     )
                 raise MisconfigurationException(
