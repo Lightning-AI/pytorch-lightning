@@ -68,8 +68,8 @@ class TrainerDataLoadingMixin(ABC):
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
     call_hook: Callable
-    _accelerator_connector: AcceleratorConnector
     current_epoch: int
+    _accelerator_connector: AcceleratorConnector
     _last_train_dl_reload_epoch: int
     _last_val_dl_reload_epoch: int
 
