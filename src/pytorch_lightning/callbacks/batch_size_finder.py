@@ -63,7 +63,7 @@ class BatchSizeFinder(Callback):
 
     def scale_batch_size(self, trainer, pl_module):
         if trainer.fast_dev_run:
-            rank_zero_warn("Skiping batch size scaler since `fast_dev_run` is enabled.")
+            rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
             return
 
         if not lightning_hasattr(pl_module, self.batch_arg_name):
@@ -209,7 +209,6 @@ class BatchSizeFinder(Callback):
     def _try_loop_run(self, trainer):
         if trainer.state.fn == TrainerFn.FITTING:
             trainer.fit_loop.global_step = self._dumped_params["global_step"]
-            # trainer.fit_loop.current_epoch = self._dumped_params["current_epoch"]
             loop = trainer.fit_loop
         elif trainer.state.fn == TrainerFn.VALIDATING:
             loop = trainer.validate_loop
@@ -235,7 +234,6 @@ class BatchSizeFinder(Callback):
 
     def _dump_params(self, trainer):
         self._dumped_params = {
-            # "current_epoch": trainer.current_epoch,
             "logger": trainer.logger,
             "callbacks": trainer.callbacks,
         }
@@ -280,7 +278,6 @@ class BatchSizeFinder(Callback):
         trainer.callbacks = self._dumped_params["callbacks"]
 
         if trainer.state.fn == TrainerFn.FITTING:
-            # trainer.fit_loop.current_epoch = self._dumped_params["current_epoch"]
             trainer.fit_loop.global_step = self._dumped_params["global_step"]
             loop = trainer.fit_loop
             loop.max_steps = self._dumped_params["max_steps"]
@@ -300,6 +297,9 @@ class BatchSizeFinder(Callback):
             loop.verbose = self._dumped_params["loop_verbose"]
 
     def pre_early_exit(self, trainer):
+        if trainer.fast_dev_run:
+            return
+
         if trainer.state.fn == TrainerFn.FITTING:
             trainer.should_stop = True
             self._dumped_params["num_training_batches"] = trainer.num_training_batches
@@ -315,6 +315,9 @@ class BatchSizeFinder(Callback):
             trainer.num_predict_batches = [0]
 
     def post_early_exit(self, trainer):
+        if trainer.fast_dev_run:
+            return
+
         if trainer.state.fn == TrainerFn.FITTING:
             trainer.num_training_batches = self._dumped_params["num_training_batches"]
             loop = trainer.fit_loop
