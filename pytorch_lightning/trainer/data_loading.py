@@ -73,6 +73,18 @@ class TrainerDataLoadingMixin(ABC):
     _last_train_dl_reload_epoch: int
     _last_val_dl_reload_epoch: int
 
+    @property
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs)
+
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs)
+
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
             return
@@ -479,15 +491,3 @@ class TrainerDataLoadingMixin(ABC):
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
-
-    @property
-    def _should_reload_train_dl(self) -> bool:
-        """Check if train dataloader should be reloaded."""
-        n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.current_epoch - self._last_train_dl_reload_epoch >= n_epochs)
-
-    @property
-    def _should_reload_val_dl(self) -> bool:
-        """Check if validation dataloader should be reloaded."""
-        n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.current_epoch - self._last_val_dl_reload_epoch >= n_epochs)
