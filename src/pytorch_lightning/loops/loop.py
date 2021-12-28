@@ -315,7 +315,6 @@ class Loop(ABC, Generic[T]):
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
-        self.restarting = True
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():

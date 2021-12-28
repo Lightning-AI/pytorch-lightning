@@ -106,20 +106,22 @@ def test_trainer_reset_correctly(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     changed_attributes = [
-        "callbacks",
-        "checkpoint_callback",
-        "current_epoch",
-        "limit_train_batches",
-        "logger",
-        "max_steps",
         "global_step",
+        "limit_val_batches",
+        "max_steps",
+        "logger",
+        "callbacks",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    expected_loop_state_dict = trainer.fit_loop.state_dict()
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
-        trainer.tuner.scale_batch_size(model, max_trials=5)
-
+        trainer.tuner.scale_batch_size(model, max_trials=64)
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
+
+    actual_loop_state_dict = trainer.fit_loop.state_dict()
+
+    assert expected_loop_state_dict == actual_loop_state_dict
     assert actual == expected
 
 

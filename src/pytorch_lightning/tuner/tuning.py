@@ -214,7 +214,7 @@ class Tuner:
 
     def fit(self, model, train_dataloaders, val_dataloaders, datamodule, **batch_size_scale_kwargs):
         self.trainer.state.fn = None
-        batch_size_finder = BatchSizeFinder(**batch_size_scale_kwargs)
+        batch_size_finder = BatchSizeFinder(**batch_size_scale_kwargs, early_exit=True)
         self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
         self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
         return batch_size_finder.optimal_batch_size
