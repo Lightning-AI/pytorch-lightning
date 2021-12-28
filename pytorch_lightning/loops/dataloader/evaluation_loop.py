@@ -109,7 +109,7 @@ class EvaluationLoop(DataLoaderLoop):
         void(*args, **kwargs)
 
         dataloader_idx = self.current_dataloader_idx
-        dataloader = self.trainer.training_type_plugin.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
         self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
             dataloader, dataloader_idx=dataloader_idx
         )

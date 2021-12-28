@@ -18,12 +18,12 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import Strategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
-class SingleDevicePlugin(Strategy):
-    """Plugin that handles communication on a single device."""
+class SingleDeviceStrategy(Strategy):
+    """Strategy that handles communication on a single device."""
 
     def __init__(
         self,
@@ -86,6 +86,7 @@ class SingleDevicePlugin(Strategy):
         return obj
 
     def teardown(self) -> None:
+        super().teardown()
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()

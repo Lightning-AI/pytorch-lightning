@@ -19,8 +19,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
@@ -33,7 +33,7 @@ if _FAIRSCALE_AVAILABLE:
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
-class DDPShardedPlugin(DDPPlugin):
+class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
     distributed_backend = _StrategyType.DDP_SHARDED
@@ -50,7 +50,7 @@ class DDPShardedPlugin(DDPPlugin):
             optimizers=trainer.optimizers,
         )
         trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
+        _convert_to_lightning_optimizers(trainer)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
@@ -104,7 +104,7 @@ class DDPShardedPlugin(DDPPlugin):
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
-                "`DDPShardedPlugin` requires `fairscale` to be installed."
+                "`DDPShardedStrategy` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )
         return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
@@ -133,6 +133,6 @@ class DDPShardedPlugin(DDPPlugin):
         plugin_registry.register(
             "ddp_sharded_find_unused_parameters_false",
             cls,
-            description="DDP Sharded Plugin with `find_unused_parameters` as False",
+            description="DDP Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )

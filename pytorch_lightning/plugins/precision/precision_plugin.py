@@ -236,3 +236,9 @@ class PrecisionPlugin(CheckpointHooks):
         """A contextmanager for the predict step."""
         with self.forward_context():
             yield
+
+    def teardown(self) -> None:
+        """This method is called to teardown the training process.
+
+        It is the right place to release memory and free other resources.
+        """

@@ -18,8 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDP2Plugin, DDPPlugin, DDPShardedPlugin, DeepSpeedPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.strategies import DDP2Strategy, DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers.runif import RunIf
 
@@ -55,14 +55,15 @@ def environment_combinations():
 
 
 @pytest.mark.parametrize(
-    "plugin_cls", [DDPPlugin, DDPShardedPlugin, DDP2Plugin, pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True))]
+    "plugin_cls",
+    [DDPStrategy, DDPShardedStrategy, DDP2Strategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
 
-        if plugin_cls == DDP2Plugin:
+        if plugin_cls == DDP2Strategy:
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
 
         with mock.patch.dict(os.environ, variables):
@@ -107,7 +108,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
-            assert type(trainer.training_type_plugin.cluster_environment) is type(cluster)
+            assert type(trainer.strategy.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]

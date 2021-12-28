@@ -178,7 +178,7 @@ For example, when training Graph Neural Networks, a common strategy is to load t
 
 A simple way to prevent redundant dataset replicas is to rely on :obj:`torch.multiprocessing` to share the `data automatically between spawned processes via shared memory <https://pytorch.org/docs/stable/notes/multiprocessing.html>`_.
 For this, all data pre-loading should be done on the main process inside :meth:`DataModule.__init__`.
-As a result, all tensor-data will get automatically shared when using the :class:`~pytorch_lightning.plugins.DDPSpawnPlugin` training type plugin:
+As a result, all tensor-data will get automatically shared when using the :class:`~pytorch_lightning.strategies.DDPSpawnStrategy` training type strategy:
 
 .. warning::
 

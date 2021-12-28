@@ -15,8 +15,9 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
+from pytorch_lightning.strategies import DeepSpeedStrategy
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.meta import init_meta_context
@@ -124,7 +125,7 @@ def deepspeed_zero_config(deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("plugin", ("deepspeed", DeepSpeedPlugin))
+@pytest.mark.parametrize("plugin", ("deepspeed", DeepSpeedStrategy))
 def test_deepspeed_plugin_string(tmpdir, plugin):
     """Test to ensure that the plugin can be passed via string or instance, and parallel devices is correctly
     set."""
@@ -133,8 +134,8 @@ def test_deepspeed_plugin_string(tmpdir, plugin):
         fast_dev_run=True, default_root_dir=tmpdir, strategy=plugin if isinstance(plugin, str) else plugin()
     )
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
-    assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")]
+    assert isinstance(trainer.strategy, DeepSpeedStrategy)
+    assert trainer.strategy.parallel_devices == [torch.device("cpu")]
 
 
 @RunIf(deepspeed=True)
@@ -147,8 +148,8 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 
     trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed")
 
-    plugin = trainer.training_type_plugin
-    assert isinstance(plugin, DeepSpeedPlugin)
+    plugin = trainer.strategy
+    assert isinstance(plugin, DeepSpeedStrategy)
     assert plugin.parallel_devices == [torch.device("cpu")]
     assert plugin.config == deepspeed_config
 
@@ -169,9 +170,9 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
         fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed", amp_backend=amp_backend, precision=precision
     )
 
-    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
-    assert isinstance(trainer.training_type_plugin.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.training_type_plugin.precision_plugin.precision == precision
+    assert isinstance(trainer.strategy, DeepSpeedStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == precision
 
 
 @RunIf(deepspeed=True)
@@ -181,7 +182,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
     with pytest.raises(
         MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
-        DeepSpeedPlugin(config="invalid_path.json")
+        DeepSpeedStrategy(config="invalid_path.json")
 
 
 @RunIf(deepspeed=True)
@@ -191,14 +192,14 @@ def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
     with open(config_path, "w") as f:
         f.write(json.dumps(deepspeed_config))
     monkeypatch.setenv("PL_DEEPSPEED_CONFIG_PATH", config_path)
-    plugin = DeepSpeedPlugin()
+    plugin = DeepSpeedStrategy()
     assert plugin.config == deepspeed_config
 
 
 @RunIf(deepspeed=True)
 def test_deepspeed_defaults(tmpdir):
     """Ensure that defaults are correctly set as a config for DeepSpeed if no arguments are passed."""
-    plugin = DeepSpeedPlugin()
+    plugin = DeepSpeedStrategy()
     assert plugin.config is not None
     assert isinstance(plugin.config["zero_optimization"], dict)
 
@@ -211,7 +212,12 @@ def test_warn_deepspeed_ignored(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, precision=16, track_grad_norm=2
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        strategy=DeepSpeedStrategy(),
+        gpus=1,
+        precision=16,
+        track_grad_norm=2,
     )
     from pytorch_lightning.plugins.precision.deepspeed import warning_cache
 
@@ -235,8 +241,8 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmp
 
     class AssertCallback(Callback):
         def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
-            assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
-            config = trainer.training_type_plugin.config
+            assert isinstance(trainer.strategy, DeepSpeedStrategy)
+            config = trainer.strategy.config
 
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
@@ -253,7 +259,7 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmp
         fast_dev_run=True,
         callbacks=ck,
         gpus=1,
-        strategy=DeepSpeedPlugin(logging_batch_size_per_gpu=value, zero_optimization=False),
+        strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=value, zero_optimization=False),
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -282,7 +288,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     model = TestModel()
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        strategy=DeepSpeedPlugin(),  # disable ZeRO so our optimizers are not wrapped
+        strategy=DeepSpeedStrategy(),  # disable ZeRO so our optimizers are not wrapped
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
@@ -312,7 +318,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
     model = BoringModel()
     trainer = Trainer(
-        strategy=DeepSpeedPlugin(config=deepspeed_zero_config),
+        strategy=DeepSpeedStrategy(config=deepspeed_zero_config),
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
@@ -326,20 +332,22 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_custom_precision_params(tmpdir):
-    """Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these
+    """Ensure if we modify the FP16 parameters via the DeepSpeedStrategy, the deepspeed config contains these
     changes."""
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
-            assert trainer.training_type_plugin.config["fp16"]["loss_scale"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["initial_scale_power"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["loss_scale_window"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["hysteresis"] == 10
-            assert trainer.training_type_plugin.config["fp16"]["min_loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 10
+            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 10
+            assert trainer.strategy.config["fp16"]["hysteresis"] == 10
+            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 10
             raise SystemExit()
 
     model = BoringModel()
-    ds = DeepSpeedPlugin(loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10)
+    ds = DeepSpeedStrategy(
+        loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
+    )
     trainer = Trainer(default_root_dir=tmpdir, strategy=ds, precision=16, gpus=1, callbacks=[TestCB()])
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -348,7 +356,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
-    ds = DeepSpeedPlugin(
+    ds = DeepSpeedStrategy(
         partition_activations=True,
         cpu_checkpointing=True,
         contiguous_memory_optimization=True,
@@ -365,7 +373,7 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
     """Ensure if we modify the activation checkpointing parameters, we pass these to
     deepspeed.checkpointing.configure correctly."""
-    ds = DeepSpeedPlugin(
+    ds = DeepSpeedStrategy(
         partition_activations=True,
         cpu_checkpointing=True,
         contiguous_memory_optimization=True,
@@ -399,7 +407,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, trainer, pl_module) -> None:
-            assert trainer.training_type_plugin.config["zero_optimization"]["offload_optimizer"] is False
+            assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 
     model = BoringModel()
@@ -407,7 +415,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=1,
-        strategy=DeepSpeedPlugin(config=deepspeed_zero_config),
+        strategy=DeepSpeedStrategy(config=deepspeed_zero_config),
         precision=16,
         gpus=1,
         callbacks=[TestCallback()],
@@ -422,7 +430,7 @@ def test_deepspeed_multigpu(tmpdir):
     correctly."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     with mock.patch("deepspeed.init_distributed", wraps=deepspeed.init_distributed) as mock_deepspeed_distributed:
         trainer.fit(model)
@@ -444,7 +452,7 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
     """Test to ensure that DeepSpeed Stage 3 gives a warning when saving on rank zero."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
@@ -469,23 +477,23 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     trainer.save_checkpoint(checkpoint_path)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=1, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=1, fast_dev_run=True, precision=16
     )
-    plugin = trainer.training_type_plugin
-    assert isinstance(plugin, DeepSpeedPlugin)
+    plugin = trainer.strategy
+    assert isinstance(plugin, DeepSpeedStrategy)
     assert not plugin.load_full_weights
     with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(stage=3, load_full_weights=True),
+        strategy=DeepSpeedStrategy(stage=3, load_full_weights=True),
         gpus=1,
         fast_dev_run=True,
         precision=16,
     )
-    plugin = trainer.training_type_plugin
-    assert isinstance(plugin, DeepSpeedPlugin)
+    plugin = trainer.strategy
+    assert isinstance(plugin, DeepSpeedStrategy)
     assert plugin.load_full_weights
     trainer.test(model, ckpt_path=checkpoint_path)
 
@@ -573,7 +581,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     trainer.test(model)
@@ -587,7 +595,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     model = ModelParallelBoringModelManualOptim()
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     trainer.test(model)
@@ -608,7 +616,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=10,
-        strategy=DeepSpeedPlugin(stage=3),
+        strategy=DeepSpeedStrategy(stage=3),
         gpus=2,
         precision=16,
         accumulate_grad_batches=accumulate_grad_batches,
@@ -626,7 +634,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy=DeepSpeedPlugin(stage=3), precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy=DeepSpeedStrategy(stage=3), precision=16)
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]["test_acc"] > 0.7
@@ -646,7 +654,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        strategy=DeepSpeedPlugin(stage=3, load_full_weights=True),
+        strategy=DeepSpeedStrategy(stage=3, load_full_weights=True),
         gpus=1,
         precision=16,
     )
@@ -672,7 +680,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         limit_train_batches=2,
         limit_val_batches=2,
         limit_test_batches=2,
-        strategy=DeepSpeedPlugin(stage=3),
+        strategy=DeepSpeedStrategy(stage=3),
         gpus=1,
         precision=16,
         callbacks=[ck],
@@ -683,11 +691,11 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         def on_train_batch_start(
             self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
         ) -> None:
-            original_deepspeed_plugin = initial_trainer.training_type_plugin
-            current_deepspeed_plugin = trainer.training_type_plugin
+            original_deepspeed_plugin = initial_trainer.strategy
+            current_deepspeed_plugin = trainer.strategy
 
-            assert isinstance(original_deepspeed_plugin, DeepSpeedPlugin)
-            assert isinstance(current_deepspeed_plugin, DeepSpeedPlugin)
+            assert isinstance(original_deepspeed_plugin, DeepSpeedStrategy)
+            assert isinstance(current_deepspeed_plugin, DeepSpeedStrategy)
             # assert optimizer states are the correctly loaded
             original_optimizer_dict = original_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
             current_optimizer_dict = current_deepspeed_plugin.deepspeed_engine.optimizer.state_dict()
@@ -705,7 +713,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        strategy=DeepSpeedPlugin(stage=3),
+        strategy=DeepSpeedStrategy(stage=3),
         gpus=1,
         precision=16,
         callbacks=TestCallback(),
@@ -724,7 +732,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
             self.on_train_batch_start_called = False
 
         def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int) -> None:
-            deepspeed_engine = trainer.training_type_plugin.model
+            deepspeed_engine = trainer.strategy.model
             assert trainer.global_step == deepspeed_engine.global_steps
             self.on_train_batch_start_called = True
 
@@ -738,7 +746,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
         # there's divergence in how Lightning handles the last batch of the epoch with how DeepSpeed does it.
         # we step the optimizers on the last batch but DeepSpeed keeps the accumulation for the next epoch
         max_epochs=1,
-        strategy=DeepSpeedPlugin(stage=2, offload_optimizer=offload_optimizer),
+        strategy=DeepSpeedStrategy(stage=2, offload_optimizer=offload_optimizer),
         gpus=2,
         limit_train_batches=5,
         limit_val_batches=2,
@@ -756,7 +764,7 @@ def test_deepspeed_multigpu_test(tmpdir):
     """Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.test(model)
 
@@ -785,7 +793,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=1, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=1, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
 
@@ -806,7 +814,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(stage=3),
+        strategy=DeepSpeedStrategy(stage=3),
         gpus=1,
         fast_dev_run=True,
         precision=16,
@@ -822,29 +830,29 @@ def test_deepspeed_plugin_env_variables(mock_deepspeed_distributed, tmpdir, plat
 
     When using windows, ranks environment variables should not be set, and deepspeed should handle this.
     """
-    trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3))
-    plugin = trainer.training_type_plugin
-    assert isinstance(plugin, DeepSpeedPlugin)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3))
+    plugin = trainer.strategy
+    assert isinstance(plugin, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as mock_platform:
         plugin._init_deepspeed_distributed()
     mock_deepspeed_distributed.assert_called()
     mock_platform.assert_called()
     if platform == "Windows":
-        # assert no env variables have been set within the DeepSpeedPlugin
+        # assert no env variables have been set within the DeepSpeedStrategy
         assert all(k not in os.environ for k in ("MASTER_PORT", "MASTER_ADDR", "RANK", "WORLD_SIZE", "LOCAL_RANK"))
     else:
-        assert os.environ["MASTER_ADDR"] == str(trainer.training_type_plugin.cluster_environment.main_address)
-        assert os.environ["MASTER_PORT"] == str(trainer.training_type_plugin.cluster_environment.main_port)
-        assert os.environ["RANK"] == str(trainer.training_type_plugin.global_rank)
-        assert os.environ["WORLD_SIZE"] == str(trainer.training_type_plugin.world_size)
-        assert os.environ["LOCAL_RANK"] == str(trainer.training_type_plugin.local_rank)
+        assert os.environ["MASTER_ADDR"] == str(trainer.strategy.cluster_environment.main_address)
+        assert os.environ["MASTER_PORT"] == str(trainer.strategy.cluster_environment.main_port)
+        assert os.environ["RANK"] == str(trainer.strategy.global_rank)
+        assert os.environ["WORLD_SIZE"] == str(trainer.strategy.world_size)
+        assert os.environ["LOCAL_RANK"] == str(trainer.strategy.local_rank)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
-    checkpoint_path = trainer.training_type_plugin.broadcast(checkpoint_path)
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.training_type_plugin.barrier()
+    trainer.strategy.barrier()
 
     # carry out the check only on rank 0
     if trainer.is_global_zero:
@@ -866,7 +874,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
     """Test to ensure ZeRO Stage 3 works with a parallel model and no schedulers."""
     model = ModelParallelBoringModelNoSchedulers()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy=DeepSpeedPlugin(stage=3), gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, strategy=DeepSpeedStrategy(stage=3), gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
 
@@ -880,7 +888,7 @@ def test_deepspeed_skip_backward_raises(tmpdir):
             return None
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedPlugin(), gpus=1, fast_dev_run=True, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=DeepSpeedStrategy(), gpus=1, fast_dev_run=True, precision=16)
     with pytest.raises(MisconfigurationException, match="returning `None` .* is not supported"):
         trainer.fit(model)
 
@@ -912,7 +920,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=DeepSpeedPlugin(logging_level=logging.INFO),
+        strategy=DeepSpeedStrategy(logging_level=logging.INFO),
         gpus=1,
         fast_dev_run=True,
     )
@@ -1045,7 +1053,7 @@ def test_deepspeed_with_meta_device(tmpdir):
         model = BoringModel()
     assert model.layer.weight.device.type == "meta"
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[DeepSpeedPlugin(stage=3)], gpus=2, fast_dev_run=True, precision=16
+        default_root_dir=tmpdir, plugins=[DeepSpeedStrategy(stage=3)], gpus=2, fast_dev_run=True, precision=16
     )
     trainer.fit(model)
     assert model.layer.weight.device.type == "cpu"
