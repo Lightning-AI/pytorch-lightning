@@ -1809,15 +1809,15 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
+@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
+def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir, fn):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     model = BoringModel()
     trainer.fit(model)
 
-    with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
-        trainer.validate()
-    with pytest.raises(MisconfigurationException, match=r"\.test\(\)` with `fast_dev_run=True"):
-        trainer.test()
+    trainer_fn = getattr(trainer, fn)
+    with pytest.raises(MisconfigurationException, match=fr'\.{fn}\(ckpt_path="best"\)` with `fast_dev_run=True'):
+        trainer_fn()
 
 
 class TrainerStagesModel(BoringModel):
