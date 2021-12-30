@@ -62,8 +62,7 @@ class BaguaStrategy(DDPStrategy):
                 "async".
             do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
                 pointer of bucket tensors so that they can use faster code paths. Default: ``True``.
-            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm. More details can be
-                found in `API documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
+            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm.
         """
 
         super().__init__(
