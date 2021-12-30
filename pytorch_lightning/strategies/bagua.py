@@ -24,6 +24,7 @@ if _BAGUA_AVAILABLE:
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 else:
     ReduceOp = None
+    BaguaDistributedDataParallel = torch.nn.parallel.DistributedDataParallel
 
 log = logging.getLogger(__name__)
 
@@ -56,12 +57,13 @@ class BaguaStrategy(DDPStrategy):
         library.
 
         Arguments:
-            algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms include
-                "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and "async".
-            do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data pointer
-                of bucket tensors so that they can use faster code paths. Default: ``True``.
-            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm. More details can be found
-                in `API documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
+            algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms
+                include "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and
+                "async".
+            do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
+                pointer of bucket tensors so that they can use faster code paths. Default: ``True``.
+            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm. More details can be
+                found in `API documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
         """
 
         super().__init__(
