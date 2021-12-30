@@ -216,13 +216,13 @@ class KFoldLoop(Loop):
         self.current_fold = state_dict["current_fold"]
 
     def _reset_fitting(self) -> None:
-        self.trainer.reset_train_dataloader()
-        self.trainer.reset_val_dataloader()
+        self.trainer._data_connector._reset_train_dataloader()
+        self.trainer._data_connector._reset_val_dataloader()
         self.trainer.state.fn = TrainerFn.FITTING
         self.trainer.training = True
 
     def _reset_testing(self) -> None:
-        self.trainer.reset_test_dataloader()
+        self.trainer._data_connector._reset_test_dataloader()
         self.trainer.state.fn = TrainerFn.TESTING
         self.trainer.testing = True
 

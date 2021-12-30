@@ -80,7 +80,7 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     model.trainer = trainer
     trainer._data_connector.attach_datamodule(model, datamodule=dm)
 
-    loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
+    loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
     if stage == RunningStage.VALIDATING:
         assert loader_num_batches[0] == 0
     else:
@@ -110,7 +110,7 @@ def test_overfit_batch_limits_train(overfit_batches):
     trainer = Trainer(overfit_batches=overfit_batches)
     model.trainer = trainer
     trainer._data_connector.attach_dataloaders(model=model)
-    trainer.reset_train_dataloader(model)
+    trainer._reset_train_dataloader(model)
     expected_batches = (
         int(overfit_batches * full_train_samples) if isinstance(overfit_batches, float) else overfit_batches
     )
@@ -133,7 +133,7 @@ def test_distributed_sampler_with_overfit_batches():
     model.trainer = trainer
     trainer.model = model
     trainer._data_connector.attach_dataloaders(model)
-    trainer.reset_train_dataloader()
+    trainer._reset_train_dataloader()
     train_sampler = trainer.train_dataloader.loaders.sampler
     assert isinstance(train_sampler, DistributedSampler)
     assert train_sampler.shuffle is False

@@ -190,7 +190,7 @@ class FitLoop(Loop):
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
-        self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        self.trainer._data_connector._reset_train_val_dataloaders(self.trainer.lightning_module)
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer._call_callback_hooks("on_train_start")
@@ -204,7 +204,7 @@ class FitLoop(Loop):
 
         # reset train dataloader
         if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_train_dataloader(model)
+            self.trainer._data_connector._reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
         if self.trainer.train_dataloader is not None and callable(

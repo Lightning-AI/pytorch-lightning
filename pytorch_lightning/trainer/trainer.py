@@ -121,9 +121,9 @@ warnings.filterwarnings(
 
 
 class Trainer(
-    TrainerCallbackHookMixin,
-    TrainerOptimizersMixin,
-    TrainerDataLoadingMixin,
+    TrainerCallbackHookMixin,  # TODO: Remove in v1.8
+    TrainerOptimizersMixin,  # TODO: Remove in v1.8
+    TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
     # Needed because of LightningOptimizer
     _lightning_optimizers = None
@@ -1309,7 +1309,7 @@ class Trainer(
         return eval_loop_results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        self.reset_predict_dataloader(self.lightning_module)
+        self._data_connector._reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
         with torch.no_grad():
