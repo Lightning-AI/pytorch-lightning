@@ -385,6 +385,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed data fetcher selection ([#11294](https://github.com/PyTorchLightning/pytorch-lightning/pull/11294))
 
 
+- Fixed a race that could result in incorrect (zero) values being observed in prediction writer callbacks. ([#11287](https://github.com/PyTorchLightning/pytorch-lightning/pull/11287))
+
+
 ## [1.5.7] - 2021-12-21
 
 ### Fixed
