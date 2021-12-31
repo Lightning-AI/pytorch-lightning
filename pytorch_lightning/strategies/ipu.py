@@ -121,9 +121,9 @@ class IPUStrategy(ParallelStrategy):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self._update_dataloader_original = pl.trainer._data_connector._update_dataloader
+        self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
 
-        pl.trainer._data_connector._update_dataloader = self._convert_to_poptorch_loader
+        pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
 
@@ -279,7 +279,7 @@ class IPUStrategy(ParallelStrategy):
     def teardown(self) -> None:
         super().teardown()
         # undo dataloader patching
-        pl.trainer._data_connector._update_dataloader = self._update_dataloader_original
+        pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
         for model in self.poptorch_models.values():
             model.destroy()
