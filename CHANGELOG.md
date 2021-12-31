@@ -222,7 +222,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `TrainerCallbackHookMixin` ([#11148](https://github.com/PyTorchLightning/pytorch-lightning/pull/11148))
 
 
-- Deprecated `TrainerDataLoadingMixin` and moved functionality to `DataConnector` ([#11275](https://github.com/PyTorchLightning/pytorch-lightning/pull/11275))
+- Deprecated `TrainerDataLoadingMixin` and moved functionality to `DataConnector` ([#11282](https://github.com/PyTorchLightning/pytorch-lightning/pull/11282))
 
 ### Removed
 

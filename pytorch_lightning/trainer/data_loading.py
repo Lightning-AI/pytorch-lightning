@@ -126,7 +126,7 @@ class TrainerDataLoadingMixin(ABC):
             "`TrainerDataLoadingMixin.reset_train_val_dataloaders` was deprecated in v1.6 "
             "and will be removed in v1.8."
         )
-        self._data_connector._reset_train_val_dataloader(model)
+        self._data_connector._reset_train_val_dataloaders(model)
 
     def request_dataloader(
         self, stage: RunningStage, model: Optional["pl.LightningModule"] = None

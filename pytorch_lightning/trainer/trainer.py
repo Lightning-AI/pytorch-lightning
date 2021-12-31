@@ -27,6 +27,7 @@ from weakref import proxy
 import torch
 from packaging.version import Version
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
@@ -646,7 +647,7 @@ class Trainer(
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
-        self.train_dataloader = None
+        self.train_dataloader: DataLoader = None
 
         if num_sanity_val_steps == -1:
             self.num_sanity_val_steps = float("inf")
