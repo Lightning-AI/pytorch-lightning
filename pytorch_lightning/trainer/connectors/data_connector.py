@@ -264,6 +264,18 @@ class DataConnector:
         if hasattr(datamodule, "data_pipeline"):
             model.data_pipeline = datamodule.data_pipeline
 
+    @property
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs)
+
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
+
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
             return
@@ -432,7 +444,7 @@ class DataConnector:
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.trainer.train_dataloader = CombinedLoader(self.trainer.train_dataloader, self.multiple_trainloader_mode)
 
-        module = model or self.lightning_module or self.datamodule
+        module = model or self.trainer.lightning_module or self.datamodule
         self.trainer.num_training_batches = (
             len(self.trainer.train_dataloader)
             if has_len_all_ranks(self.trainer.train_dataloader, self.trainer.strategy, module)
@@ -487,6 +499,9 @@ class DataConnector:
                 category=PossibleUserWarning,
             )
 
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self.trainer._last_train_dl_reload_epoch = self.trainer.current_epoch
+
     def _reset_eval_dataloader(
         self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
@@ -530,7 +545,7 @@ class DataConnector:
 
         # determine number of batches
         # datasets could be none, 1 or 2+
-        module = model or self.lightning_module or self.datamodule
+        module = model or self.trainer.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 orig_num_batches = num_batches = (
@@ -579,6 +594,9 @@ class DataConnector:
             self.trainer.num_val_batches, self.trainer.val_dataloaders = self._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
+
+            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+            self.trainer._last_val_dl_reload_epoch = self.trainer.current_epoch
 
     def _reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.

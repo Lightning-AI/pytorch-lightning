@@ -262,7 +262,8 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
 def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
-    trainer.fit(model, datamodule=BoringDataModule())
+    dm = BoringDataModule()
+    trainer.fit(model, datamodule=dm)
     reset_fit_methods = [
         "reset_train_dataloader",
         "reset_val_dataloader",
@@ -275,13 +276,13 @@ def test_v1_8_0_deprecate_trainer_data_loading_mixin():
             fn = getattr(trainer, method_name, None)
             fn()
 
-    trainer.test(model, datamodule=BoringDataModule())
+    trainer.test(model, datamodule=dm)
     with pytest.deprecated_call(
         match=r"`TrainerDataLoadingMixin.reset_test_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
     ):
         trainer.reset_test_dataloader()
 
-    trainer.predict(model, datamodule=BoringDataModule())
+    trainer.predict(model, datamodule=dm)
     with pytest.deprecated_call(
         match=r"`TrainerDataLoadingMixin.reset_predict_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
     ):
