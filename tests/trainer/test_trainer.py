@@ -778,10 +778,30 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
 def test_best_ckpt_evaluate_raises_error_with_multiple_ckpt_callbacks(tmpdir, fn):
     """Test that an error is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[ModelCheckpoint(), ModelCheckpoint()])
+
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", batch_idx)
+            self.log("bar", batch_idx + 1)
+            return super().validation_step(batch, batch_idx)
+
+    ckpt_callbacks = [ModelCheckpoint(monitor="foo", save_top_k=1), ModelCheckpoint(monitor="bar", save_top_k=1)]
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        callbacks=ckpt_callbacks,
+        limit_test_batches=1,
+        limit_val_batches=1,
+        limit_predict_batches=1,
+    )
+
+    model = TestModel()
+    trainer.fit(model)
+
     trainer_fn = getattr(trainer, fn)
-    with pytest.raises(MisconfigurationException, match="not supported with multiple `ModelCheckpoint` callbacks"):
-        trainer_fn(BoringModel(), ckpt_path="best")
+    with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
+        trainer_fn(ckpt_path="best")
 
 
 def test_disabled_training(tmpdir):
