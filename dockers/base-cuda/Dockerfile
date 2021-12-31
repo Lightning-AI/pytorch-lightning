@@ -115,6 +115,10 @@ RUN \
     pip install deepspeed==0.5.4
 
 RUN \
+    # install Bagua
+    curl -Ls https://raw.githubusercontent.com/BaguaSys/bagua/master/install_master.sh | bash
+
+RUN \
     # Show what we have
     pip --version && \
     pip list && \
