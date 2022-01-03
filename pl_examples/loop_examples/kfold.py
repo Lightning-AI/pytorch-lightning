@@ -24,6 +24,7 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, Subset
+from torchmetrics.classification.accuracy import Accuracy
 
 from pl_examples import _DATASETS_PATH
 from pl_examples.basic_examples.mnist_datamodule import MNIST
@@ -40,9 +41,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 # Learn more about the loop structure from the documentation:                               #
 # https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html                  #
 #############################################################################################
-
-
-seed_everything(42)
 
 
 #############################################################################################
@@ -106,6 +104,9 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset)
 
+    def __post_init__(cls):
+        super().__init__()
+
 
 #############################################################################################
 #                           Step 3 / 5: Implement the EnsembleVotingModel module            #
@@ -116,15 +117,18 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 
 
 class EnsembleVotingModel(LightningModule):
-    def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]):
+    def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]) -> None:
         super().__init__()
         # Create `num_folds` models with their associated fold weights
         self.models = torch.nn.ModuleList([model_cls.load_from_checkpoint(p) for p in checkpoint_paths])
+        self.test_acc = Accuracy()
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         # Compute the averaged predictions over the `num_folds` models.
         logits = torch.stack([m(batch[0]) for m in self.models]).mean(0)
-        loss = F.cross_entropy(logits, batch[1])
+        loss = F.nll_loss(logits, batch[1])
+        self.test_acc(logits, batch[1])
+        self.log("test_acc", self.test_acc)
         self.log("test_loss", loss)
 
 
@@ -156,16 +160,18 @@ class EnsembleVotingModel(LightningModule):
 
 
 class KFoldLoop(Loop):
-    def __init__(self, num_folds: int, fit_loop: FitLoop, export_path: str):
+    def __init__(self, num_folds: int, export_path: str) -> None:
         super().__init__()
         self.num_folds = num_folds
-        self.fit_loop = fit_loop
         self.current_fold: int = 0
         self.export_path = export_path
 
     @property
     def done(self) -> bool:
         return self.current_fold >= self.num_folds
+
+    def connect(self, fit_loop: FitLoop) -> None:
+        self.fit_loop = fit_loop
 
     def reset(self) -> None:
         """Nothing to reset in this loop."""
@@ -197,7 +203,8 @@ class KFoldLoop(Loop):
         self.trainer.save_checkpoint(osp.join(self.export_path, f"model.{self.current_fold}.pt"))
         # restore the original weights + optimizers and schedulers.
         self.trainer.lightning_module.load_state_dict(self.lightning_module_state_dict)
-        self.trainer.accelerator.setup_optimizers(self.trainer)
+        self.trainer.strategy.setup_optimizers(self.trainer)
+        self.replace(fit_loop=FitLoop)
 
     def on_run_end(self) -> None:
         """Used to compute the performance of the ensemble model on the test set."""
@@ -233,6 +240,20 @@ class KFoldLoop(Loop):
         return self.__dict__[key]
 
 
+class LitImageClassifier(ImageClassifier):
+    def __init__(self) -> None:
+        super().__init__()
+        self.val_acc = Accuracy()
+
+    def validation_step(self, batch: Any, batch_idx: int) -> None:
+        x, y = batch
+        logits = self.forward(x)
+        loss = F.nll_loss(logits, y.long())
+        self.val_acc(logits, y)
+        self.log("val_acc", self.val_acc)
+        self.log("val_loss", loss)
+
+
 #############################################################################################
 #                           Step 5 / 5: Connect the KFoldLoop to the Trainer                #
 # After creating the `KFoldDataModule` and our model, the `KFoldLoop` is being connected to #
@@ -241,7 +262,8 @@ class KFoldLoop(Loop):
 #############################################################################################
 
 if __name__ == "__main__":
-    model = ImageClassifier()
+    seed_everything(42)
+    model = LitImageClassifier()
     datamodule = MNISTKFoldDataModule()
     trainer = Trainer(
         max_epochs=10,
@@ -253,5 +275,7 @@ if __name__ == "__main__":
         accelerator="auto",
         strategy="ddp",
     )
-    trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, export_path="./")
+    internal_fit_loop = trainer.fit_loop
+    trainer.fit_loop = KFoldLoop(5, export_path="./")
+    trainer.fit_loop.connect(internal_fit_loop)
     trainer.fit(model, datamodule)

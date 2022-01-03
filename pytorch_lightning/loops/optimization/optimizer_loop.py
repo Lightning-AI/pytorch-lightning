@@ -400,7 +400,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer: the current optimizer
             opt_idx: the index of the current optimizer
         """
-        self.trainer._call_strategy_hook(
+        self.trainer._call_lightning_module_hook(
             "optimizer_zero_grad", self.trainer.current_epoch, batch_idx, optimizer, opt_idx
         )
         self.optim_progress.optimizer.zero_grad.increment_completed()
