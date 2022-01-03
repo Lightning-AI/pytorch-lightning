@@ -43,9 +43,9 @@ GPU training
 
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
 
-* :class:`~pytorch_lightning.plugins.training_type.DDPStrategy`
-* :class:`~pytorch_lightning.plugins.training_type.DDPShardedStrategy`
-* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedStrategy`
+* :class:`~pytorch_lightning.strategies.DDPStrategy`
+* :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
+* :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
 
@@ -67,13 +67,13 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.plugins.training_type.DataParallelPlugin` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.strategies.DataParallelStrategy` performs three GPU transfers for EVERY batch:
 
 1. Copy model to device.
 2. Copy data to device.
 3. Copy outputs of each device back to main device.
 
-Whereas :class:`~pytorch_lightning.plugins.training_type.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
+Whereas :class:`~pytorch_lightning.strategies.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
 
 
 When using DDP strategies, set find_unused_parameters=False
@@ -86,7 +86,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
     trainer = pl.Trainer(
         gpus=2,
@@ -95,11 +95,11 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPSpawnPlugin
+    from pytorch_lightning.strategies import DDPSpawnStrategy
 
     trainer = pl.Trainer(
         gpus=2,
-        strategy=DDPSpawnPlugin(find_unused_parameters=False),
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
 When using DDP on a multi-node cluster, set NCCL parameters

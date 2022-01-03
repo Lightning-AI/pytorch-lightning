@@ -31,13 +31,13 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
@@ -73,7 +73,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class DDPStrategy(ParallelPlugin):
+class DDPStrategy(ParallelStrategy):
     """Plugin for multi-process single-device training on one or multiple nodes.
 
     The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
@@ -347,7 +347,7 @@ class DDPStrategy(ParallelPlugin):
             del optimizer
         trainer = self.lightning_module.trainer
         trainer.optimizers = optimizers
-        trainer.convert_to_lightning_optimizers()
+        _convert_to_lightning_optimizers(trainer)
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()

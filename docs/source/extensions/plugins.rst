@@ -15,7 +15,7 @@ depending on the provided Trainer arguments. For example:
 .. code-block:: python
 
     # accelerator: GPUAccelerator
-    # training type: DDPStrategy
+    # training strategy: DDPStrategy
     # precision: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
@@ -60,7 +60,7 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
 
     class CustomDDPStrategy(DDPStrategy):
@@ -70,7 +70,7 @@ Expert users may choose to extend an existing plugin by overriding its methods .
                 device_ids=...,
             )
 
-or by subclassing the base classes :class:`~pytorch_lightning.plugins.training_type.Strategy` or
+or by subclassing the base classes :class:`~pytorch_lightning.strategies.Strategy` or
 :class:`~pytorch_lightning.plugins.precision.PrecisionPlugin` to create new ones. These custom plugins
 can then be passed into the Trainer directly or via a (custom) accelerator:
 
@@ -96,28 +96,29 @@ The full list of built-in plugins is listed below.
 ----------
 
 
-Training Type Plugins
----------------------
+Training Strategies
+-------------------
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.strategies
 
 .. autosummary::
     :nosignatures:
     :template: classtemplate.rst
 
     Strategy
-    SingleDevicePlugin
-    ParallelPlugin
-    DataParallelPlugin
+    SingleDeviceStrategy
+    ParallelStrategy
+    DataParallelStrategy
     DDPStrategy
-    DDP2Plugin
+    DDP2Strategy
     DDPShardedStrategy
-    DDPSpawnShardedPlugin
-    DDPSpawnPlugin
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
     DeepSpeedStrategy
     HorovodStrategy
-    SingleTPUPlugin
+    SingleTPUStrategy
     TPUSpawnStrategy
+
 
 
 Precision Plugins

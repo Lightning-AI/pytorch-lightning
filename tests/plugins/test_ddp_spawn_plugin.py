@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPSpawnPlugin
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -52,14 +52,14 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_cpu():
-    """Tests if device is set correctly when training for DDPSpawnPlugin."""
+    """Tests if device is set correctly when training for DDPSpawnStrategy."""
     trainer = Trainer(num_processes=2, fast_dev_run=True)
     # assert training type plugin attributes for device setting
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert not trainer.training_type_plugin.on_gpu
-    assert not trainer.training_type_plugin.on_tpu
-    assert trainer.training_type_plugin.root_device == torch.device("cpu")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert not trainer.strategy.on_gpu
+    assert not trainer.strategy.on_tpu
+    assert trainer.strategy.root_device == torch.device("cpu")
 
     model = BoringModelDDPCPU()
 
@@ -68,13 +68,13 @@ def test_ddp_cpu():
 
 @RunIf(min_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnPlugin and tests add_to_queue/get_from_queue with
-    Lightning Module (deprecated way)."""
+    """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
+    with Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
 
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert trainer.training_type_plugin.on_gpu
-    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert trainer.strategy.on_gpu
+    assert trainer.strategy.root_device == torch.device("cuda:0")
 
     val: float = 1.0
     val_name: str = "val_acc"
@@ -85,7 +85,7 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     assert model.test_val == "test_val"
 
 
-class TestDDPSpawnPlugin(DDPSpawnPlugin):
+class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
@@ -97,10 +97,10 @@ class TestDDPSpawnPlugin(DDPSpawnPlugin):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_spawn_add_get_queue(tmpdir):
-    """Tests add_to_queue/get_from_queue with DDPSpawnPlugin."""
+    """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
 
-    ddp_spawn_plugin = TestDDPSpawnPlugin()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_plugin)
+    ddp_spawn_strategy = TestDDPSpawnStrategy()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_strategy)
 
     val: float = 1.0
     val_name: str = "val_acc"
@@ -108,7 +108,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     dm = BoringDataModule()
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert ddp_spawn_plugin.new_test_val == "new_test_val"
+    assert ddp_spawn_strategy.new_test_val == "new_test_val"
 
 
 class BoringModelDDP(BoringModel):
@@ -149,7 +149,7 @@ def test_ddp_spawn_configure_ddp(tmpdir):
 def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     """Tests that the spawn plugin transfers the new weights to the main process and deletes the temporary file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
-    plugin = DDPSpawnPlugin()
+    plugin = DDPSpawnStrategy()
     plugin.model = model
     trainer = Trainer(default_root_dir=tmpdir)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state

@@ -140,6 +140,24 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
         _ = trainer.should_rank_save_checkpoint
 
 
+def test_v1_8_0_trainer_optimizers_mixin():
+    trainer = Trainer()
+    model = BoringModel()
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+
+    with pytest.deprecated_call(
+        match=r"`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.init_optimizers(model)
+
+    with pytest.deprecated_call(
+        match=r"`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
+        "v1.8."
+    ):
+        trainer.convert_to_lightning_optimizers()
+
+
 def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     methods_with_self = [
         "on_before_accelerator_backend_setup",
@@ -232,3 +250,9 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_before_zero_grad(optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9))
+
+
+def test_v1_8_0_deprecated_training_type_plugin_property():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+        trainer.training_type_plugin
