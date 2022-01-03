@@ -115,4 +115,4 @@ class LRSchedulerConfig(TypedDict):
     reduce_on_plateau: bool
     monitor: Optional[str]
     strict: bool
-    opt_idx: int
+    opt_idx: Optional[int]
