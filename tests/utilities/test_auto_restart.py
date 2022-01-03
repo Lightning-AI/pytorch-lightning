@@ -38,6 +38,7 @@ from torch.utils.data.sampler import Sampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
@@ -48,7 +49,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
-    _SupportsStateDict,
     _teardown_dataloader_get_iterators,
     _validate_fault_tolerant_automatic,
     CaptureIterableDataset,
