@@ -35,7 +35,7 @@ else:
     Batch = type(None)
 
 
-CPU_DEVICES = (None, "cpu", torch.device("cpu"))
+CPU_DEVICES = ("cpu", torch.device("cpu"))
 
 
 def to_dtype_tensor(
