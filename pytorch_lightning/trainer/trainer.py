@@ -2372,6 +2372,7 @@ class Trainer(
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables (number of batches, when to validate,
         etc.).
+
         Args:
             model: The `LightningModule` if calling this outside of the trainer scope.
         """
@@ -2458,6 +2459,7 @@ class Trainer(
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
+
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
@@ -2474,6 +2476,7 @@ class Trainer(
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.
+
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
@@ -2487,6 +2490,7 @@ class Trainer(
 
     def reset_predict_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the predict dataloader and determines the number of batches.
+
         Args:
             model: The `LightningModule` if called outside of the trainer scope.
         """
@@ -2499,6 +2503,7 @@ class Trainer(
 
     def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets train and val dataloaders if none are attached to the trainer.
+
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
         Args:
