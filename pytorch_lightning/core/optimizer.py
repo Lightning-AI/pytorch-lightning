@@ -258,7 +258,7 @@ def _configure_optimizers(
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
-    lr_schedulers = []
+    lr_schedulers: List[LRSchedulerConfig] = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
@@ -314,7 +314,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
 
 def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
-    lr_schedulers = []
+    lr_schedulers: List[LRSchedulerConfig] = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
