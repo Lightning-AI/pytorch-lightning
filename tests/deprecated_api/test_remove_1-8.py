@@ -277,29 +277,6 @@ def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     model = BoringModel()
     dm = BoringDataModule()
     trainer.fit(model, datamodule=dm)
-    reset_fit_methods = [
-        "reset_train_dataloader",
-        "reset_val_dataloader",
-        "reset_train_val_dataloaders",
-    ]
-    for method_name in reset_fit_methods:
-        with pytest.deprecated_call(
-            match=r"`TrainerDataLoadingMixin.%s` was deprecated in v1.6 and will be removed in v1.8." % method_name,
-        ):
-            fn = getattr(trainer, method_name, None)
-            fn()
-
-    trainer.test(model, datamodule=dm)
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.reset_test_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.reset_test_dataloader()
-
-    trainer.predict(model, datamodule=dm)
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.reset_predict_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.reset_predict_dataloader()
 
     with pytest.deprecated_call(
         match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
@@ -308,7 +285,7 @@ def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     with pytest.deprecated_call(
         match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
     ):
-        trainer.request_dataloader(stage=RunningStage.PREDICTING)
+        trainer.request_dataloader(stage=RunningStage.TRAINING)
 
 
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():

@@ -1244,26 +1244,26 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
 
-    trainer._data_connector._reset_train_dataloader = Mock(wraps=trainer._data_connector._reset_train_dataloader)
-    trainer._data_connector._reset_val_dataloader = Mock(wraps=trainer._data_connector._reset_val_dataloader)
-    trainer._data_connector._reset_test_dataloader = Mock(wraps=trainer._data_connector._reset_test_dataloader)
+    trainer.reset_train_dataloader = Mock(wraps=trainer.reset_train_dataloader)
+    trainer.reset_val_dataloader = Mock(wraps=trainer.reset_val_dataloader)
+    trainer.reset_test_dataloader = Mock(wraps=trainer.reset_test_dataloader)
 
     tracker = Mock()
-    tracker.attach_mock(trainer._data_connector._reset_train_dataloader, "_reset_train_dataloader")
-    tracker.attach_mock(trainer._data_connector._reset_val_dataloader, "_reset_val_dataloader")
-    tracker.attach_mock(trainer._data_connector._reset_test_dataloader, "_reset_test_dataloader")
+    tracker.attach_mock(trainer.reset_train_dataloader, "reset_train_dataloader")
+    tracker.attach_mock(trainer.reset_val_dataloader, "reset_val_dataloader")
+    tracker.attach_mock(trainer.reset_test_dataloader, "reset_test_dataloader")
 
     trainer.fit(model, train_dataloader, val_dataloader)
     trainer.test(model, dataloaders=test_dataloader)
 
-    trainer._data_connector._reset_train_dataloader.assert_called_once()
-    trainer._data_connector._reset_val_dataloader.assert_called_once()
-    trainer._data_connector._reset_test_dataloader.assert_called_once()
+    trainer.reset_train_dataloader.assert_called_once()
+    trainer.reset_val_dataloader.assert_called_once()
+    trainer.reset_test_dataloader.assert_called_once()
 
     assert tracker.mock_calls == [
-        call._reset_val_dataloader(),
-        call._reset_train_dataloader(model=model),
-        call._reset_test_dataloader(),
+        call.reset_val_dataloader(),
+        call.reset_train_dataloader(model=model),
+        call.reset_test_dataloader(),
     ]
 
 
