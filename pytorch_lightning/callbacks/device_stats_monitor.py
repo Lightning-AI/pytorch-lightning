@@ -64,7 +64,6 @@ class DeviceStatsMonitor(Callback):
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         separator = trainer.logger.group_separator
         prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
-        assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
     def on_train_batch_end(
@@ -77,7 +76,7 @@ class DeviceStatsMonitor(Callback):
         unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger:
-            raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
         if not trainer.logger_connector.should_update_logs:
             return
@@ -85,7 +84,6 @@ class DeviceStatsMonitor(Callback):
         device_stats = trainer.accelerator.get_device_stats(pl_module.device)
         separator = trainer.logger.group_separator
         prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
-        assert trainer.logger is not None
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
 
