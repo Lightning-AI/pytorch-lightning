@@ -778,14 +778,11 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     """Test that a warning is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
 
-    ckpt_callback1 = ModelCheckpoint(monitor="foo", save_top_k=1)
+    ckpt_callback1 = ModelCheckpoint()
     ckpt_callback1.best_model_path = "foo_best_model.ckpt"
-    ckpt_callback2 = ModelCheckpoint(monitor="bar", save_top_k=1)
+    ckpt_callback2 = ModelCheckpoint()
     ckpt_callback2.best_model_path = "bar_best_model.ckpt"
-    ckpt_callbacks = [ckpt_callback1, ckpt_callback2]
-    trainer = Trainer(
-        callbacks=ckpt_callbacks,
-    )
+    trainer = Trainer(callbacks=[ckpt_callback1, ckpt_callback2])
     trainer.state.fn = TrainerFn.TESTING
 
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
