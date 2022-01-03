@@ -24,7 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.plugins import TPUSpawnStrategy
+from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp

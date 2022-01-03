@@ -14,8 +14,8 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import (
-    CheckpointIO,
+from pytorch_lightning.plugins import CheckpointIO, TrainingTypePluginsRegistry
+from pytorch_lightning.strategies import (
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -23,7 +23,6 @@ from pytorch_lightning.plugins import (
     DDPStrategy,
     DeepSpeedStrategy,
     TPUSpawnStrategy,
-    TrainingTypePluginsRegistry,
 )
 from tests.helpers.runif import RunIf
 
