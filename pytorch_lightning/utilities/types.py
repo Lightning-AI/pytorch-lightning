@@ -50,7 +50,7 @@ EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 class _LRScheduler:
     optimizer: Optimizer
 
-    def __init__(self, optimizer: Optimizer, last_epoch: int = ...) -> None:
+    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
 
     def state_dict(self) -> dict:
@@ -101,7 +101,7 @@ LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.
 
 
 class LRSchedulerConfig(TypedDict):
-    scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]]
+    scheduler: Union[_LRScheduler, ReduceLROnPlateau]
     name: Optional[str]
     interval: str
     frequency: int

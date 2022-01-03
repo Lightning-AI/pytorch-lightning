@@ -340,7 +340,7 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
     return lr_schedulers
 
 
-def _get_default_scheduler_config() -> LRSchedulerConfig:
+def _get_default_scheduler_config() -> Dict[str, Any]:
     return {
         "scheduler": None,
         "name": None,  # no custom name
