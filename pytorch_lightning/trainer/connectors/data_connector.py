@@ -413,7 +413,7 @@ class DataConnector:
         etc.).
 
         Args:
-            model: The `LightningModule` if calling this outside of the trainer scope.
+            model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
         self.trainer.train_dataloader = self._request_dataloader(RunningStage.TRAINING, model=model)
 
@@ -585,7 +585,7 @@ class DataConnector:
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._val_dataloader_source
         pl_module = self.trainer.lightning_module or model
@@ -602,7 +602,7 @@ class DataConnector:
         """Resets the test dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._test_dataloader_source
         pl_module = self.trainer.lightning_module or model
@@ -616,7 +616,7 @@ class DataConnector:
         """Resets the predict dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._predict_dataloader_source
         pl_module = self.trainer.lightning_module or model
@@ -632,7 +632,7 @@ class DataConnector:
         inspects the val dataloader to determine whether to run the evaluation loop.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         if self.trainer.train_dataloader is None:
             self._reset_train_dataloader(model=model)
