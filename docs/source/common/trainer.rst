@@ -1416,7 +1416,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
 
     class CustomDDPStrategy(DDPStrategy):

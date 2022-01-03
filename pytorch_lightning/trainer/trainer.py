@@ -33,14 +33,14 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
-from pytorch_lightning.loops.utilities import _parse_loop_limits
+from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DDPSpawnStrategy,
@@ -51,7 +51,6 @@ from pytorch_lightning.plugins import (
     Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.plugins.training_type.ddp_spawn import _SpawnOutput
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -60,6 +59,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
+from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -480,8 +480,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # Needed because of LightningOptimizer
-        self._lightning_optimizers = None
+        self._lightning_optimizers: Optional[Dict[int, LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -659,6 +658,8 @@ class Trainer(
         self.num_val_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
         self.num_predict_batches = []
 
@@ -744,6 +745,8 @@ class Trainer(
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -1275,7 +1278,7 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self._run_sanity_check(self.lightning_module)
+        self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1316,12 +1319,14 @@ class Trainer(
         with torch.no_grad():
             return self.predict_loop.run()
 
-    def _run_sanity_check(self, ref_model):
+    def _run_sanity_check(self) -> None:
+        val_loop = self.fit_loop.epoch_loop.val_loop
+
         should_sanity_check = (
             self.enable_validation
             and self.num_sanity_val_steps > 0
             # do not sanity check if restarting because it would mess up the loaded state
-            and not self._evaluation_loop.restarting
+            and not val_loop.restarting
         )
 
         # run tiny validation (if validation defined)
@@ -1337,17 +1342,21 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_start")
 
             # reload dataloaders
-            self._evaluation_loop._reload_evaluation_dataloaders()
+            val_loop._reload_evaluation_dataloaders()
 
             # run eval step
             with torch.no_grad():
-                self._evaluation_loop.run()
+                val_loop.run()
 
             self._call_callback_hooks("on_sanity_check_end")
 
             # reset logger connector
             self.logger_connector.reset_results()
             self.logger_connector.reset_metrics()
+
+            # reset the progress tracking state after sanity checking. we don't need to set the state before
+            # because sanity check only runs when we are not restarting
+            _reset_progress(val_loop)
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
@@ -1740,7 +1749,7 @@ class Trainer(
 
     @property
     def strategy(self) -> Strategy:
-        return self._accelerator_connector.training_type_plugin
+        return self._accelerator_connector.strategy
 
     @property
     def training_type_plugin(self) -> Strategy:
@@ -1926,9 +1935,9 @@ class Trainer(
         return SLURMEnvironment.job_id()
 
     @property
-    def lightning_optimizers(self) -> List[LightningOptimizer]:
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         if self._lightning_optimizers is None:
-            self.convert_to_lightning_optimizers()
+            _convert_to_lightning_optimizers(self)
         return self._lightning_optimizers
 
     @property
@@ -1957,12 +1966,6 @@ class Trainer(
         if self.progress_bar_callback:
             return self.progress_bar_callback.get_metrics(self, ref_model)
         return self.progress_bar_metrics
-
-    @property
-    def _should_reload_dl_epoch(self) -> bool:
-        """Check if dataloader should be reloaded in the current epoch."""
-        n_epochs = self.reload_dataloaders_every_n_epochs
-        return n_epochs and (not self.current_epoch % n_epochs)
 
     @property
     def enable_validation(self) -> bool:

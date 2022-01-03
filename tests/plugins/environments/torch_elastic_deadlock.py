@@ -3,7 +3,7 @@ import sys
 from contextlib import suppress
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.training_type.ddp import DDPStrategy
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from tests.helpers.boring_model import BoringModel
 
