@@ -19,11 +19,24 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
+from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
+from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
+from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
+from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
+from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
@@ -256,3 +269,54 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
     trainer = Trainer()
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         trainer.training_type_plugin
+
+
+def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
+    from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
+
+    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+        prefix_metric_keys({"foo": 1.0}, "bar")
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        DDPPlugin,
+        DDP2Plugin,
+        DDPSpawnPlugin,
+        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        DataParallelPlugin,
+        DDPFullyShardedPlugin,
+        pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
+        DDPShardedPlugin,
+        DDPSpawnShardedPlugin,
+        TPUSpawnPlugin,
+    ],
+)
+def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
+    old_name = cls.__name__
+    new_name = old_name.replace("Plugin", "Strategy")
+    with pytest.deprecated_call(
+        match=f"{old_name}` is deprecated in v1.6 and will be removed in v1.8. Use .*{new_name}` instead."
+    ):
+        cls()
+
+
+def test_v1_8_0_deprecated_single_device_plugin_class():
+    with pytest.deprecated_call(
+        match=(
+            "SingleDevicePlugin` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `.*SingleDeviceStrategy` instead."
+        )
+    ):
+        SingleDevicePlugin(Mock())
+
+
+@RunIf(tpu=True)
+def test_v1_8_0_deprecated_single_tpu_plugin_class():
+    with pytest.deprecated_call(
+        match=(
+            "SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8." " Use `.*SingleTPUStrategy` instead."
+        )
+    ):
+        SingleTPUPlugin(0)
