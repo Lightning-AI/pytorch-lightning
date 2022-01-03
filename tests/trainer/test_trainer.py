@@ -774,34 +774,22 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
             trainer_fn(model, ckpt_path="best")
 
 
-@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_best_ckpt_evaluate_raises_error_with_multiple_ckpt_callbacks(tmpdir, fn):
-    """Test that an error is raised if best ckpt callback is used for evaluation configured with multiple
+def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks(tmpdir):
+    """Test that a warning is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
 
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            self.log("foo", batch_idx)
-            self.log("bar", batch_idx + 1)
-            return super().validation_step(batch, batch_idx)
-
-    ckpt_callbacks = [ModelCheckpoint(monitor="foo", save_top_k=1), ModelCheckpoint(monitor="bar", save_top_k=1)]
+    ckpt_callback1 = ModelCheckpoint(monitor="foo", save_top_k=1)
+    ckpt_callback1.best_model_path = "foo_best_model.ckpt"
+    ckpt_callback2 = ModelCheckpoint(monitor="bar", save_top_k=1)
+    ckpt_callback2.best_model_path = "bar_best_model.ckpt"
+    ckpt_callbacks = [ckpt_callback1, ckpt_callback2]
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
         callbacks=ckpt_callbacks,
-        limit_test_batches=1,
-        limit_val_batches=1,
-        limit_predict_batches=1,
     )
+    trainer.state.fn = TrainerFn.TESTING
 
-    model = TestModel()
-    trainer.fit(model)
-
-    trainer_fn = getattr(trainer, fn)
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
-        trainer_fn(ckpt_path="best")
+        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
 
 
 def test_disabled_training(tmpdir):
