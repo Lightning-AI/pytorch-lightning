@@ -56,7 +56,7 @@ class DeviceStatsMonitor(Callback):
         unused: Optional[int] = 0,
     ) -> None:
         if not trainer.logger:
-            raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
         if not trainer.logger_connector.should_update_logs:
             return
@@ -95,7 +95,7 @@ def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: 
 
 def prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
     rank_zero_deprecation(
-        "pytorch_lightning.callbacks.device_stats_monitor.prefix_metrics"
+        "`pytorch_lightning.callbacks.device_stats_monitor.prefix_metrics`"
         " is deprecated in v1.6 and will be removed in v1.8."
     )
     sep = ""
