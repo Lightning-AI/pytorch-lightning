@@ -31,8 +31,11 @@ class LightningEnum(str, Enum):
                 return getattr(cls, st)
         return None
 
-    def __eq__(self, other: Union[str, Enum]) -> bool:
-        other = other.value if isinstance(other, Enum) else str(other)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Enum):
+            other = other.value
+        elif not isinstance(other, str):
+            return NotImplemented
         return self.value.lower() == other.lower()
 
     def __hash__(self) -> int:
@@ -55,12 +58,12 @@ class _OnAccessEnumMeta(EnumMeta):
         return obj
 
     def __getitem__(cls, name: str) -> Any:
-        member = super().__getitem__(name)
+        member: _OnAccessEnumMeta = super().__getitem__(name)
         member.deprecate()
         return member
 
-    def __call__(cls, value: str, *args: Any, **kwargs: Any) -> Any:
-        obj = super().__call__(value, *args, **kwargs)
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+        obj = super().__call__(*args, **kwargs)
         if isinstance(obj, Enum):
             obj.deprecate()
         return obj
