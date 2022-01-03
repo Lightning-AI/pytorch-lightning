@@ -34,7 +34,6 @@ from pytorch_lightning.plugins import (
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
-    Strategy,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
     TrainingTypePluginsRegistry,
@@ -60,6 +59,7 @@ from pytorch_lightning.strategies import (
     IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
+    Strategy,
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
