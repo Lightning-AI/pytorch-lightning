@@ -32,10 +32,7 @@ class LightningEnum(str, Enum):
         return None
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, Enum):
-            other = other.value
-        elif not isinstance(other, str):
-            return NotImplemented
+        other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
     def __hash__(self) -> int:
