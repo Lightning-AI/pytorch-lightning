@@ -104,12 +104,9 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        optimizers, lr_schedulers, optimizer_frequencies = self.init_optimizers(
-            trainer=trainer, model=self.lightning_module
+        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+            self.lightning_module
         )
-        self.optimizers = optimizers
-        self.lr_schedulers = lr_schedulers
-        self.optimizer_frequencies = optimizer_frequencies
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Setup plugins for the trainer fit and creates optimizers.
@@ -179,10 +176,6 @@ class Strategy(ABC):
         """
         model = model or self.lightning_module
         self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
-
-    def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
-        """Zeros all model parameter's gradients."""
-        self.lightning_module.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -376,9 +369,6 @@ class Strategy(ABC):
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
         return dataloader
-
-    def init_optimizers(self, trainer: "pl.Trainer", model: "pl.LightningModule"):
-        return _init_optimizers_and_lr_schedulers(model)
 
     @property
     def restore_checkpoint_after_setup(self) -> bool:
