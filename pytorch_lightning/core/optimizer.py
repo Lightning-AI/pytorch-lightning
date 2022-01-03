@@ -348,8 +348,8 @@ def _set_scheduler_opt_idx(optimizers: List[Any], lr_schedulers: List[Any]) -> N
             if sch["scheduler"].optimizer is opt:
                 if sch["opt_idx"] is not None and sch["opt_idx"] != opt_idx:
                     raise MisconfigurationException(
-                        "`opt_idx` set inside scheduler config does not match with index"
-                        " of respective optimizer returned from `configure_optimizers`."
+                        "`opt_idx` set inside scheduler config does not match with the index"
+                        " of the respective optimizer returned from `configure_optimizers`."
                     )
 
                 sch["opt_idx"] = opt_idx

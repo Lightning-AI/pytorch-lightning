@@ -524,7 +524,7 @@ def test_invalid_opt_idx_in_scheduler(tmpdir):
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
-        MisconfigurationException, match="`opt_idx` .* does not match with index of respective optimizer"
+        MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
     ):
         trainer.fit(model)
 
