@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, cast, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 
@@ -102,14 +102,13 @@ class LoggerConnector:
         if self.trainer.logger is None or not metrics:
             return
 
-        if step is None and "step" in metrics:
-            step = cast(int, metrics.pop("step"))
-
-        # this is done prior to make sure logged_metrics always contain tensors
-        self._logged_metrics.update(metrics)
-
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
+
+        if step is None:
+            step = scalar_metrics.pop("step", None)
+
+        self._logged_metrics.update(metrics)
 
         if step is None:
             # added metrics for convenience
