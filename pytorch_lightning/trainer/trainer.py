@@ -1396,7 +1396,7 @@ class Trainer(
                 if self.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
-                        f" Please pass an exact checkpoint path in `.{fn}`"
+                        f" Please pass an exact checkpoint path in `.{fn}()`"
                     )
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'

@@ -774,7 +774,7 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
             trainer_fn(model, ckpt_path="best")
 
 
-def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks(tmpdir):
+def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     """Test that a warning is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
 
@@ -1817,15 +1817,11 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@pytest.mark.parametrize("fn", ["validate", "test", "predict"])
-def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir, fn):
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    model = BoringModel()
-    trainer.fit(model)
-
-    trainer_fn = getattr(trainer, fn)
-    with pytest.raises(MisconfigurationException, match=fr'\.{fn}\(ckpt_path="best"\)` with `fast_dev_run=True'):
-        trainer_fn()
+def test_exception_when_testing_or_validating_with_fast_dev_run():
+    trainer = Trainer(fast_dev_run=True)
+    trainer.state.fn = TrainerFn.TESTING
+    with pytest.raises(MisconfigurationException, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
+        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
 
 
 class TrainerStagesModel(BoringModel):
