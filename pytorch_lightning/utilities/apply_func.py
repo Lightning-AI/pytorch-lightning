@@ -35,7 +35,7 @@ else:
     Batch = type(None)
 
 
-CPU_DEVICES = ("cpu", torch.device("cpu"))
+_CPU_DEVICES = ("cpu", torch.device("cpu"))
 
 
 def to_dtype_tensor(
@@ -278,8 +278,8 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
             return device_data
 
         kwargs = {}
-        # Don't issue non-blocking transfers to CPU. #11287
-        if isinstance(data, torch.Tensor) and device not in CPU_DEVICES:
+        # Don't issue non-blocking transfers to CPU
+        if isinstance(data, torch.Tensor) and device not in _CPU_DEVICES:
             kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
