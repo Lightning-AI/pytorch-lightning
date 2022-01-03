@@ -25,9 +25,9 @@ from torch.optim.lr_scheduler import _LRScheduler
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import (
-    _attach_scheduler_opt_idx,
     _get_default_scheduler_config,
     _init_optimizers_and_lr_schedulers,
+    _set_scheduler_opt_idx,
 )
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
@@ -130,13 +130,10 @@ class _LRFinder:
             sched_config = _get_default_scheduler_config()
             sched_config.update({"scheduler": scheduler, "interval": "step", "opt_idx": 0})
 
-            optimizers = [optimizer]
-            lr_schedulers = [sched_config]
-            _attach_scheduler_opt_idx(optimizers, lr_schedulers)
-
-            trainer.strategy.optimizers = optimizers
-            trainer.strategy.lr_schedulers = lr_schedulers
+            trainer.strategy.optimizers = [optimizer]
+            trainer.strategy.lr_schedulers = [sched_config]
             trainer.strategy.optimizer_frequencies = []
+            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_schedulers)
 
         return func
 

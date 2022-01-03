@@ -184,7 +184,7 @@ def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[Lis
         _configure_schedulers_automatic_opt if model.automatic_optimization else _configure_schedulers_manual_opt
     )
     lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
-    _attach_scheduler_opt_idx(optimizers, lr_schedulers)
+    _set_scheduler_opt_idx(optimizers, lr_schedulers)
     return optimizers, lr_schedulers, optimizer_frequencies
 
 
@@ -341,19 +341,20 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
     }
 
 
-def _attach_scheduler_opt_idx(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
+def _set_scheduler_opt_idx(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
     for sch in lr_schedulers:
-        opt_found = sch["opt_idx"] is not None
-        if opt_found:
-            continue
 
         for opt_idx, opt in enumerate(optimizers):
-            if sch["scheduler"].optimizer == opt:
-                sch["opt_idx"] = opt_idx
-                opt_found = True
-                break
+            if sch["scheduler"].optimizer is opt:
+                if sch["opt_idx"] is not None and sch["opt_idx"] != opt_idx:
+                    raise MisconfigurationException(
+                        "`opt_idx` set inside scheduler config does not match with index"
+                        " of respective optimizer returned from `configure_optimizers`."
+                    )
 
-        if not opt_found:
+                sch["opt_idx"] = opt_idx
+                break
+        else:
             raise MisconfigurationException(
                 "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
             )
