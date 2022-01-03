@@ -59,9 +59,6 @@ class _LRScheduler:
     def load_state_dict(self, state_dict: dict) -> None:
         ...
 
-    def step(self, *args: Any, **kwargs: Any) -> None:
-        ...
-
 
 # Copied from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing

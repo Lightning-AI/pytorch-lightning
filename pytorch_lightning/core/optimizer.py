@@ -19,7 +19,6 @@ from weakref import proxy
 import torch
 from torch import optim
 from torch.optim import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
@@ -257,6 +256,8 @@ def _configure_optimizers(
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
     """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
+    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
+
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
@@ -305,7 +306,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             lr_schedulers.append({**default_config, "scheduler": scheduler})
 
         current_scheduler = lr_schedulers[-1]["scheduler"]
-        if not isinstance(current_scheduler, _SupportedLRScheduler):
+        if not isinstance(current_scheduler, _SupportsStateDict):
             raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
 
     return lr_schedulers
@@ -313,6 +314,9 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
 
 def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
     """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
+
+    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
+
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
@@ -333,7 +337,7 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
             lr_schedulers.append({**default_config, "scheduler": scheduler})
 
         current_scheduler = lr_schedulers[-1]["scheduler"]
-        if not isinstance(current_scheduler, _SupportedLRScheduler):
+        if not isinstance(current_scheduler, _SupportsStateDict):
             raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
 
     return lr_schedulers
@@ -405,17 +409,3 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self) -> str:
         return "No Optimizer"
-
-
-@runtime_checkable
-class _SupportedLRScheduler(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportedLRScheduler)`"""
-
-    def step(self, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...

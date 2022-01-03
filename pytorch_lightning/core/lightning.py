@@ -1497,7 +1497,7 @@ class LightningModule(
         self,
         scheduler: LRSchedulerTypeUnion,
         optimizer_idx: Optional[int] = None,
-        metric: Optional[Union[float, torch.Tensor]] = None,
+        metric: Any = None,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1508,7 +1508,7 @@ class LightningModule(
         Args:
             scheduler: Learning rate scheduler.
             optimizer_idx: Index of the optimizer associated with this scheduler.
-            metric: Value of the metric used for schedulers like ``ReduceLROnPlateau``.
+            metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
 
         Examples::
 

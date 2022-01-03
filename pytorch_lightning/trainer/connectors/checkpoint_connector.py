@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from torchmetrics import Metric
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -489,3 +490,14 @@ class CheckpointConnector:
             "test_loop": self.trainer.test_loop.state_dict(),
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
+
+
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...

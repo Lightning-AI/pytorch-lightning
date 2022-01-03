@@ -665,7 +665,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
 
 
 def test_lr_scheduler_step_hook(tmpdir):
-    """Test that custom lr_schedulers works and `lr_scheduler_hook` is called at appropriate time."""
+    """Test that custom lr scheduler works and `lr_scheduler_step` is called at appropriate time."""
 
     class CustomEpochScheduler:
         def __init__(self, optimizer):
@@ -735,7 +735,7 @@ def test_lr_scheduler_step_hook(tmpdir):
 
 
 def test_invalid_lr_scheduler(tmpdir):
-    """Test that custom lr_schedulers works and `lr_scheduler_hook` is called at appropriate time."""
+    """Test that custom lr scheduler raises an error if it doesn't follow basic protocol API."""
 
     class CustomScheduler:
         def __init__(self, optimizer):
