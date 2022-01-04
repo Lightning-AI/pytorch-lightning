@@ -485,7 +485,7 @@ class LightningCLI:
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
                 this argument will not be configurable from a configuration file and will always be present for
-                this particular CLI.
+                this particular CLI. Alternatively, configurable callbacks can be added as explained in :ref:`the CLI docs <common/lightning_cli:configurable-callbacks>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
