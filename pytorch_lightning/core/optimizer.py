@@ -19,10 +19,12 @@ from weakref import proxy
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 def do_nothing_closure() -> None:
@@ -187,6 +189,7 @@ def _init_optimizers_and_lr_schedulers(
     )
     lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
     _set_scheduler_opt_idx(optimizers, lr_schedulers)
+    _validate_scheduler_api(lr_schedulers, model)
     return optimizers, lr_schedulers, optimizer_frequencies
 
 
@@ -256,8 +259,6 @@ def _configure_optimizers(
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
     """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
-    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
-
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
@@ -305,21 +306,11 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
         else:
             lr_schedulers.append({**default_config, "scheduler": scheduler})
 
-        current_scheduler = lr_schedulers[-1]["scheduler"]
-        if not isinstance(current_scheduler, _SupportsStateDict):
-            raise ValueError(
-                f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid."
-                " It should have `state_dict` and `load_state_dict` methods defined."
-            )
-
     return lr_schedulers
 
 
 def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
     """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
-
-    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
-
     lr_schedulers = []
     default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
@@ -339,14 +330,26 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
         else:
             lr_schedulers.append({**default_config, "scheduler": scheduler})
 
-        current_scheduler = lr_schedulers[-1]["scheduler"]
-        if not isinstance(current_scheduler, _SupportsStateDict):
+    return lr_schedulers
+
+
+def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.LightningModule") -> None:
+    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
+
+    for scheduler_config in lr_schedulers:
+        scheduler = scheduler_config["scheduler"]
+        if not isinstance(scheduler, _SupportsStateDict):
             raise ValueError(
-                f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid."
+                f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
 
-    return lr_schedulers
+        if not isinstance(scheduler, _SupportsLRScheduler) and not is_overridden("lr_scheduler_step", model):
+            raise MisconfigurationException(
+                f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow the PyTorch LR Scheduler"
+                " Protocol. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
+                " you are using a custom LR scheduler."
+            )
 
 
 def _get_default_scheduler_config() -> Dict[str, Any]:
@@ -427,3 +430,18 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self) -> str:
         return "No Optimizer"
+
+
+@runtime_checkable
+class _SupportsLRScheduler(Protocol):
+    """This class is used to detect if a learning rate scheduler is supported for default configuration using
+    `isinstance(obj, _SupportsLRScheduler)`."""
+
+    def step(self, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...

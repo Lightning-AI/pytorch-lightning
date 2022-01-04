@@ -752,7 +752,7 @@ def test_lr_scheduler_step_hook(tmpdir):
         assert param_group["lr"] == lr / math.factorial(max_epochs)
 
 
-def test_invalid_lr_scheduler(tmpdir):
+def test_invalid_basic_lr_scheduler(tmpdir):
     """Test that custom lr scheduler raises an error if it doesn't follow basic protocol API."""
 
     class CustomScheduler:
@@ -773,4 +773,35 @@ def test_invalid_lr_scheduler(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model.trainer = trainer
     with pytest.raises(ValueError, match="provided lr scheduler .* is invalid"):
+        _init_optimizers_and_lr_schedulers(model)
+
+
+def test_invalid_pt_lr_scheduler(tmpdir):
+    """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler protocol API and
+    `lr_scheduler_step` is also not overridden."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def update(self, epoch):
+            for param_group in self.optimizer.param_groups:
+                param_group["lr"] = param_group["lr"] / (epoch + 1)
+
+        def state_dict(self):
+            return {key: value for key, value in self.__dict__.items() if key != "optimizer"}
+
+        def load_state_dict(self, state_dict):
+            self.__dict__.update(state_dict)
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    model.trainer = trainer
+    with pytest.raises(MisconfigurationException, match="doesn't follow the PyTorch LR Scheduler Protocol"):
         _init_optimizers_and_lr_schedulers(model)
