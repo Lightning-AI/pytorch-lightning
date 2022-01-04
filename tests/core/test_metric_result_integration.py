@@ -596,5 +596,4 @@ def test_result_metric_max_min(reduce_fx, expected):
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
     rm.update(torch.tensor(expected), 1)
-    total = rm.compute()
-    assert total == expected
+    assert rm.compute() == expected
