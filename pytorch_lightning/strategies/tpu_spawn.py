@@ -341,7 +341,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @classmethod
-    def register_strategies(cls, strategies_registry: Dict) -> None:
-        strategies_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
         )

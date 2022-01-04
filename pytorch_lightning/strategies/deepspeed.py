@@ -832,23 +832,19 @@ class DeepSpeedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_strategies(cls, strategies_registry: Dict) -> None:
-        strategies_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
-        strategies_registry.register(
-            "deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1
-        )
-        strategies_registry.register(
-            "deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2
-        )
-        strategies_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
+        strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
+        strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        strategy_registry.register(
             "deepspeed_stage_2_offload",
             cls,
             description="DeepSpeed ZeRO Stage 2 and CPU Offload",
             stage=2,
             offload_optimizer=True,
         )
-        strategies_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
-        strategies_registry.register(
+        strategy_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
+        strategy_registry.register(
             "deepspeed_stage_3_offload",
             cls,
             description="DeepSpeed ZeRO Stage 3 and CPU Offload",
@@ -856,7 +852,7 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer=True,
             offload_parameters=True,
         )
-        strategies_registry.register(
+        strategy_registry.register(
             "deepspeed_stage_3_offload_nvme",
             cls,
             description="DeepSpeed ZeRO Stage 3 and NVMe Offload",

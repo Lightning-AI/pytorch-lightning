@@ -200,7 +200,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_strategies(cls, strategies_registry: Dict) -> None:
-        strategies_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

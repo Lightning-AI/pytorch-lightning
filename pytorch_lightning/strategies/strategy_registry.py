@@ -21,7 +21,7 @@ from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _StrategiesRegistry(dict):
+class _StrategyRegistry(dict):
     """This class is a Registry that stores information about the Training Strategies.
 
     The Strategies are mapped to strings. These strings are names that identify
@@ -29,20 +29,20 @@ class _StrategiesRegistry(dict):
     parameters to initialize the Strategy, which were defined durng the
     registration.
 
-    The motivation for having a StrategiesRegistry is to make it convenient
+    The motivation for having a StrategyRegistry is to make it convenient
     for the Users to try different Strategies by passing just strings
     to the strategy flag to the Trainer.
 
     Example::
 
-        @StrategiesRegistry.register("lightning", description="Super fast", a=1, b=True)
-        class LightningPlugin:
+        @StrategyRegistry.register("lightning", description="Super fast", a=1, b=True)
+        class LightningStrategy:
             def __init__(self, a, b):
                 ...
 
         or
 
-        StrategiesRegistry.register("lightning", LightningStrategy, description="Super fast", a=1, b=True)
+        StrategyRegistry.register("lightning", LightningStrategy, description="Super fast", a=1, b=True)
     """
 
     def register(
@@ -113,25 +113,25 @@ class _StrategiesRegistry(dict):
         return "Registered Strategies: {}".format(", ".join(self.keys()))
 
 
-StrategiesRegistry = _StrategiesRegistry()
+StrategyRegistry = _StrategyRegistry()
 
 
-def is_register_strategies_overridden(plugin: type) -> bool:
+def is_register_strategies_overridden(strategy: type) -> bool:
 
     method_name = "register_strategies"
-    plugin_attr = getattr(plugin, method_name)
-    previous_super_cls = inspect.getmro(plugin)[1]
+    strategy_attr = getattr(strategy, method_name)
+    previous_super_cls = inspect.getmro(strategy)[1]
 
     if issubclass(previous_super_cls, Strategy):
         super_attr = getattr(previous_super_cls, method_name)
     else:
         return False
 
-    return plugin_attr.__code__ is not super_attr.__code__
+    return strategy_attr.__code__ is not super_attr.__code__
 
 
 def call_register_strategies(root: Path, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and is_register_strategies_overridden(mod):
-            mod.register_strategies(StrategiesRegistry)
+            mod.register_strategies(StrategyRegistry)

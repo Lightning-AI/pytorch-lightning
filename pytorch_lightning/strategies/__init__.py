@@ -13,8 +13,8 @@ from pytorch_lightning.strategies.sharded import DDPShardedStrategy  # noqa: F40
 from pytorch_lightning.strategies.sharded_spawn import DDPSpawnShardedStrategy  # noqa: F401
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from pytorch_lightning.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
-from pytorch_lightning.strategies.strategies_registry import call_register_strategies, StrategiesRegistry  # noqa: F401
 from pytorch_lightning.strategies.strategy import Strategy  # noqa: F401
+from pytorch_lightning.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
 
 FILE_ROOT = Path(__file__).parent
