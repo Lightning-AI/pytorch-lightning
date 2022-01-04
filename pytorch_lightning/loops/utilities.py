@@ -22,7 +22,9 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import ParallelStrategy
+from pytorch_lightning.loops import Loop
+from pytorch_lightning.strategies import ParallelStrategy
+from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
@@ -216,3 +218,11 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
         bool: whether the limit has been reached
     """
     return maximum != -1 and current >= maximum
+
+
+def _reset_progress(loop: Loop) -> None:
+    for v in vars(loop).values():
+        if isinstance(v, BaseProgress):
+            v.reset()
+        elif isinstance(v, Loop):
+            _reset_progress(v)

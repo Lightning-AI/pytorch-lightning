@@ -60,7 +60,7 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
 
     class CustomDDPStrategy(DDPStrategy):
