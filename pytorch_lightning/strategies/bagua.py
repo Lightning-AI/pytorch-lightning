@@ -36,7 +36,6 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         self._bagua_module_name = pl_module._get_name() + str(id(pl_module))
 
 
-
 class BaguaStrategy(DDPStrategy):
     distributed_backend = _StrategyType.BAGUA
 
