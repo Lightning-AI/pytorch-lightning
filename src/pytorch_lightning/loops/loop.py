@@ -277,7 +277,6 @@ class Loop(ABC, Generic[T]):
 
     def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
         """The state dict is determined by the state and progress of this loop and all its children.
-
         Args:
             destination: An existing dictionary to update with this loop's state. By default a new dictionary
                 is returned.
@@ -309,21 +308,30 @@ class Loop(ABC, Generic[T]):
         state_dict: Dict,
         prefix: str = "",
         metrics: Optional[Dict[str, Metric]] = None,
+        force_load_progress: bool = False,
     ) -> None:
         """Loads the state of this loop and all its children."""
-        self._load_from_state_dict(state_dict.copy(), prefix, metrics)
+        self._load_from_state_dict(state_dict.copy(), prefix, metrics, force_load_progress)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
-                v.load_state_dict(state_dict.copy(), prefix + k + ".")
+                v.load_state_dict(state_dict.copy(), prefix + k + ".", force_load_progress=force_load_progress)
 
-    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
+    def _load_from_state_dict(
+        self,
+        state_dict: Dict,
+        prefix: str,
+        metrics: Optional[Dict[str, Metric]] = None,
+        force_load_progress: bool = False,
+    ) -> None:
+        load_progress = _FaultTolerantMode.detect_current_mode().is_enabled or force_load_progress
+
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
                 # compatibility with old checkpoints
                 continue
 
-            if isinstance(v, BaseProgress):
+            if load_progress and isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
             elif (
                 isinstance(v, _ResultCollection)

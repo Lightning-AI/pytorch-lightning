@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -48,6 +49,12 @@ class BatchSizeModel(BoringModel):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
     def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
+
+    def test_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
+
+    def predict_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
 
@@ -139,7 +146,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
 
-    assert not os.path.exists(tmpdir / "scale_batch_size_temp_model.ckpt")
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
 
 
 @RunIf(min_cuda_gpus=1)
@@ -283,9 +290,9 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         auto_scale_batch_size="ThisModeDoesNotExist",
     )
 
-    with pytest.raises(MisconfigurationException, match="should be either 'power' or 'binsearch'"):
+    with pytest.raises(MisconfigurationException, match="should be one of"):
         trainer.tune(model)
-    with pytest.raises(MisconfigurationException, match="should be either 'power' or 'binsearch'"):
+    with pytest.raises(MisconfigurationException, match="should be one of"):
         trainer.tuner.scale_batch_size(model, mode="ThisModeDoesNotExist")
 
 
@@ -300,3 +307,37 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size
     assert trainer.val_dataloaders[0].batch_size == new_batch_size
+
+
+@pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
+@pytest.mark.parametrize("early_exit", [False])
+# @pytest.mark.parametrize('early_exit', [True, False])
+def test_batch_size_finder_callback(tmpdir, trainer_fn, early_exit):
+    """Test batch size finder callback with different trainer methods."""
+    tutils.reset_seed()
+    before_batch_size = 2
+    model = BatchSizeModel(batch_size=before_batch_size)
+    batch_size_finder = BatchSizeFinder(max_trials=4, batch_arg_name="batch_size", early_exit=early_exit)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, callbacks=[batch_size_finder])
+    fn = getattr(trainer, trainer_fn)
+    fn(model)
+    after_batch_size = model.batch_size
+    loop = getattr(trainer, f"{trainer_fn}_loop")
+
+    if early_exit:
+        trainer.global_step == 0
+        trainer.current_epoch == 0
+        if trainer_fn != "fit":
+            assert loop.dataloader_progress.current.completed == 0
+            assert loop.epoch_loop.batch_progress.current.completed == 0
+    else:
+        if trainer_fn == "fit":
+            assert trainer.global_step == 4
+            assert trainer.current_epoch == 1
+        else:
+            assert trainer.global_step == 0
+            assert loop.dataloader_progress.current.completed == 1
+            assert loop.epoch_loop.batch_progress.current.completed == 2
+
+    assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
