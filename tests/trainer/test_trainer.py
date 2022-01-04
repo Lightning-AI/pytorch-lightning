@@ -37,14 +37,14 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.plugins import (
-    DataParallelPlugin,
-    DDP2Plugin,
-    DDPFullyShardedPlugin,
-    DDPPlugin,
-    DDPShardedPlugin,
-    DDPSpawnPlugin,
-    DDPSpawnShardedPlugin,
+from pytorch_lightning.strategies import (
+    DataParallelStrategy,
+    DDP2Strategy,
+    DDPFullyShardedStrategy,
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DDPSpawnStrategy,
+    DDPStrategy,
 )
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
@@ -660,7 +660,7 @@ def test_benchmark_option(tmpdir):
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
@@ -1432,7 +1432,7 @@ def predict(
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+    if not isinstance(trainer.strategy, DDPSpawnStrategy):
         if use_callbacks:
             assert cb.write_on_batch_end_called
             assert not cb.write_on_epoch_end_called
@@ -1530,7 +1530,7 @@ def test_spawn_predict_return_predictions(_, __, accelerator):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
     trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
-    assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
@@ -1948,7 +1948,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
 
     class Check(Callback):
         def on_epoch_start(self, trainer, *_):
-            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+            assert isinstance(trainer.strategy.model, DistributedDataParallel)
 
     def current_memory():
         # before measuring the memory force release any leftover allocations, including CUDA tensors
@@ -1969,7 +1969,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.training_type_plugin.model is model
+    assert trainer.strategy.model is model
     assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
@@ -2186,31 +2186,31 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPSpawnPlugin(), num_processes=2, gpus=None),
+            dict(strategy=DDPSpawnStrategy(), num_processes=2, gpus=None),
             dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(strategy=DDPSpawnPlugin(), gpus=2),
+            dict(strategy=DDPSpawnStrategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDPPlugin(), num_processes=2, gpus=None),
+            dict(strategy=DDPStrategy(), num_processes=2, gpus=None),
             dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
-            dict(strategy=DDPPlugin(), gpus=2),
+            dict(strategy=DDPStrategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDP2Plugin(), gpus=2),
+            dict(strategy=DDP2Strategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DataParallelPlugin(), gpus=2),
+            dict(strategy=DataParallelStrategy(), gpus=2),
             dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
-            dict(strategy=DDPFullyShardedPlugin(), gpus=2),
+            dict(strategy=DDPFullyShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
                 _device_type=_AcceleratorType.GPU,
@@ -2219,7 +2219,7 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPSpawnShardedPlugin(), gpus=2),
+            dict(strategy=DDPSpawnShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED_SPAWN,
                 _device_type=_AcceleratorType.GPU,
@@ -2228,7 +2228,7 @@ def test_detect_anomaly_nan(tmpdir):
             ),
         ),
         (
-            dict(strategy=DDPShardedPlugin(), gpus=2),
+            dict(strategy=DDPShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
             ),

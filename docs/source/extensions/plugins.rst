@@ -15,7 +15,7 @@ depending on the provided Trainer arguments. For example:
 .. code-block:: python
 
     # accelerator: GPUAccelerator
-    # training type: DDPPlugin
+    # training strategy: DDPStrategy
     # precision: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
@@ -29,8 +29,8 @@ We expose Accelerators and Plugins mainly for expert users that want to extend L
 
 There are two types of Plugins in Lightning with different responsibilities:
 
-TrainingTypePlugin
-------------------
+Strategy
+--------
 
 - Launching and teardown of training processes (if applicable)
 - Setup communication between processes (NCCL, GLOO, MPI, ...)
@@ -60,31 +60,30 @@ Expert users may choose to extend an existing plugin by overriding its methods .
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.strategies import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
                 device_ids=...,
             )
 
-or by subclassing the base classes :class:`~pytorch_lightning.plugins.training_type.TrainingTypePlugin` or
+or by subclassing the base classes :class:`~pytorch_lightning.strategies.Strategy` or
 :class:`~pytorch_lightning.plugins.precision.PrecisionPlugin` to create new ones. These custom plugins
 can then be passed into the Trainer directly or via a (custom) accelerator:
 
 .. code-block:: python
 
     # custom plugins
-    trainer = Trainer(strategy=CustomDDPPlugin(), plugins=[CustomPrecisionPlugin()])
+    trainer = Trainer(strategy=CustomDDPStrategy(), plugins=[CustomPrecisionPlugin()])
 
     # fully custom accelerator and plugins
-    accelerator = MyAccelerator(
-        precision_plugin=CustomPrecisionPlugin(),
-        training_type_plugin=CustomDDPPlugin(),
-    )
-    trainer = Trainer(accelerator=accelerator)
+    accelerator = MyAccelerator()
+    precision_plugin = MyPrecisionPlugin()
+    training_type_plugin = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_type_plugin)
 
 
 The full list of built-in plugins is listed below.
@@ -97,28 +96,29 @@ The full list of built-in plugins is listed below.
 ----------
 
 
-Training Type Plugins
----------------------
+Training Strategies
+-------------------
 
-.. currentmodule:: pytorch_lightning.plugins.training_type
+.. currentmodule:: pytorch_lightning.strategies
 
 .. autosummary::
     :nosignatures:
     :template: classtemplate.rst
 
-    TrainingTypePlugin
-    SingleDevicePlugin
-    ParallelPlugin
-    DataParallelPlugin
-    DDPPlugin
-    DDP2Plugin
-    DDPShardedPlugin
-    DDPSpawnShardedPlugin
-    DDPSpawnPlugin
-    DeepSpeedPlugin
-    HorovodPlugin
-    SingleTPUPlugin
-    TPUSpawnPlugin
+    Strategy
+    SingleDeviceStrategy
+    ParallelStrategy
+    DataParallelStrategy
+    DDPStrategy
+    DDP2Strategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    SingleTPUStrategy
+    TPUSpawnStrategy
+
 
 
 Precision Plugins

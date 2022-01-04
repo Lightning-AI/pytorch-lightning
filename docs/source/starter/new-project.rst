@@ -207,7 +207,7 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Epoch and batch iteration
 * Calling of optimizer.step(), backward, zero_grad()
 * Calling of .eval(), enabling/disabling grads
-* :doc:`weights loading <../common/weights_loading>`
+* :doc:`checkpoint saving and loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
 * :doc:`Multi-GPU <../advanced/multi_gpu>` support
 * :doc:`TPU <../advanced/tpu>`
@@ -759,7 +759,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Automatic truncated-back-propagation-through-time <common/lightning_module:truncated_bptt_steps>`
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
-- :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
+- :ref:`Load checkpoints directly from S3 <common/checkpointing:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`

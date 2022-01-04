@@ -34,6 +34,8 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             raise ValueError("Expected a parent")
 
     instance_attr = getattr(instance, method_name, None)
+    if instance_attr is None:
+        return False
     # `functools.wraps()` support
     if hasattr(instance_attr, "__wrapped__"):
         instance_attr = instance_attr.__wrapped__
