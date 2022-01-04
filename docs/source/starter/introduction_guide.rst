@@ -457,9 +457,6 @@ For clarity, we'll recall that the full LightningModule now looks like this.
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
-        def configure_optimizers(self):
-            return Adam(self.parameters(), lr=1e-3)
-
 Again, this is the same PyTorch code, except that it's organized by the LightningModule.
 
 Logging
