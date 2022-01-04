@@ -429,14 +429,6 @@ class HookedModel(BoringModel):
         return out
 
 
-@RunIf(deepspeed=True, min_gpus=1, standalone=True)
-@pytest.mark.parametrize("automatic_optimization", (True, False))
-def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization):
-    _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=automatic_optimization
-    )
-
-
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -444,14 +436,13 @@ def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization)
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
+        pytest.param(
+            dict(gpus=1, precision=16, plugins="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1, standalone=True)
+        ),
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", (True, False))
 def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
-    _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization)
-
-
-def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
     called = []
 
     class TestModel(HookedModel):
