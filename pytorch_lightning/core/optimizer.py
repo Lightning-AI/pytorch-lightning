@@ -307,7 +307,10 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
 
         current_scheduler = lr_schedulers[-1]["scheduler"]
         if not isinstance(current_scheduler, _SupportsStateDict):
-            raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
+            raise ValueError(
+                f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid."
+                " It should have `state_dict` and `load_state_dict` methods defined."
+            )
 
     return lr_schedulers
 
@@ -338,7 +341,10 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
 
         current_scheduler = lr_schedulers[-1]["scheduler"]
         if not isinstance(current_scheduler, _SupportsStateDict):
-            raise ValueError(f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid.")
+            raise ValueError(
+                f"The provided lr scheduler `{current_scheduler.__class__.__name__}` is invalid."
+                " It should have `state_dict` and `load_state_dict` methods defined."
+            )
 
     return lr_schedulers
 

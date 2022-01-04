@@ -257,7 +257,7 @@ Bring your own Custom Learning Rate Schedulers
 Lightning allows using custom learning rate schedulers that aren't available in `PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
 One good example is `Timm Schedulers <https://github.com/rwightman/pytorch-image-models/blob/master/timm/scheduler/scheduler.py>`_. When using custom learning rate schedulers
 relying on a different API from Native PyTorch ones, you should override the :meth:`~pytorch_lightning.core.lightning.LightningModule.lr_scheduler_step` with your desired logic.
-If you are using native PyTorch schedulers, there is no need to override this hook since Lightning will handle it optimally by default.
+If you are using native PyTorch schedulers, there is no need to override this hook since Lightning will handle it automatically by default.
 
 .. code-block:: python
 
