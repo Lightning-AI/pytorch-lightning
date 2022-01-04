@@ -745,7 +745,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> None:
         Trainer._log_api_event("fit")
-        log.detail("fitting")
+        log.detail("trainer fit stage")
 
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
@@ -823,7 +823,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("validate")
-        log.detail("validating")
+        log.detail("trainer validate stage")
 
         self.state.fn = TrainerFn.VALIDATING
         self.state.status = TrainerStatus.RUNNING
@@ -909,7 +909,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("test")
-        log.detail("testing")
+        log.detail("trainer test stage")
 
         self.state.fn = TrainerFn.TESTING
         self.state.status = TrainerStatus.RUNNING
@@ -996,7 +996,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("predict")
-        log.detail("predicting")
+        log.detail("trainer predict stage")
 
         self.state.fn = TrainerFn.PREDICTING
         self.state.status = TrainerStatus.RUNNING
@@ -1567,6 +1567,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        log.detail(f"calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
