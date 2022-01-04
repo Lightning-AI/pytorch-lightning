@@ -388,7 +388,6 @@ class DDPSpawnStrategy(ParallelStrategy):
             torch.cuda.empty_cache()
 
 
-
 class _FakeQueue(UserList):
     """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
 
