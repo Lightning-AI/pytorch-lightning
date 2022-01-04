@@ -167,9 +167,10 @@ If you have multiple optimizers, you can configure them as follows:
 
 If you have LR Schedulers you can return them too:
 
-.. testcode:
+.. testcode::
 
     from torch.optim.lr_scheduler import CosineAnnealing
+
 
     class LitMNIST(LightningModule):
         def configure_optimizers(self):
