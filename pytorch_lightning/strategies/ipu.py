@@ -122,7 +122,6 @@ class IPUStrategy(ParallelStrategy):
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
         self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
-
         pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
