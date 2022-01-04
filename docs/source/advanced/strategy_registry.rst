@@ -1,12 +1,12 @@
-Training Type Plugins Registry
-==============================
+Strategy Registry
+=================
 
-.. warning:: The Plugins Registry is experimental and subject to change.
+.. warning:: The Strategy Registry is experimental and subject to change.
 
-Lightning includes a registry that holds information about Training Type plugins and allows for the registration of new custom plugins.
+Lightning includes a registry that holds information about Training strategies and allows for the registration of new custom strategies.
 
-The Plugins are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
-It also returns the optional description and parameters for initialising the Plugin that were defined during registration.
+The Strategies are assigned strings that identify them, such as "ddp", "deepspeed_stage_2_offload", and so on.
+It also returns the optional description and parameters for initialising the Strategy that were defined during registration.
 
 
 .. code-block:: python
@@ -21,11 +21,11 @@ It also returns the optional description and parameters for initialising the Plu
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
 
 
-Additionally, you can pass your custom registered training type plugins to the ``strategy`` argument.
+Additionally, you can pass your custom registered training strategies to the ``strategy`` argument.
 
 .. code-block:: python
 
-    from pytorch_lightning.strategies import DDPStrategy, TrainingTypePluginsRegistry, CheckpointIO
+    from pytorch_lightning.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -39,7 +39,7 @@ Additionally, you can pass your custom registered training type plugins to the `
     custom_checkpoint_io = CustomCheckpointIO()
 
     # Register the DDP Strategy with your custom CheckpointIO plugin
-    TrainingTypePluginsRegistry.register(
+    StrategyRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPStrategy,
         description="DDP Strategy with custom checkpoint io plugin",
