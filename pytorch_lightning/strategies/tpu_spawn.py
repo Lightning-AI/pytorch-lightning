@@ -262,12 +262,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.local_rank == 0:
             time.sleep(2)
 
-    # def _worker_setup(self, process_idx: int):
-    #     reset_seed()
-    #     self.tpu_local_core_rank = xm.get_local_ordinal()
-    #     self.tpu_global_core_rank = xm.get_ordinal()
-    #     rank_zero_only.rank = self.global_rank
-
     def _setup_distributed(self) -> None:
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
