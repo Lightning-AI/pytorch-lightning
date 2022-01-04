@@ -404,7 +404,7 @@ class SaveConfigCallback(Callback):
             # check if the file exists on rank 0
             file_exists = fs.isfile(config_path) if trainer.is_global_zero else False
             # broadcast whether to fail to all ranks
-            file_exists = trainer.strategy.broadcast(file_exists)
+            file_exists = trainer.accelerator.broadcast(file_exists)
             if file_exists:
                 raise RuntimeError(
                     f"{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting"
