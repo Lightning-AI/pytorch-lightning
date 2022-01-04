@@ -12,7 +12,7 @@ Precision
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
-Lower precision, such as the 16-bit floating-point, enables the training and deployment of large neural networks since they require less memory, enhances data transfer operations since they require
+Lower precision, such as the 16-bit floating-point, requires less memory enabling the training and deployment of large neural networks, enhances data transfer operations since they require
 less memory bandwidth and run batch operations much faster on GPUs that support Tensor Core. [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 Higher precision, such as the 64-bit floating-point, can be used for highly sensitive use-cases.
@@ -68,7 +68,7 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
 
 .. warning::
 
-    Do not cast anything to other dtypes manually using ``torch.autocast`` when using native precision because
+    Do not cast anything to other dtypes manually using ``torch.autocast`` or ``tensor.half()`` when using native precision because
     this can bring instability.
 
     .. code-block:: python
@@ -76,17 +76,21 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 outs = self(batch)
-                target = torch.zeros_like(outs)
-                with torch.autocast(device_type=self.device.type, dtype=torch.float):
-                    # casting to float32
-                    outs = outs.softmax(dim=-1)
+
+                a_float32 = torch.rand((8, 8), device=self.device, dtype=self.dtype)
+                b_float32 = torch.rand((8, 4), device=self.device, dtype=self.dtype)
+
+                # casting to float16 manually
+                with torch.autocast(device_type=self.device.type):
+                    c_float16 = torch.mm(a_float32, b_float32)
+                    target = self.layer(c_float16.flatten()[None])
 
                 # here outs is of type float32 and target is of type float16
-                loss = F.mse_loss(outs, target)
+                loss = torch.mm(target @ outs).float()
                 return loss
 
 
-        trainer = Trainer(gpus=1, precision=16)
+        trainer = Trainer(gpus=1, precision=32)
 
 
 FP16 Mixed Precision
@@ -97,7 +101,7 @@ In most cases, mixed precision uses FP16. Supported `PyTorch operations <https:/
 
 .. note::
 
-    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported precision type on TPUs.
+    When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported mixed precision type on TPUs.
 
 .. testcode::
     :skipif: not torch.cuda.is_available()
