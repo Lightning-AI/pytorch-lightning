@@ -22,13 +22,8 @@ if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
     from bagua.torch_api.algorithms import Algorithm
     from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
-    from bagua.torch_api.communication import (
-        allreduce_inplace,
-        barrier,
-        broadcast_object,
-        is_initialized,
-        ReduceOp as BaguaReduceOp,
-    )
+    from bagua.torch_api.communication import allreduce_inplace, barrier, broadcast_object, is_initialized
+    from bagua.torch_api.communication import ReduceOp as BaguaReduceOp
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 else:
     BaguaReduceOp = None
