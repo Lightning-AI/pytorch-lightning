@@ -649,7 +649,7 @@ class Trainer(
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
-        self.train_dataloader: DataLoader = None
+        self.train_dataloader = None
 
         if num_sanity_val_steps == -1:
             self.num_sanity_val_steps = float("inf")

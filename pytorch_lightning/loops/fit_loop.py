@@ -223,6 +223,7 @@ class FitLoop(Loop):
 
     def advance(self) -> None:  # type: ignore[override]
         """Runs one whole epoch."""
+        assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
 
