@@ -558,7 +558,9 @@ class ModelParallelClassificationModel(LightningModule):
         if not hasattr(self, "model"):
             self.configure_sharded_model()
 
-        assert len(checkpoint["lr_schedulers"]) > 0
+        # Lightning saves the lr schedulers, but DeepSpeed saves the optimizer states separately
+        assert len(checkpoint["lr_schedulers"]) == 1
+        assert "optimizer_states" not in checkpoint
 
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
