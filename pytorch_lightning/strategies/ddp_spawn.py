@@ -387,6 +387,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
+
 class _FakeQueue(UserList):
     """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
 

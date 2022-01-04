@@ -35,7 +35,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log, rank_zero_info
+from pytorch_lightning.utilities.distributed import log, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.enums import _StrategyType, AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -335,12 +335,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup_distributed(self):
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
-
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True

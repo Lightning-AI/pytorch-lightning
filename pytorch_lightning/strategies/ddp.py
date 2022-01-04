@@ -244,16 +244,8 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_distributed(self):
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
-        # set warning rank
         rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
         init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
 
     def _check_can_spawn_children(self):
