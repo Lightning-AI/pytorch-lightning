@@ -35,6 +35,9 @@ else:
     Batch = type(None)
 
 
+_CPU_DEVICES = ("cpu", torch.device("cpu"))
+
+
 def to_dtype_tensor(
     value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
 ) -> torch.Tensor:
@@ -274,7 +277,10 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
                 setattr(device_data, field, device_field)
             return device_data
 
-        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        kwargs = {}
+        # Don't issue non-blocking transfers to CPU
+        if isinstance(data, torch.Tensor) and device not in _CPU_DEVICES:
+            kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
             return data_output

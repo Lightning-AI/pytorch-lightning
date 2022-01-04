@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
 
 # copied from signal.pyi
@@ -62,11 +63,15 @@ class SignalConnector:
                 self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr1_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        if self.trainer.is_global_zero:
-            # save weights
-            log.info("handling SIGUSR1")
-            self.trainer.checkpoint_connector.hpc_save(self.trainer.weights_save_path, self.trainer.logger)
+        rank_zero_info("handling SIGUSR1")
 
+        # save logger to make sure we get all the metrics
+        if self.trainer.logger:
+            self.trainer.logger.finalize("finished")
+        hpc_save_path = self.trainer.checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
+        self.trainer.save_checkpoint(hpc_save_path)
+
+        if self.trainer.is_global_zero:
             # find job id
             job_id = os.environ["SLURM_JOB_ID"]
             cmd = ["scontrol", "requeue", job_id]
@@ -87,10 +92,6 @@ class SignalConnector:
                 log.info(f"requeued exp {job_id}")
             else:
                 log.warning("requeue failed...")
-
-            # close experiment to avoid issues
-            if self.trainer.logger:
-                self.trainer.logger.finalize("finished")
 
     def fault_tolerant_sigterm_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
         log.info(f"Received signal {signum}. Saving a fault-tolerant checkpoint and terminating.")
