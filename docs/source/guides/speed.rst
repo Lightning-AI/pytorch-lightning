@@ -90,7 +90,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
-When using DDP on a Multi-Node Cluster, set NCCL Parameters
+When using DDP on a Multi-node Cluster, set NCCL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
@@ -506,7 +506,7 @@ Clear Cache
 
 Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
 
-Tranfering Tensors to Device
+Transferring tensors to device
 ============================
 
 LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
