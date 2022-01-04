@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 class BaguaEnvironment(ClusterEnvironment):
     """Environment for distributed training with `Bagua <https://tutorials.baguasys.com/>`_"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @property

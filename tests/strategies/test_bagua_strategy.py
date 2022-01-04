@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import BaguaStrategy
@@ -84,3 +85,21 @@ def test_qadam():
     bagua_strategy = BaguaStrategy(algorithm="qadam")
     trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
     trainer.fit(model)
+
+
+@RunIf(skip_windows=True, bagua=True, min_gpus=2)
+def test_bagua_reduce():
+    from pytorch_lightning.utilities.distributed import ReduceOp
+
+    trainer = Trainer(strategy="bagua", gpus=2)
+    trainer.strategy.setup_environment()
+
+    # faster this way
+    reduce_ops = [None, "mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX, ReduceOp.PRODUCT, ReduceOp.MIN]
+    tensor = torch.randn(10).cuda()
+    for reduce_op in reduce_ops:
+        if reduce_op == "undefined":
+            with pytest.raises(ValueError, match="unrecognized `reduce_op`"):
+                result = trainer.strategy.reduce(tensor, reduce_op=reduce_op)
+        else:
+            result = trainer.strategy.reduce(tensor, reduce_op=reduce_op)
