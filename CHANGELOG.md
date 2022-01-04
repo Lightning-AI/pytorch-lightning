@@ -363,6 +363,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `Strategy.init_optimizers` in favor of `Strategy.setup_optimizers` ([#11236](https://github.com/PyTorchLightning/pytorch-lightning/pull/11236))
 
 
+- Removed `profile("training_step_and_backward")` in `Closure` class since we already profile calls `training_step` and `backward` ([#11222](https://github.com/PyTorchLightning/pytorch-lightning/pull/11222))
+
+
 - Removed `Strategy.optimizer_zero_grad` ([#11246](https://github.com/PyTorchLightning/pytorch-lightning/pull/11246))
 
 ### Fixed
