@@ -313,7 +313,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     expected = {"[Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
-            "training_step_and_backward",
             "[Strategy]DDPStrategy.training_step",
             "[Strategy]DDPStrategy.backward",
         }
