@@ -287,6 +287,7 @@ If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`
 
 
     # If you provided dictionary of dataloaders:
+
     combined_loader = CombinedLoader({"dl1": test_dl1, "dl2": test_dl2})
     dictionary_of_loaders = combined_loader.loaders
     test_dl1 = dictionary_of_loaders["dl1"]
