@@ -558,7 +558,7 @@ class ModelParallelClassificationModel(LightningModule):
         if not hasattr(self, "model"):
             self.configure_sharded_model()
 
-        assert checkpoint["lr_schedulers"] is not None
+        assert len(checkpoint["lr_schedulers"]) > 0
 
 
 class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
