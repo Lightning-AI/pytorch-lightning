@@ -70,7 +70,7 @@ class RegisterRecordFunction:
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
-        record = record_function("[pl][module]"+record_name)
+        record = record_function("[pl][module]" + record_name)
         record.__enter__()
         self._records[record_name] = record
         return input
@@ -379,13 +379,10 @@ class PyTorchProfiler(BaseProfiler):
             if self._lightning_module.automatic_optimization and "training_step" in self.STEP_FUNCTIONS:
                 self.STEP_FUNCTIONS.remove("training_step")
 
-        if (
-            self.profiler is not None
-            and action_name not in self._recording_map
-        ):
+        if self.profiler is not None and action_name not in self._recording_map:
 
             # Add [pl][profile] in name for pytorch profiler to recognize
-            recording = record_function("[pl][profile]"+action_name)
+            recording = record_function("[pl][profile]" + action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 
@@ -495,7 +492,7 @@ class PyTorchProfiler(BaseProfiler):
             self._register = None
 
     def _clear_recording_map(self) -> None:
-        for _,v in self._recording_map.items():
+        for _, v in self._recording_map.items():
             v.__exit__(None, None, None)
         self._recording_map.clear()
 
