@@ -32,46 +32,25 @@ class BoringModel4QAdam(BoringModel):
         return [optimizer], [lr_scheduler]
 
 
-@RunIf(skip_windows=True, bagua=True, min_gpus=1)
+@RunIf(skip_windows=True, bagua=True, min_gpus=1, standalone=True)
 def test_bagua_default():
     model = BoringModel()
     trainer = Trainer(max_epochs=1, strategy="bagua", gpus=1)
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
-def test_bagua_gradient_allreduce():
+@pytest.mark.parametrize(
+    "algorithm", ["gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized"]
+)
+@RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
+def test_bagua_algorithm(algorithm):
     model = BoringModel()
-    bagua_strategy = BaguaStrategy(algorithm="gradient_allreduce")
+    bagua_strategy = BaguaStrategy(algorithm=algorithm)
     trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
-def test_bagua_bytegrad():
-    model = BoringModel()
-    bagua_strategy = BaguaStrategy(algorithm="bytegrad")
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
-    trainer.fit(model)
-
-
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
-def test_bagua_decentralized():
-    model = BoringModel()
-    bagua_strategy = BaguaStrategy(algorithm="decentralized")
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
-    trainer.fit(model)
-
-
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
-def test_bagua_low_prec_decentralized():
-    model = BoringModel()
-    bagua_strategy = BaguaStrategy(algorithm="low_precision_decentralized")
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
-    trainer.fit(model)
-
-
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
+@RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_async():
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm="async", warmup_steps=10, sync_interval_ms=50)
@@ -79,7 +58,7 @@ def test_bagua_async():
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
+@RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_qadam():
     model = BoringModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")
@@ -87,7 +66,7 @@ def test_qadam():
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, bagua=True, min_gpus=2)
+@RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_reduce():
     from pytorch_lightning.utilities.distributed import ReduceOp
 
@@ -100,6 +79,6 @@ def test_bagua_reduce():
     for reduce_op in reduce_ops:
         if reduce_op == "undefined":
             with pytest.raises(ValueError, match="unrecognized `reduce_op`"):
-                result = trainer.strategy.reduce(tensor, reduce_op=reduce_op)
+                trainer.strategy.reduce(tensor, reduce_op=reduce_op)
         else:
-            result = trainer.strategy.reduce(tensor, reduce_op=reduce_op)
+            trainer.strategy.reduce(tensor, reduce_op=reduce_op)
