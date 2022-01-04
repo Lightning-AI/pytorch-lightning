@@ -63,11 +63,11 @@ def test_strategies_registry_with_new_strategy():
         ("deepspeed_stage_3_offload", {"stage": 3, "offload_parameters": True, "offload_optimizer": True}),
     ],
 )
-def test_strategies_registry_with_deepspeed_plugins(strategy_name, init_params):
+def test_strategies_registry_with_deepspeed_strategies(strategy_name, init_params):
 
     assert strategy_name in StrategiesRegistry
     assert StrategiesRegistry[strategy_name]["init_params"] == init_params
-    assert StrategiesRegistry[strategy_name]["plugin"] == DeepSpeedStrategy
+    assert StrategiesRegistry[strategy_name]["strategy"] == DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
@@ -79,7 +79,7 @@ def test_deepspeed_strategies_registry_with_trainer(tmpdir, strategy):
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_strategys_registry(tmpdir):
+def test_tpu_spawn_debug_strategies_registry(tmpdir):
 
     strategy = "tpu_spawn_debug"
 
