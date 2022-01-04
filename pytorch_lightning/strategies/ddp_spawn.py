@@ -120,6 +120,14 @@ class DDPSpawnStrategy(ParallelStrategy):
         super().setup_environment()
         self._setup_distributed()
 
+    def _setup_distributed(self):
+        reset_seed()
+        self.set_world_ranks()
+        rank_zero_only.rank = self.global_rank
+        init_dist_connection(
+            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        )
+
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)
@@ -378,14 +386,6 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
-
-    def _setup_distributed(self):
-        reset_seed()
-        self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
-        init_dist_connection(
-            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
-        )
 
 
 class _FakeQueue(UserList):
