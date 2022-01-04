@@ -35,8 +35,6 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         # Bagua use `bagua_module_name` to distinguish different modules
         self._bagua_module_name = pl_module._get_name() + str(id(pl_module))
 
-    def forward(self, *inputs, **kwargs):
-        return super().forward(*inputs, **kwargs)
 
 
 class BaguaStrategy(DDPStrategy):
