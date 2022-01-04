@@ -184,7 +184,7 @@ def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[Lis
         _configure_schedulers_automatic_opt if model.automatic_optimization else _configure_schedulers_manual_opt
     )
     lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
-    _validate_scheduler_optimizer(optimizers, lr_schedulers)
+    _set_scheduler_opt_idx(optimizers, lr_schedulers)
     return optimizers, lr_schedulers, optimizer_frequencies
 
 
@@ -337,15 +337,27 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
         "reduce_on_plateau": False,  # most often not ReduceLROnPlateau scheduler
         "monitor": None,  # value to monitor for ReduceLROnPlateau
         "strict": True,  # enforce that the monitor exists for ReduceLROnPlateau
-        "opt_idx": None,  # necessary to store opt_idx when optimizer frequencies are specified
+        "opt_idx": None,  # opt_idx assigned internally if not assigned by user
     }
 
 
-def _validate_scheduler_optimizer(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
-    if any(sch["scheduler"].optimizer not in optimizers for sch in lr_schedulers):
-        raise MisconfigurationException(
-            "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
-        )
+def _set_scheduler_opt_idx(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
+    for sch in lr_schedulers:
+
+        for opt_idx, opt in enumerate(optimizers):
+            if sch["scheduler"].optimizer is opt:
+                if sch["opt_idx"] is not None and sch["opt_idx"] != opt_idx:
+                    raise MisconfigurationException(
+                        "`opt_idx` set inside scheduler config does not match with the index"
+                        " of the respective optimizer returned from `configure_optimizers`."
+                    )
+
+                sch["opt_idx"] = opt_idx
+                break
+        else:
+            raise MisconfigurationException(
+                "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
+            )
 
 
 def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:

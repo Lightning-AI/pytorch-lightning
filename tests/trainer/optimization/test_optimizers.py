@@ -140,7 +140,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
-        opt_idx=None,
+        opt_idx=0,
         name=None,
     )
 
@@ -182,7 +182,7 @@ def test_optimizer_return_options(tmpdir):
         monitor=None,
         strict=True,
         name=None,
-        opt_idx=None,
+        opt_idx=0,
     )
 
     # opt tuple of 2 lists
@@ -508,6 +508,24 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
+        trainer.fit(model)
+
+
+def test_invalid_opt_idx_in_scheduler(tmpdir):
+    """Test exception when incorrect opt_idx is set in lr_scheduler config."""
+
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = {"scheduler": optim.lr_scheduler.StepLR(opt2, step_size=1), "opt_idx": 0}
+            return [opt1, opt2], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(
+        MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
+    ):
         trainer.fit(model)
 
 
