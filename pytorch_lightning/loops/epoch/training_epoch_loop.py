@@ -468,7 +468,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             opt_indices = []
 
         for lr_scheduler in self.trainer.lr_schedulers:
-            if isinstance(lr_scheduler["opt_idx"], int) and lr_scheduler["opt_idx"] not in opt_indices:
+            if lr_scheduler["opt_idx"] not in opt_indices:
                 continue
 
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
