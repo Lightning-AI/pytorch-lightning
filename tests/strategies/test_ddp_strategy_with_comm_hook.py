@@ -30,11 +30,11 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_10:
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
+    strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        strategy=training_type_plugin,
+        strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -50,14 +50,14 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPStrategy(
+    strategy = DDPStrategy(
         ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
     )
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        strategy=training_type_plugin,
+        strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -73,7 +73,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
 def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
-    training_type_plugin = DDPStrategy(
+    strategy = DDPStrategy(
         ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
         ddp_comm_wrapper=default.fp16_compress_wrapper,
@@ -81,7 +81,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        strategy=training_type_plugin,
+        strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -97,11 +97,11 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
-    training_type_plugin = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
+    strategy = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
     trainer = Trainer(
         max_epochs=1,
         gpus=2,
-        strategy=training_type_plugin,
+        strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
@@ -115,7 +115,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
 
-    training_type_plugin = DDPStrategy(
+    strategy = DDPStrategy(
         ddp_comm_state=post_localSGD.PostLocalSGDState(
             process_group=None,
             subgroup=None,
@@ -127,7 +127,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         gpus=2,
-        strategy=training_type_plugin,
+        strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
     )
