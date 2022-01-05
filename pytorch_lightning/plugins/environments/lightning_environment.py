@@ -34,9 +34,9 @@ class LightningEnvironment(ClusterEnvironment):
     training as it provides a convenient way to launch the training script.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._main_port = None
+        self._main_port: int = -1
         self._global_rank: int = 0
         self._world_size: int = 1
 
@@ -55,9 +55,9 @@ class LightningEnvironment(ClusterEnvironment):
 
     @property
     def main_port(self) -> int:
-        if self._main_port is None:
-            self._main_port = os.environ.get("MASTER_PORT", find_free_network_port())
-        return int(self._main_port)
+        if self._main_port == -1:
+            self._main_port = int(os.environ.get("MASTER_PORT", find_free_network_port()))
+        return self._main_port
 
     @staticmethod
     def detect() -> bool:

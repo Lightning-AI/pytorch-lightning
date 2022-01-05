@@ -53,6 +53,7 @@ def test_model_saves_on_gpu(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
+@RunIf(max_torch="1.10")
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output."""
     model = BoringModel()

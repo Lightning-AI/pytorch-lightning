@@ -154,3 +154,51 @@ Advanced GPU Optimizations
 
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
 Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.
+
+----------
+
+Sharing Datasets Across Process Boundaries
+------------------------------------------
+The :class:`~pytorch_lightning.DataModule` class provides an organized way to decouple data loading from training logic, with :meth:`~pytorch_lightning.DataModule.prepare_data` being used for downloading and pre-processing the dataset on a single process, and :meth:`~pytorch_lightning.DataModule.setup` loading the pre-processed data for each process individually:
+
+.. code-block:: python
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def prepare_data(self):
+            MNIST(self.data_dir, download=True)
+
+        def setup(self, stage: Optional[str] = None):
+            self.mnist = MNIST(self.data_dir)
+
+        def train_loader(self):
+            return DataLoader(self.mnist, batch_size=128)
+
+However, for in-memory datasets, that means that each process will hold a (redundant) replica of the dataset in memory, which may be impractical when using many processes while utilizing datasets that nearly fit into CPU memory, as the memory consumption will scale up linearly with the number of processes.
+For example, when training Graph Neural Networks, a common strategy is to load the entire graph into CPU memory for fast access to the entire graph structure and its features, and to then perform neighbor sampling to obtain mini-batches that fit onto the GPU.
+
+A simple way to prevent redundant dataset replicas is to rely on :obj:`torch.multiprocessing` to share the `data automatically between spawned processes via shared memory <https://pytorch.org/docs/stable/notes/multiprocessing.html>`_.
+For this, all data pre-loading should be done on the main process inside :meth:`DataModule.__init__`.
+As a result, all tensor-data will get automatically shared when using the :class:`~pytorch_lightning.strategies.DDPSpawnStrategy` training type strategy:
+
+.. warning::
+
+    :obj:`torch.multiprocessing` will send a handle of each individual tensor to other processes.
+    In order to prevent any errors due to too many open file handles, try to reduce the number of tensors to share, *e.g.*, by stacking your data into a single tensor.
+
+.. code-block:: python
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def __init__(self, data_dir: str):
+            self.mnist = MNIST(data_dir, download=True, transform=T.ToTensor())
+
+        def train_loader(self):
+            return DataLoader(self.mnist, batch_size=128)
+
+
+    model = Model(...)
+    datamodule = MNISTDataModule("data/MNIST")
+
+    trainer = Trainer(gpus=2, strategy="ddp_spawn")
+    trainer.fit(model, datamodule)
+
+See the `graph-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/gin.py>`_ and `node-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/graph_sage.py>`_ prediction examples in PyTorch Geometric for practical use-cases.

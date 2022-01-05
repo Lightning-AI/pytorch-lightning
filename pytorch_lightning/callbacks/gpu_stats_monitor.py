@@ -161,6 +161,7 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
+        assert trainer.logger is not None
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
@@ -185,6 +186,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
             logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
+        assert trainer.logger is not None
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @staticmethod
@@ -212,8 +214,7 @@ class GPUStatsMonitor(Callback):
                 f"--id={gpu_ids}",
             ],
             encoding="utf-8",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+            capture_output=True,
             check=True,
         )
 
