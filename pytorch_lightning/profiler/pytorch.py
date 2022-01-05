@@ -387,7 +387,9 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name] = recording
 
     def stop(self, action_name: str) -> None:
-        self._clear_recording_map()
+        if action_name in self._recording_map:
+            self._recording_map[action_name].__exit__(None, None, None)
+            del self._recording_map[action_name]
 
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
@@ -491,14 +493,11 @@ class PyTorchProfiler(BaseProfiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
-    def _clear_recording_map(self) -> None:
-        for _, v in self._recording_map.items():
-            v.__exit__(None, None, None)
-        self._recording_map.clear()
-
     def teardown(self, stage: Optional[str] = None) -> None:
-        self._clear_recording_map()
-
         self._delete_profilers()
+
+        for k in list(self._recording_map.keys()):
+            self.stop(k)
+        self._recording_map = {}
 
         super().teardown(stage=stage)

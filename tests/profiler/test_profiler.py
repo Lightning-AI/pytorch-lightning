@@ -387,11 +387,11 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         devices=2,
     )
     trainer.fit(model)
-    expected = {"[Strategy]DDPStrategy.validation_step"}
+    expected = {"[pl][profile][Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
-            "[Strategy]DDPStrategy.training_step",
-            "[Strategy]DDPStrategy.backward",
+            "[pl][profile][Strategy]DDPStrategy.training_step",
+            "[pl][profile][Strategy]DDPStrategy.backward",
         }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
@@ -639,10 +639,10 @@ def test_profile_callbacks(tmpdir):
     )
     trainer.fit(model)
     assert sum(
-        e.name == "[pl][profile][Callback]" "EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
     assert sum(
-        e.name == "[pl][profile][Callback]" "EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
