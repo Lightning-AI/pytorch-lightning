@@ -44,6 +44,7 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
+_DEVICE = Union[torch.device, str, int]
 
 
 # Copied from `torch.optim.lr_scheduler.pyi`
