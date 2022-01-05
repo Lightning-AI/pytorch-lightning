@@ -265,14 +265,14 @@ class CheckpointConnector:
             # validation
             if "optimizer_states" not in self._loaded_checkpoint:
                 raise KeyError(
-                    "Trying to optimizer state but checkpoint contains only the model."
+                    "Trying to restore optimizer state but checkpoint contains only the model."
                     " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
                 )
             self.restore_optimizers()
 
         if "lr_schedulers" not in self._loaded_checkpoint:
             raise KeyError(
-                "Trying to learning rate scheduler state but checkpoint contains only the model."
+                "Trying to restore learning rate scheduler state but checkpoint contains only the model."
                 " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
             )
         self.restore_lr_schedulers()
