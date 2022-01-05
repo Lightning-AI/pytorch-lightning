@@ -286,7 +286,6 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
         trainer.tune(BoringModel())
 
 
-@pytest.mark.skip(reason="Temperory skip")
 def test_lr_find_with_bs_scale(tmpdir):
     """Test that lr_find runs with batch_size_scaling."""
     seed_everything(1)
