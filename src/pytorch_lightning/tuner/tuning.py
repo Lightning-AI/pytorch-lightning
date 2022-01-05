@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional, Union
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -68,10 +68,38 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
+            self.trainer.state.fn = TrainerFn.TUNING
+            self.trainer.state.status = TrainerStatus.RUNNING
+            self.tuning = True
+
+            # TODO: Remove this once LRFinder is converted to a Callback
+            # if a datamodule comes in as the second arg, then fix it for the user
+            if isinstance(train_dataloaders, LightningDataModule):
+                datamodule = train_dataloaders
+                train_dataloaders = None
+
+            # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+            if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
+                raise MisconfigurationException(
+                    "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
+                )
+
+            # links data to the trainer
+            self.trainer._data_connector.attach_data(
+                model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
+            )
+
             lr_find_kwargs.setdefault("update_attr", True)
             result["lr_find"] = lr_find(self.trainer, model, **lr_find_kwargs)
 
         return result
+
+    def _run(self, *args: Any, **kwargs: Any) -> None:
+        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times."""
+        self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
+        self.trainer.training = True
+        self.trainer._run(*args, **kwargs)
+        self.trainer.tuning = True
 
     def scale_batch_size(
         self,
@@ -129,10 +157,6 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        # circular import
-        from pytorch_lightning.trainer.trainer import Trainer
-
-        Trainer._log_api_event("tune")
         self.trainer.state.fn = TrainerFn.TUNING
         self.tuning = True
 
@@ -158,6 +182,7 @@ class Tuner:
             self.trainer.predict(model, dataloaders, datamodule)
 
         self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not batch_size_finder]
+        self.trainer.auto_scale_batch_size = False
         return batch_size_finder.optimal_batch_size
 
     def lr_find(

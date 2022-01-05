@@ -1059,6 +1059,8 @@ class Trainer(
 
             method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
         """
+        Trainer._log_api_event("tune")
+
         with isolate_rng():
             result = self.tuner._tune(
                 model,
@@ -1070,6 +1072,17 @@ class Trainer(
                 lr_find_kwargs=lr_find_kwargs,
                 method=method,
             )
+
+        result = self.tuner._tune(
+            model,
+            train_dataloaders,
+            val_dataloaders,
+            dataloaders,
+            datamodule,
+            scale_batch_size_kwargs=scale_batch_size_kwargs,
+            lr_find_kwargs=lr_find_kwargs,
+            method=method,
+        )
 
         return result
 
