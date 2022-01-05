@@ -1381,16 +1381,22 @@ class Trainer(
             ckpt_path = "best"
 
         if ckpt_path == "best":
-            # if user requests the best checkpoint but we don't have it, error
+            if len(self.checkpoint_callbacks) > 1:
+                rank_zero_warn(
+                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
+                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
+                )
+
             if not self.checkpoint_callback:
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
+
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
-                        f"You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do"
-                        f" `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting."
+                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
+                        f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
@@ -1498,11 +1504,11 @@ class Trainer(
                 # todo: move this data parallel logic into the data parallel strategy
                 output = accelerator_output if output is None else output
 
-            # call the ttp hook
+            # call the strategy hook
             if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
-                ttp_hook = getattr(self.strategy, hook_name)
-                ttp_output = ttp_hook(*args, **kwargs)
-                output = ttp_output if output is None else output
+                strategy_hook = getattr(self.strategy, hook_name)
+                strategy_output = strategy_hook(*args, **kwargs)
+                output = strategy_output if output is None else output
 
         if pl_module:
             # restore current_fx when nested context
@@ -1785,8 +1791,10 @@ class Trainer(
         rank_zero_deprecation(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
-        ttp = self.strategy
-        return isinstance(ttp, pl.strategies.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
+        strategy = self.strategy
+        return (
+            isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
+        )
 
     @property
     def _distrib_type(self) -> _StrategyType:

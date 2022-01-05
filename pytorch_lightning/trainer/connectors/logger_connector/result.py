@@ -207,8 +207,14 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta = metadata
         self.has_reset = False
         if is_tensor:
+            if metadata.is_max_reduction:
+                default = float("-inf")
+            elif metadata.is_min_reduction:
+                default = float("inf")
+            else:
+                default = 0.0
             # do not set a dtype in case the default dtype was changed
-            self.add_state("value", torch.tensor(0.0), dist_reduce_fx=torch.sum)
+            self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation

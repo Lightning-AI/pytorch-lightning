@@ -436,7 +436,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
 
     @classmethod
-    def register_plugins(cls, plugin_registry) -> None:
+    def register_strategies(cls, strategies_registry) -> None:
         pass
 
     def on_train_start(self) -> None:
