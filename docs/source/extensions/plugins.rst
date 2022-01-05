@@ -158,3 +158,4 @@ Cluster Environments
     TorchElasticEnvironment
     KubeflowEnvironment
     SLURMEnvironment
+    XLAEnvironment
