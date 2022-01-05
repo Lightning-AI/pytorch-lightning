@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in v2.0.0."""
+"""Test deprecated functionality which will be removed in v2.0."""
 import pytest
 
 from pytorch_lightning import Trainer
@@ -19,7 +19,7 @@ from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.helpers import BoringModel
 
 
-def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v2.0 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
