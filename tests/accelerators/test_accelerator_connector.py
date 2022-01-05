@@ -647,11 +647,11 @@ def test_strategy_choice_gpu_plugin(tmpdir, plugin):
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_accelerator_type_when_training_plugin_gpu_passed(tmpdir, plugin):
+@pytest.mark.parametrize("strategy", [DDPSpawnStrategy, DDPStrategy])
+def test_accelerator_type_when_training_strategy_for_gpu_passed(tmpdir, strategy):
 
-    trainer = Trainer(strategy=plugin(), gpus=2)
-    assert isinstance(trainer.strategy, plugin)
+    trainer = Trainer(strategy=strategy(), gpus=2)
+    assert isinstance(trainer.strategy, strategy)
     assert trainer._accelerator_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
