@@ -68,8 +68,9 @@ class PredictionEpochLoop(Loop):
         void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
-        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         self.return_predictions = return_predictions
+        # this call requires that `self.return_predictions` is set
+        self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
 
     def advance(  # type: ignore[override]
         self,
@@ -96,7 +97,7 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        batch = self.trainer._call_ttp_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+        batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
 
@@ -128,7 +129,7 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_started()
 
-        predictions = self.trainer._call_ttp_hook("predict_step", *step_kwargs.values())
+        predictions = self.trainer._call_strategy_hook("predict_step", *step_kwargs.values())
 
         self.batch_progress.increment_processed()
 

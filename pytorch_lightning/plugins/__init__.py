@@ -34,8 +34,9 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.strategies import Strategy
 
-PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
+PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
@@ -70,6 +71,6 @@ __all__ = [
 ]
 
 FILE_ROOT = Path(__file__).parent
-TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"
+TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.strategies"
 
 call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

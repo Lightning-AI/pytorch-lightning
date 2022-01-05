@@ -15,16 +15,14 @@ import os
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIO, DeepSpeedPlugin, SingleDevicePlugin, TPUSpawnPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.plugins import CheckpointIO
+from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
-from tests.helpers.runif import RunIf
 
 
 class CustomCheckpointIO(CheckpointIO):
@@ -49,7 +47,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDevicePlugin(device, checkpoint_io=checkpoint_plugin),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
     )
@@ -68,7 +66,7 @@ def test_checkpoint_plugin_called(tmpdir):
     device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDevicePlugin(device),
+        strategy=SingleDeviceStrategy(device),
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
@@ -81,9 +79,3 @@ def test_checkpoint_plugin_called(tmpdir):
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
     checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
-
-
-@pytest.mark.parametrize("plugin_cls", [pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)), TPUSpawnPlugin])
-def test_no_checkpoint_io_plugin_support(plugin_cls):
-    with pytest.raises(MisconfigurationException, match="currently does not support custom checkpoint plugins"):
-        plugin_cls().checkpoint_io = CustomCheckpointIO()

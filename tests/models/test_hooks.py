@@ -113,7 +113,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch(
-    "pytorch_lightning.plugins.training_type.training_type_plugin.TrainingTypePlugin.lightning_module",
+    "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock):
@@ -160,7 +160,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model
-    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
     assert model.on_before_batch_transfer_hook_rank == 0
     assert model.transfer_batch_to_device_hook_rank == 1
@@ -516,13 +516,9 @@ def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
-        # DeepSpeed skips initializing optimizers here as they are handled via config
-        *([dict(name="configure_optimizers")] if kwargs.get("strategy") != "deepspeed" else []),
+        dict(name="configure_optimizers"),
         dict(name="Callback.on_fit_start", args=(trainer, model)),
         dict(name="on_fit_start"),
-        # TODO: explore whether DeepSpeed can have the same flow for optimizers
-        # DeepSpeed did not find any optimizer in the config so they are loaded here
-        *([dict(name="configure_optimizers")] if kwargs.get("strategy") == "deepspeed" else []),
         dict(name="Callback.on_pretrain_routine_start", args=(trainer, model)),
         dict(name="on_pretrain_routine_start"),
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
@@ -874,7 +870,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="val_dataloader"),
         dict(name="train_dataloader"),
-        dict(name="val_dataloader"),
         dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]

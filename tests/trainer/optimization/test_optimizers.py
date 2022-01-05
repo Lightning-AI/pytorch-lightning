@@ -19,7 +19,11 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.core.optimizer import (
+    _configure_optimizers,
+    _configure_schedulers_automatic_opt,
+    _init_optimizers_and_lr_schedulers,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -106,7 +110,7 @@ def test_onecyclelr_with_epoch_interval_warns():
     optimizer = optim.Adam(model.parameters())
     lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
     with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
-        TrainerOptimizersMixin._configure_schedulers([lr_scheduler], None, False)
+        _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
 def test_reducelronplateau_scheduling(tmpdir):
@@ -136,7 +140,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
-        opt_idx=None,
+        opt_idx=0,
         name=None,
     )
 
@@ -144,6 +148,8 @@ def test_reducelronplateau_scheduling(tmpdir):
 def test_optimizer_return_options(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = BoringModel()
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
 
     # single optimizer
     opt_a = optim.Adam(model.parameters(), lr=0.002)
@@ -153,18 +159,18 @@ def test_optimizer_return_options(tmpdir):
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == 1 and len(lr_sched) == len(freq) == 0
 
     # opt tuple
     model.configure_optimizers = lambda: (opt_a, opt_b)
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
     # opt list
     model.configure_optimizers = lambda: [opt_a, opt_b]
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
@@ -176,12 +182,12 @@ def test_optimizer_return_options(tmpdir):
         monitor=None,
         strict=True,
         name=None,
-        opt_idx=None,
+        opt_idx=0,
     )
 
     # opt tuple of 2 lists
     model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -189,7 +195,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt tuple of 1 list
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -197,7 +203,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -208,7 +214,7 @@ def test_optimizer_return_options(tmpdir):
         {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
         {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
     )
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == len(freq) == 2
     assert opt[0] == opt_a
     ref_lr_sched["opt_idx"] = 0
@@ -436,7 +442,7 @@ def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
         "bar": 2,
     }
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
-        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+        _configure_optimizers(optim_conf)
 
 
 def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
@@ -451,7 +457,7 @@ def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
         {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
     ]
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
-        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+        _configure_optimizers(optim_conf)
 
 
 def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
@@ -502,6 +508,24 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
+        trainer.fit(model)
+
+
+def test_invalid_opt_idx_in_scheduler(tmpdir):
+    """Test exception when incorrect opt_idx is set in lr_scheduler config."""
+
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = {"scheduler": optim.lr_scheduler.StepLR(opt2, step_size=1), "opt_idx": 0}
+            return [opt1, opt2], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(
+        MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
+    ):
         trainer.fit(model)
 
 

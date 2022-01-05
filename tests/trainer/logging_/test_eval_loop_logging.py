@@ -62,6 +62,9 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__validation_step__epoch_end__log(tmpdir):
@@ -102,6 +105,9 @@ def test__validation_step__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     assert set(trainer.callback_metrics) == {"a", "b", "b_epoch", "c", "d", "d_epoch", "g", "b_step"}
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -133,6 +139,9 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
     assert callback_metrics == (logged_metrics | pbar_metrics)
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test_eval_float_logging(tmpdir):
@@ -510,6 +519,10 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
         val_losses = []
 
+        def __init__(self, some_val=7):
+            super().__init__()
+            self.save_hyperparameters()
+
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
@@ -743,16 +756,17 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
-            self.log("foo", 12.0)
+            self.log("foo", dataloader_idx + 1)
+            return dataloader_idx + 1
 
         def test_epoch_end(self, outputs) -> None:
-            self.log("foobar", 23.0)
+            self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(2)]
+            return [super().val_dataloader(), super().val_dataloader()]
 
     model = CustomBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    logged_results = trainer.test(model)
-    # TODO: what's logged in `test_epoch_end` should be included in the results of each dataloader
-    assert logged_results == [{"foo/dataloader_idx_0": 12.0}, {"foo/dataloader_idx_1": 12.0}]
+    results = trainer.test(model)
+    # what's logged in `test_epoch_end` gets included in the results of each dataloader
+    assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]

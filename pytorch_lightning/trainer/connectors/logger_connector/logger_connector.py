@@ -102,13 +102,13 @@ class LoggerConnector:
         if self.trainer.logger is None or not metrics:
             return
 
+        self._logged_metrics.update(metrics)
+
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
 
         if step is None:
             step = scalar_metrics.pop("step", None)
-
-        self._logged_metrics.update(scalar_metrics)
 
         if step is None:
             # added metrics for convenience
@@ -157,7 +157,11 @@ class LoggerConnector:
         assert self._epoch_end_reached
         if self.trainer.sanity_checking:
             return {}
-        return self.metrics["callback"]
+        metrics = self.metrics
+        self._progress_bar_metrics.update(metrics["pbar"])
+        self._callback_metrics.update(metrics["callback"])
+        self._logged_metrics.update(metrics["log"])
+        return metrics["callback"]
 
     def log_eval_end_metrics(self) -> None:
         assert self._epoch_end_reached
