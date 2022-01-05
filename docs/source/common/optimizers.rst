@@ -77,20 +77,19 @@ support accelerators, precision and profiling for you.
 .. testcode:: python
 
    class Model(LightningModule):
+       def __init__(self):
+           super().__init__()
+           self.automatic_optimization = False
+           ...
 
-            def __init__(self):
-                super().__init__()
-                self.automatic_optimization = False
-                ...
+       def training_step(self, batch, batch_idx):
+           optimizer = self.optimizers()
 
-            def training_step(self, batch, batch_idx):
-                optimizer = self.optimizers()
-        
-                # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
-                # To access it, do the following.
-                # However, it won't work on TPU, AMP, etc...
-                optimizer = optimizer.optimizer
-                ...
+           # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+           # To access it, do the following.
+           # However, it won't work on TPU, AMP, etc...
+           optimizer = optimizer.optimizer
+           ...
 
 Gradient Accumulation
 =====================
