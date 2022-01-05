@@ -205,7 +205,7 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
+        if not self._is_fresh_start_epoch and self.trainer._should_reload_train_dl:
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
