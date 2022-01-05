@@ -341,25 +341,25 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Prec(PrecisionPlugin):
         pass
 
-    class TrainTypePlugin(SingleDeviceStrategy):
+    class Strat(SingleDeviceStrategy):
         pass
 
-    ttp = TrainTypePlugin(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
-    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
+    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=strategy, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, TrainTypePlugin)
+    assert isinstance(trainer.strategy, Strat)
     assert isinstance(trainer.precision_plugin, Prec)
-    assert trainer._accelerator_connector.strategy is ttp
+    assert trainer._accelerator_connector.strategy is strategy
 
-    class DistributedPlugin(DDPStrategy):
+    class Strat(DDPStrategy):
         pass
 
-    ttp = DistributedPlugin(accelerator=Accel(), precision_plugin=Prec())
-    trainer = Trainer(strategy=ttp, fast_dev_run=True, num_processes=2)
+    strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
+    trainer = Trainer(strategy=strategy, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, DistributedPlugin)
+    assert isinstance(trainer.strategy, Strat)
     assert isinstance(trainer.precision_plugin, Prec)
-    assert trainer._accelerator_connector.strategy is ttp
+    assert trainer._accelerator_connector.strategy is strategy
 
 
 @mock.patch.dict(
