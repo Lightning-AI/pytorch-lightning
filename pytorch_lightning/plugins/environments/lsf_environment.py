@@ -158,7 +158,7 @@ class LSFEnvironment(ClusterEnvironment):
             raise ValueError("The environment variable `LSB_DJOB_RANKFILE` is empty")
 
         fs = get_filesystem(rankfile)
-        with fs.open(rankfile) as f:
+        with fs.open(rankfile, "r") as f:
             ret = [line.strip() for line in f]
         # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
         return ret[1:]
