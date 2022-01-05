@@ -1,15 +1,15 @@
 import os
+
 import torch
-from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule, Trainer
+from torch.utils.data import DataLoader, Dataset
 from transformers.optimization import get_scheduler
 
+import pytorch_lightning as pl
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.strategies import DeepSpeedStrategy
 
 
 class RandomDataset(Dataset):
-
     def __init__(self, size, length):
         self.len = length
         self.data = torch.randn(length, size)
@@ -22,7 +22,6 @@ class RandomDataset(Dataset):
 
 
 class BoringModel(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
@@ -53,12 +52,8 @@ class BoringModel(LightningModule):
 
     def configure_optimizers(self):
         no_decay = ["bias"]
-        params_decay = [
-            p for n, p in self.named_parameters() if not any(nd in n for nd in no_decay)
-        ]
-        params_nodecay = [
-            p for n, p in self.named_parameters() if any(nd in n for nd in no_decay)
-        ]
+        params_decay = [p for n, p in self.named_parameters() if not any(nd in n for nd in no_decay)]
+        params_nodecay = [p for n, p in self.named_parameters() if any(nd in n for nd in no_decay)]
         optim_groups = [
             {
                 "params": params_decay,
@@ -89,7 +84,9 @@ def run():
     trainer.fit(model)
 
     # test lr_scheduler state
-    model_state_path = os.path.join(trainer.checkpoint_callback.best_model_path, "global_step50/mp_rank_00_model_states.pt")
+    model_state_path = os.path.join(
+        trainer.checkpoint_callback.best_model_path, "global_step50/mp_rank_00_model_states.pt"
+    )
     model_state = torch.load(model_state_path, map_location="cpu")
     print("end of training", model_state["lr_schedulers"])
 
@@ -109,5 +106,5 @@ def run():
     trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
