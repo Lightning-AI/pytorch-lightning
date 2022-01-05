@@ -55,9 +55,6 @@ class LSFEnvironment(ClusterEnvironment):
             )
         self._main_address = self._get_main_address()
         self._main_port = self._get_main_port()
-        self._local_rank = self._get_local_rank()
-        self._global_rank = self._get_global_rank()
-        self._world_size = self._get_world_size()
         self._node_rank = self._get_node_rank()
         self._set_init_progress_group_env_vars()
 
@@ -92,14 +89,6 @@ class LSFEnvironment(ClusterEnvironment):
 
     def world_size(self) -> int:
         """The world size is read from the environment variable ``JSM_NAMESPACE_SIZE``."""
-        return self._world_size
-
-    @staticmethod
-    def _get_world_size() -> int:
-        """A helper function for getting the world size.
-
-        Read this from the environment variable ``JSM_NAMESPACE_SIZE``
-        """
         world_size = os.environ.get("JSM_NAMESPACE_SIZE")
         if world_size is None:
             raise ValueError(
@@ -113,14 +102,6 @@ class LSFEnvironment(ClusterEnvironment):
 
     def global_rank(self) -> int:
         """The world size is read from the environment variable ``JSM_NAMESPACE_RANK``."""
-        return self._global_rank
-
-    @staticmethod
-    def _get_global_rank() -> int:
-        """A helper method for getting the global rank.
-
-        Read this from the environment variable ``JSM_NAMESPACE_RANK``
-        """
         global_rank = os.environ.get("JSM_NAMESPACE_RANK")
         if global_rank is None:
             raise ValueError(
@@ -134,14 +115,6 @@ class LSFEnvironment(ClusterEnvironment):
 
     def local_rank(self) -> int:
         """The local rank is read from the environment variable `JSM_NAMESPACE_LOCAL_RANK`."""
-        return self._local_rank
-
-    @staticmethod
-    def _get_local_rank() -> int:
-        """A helper method for getting the local rank.
-
-        Read this from the environment variable ``JSM_NAMESPACE_LOCAL_RANK``
-        """
         local_rank = os.environ.get("JSM_NAMESPACE_LOCAL_RANK")
         if local_rank is None:
             raise ValueError(
