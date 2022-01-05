@@ -305,19 +305,19 @@ class Loop(ABC, Generic[T]):
 
         return destination
 
-    def load_state_dict(self, state_dict: Dict, prefix: str = "", metrics: Optional[Dict[str, Metric]] = None) -> None:
+    def load_state_dict(
+        self,
+        state_dict: Dict,
+        prefix: str = "",
+        metrics: Optional[Dict[str, Metric]] = None,
+    ) -> None:
         """Loads the state of this loop and all its children."""
         self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
 
-    def _load_from_state_dict(
-        self,
-        state_dict: Dict,
-        prefix: str,
-        metrics: Optional[Dict[str, Metric]] = None,
-    ) -> None:
+    def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
