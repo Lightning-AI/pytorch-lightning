@@ -59,10 +59,6 @@ class LSFEnvironment(ClusterEnvironment):
         self._global_rank = self._get_global_rank()
         self._world_size = self._get_world_size()
         self._node_rank = self._get_node_rank()
-        self._rep = (
-            f"main_address={self._main_address},main_port={self._main_port},local_rank={self._local_rank},"
-            f"global_rank={self._global_rank},world_size={self._world_size},node_rank={self._node_rank}"
-        )
         self._set_init_progress_group_env_vars()
 
     def _set_init_progress_group_env_vars(self) -> None:
@@ -216,6 +212,3 @@ class LSFEnvironment(ClusterEnvironment):
             log.debug(f"calculated LSF main port: {port}")
             return port
         raise ValueError("Could not find job id in environment variable LSB_JOBID")
-
-    def __str__(self) -> str:
-        return self._rep
