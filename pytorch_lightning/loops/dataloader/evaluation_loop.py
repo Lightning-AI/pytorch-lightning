@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, List, Sequence, Union
 
-import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
@@ -282,23 +281,23 @@ class EvaluationLoop(DataLoaderLoop):
 
             table.add_column("Metric", justify="center", style="cyan")
 
-            new_results = []
-
-            for result in results:
+            for i, result in enumerate(results):
                 new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                new_results.append(dict(zip(new_keys, result.values())))
+                results[i] = dict(zip(new_keys, result.values()))
 
-            unique_keys = sorted(set().union(*(d.keys() for d in new_results)))
+            unique_keys: List[str] = sorted(set().union(*(d.keys() for d in results)))  # type: ignore
 
             rows = [[i] for i in unique_keys]
 
-            for i, metrics_dict in enumerate(new_results):
+            for i, metrics_dict in enumerate(results):
                 table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
 
                 for j, metric in enumerate(rows):
                     v = metrics_dict.get(metric[0])
-                    v = (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    rows[j].append(f"{v}")
+                    if v is None:
+                        rows[j].append(" ")
+                    else:
+                        rows[j].append(f"{v}")
 
             for row in rows:
                 table.add_row(*row)
@@ -306,26 +305,34 @@ class EvaluationLoop(DataLoaderLoop):
             console.print("", table)
 
         else:
-            new_results = []
+            import os
 
-            for result in results:
-                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                new_results.append(dict(zip(new_keys, result.values())))
-
-            unique_keys = sorted(set().union(*(d.keys() for d in new_results)))
-
-            rows = [[] for x in range(len(unique_keys))]
-
-            for i, metrics_dict in enumerate(new_results):
-                for j in range(len(rows)):
-                    v = metrics_dict.get(unique_keys[j])
-                    v = (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    rows[j].append(f"{v}")
+            term_size = os.get_terminal_size()
+            print("\n", u'\u2500' * (term_size.columns - 1))
 
             cols = [f"DATALOADER {i}" for i in range(len(results))]
 
-            row_format = "{:^25}" * (len(cols) + 1)
-            print("\n", row_format.format("", *cols))
+            for i, result in enumerate(results):
+                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                results[i] = dict(zip(new_keys, result.values()))
+
+            unique_keys = sorted(set().union(*(d.keys() for d in results)))  # type: ignore
+
+            rows = [[] for x in range(len(unique_keys))]
+
+            for i, metrics_dict in enumerate(results):
+                for j in range(len(rows)):
+                    v = metrics_dict.get(unique_keys[j])
+                    if v is None:
+                        rows[j].append(" ")
+                    else:
+                        rows[j].append(f"{v}")
+
+            max_length = max(len(max(unique_keys + cols, key=len)), 25)
+            row_format = "{:^{max_length}}" * (len(cols) + 1)
+            print(row_format.format("Metric", *cols, max_length=max_length))
 
             for col, row in zip(unique_keys, rows):
-                print(row_format.format(col, *row))
+                print(row_format.format(col, *row, max_length=max_length))
+
+            print(u'\u2500' * term_size.columns)
