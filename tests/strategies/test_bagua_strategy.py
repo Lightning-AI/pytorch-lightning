@@ -20,23 +20,35 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class BoringModel4QAdam(BoringModel):
+class TestModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(32, 32)
+
+    def test_epoch_end(self, outputs) -> None:
+        mean_y = torch.stack([x["y"] for x in outputs]).mean()
+        self.log("mean_y", mean_y)
+
+
+class TestModel4QAdam(TestModel):
     def __init__(self):
         super().__init__()
 
     def configure_optimizers(self):
         from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
 
-        optimizer = QAdamOptimizer(self.layer.parameters(), lr=0.1, warmup_steps=10)
+        optimizer = QAdamOptimizer(self.layer.parameters(), lr=0.05, warmup_steps=20)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=1, standalone=True)
 def test_bagua_default():
-    model = BoringModel()
+    model = TestModel()
     trainer = Trainer(max_epochs=1, strategy="bagua", gpus=1)
     trainer.fit(model)
+    ret = trainer.test(model)
+    assert ret[0]["mean_y"] < 2
 
 
 @pytest.mark.parametrize(
@@ -44,41 +56,63 @@ def test_bagua_default():
 )
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_algorithm(algorithm):
-    model = BoringModel()
+    model = TestModel()
     bagua_strategy = BaguaStrategy(algorithm=algorithm)
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=bagua_strategy,
+        gpus=2,
+    )
     trainer.fit(model)
+    trainer.validate(model)
+    ret = trainer.test(model)
+    assert ret[0]["mean_y"] < 2
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_async():
-    model = BoringModel()
-    bagua_strategy = BaguaStrategy(algorithm="async", warmup_steps=10, sync_interval_ms=50)
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
+    model = TestModel()
+    bagua_strategy = BaguaStrategy(algorithm="async", warmup_steps=10, sync_interval_ms=10)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=bagua_strategy,
+        gpus=2,
+    )
     trainer.fit(model)
+    ret = trainer.test(model)
+    assert ret[0]["mean_y"] < 2
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_qadam():
-    model = BoringModel4QAdam()
+    model = TestModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")
-    trainer = Trainer(max_epochs=1, strategy=bagua_strategy, gpus=2)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=bagua_strategy,
+        gpus=2,
+    )
     trainer.fit(model)
+    ret = trainer.test(model)
+    assert ret[0]["mean_y"] < 5
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_reduce():
-    from pytorch_lightning.utilities.distributed import ReduceOp
+    from pytorch_lightning.utilities.distributed import ReduceOp, sync_ddp
 
     trainer = Trainer(strategy="bagua", gpus=2)
     trainer.strategy.setup_environment()
 
+    trainer.strategy.barrier()
+
     # faster this way
-    reduce_ops = [None, "mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX, ReduceOp.PRODUCT, ReduceOp.MIN]
+    reduce_ops = ["mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX, ReduceOp.PRODUCT, ReduceOp.MIN]
     tensor = torch.randn(10).cuda()
+
     for reduce_op in reduce_ops:
         if reduce_op == "undefined":
             with pytest.raises(ValueError, match="unrecognized `reduce_op`"):
                 trainer.strategy.reduce(tensor, reduce_op=reduce_op)
         else:
-            trainer.strategy.reduce(tensor, reduce_op=reduce_op)
+            tensor = trainer.strategy.reduce(tensor, reduce_op=reduce_op)
