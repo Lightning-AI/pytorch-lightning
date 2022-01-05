@@ -134,5 +134,5 @@ def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
     default = ",".join(str(i) for i in range(torch.cuda.device_count()))
-    cuda_visible_devices: list[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
+    cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
     return cuda_visible_devices[device_id].strip()
