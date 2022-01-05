@@ -23,6 +23,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -146,8 +147,11 @@ def apply_to_collection(
                 v = getattr(data, field_name)
             try:
                 setattr(result, field_name, v)
-            except dataclasses.FrozenInstanceError:
-                raise dataclasses.FrozenInstanceError("Cannot apply function to Frozen dataclass instance")
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collection`, This is not supported."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
         return result
 
     # data is neither of dtype, nor a collection
