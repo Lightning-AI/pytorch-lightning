@@ -878,7 +878,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         *batch_transfer * batches,
         dict(name="train_dataloader"),
         *batch_transfer * batches,
-        dict(name="val_dataloader"),
         *batch_transfer * batches,
         dict(
             name="on_save_checkpoint",

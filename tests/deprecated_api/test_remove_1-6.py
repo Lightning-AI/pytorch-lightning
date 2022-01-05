@@ -118,13 +118,12 @@ def test_v1_6_0_reload_dataloaders_every_epoch(tmpdir):
             limit_val_batches=0.3,
             reload_dataloaders_every_epoch=True,
             max_epochs=3,
+            num_sanity_val_steps=0,
         )
     trainer.fit(model)
     trainer.test()
 
-    expected_sequence = (
-        [call.val_dataloader()] + [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
-    )
+    expected_sequence = [call.train_dataloader(), call.val_dataloader()] * 3 + [call.test_dataloader()]
     assert tracker.mock_calls == expected_sequence
 
 
