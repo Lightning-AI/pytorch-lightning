@@ -21,8 +21,8 @@ from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
 class EvaluationLoop(DataLoaderLoop):
