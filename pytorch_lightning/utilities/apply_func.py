@@ -149,7 +149,7 @@ def apply_to_collection(
                 setattr(result, field_name, v)
             except dataclasses.FrozenInstanceError as e:
                 raise MisconfigurationException(
-                    "A frozen dataclass was passed to `apply_to_collection`, This is not supported."
+                    "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
                     " HINT: is your batch a frozen dataclass?"
                 ) from e
         return result
