@@ -36,7 +36,6 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -60,6 +59,7 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
+    StrategyRegistry,
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
@@ -303,8 +303,8 @@ class AcceleratorConnector:
             )
 
     def _set_strategy(self) -> None:
-        if isinstance(self._strategy_flag, str) and self._strategy_flag in TrainingTypePluginsRegistry:
-            self._strategy = TrainingTypePluginsRegistry.get(self._strategy_flag)
+        if isinstance(self._strategy_flag, str) and self._strategy_flag in StrategyRegistry:
+            self._strategy = StrategyRegistry.get(self._strategy_flag)
         if isinstance(self._strategy_flag, str):
             self.set_distributed_mode(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
@@ -330,14 +330,14 @@ class AcceleratorConnector:
         cluster_environment = None
 
         for plug in self.plugins:
-            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
+            if isinstance(plug, str) and plug in StrategyRegistry:
                 if strategy is None:
-                    strategy = TrainingTypePluginsRegistry.get(plug)
+                    strategy = StrategyRegistry.get(plug)
                 else:
                     raise MisconfigurationException(
                         "You can only specify one precision and one training type plugin."
                         " Found more than 1 training type plugin:"
-                        f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
+                        f' {StrategyRegistry[plug]["strategy"]} registered to {plug}'
                     )
             if isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
@@ -595,15 +595,14 @@ class AcceleratorConnector:
 
     @staticmethod
     def _is_plugin_training_type(plugin: Union[str, Strategy]) -> bool:
-        if isinstance(plugin, str) and (plugin in TrainingTypePluginsRegistry or plugin in list(_StrategyType)):
+        if isinstance(plugin, str) and (plugin in StrategyRegistry or plugin in list(_StrategyType)):
             return True
         return isinstance(plugin, Strategy)
 
     @property
     def is_training_type_in_plugins(self) -> bool:
         return any(
-            (isinstance(plug, str) and plug in TrainingTypePluginsRegistry) or isinstance(plug, Strategy)
-            for plug in self.plugins
+            (isinstance(plug, str) and plug in StrategyRegistry) or isinstance(plug, Strategy) for plug in self.plugins
         )
 
     def select_precision_plugin(self) -> PrecisionPlugin:
@@ -819,8 +818,8 @@ class AcceleratorConnector:
         if strategy is None and self.is_training_type_in_plugins:
             return
 
-        if strategy is not None and strategy in TrainingTypePluginsRegistry:
-            self.distributed_backend = TrainingTypePluginsRegistry[strategy]["distributed_backend"]
+        if strategy is not None and strategy in StrategyRegistry:
+            self.distributed_backend = StrategyRegistry[strategy]["distributed_backend"]
         elif strategy is not None:
             self.distributed_backend = strategy
 

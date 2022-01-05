@@ -424,8 +424,8 @@ class DDPStrategy(ParallelStrategy):
             self.model.require_backward_grad_sync = True
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "ddp_find_unused_parameters_false",
             cls,
             description="DDP Strategy with `find_unused_parameters` as False",
