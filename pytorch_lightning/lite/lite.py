@@ -444,7 +444,7 @@ class LightningLite(ABC):
         return DistributedSampler(dataloader.dataset, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        supported = [t.value.lower() for t in self._supported_accelerator_types()] + ["auto"]
         valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
         if not valid:
             raise MisconfigurationException(
@@ -462,7 +462,7 @@ class LightningLite(ABC):
             )
 
     @staticmethod
-    def _supported_device_types() -> Sequence[_AcceleratorType]:
+    def _supported_accelerator_types() -> Sequence[_AcceleratorType]:
         return (
             _AcceleratorType.CPU,
             _AcceleratorType.GPU,
