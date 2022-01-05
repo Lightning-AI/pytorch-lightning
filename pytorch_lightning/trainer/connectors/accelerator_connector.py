@@ -44,7 +44,8 @@ from pytorch_lightning.plugins.environments import (
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment, XLAEnvironment,
+    TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from pytorch_lightning.strategies import (
     DataParallelStrategy,

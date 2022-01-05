@@ -21,7 +21,7 @@ if _TPU_AVAILABLE:
 
 
 class XLAEnvironment(ClusterEnvironment):
-    """XLAEnvironment
+    """XLAEnvironment.
 
     A list of environment variables set by XLA can be found
     `here <https://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py>`_.
