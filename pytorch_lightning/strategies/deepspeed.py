@@ -741,7 +741,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object
-        _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
+        _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
