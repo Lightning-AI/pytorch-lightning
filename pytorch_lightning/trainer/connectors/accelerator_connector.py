@@ -337,7 +337,7 @@ class AcceleratorConnector:
                     raise MisconfigurationException(
                         "You can only specify one precision and one training type plugin."
                         " Found more than 1 training type plugin:"
-                        f' {StrategyRegistry[plug]["plugin"]} registered to {plug}'
+                        f' {StrategyRegistry[plug]["strategy"]} registered to {plug}'
                     )
             if isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
