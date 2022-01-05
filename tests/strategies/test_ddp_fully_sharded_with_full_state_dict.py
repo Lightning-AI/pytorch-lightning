@@ -21,7 +21,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
-        MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
+        MisconfigurationException, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
