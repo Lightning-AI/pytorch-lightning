@@ -22,6 +22,7 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
 
 class EvaluationLoop(DataLoaderLoop):
@@ -272,16 +273,59 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.logger_connector.on_epoch_end()
 
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
-        # TODO: this could be updated to look nicer
-        from pprint import pprint
+        if _RICH_AVAILABLE:
+            from rich.console import Console
+            from rich.table import Table
 
-        print("-" * 80)
-        for i, metrics_dict in enumerate(results):
-            print(f"DATALOADER:{i} {stage.upper()} RESULTS")
-            pprint(
-                {
-                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    for k, v in metrics_dict.items()
-                }
-            )
-            print("-" * 80)
+            console = Console()
+            table = Table()
+
+            table.add_column("Metric", justify="center", style="cyan")
+
+            new_results = []
+
+            for result in results:
+                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                new_results.append(dict(zip(new_keys, result.values())))
+
+            unique_keys = sorted(set().union(*(d.keys() for d in new_results)))
+
+            rows = [[i] for i in unique_keys]
+
+            for i, metrics_dict in enumerate(new_results):
+                table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
+
+                for j, metric in enumerate(rows):
+                    v = metrics_dict.get(metric[0])
+                    v = (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                    rows[j].append(f"{v}")
+
+            for row in rows:
+                table.add_row(*row)
+
+            console.print("", table)
+
+        else:
+            new_results = []
+
+            for result in results:
+                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                new_results.append(dict(zip(new_keys, result.values())))
+
+            unique_keys = sorted(set().union(*(d.keys() for d in new_results)))
+
+            rows = [[] for x in range(len(unique_keys))]
+
+            for i, metrics_dict in enumerate(new_results):
+                for j in range(len(rows)):
+                    v = metrics_dict.get(unique_keys[j])
+                    v = (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
+                    rows[j].append(f"{v}")
+
+            cols = [f"DATALOADER {i}" for i in range(len(results))]
+
+            row_format = "{:^25}" * (len(cols) + 1)
+            print("\n", row_format.format("", *cols))
+
+            for col, row in zip(unique_keys, rows):
+                print(row_format.format(col, *row))
