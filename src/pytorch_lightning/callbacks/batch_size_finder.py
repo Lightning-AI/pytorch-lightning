@@ -253,7 +253,7 @@ class BatchSizeFinder(Callback):
         elif trainer.state.fn == TrainerFn.PREDICTING:
             loop = trainer.predict_loop
 
-        loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]), force_load_progress=True)
+        loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
         loop.run()
 
     @staticmethod
@@ -289,7 +289,7 @@ class BatchSizeFinder(Callback):
             loop = trainer.predict_loop
             self._dumped_params["limit_predict_batches"] = trainer.limit_predict_batches
 
-        self._dumped_params["loop_state_dict"] = deepcopy(loop.state_dict())
+        self._dumped_params["loop_state_dict"] = deepcopy(loop.state_dict(force_save_progress=True))
         if hasattr(loop, "verbose"):
             self._dumped_params["loop_verbose"] = loop.verbose
 
@@ -328,7 +328,7 @@ class BatchSizeFinder(Callback):
             loop = trainer.predict_loop
             trainer.limit_predict_batches = self._dumped_params["limit_predict_batches"]
 
-        loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]), force_load_progress=True)
+        loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
         if "loop_verbose" in self._dumped_params:
             loop.verbose = self._dumped_params["loop_verbose"]
 

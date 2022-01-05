@@ -84,13 +84,14 @@ class Tuner:
                     "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
                 )
 
-            # links data to the trainer
+            # links da_a to the trainer
             self.trainer._data_connector.attach_data(
                 model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
             )
 
             lr_find_kwargs.setdefault("update_attr", True)
             result["lr_find"] = lr_find(self.trainer, model, **lr_find_kwargs)
+            self.trainer.state.status = TrainerStatus.FINISHED
 
         return result
 
