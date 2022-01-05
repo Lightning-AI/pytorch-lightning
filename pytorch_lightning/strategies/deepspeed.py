@@ -767,13 +767,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return client_state
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+    def lightning_restore_optimizer(self) -> bool:
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must "
-                "provide a path to the originally saved DeepSpeed checkpoint."
+                "A single checkpoint file has been given. This means optimizer states can not be restored."
+                " If you'd like to restore these states, you must"
+                " provide a path to the originally saved DeepSpeed checkpoint."
             )
         return False
 
