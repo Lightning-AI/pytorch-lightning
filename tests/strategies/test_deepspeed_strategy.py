@@ -673,7 +673,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
-    """Test to ensure with Stage 3 and multiple GPUs that we can resume training."""
+    """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
 
