@@ -1,14 +1,9 @@
-from pathlib import Path
 from typing import Union
 
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
-    call_training_type_register_plugins,
-    TrainingTypePluginsRegistry,
-)
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
@@ -69,8 +64,3 @@ __all__ = [
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",
 ]
-
-FILE_ROOT = Path(__file__).parent
-TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.strategies"
-
-call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

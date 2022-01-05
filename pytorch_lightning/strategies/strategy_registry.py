@@ -21,46 +21,46 @@ from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _TrainingTypePluginsRegistry(dict):
-    """This class is a Registry that stores information about the Training Type Plugins.
+class _StrategyRegistry(dict):
+    """This class is a Registry that stores information about the Training Strategies.
 
-    The Plugins are mapped to strings. These strings are names that idenitify
-    a plugin, e.g., "deepspeed". It also returns Optional description and
-    parameters to initialize the Plugin, which were defined durng the
+    The Strategies are mapped to strings. These strings are names that identify
+    a strategy, e.g., "deepspeed". It also returns Optional description and
+    parameters to initialize the Strategy, which were defined durng the
     registration.
 
-    The motivation for having a TrainingTypePluginRegistry is to make it convenient
-    for the Users to try different Plugins by passing just strings
-    to the plugins flag to the Trainer.
+    The motivation for having a StrategyRegistry is to make it convenient
+    for the Users to try different Strategies by passing just strings
+    to the strategy flag to the Trainer.
 
     Example::
 
-        @TrainingTypePluginsRegistry.register("lightning", description="Super fast", a=1, b=True)
-        class LightningPlugin:
+        @StrategyRegistry.register("lightning", description="Super fast", a=1, b=True)
+        class LightningStrategy:
             def __init__(self, a, b):
                 ...
 
         or
 
-        TrainingTypePluginsRegistry.register("lightning", LightningPlugin, description="Super fast", a=1, b=True)
+        StrategyRegistry.register("lightning", LightningStrategy, description="Super fast", a=1, b=True)
     """
 
     def register(
         self,
         name: str,
-        plugin: Optional[Callable] = None,
+        strategy: Optional[Callable] = None,
         description: Optional[str] = None,
         override: bool = False,
         **init_params: Any,
     ) -> Callable:
-        """Registers a plugin mapped to a name and with required metadata.
+        """Registers a strategy mapped to a name and with required metadata.
 
         Args:
-            name : the name that identifies a plugin, e.g. "deepspeed_stage_3"
-            plugin : plugin class
-            description : plugin description
-            override : overrides the registered plugin, if True
-            init_params: parameters to initialize the plugin
+            name : the name that identifies a strategy, e.g. "deepspeed_stage_3"
+            strategy : strategy class
+            description : strategy description
+            override : overrides the registered strategy, if True
+            init_params: parameters to initialize the strategy
         """
         if not (name is None or isinstance(name, str)):
             raise TypeError(f"`name` must be a str, found {name}")
@@ -73,26 +73,26 @@ class _TrainingTypePluginsRegistry(dict):
 
         data["init_params"] = init_params
 
-        def do_register(plugin: Callable) -> Callable:
-            data["plugin"] = plugin
-            data["distributed_backend"] = plugin.distributed_backend
+        def do_register(strategy: Callable) -> Callable:
+            data["strategy"] = strategy
+            data["distributed_backend"] = strategy.distributed_backend
             self[name] = data
-            return plugin
+            return strategy
 
-        if plugin is not None:
-            return do_register(plugin)
+        if strategy is not None:
+            return do_register(strategy)
 
         return do_register
 
     def get(self, name: str, default: Optional[Any] = None) -> Any:
-        """Calls the registered plugin with the required parameters and returns the plugin object.
+        """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:
-            name (str): the name that identifies a plugin, e.g. "deepspeed_stage_3"
+            name (str): the name that identifies a strategy, e.g. "deepspeed_stage_3"
         """
         if name in self:
             data = self[name]
-            return data["plugin"](**data["init_params"])
+            return data["strategy"](**data["init_params"])
 
         if default is not None:
             return default
@@ -102,36 +102,36 @@ class _TrainingTypePluginsRegistry(dict):
         raise KeyError(err_msg.format(name, available_names))
 
     def remove(self, name: str) -> None:
-        """Removes the registered plugin by name."""
+        """Removes the registered strategy by name."""
         self.pop(name)
 
-    def available_plugins(self) -> List:
-        """Returns a list of registered plugins."""
+    def available_strategies(self) -> List:
+        """Returns a list of registered strategies."""
         return list(self.keys())
 
     def __str__(self) -> str:
-        return "Registered Plugins: {}".format(", ".join(self.keys()))
+        return "Registered Strategies: {}".format(", ".join(self.keys()))
 
 
-TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
+StrategyRegistry = _StrategyRegistry()
 
 
-def is_register_plugins_overridden(plugin: type) -> bool:
+def is_register_strategies_overridden(strategy: type) -> bool:
 
-    method_name = "register_plugins"
-    plugin_attr = getattr(plugin, method_name)
-    previous_super_cls = inspect.getmro(plugin)[1]
+    method_name = "register_strategies"
+    strategy_attr = getattr(strategy, method_name)
+    previous_super_cls = inspect.getmro(strategy)[1]
 
     if issubclass(previous_super_cls, Strategy):
         super_attr = getattr(previous_super_cls, method_name)
     else:
         return False
 
-    return plugin_attr.__code__ is not super_attr.__code__
+    return strategy_attr.__code__ is not super_attr.__code__
 
 
-def call_training_type_register_plugins(root: Path, base_module: str) -> None:
+def call_register_strategies(root: Path, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and is_register_plugins_overridden(mod):
-            mod.register_plugins(TrainingTypePluginsRegistry)
+        if issubclass(mod, Strategy) and is_register_strategies_overridden(mod):
+            mod.register_strategies(StrategyRegistry)

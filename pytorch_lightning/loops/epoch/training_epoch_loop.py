@@ -368,9 +368,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         accumulation_done = self._accumulated_batches_reached()
         # Lightning steps on the final batch
         is_final_batch = self._num_ready_batches_reached()
-        # but the TTP might not
-        ttp_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
-        return not accumulation_done and ttp_accumulates_on_final_batch
+        # but the strategy might not
+        strategy_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
+        return not accumulation_done and strategy_accumulates_on_final_batch
 
     @staticmethod
     def _prepare_outputs_training_batch_end(
