@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.distributed import rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.warnings import rank_zero_warn
@@ -46,7 +46,6 @@ class BatchSizeFinder(Callback):
         init_val=2,
         max_trials=25,
         batch_arg_name="batch_size",
-        early_exit=False,
     ):
         """Callback try to find the largest batch size for a given model that does not give an out of memory (OOM)
         error. It works with both training and evalation. All you need to do is add it as a callback inside Trainer
@@ -56,7 +55,7 @@ class BatchSizeFinder(Callback):
         Args:
             mode: search strategy to update the batch size:
 
-                - ``'power'`` (default): Keep multiplying the batch size by 2, until we get an OOM error.
+                - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
                 - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
                     do a binary search between the last successful batch size and the batch size that failed.
 
@@ -76,9 +75,6 @@ class BatchSizeFinder(Callback):
                 - ``model``
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
-
-            early_exit: whether to continue with the training/evaluation or stop after
-                an optimal batch size has been found.
         """
         supported_modes = ("power", "binsearch")
         mode = mode.lower()
@@ -91,7 +87,8 @@ class BatchSizeFinder(Callback):
         self.max_trials = max_trials
         self.batch_arg_name = batch_arg_name
         self.optimal_batch_size = init_val
-        self.early_exit = early_exit
+
+        self._early_exit = False
 
     def scale_batch_size(self, trainer, pl_module):
         if trainer.fast_dev_run:
@@ -162,8 +159,11 @@ class BatchSizeFinder(Callback):
         if trainer.progress_bar_callback:
             trainer.progress_bar_callback.enable()
 
-        print(f"new batch size: {new_size}")
+        print(f"New batch size: {new_size}")
         self.optimal_batch_size = new_size
+
+        if self._early_exit:
+            raise _TunerExitException()
 
     def _run_power_scaling(self, trainer, pl_module, new_size):
         """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
@@ -332,52 +332,8 @@ class BatchSizeFinder(Callback):
         if "loop_verbose" in self._dumped_params:
             loop.verbose = self._dumped_params["loop_verbose"]
 
-    def pre_early_exit(self, trainer):
-        if trainer.fast_dev_run:
-            return
-
-        # this is required to stop the respective loops
-        if trainer.state.fn == TrainerFn.FITTING:
-            self._dumped_params["num_training_batches"] = trainer.num_training_batches
-            trainer.num_training_batches = 0
-        elif trainer.state.fn == TrainerFn.VALIDATING:
-            self._dumped_params["num_val_batches"] = trainer.num_val_batches
-            trainer.num_val_batches = [0]
-        elif trainer.state.fn == TrainerFn.TESTING:
-            self._dumped_params["num_test_batches"] = trainer.num_test_batches
-            trainer.num_test_batches = [0]
-        elif trainer.state.fn == TrainerFn.PREDICTING:
-            self._dumped_params["num_predict_batches"] = trainer.num_predict_batches
-            trainer.num_predict_batches = [0]
-
-    def post_early_exit(self, trainer):
-        if trainer.fast_dev_run:
-            return
-
-        # restore the state used to stop the respective loop
-        if trainer.state.fn == TrainerFn.FITTING:
-            trainer.num_training_batches = self._dumped_params["num_training_batches"]
-            loop = trainer.fit_loop
-        if trainer.state.fn == TrainerFn.VALIDATING:
-            trainer.num_val_batches = self._dumped_params["num_val_batches"]
-            loop = trainer.validate_loop
-        if trainer.state.fn == TrainerFn.TESTING:
-            trainer.num_test_batches = self._dumped_params["num_test_batches"]
-            loop = trainer.test_loop
-        if trainer.state.fn == TrainerFn.PREDICTING:
-            trainer.num_predict_batches = self._dumped_params["num_predict_batches"]
-            loop = trainer.predict_loop
-
-        loop.load_state_dict(self._dumped_params["loop_state_dict"], force_load_progress=True)
-        trainer.callbacks = [cb for cb in trainer.callbacks if not isinstance(cb, BatchSizeFinder)]
-
     def on_fit_start(self, trainer, pl_module):
         self.scale_batch_size(trainer, pl_module)
-
-        if self.early_exit:
-            self.pre_early_exit(trainer)
-        else:
-            trainer.callbacks = [cb for cb in trainer.callbacks if not isinstance(cb, BatchSizeFinder)]
 
     def on_validation_start(self, trainer, pl_module):
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.VALIDATING:
@@ -385,45 +341,11 @@ class BatchSizeFinder(Callback):
 
         self.scale_batch_size(trainer, pl_module)
 
-        if self.early_exit:
-            self.pre_early_exit(trainer)
-        else:
-            trainer.callbacks = [cb for cb in trainer.callbacks if not isinstance(cb, BatchSizeFinder)]
-
     def on_test_start(self, trainer, pl_module):
         self.scale_batch_size(trainer, pl_module)
 
-        if self.early_exit:
-            self.pre_early_exit(trainer)
-        else:
-            trainer.callbacks = [cb for cb in trainer.callbacks if not isinstance(cb, BatchSizeFinder)]
-
     def on_predict_start(self, trainer, pl_module):
         self.scale_batch_size(trainer, pl_module)
-
-        if self.early_exit:
-            self.pre_early_exit(trainer)
-        else:
-            trainer.callbacks = [cb for cb in trainer.callbacks if not isinstance(cb, BatchSizeFinder)]
-
-    def on_fit_end(self, trainer, pl_module):
-        if self.early_exit:
-            self.post_early_exit(trainer)
-
-    def on_validation_end(self, trainer, pl_module):
-        if trainer.sanity_checking or trainer.state.fn != TrainerFn.VALIDATING:
-            return
-
-        if self.early_exit:
-            self.post_early_exit(trainer)
-
-    def on_test_end(self, trainer, pl_module):
-        if self.early_exit:
-            self.post_early_exit(trainer)
-
-    def on_predict_end(self, trainer, pl_module):
-        if self.early_exit:
-            self.post_early_exit(trainer)
 
     def _adjust_batch_size(
         self,

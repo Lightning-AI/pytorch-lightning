@@ -107,7 +107,11 @@ from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_colla
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import (
+    _TunerExitException,
+    ExitGracefullyException,
+    MisconfigurationException,
+)
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -653,6 +657,19 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
+
+        except _TunerExitException as exception:
+            self.state.status = TrainerStatus.FINISHED
+            if distributed_available() and self.world_size > 1:
+                # try syncing remaing processes, kill otherwise
+                self.strategy.reconciliate_processes(traceback.format_exc())
+            self._on_exception()
+            # reset bookkeeping
+            self.state.stage = None
+            self._call_callback_hooks("on_exception", exception)
+            # shutdown workers
+            self._data_connector.teardown()
+
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
@@ -1013,9 +1030,11 @@ class Trainer(
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
+        method="fit",
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -1029,43 +1048,28 @@ class Trainer(
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
             scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
 
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
+
+            method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
         """
-        Trainer._log_api_event("tune")
-        self.state.fn = TrainerFn.TUNING
-        self.state.status = TrainerStatus.RUNNING
-        self.tuning = True
-
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloaders, LightningDataModule):
-            datamodule = train_dataloaders
-            train_dataloaders = None
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
-                "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
-            )
-
-        # links data to the trainer
-        self._data_connector.attach_data(
-            model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
-        )
-
         with isolate_rng():
             result = self.tuner._tune(
                 model,
                 train_dataloaders,
                 val_dataloaders,
+                dataloaders,
                 datamodule,
-                scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+                scale_batch_size_kwargs=scale_batch_size_kwargs,
+                lr_find_kwargs=lr_find_kwargs,
+                method=method,
             )
-
-        assert self.state.stopped
-        self.tuning = False
 
         return result
 

@@ -246,9 +246,9 @@ class CallbackConnector:
         checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
         callbacks = not_checkpoints + checkpoints
-        batch_size_finder_callback = [c for c in callbacks if isinstance(c, BatchSizeFinder)]
-        other_callbacks = [c for c in callbacks if not isinstance(c, BatchSizeFinder)]
-        return batch_size_finder_callback + other_callbacks
+        tuner_callbacks = [c for c in callbacks if isinstance(c, BatchSizeFinder)]
+        non_tuner_callbacks = [c for c in callbacks if not isinstance(c, BatchSizeFinder)]
+        return tuner_callbacks + non_tuner_callbacks
 
 
 def _configure_external_callbacks() -> List[Callback]:

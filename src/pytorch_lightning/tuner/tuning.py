@@ -15,7 +15,8 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.trainer.states import TrainerStatus
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -34,11 +35,13 @@ class Tuner:
     def _tune(
         self,
         model: "pl.LightningModule",
-        train_dataloaders,
-        val_dataloaders,
-        datamodule,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
+        datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
+        method: str = "fit",
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
@@ -58,8 +61,9 @@ class Tuner:
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, str):
                 scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
-            result["scale_batch_size"] = self.fit(
-                model, train_dataloaders, val_dataloaders, datamodule, **scale_batch_size_kwargs
+
+            result["scale_batch_size"] = self.scale_batch_size(
+                model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **scale_batch_size_kwargs
             )
 
         # Run learning rate finder:
@@ -67,24 +71,16 @@ class Tuner:
             lr_find_kwargs.setdefault("update_attr", True)
             result["lr_find"] = lr_find(self.trainer, model, **lr_find_kwargs)
 
-        self.trainer.state.status = TrainerStatus.FINISHED
-
         return result
-
-    # TODO: check if this is required
-    def _run(self, *args: Any, **kwargs: Any) -> None:
-        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times."""
-        self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
-        self.trainer.training = True
-        self.trainer._run(*args, **kwargs)
-        self.trainer.tuning = True
 
     def scale_batch_size(
         self,
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
+        method: str = "fit",
         mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
@@ -103,11 +99,16 @@ class Tuner:
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
+
+            method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
 
             mode: Search strategy to update the batch size:
 
-                - ``'power'`` (default): Keep multiplying the batch size by 2, until we get an OOM error.
+                - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
                 - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
                     do a binary search between the last successful batch size and the batch size that failed.
 
@@ -128,22 +129,36 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        self.trainer.auto_scale_batch_size = True
-        result = self.trainer.tune(
-            model,
-            train_dataloaders=train_dataloaders,
-            val_dataloaders=val_dataloaders,
-            datamodule=datamodule,
-            scale_batch_size_kwargs={
-                "mode": mode,
-                "steps_per_trial": steps_per_trial,
-                "init_val": init_val,
-                "max_trials": max_trials,
-                "batch_arg_name": batch_arg_name,
-            },
+        # circular import
+        from pytorch_lightning.trainer.trainer import Trainer
+
+        Trainer._log_api_event("tune")
+        self.trainer.state.fn = TrainerFn.TUNING
+        self.tuning = True
+
+        _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
+
+        batch_size_finder = BatchSizeFinder(
+            mode=mode,
+            steps_per_trial=steps_per_trial,
+            init_val=init_val,
+            max_trials=max_trials,
+            batch_arg_name=batch_arg_name,
         )
-        self.trainer.auto_scale_batch_size = False
-        return result["scale_batch_size"]
+        batch_size_finder._early_exit = True
+        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
+
+        if method == "fit":
+            self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
+        elif method == "validate":
+            self.trainer.validate(model, dataloaders, datamodule)
+        elif method == "test":
+            self.trainer.test(model, dataloaders, datamodule)
+        elif method == "predict":
+            self.trainer.predict(model, dataloaders, datamodule)
+
+        self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not batch_size_finder]
+        return batch_size_finder.optimal_batch_size
 
     def lr_find(
         self,
@@ -212,9 +227,33 @@ class Tuner:
         self.trainer.auto_lr_find = False
         return result["lr_find"]
 
-    def fit(self, model, train_dataloaders, val_dataloaders, datamodule, **batch_size_scale_kwargs):
-        self.trainer.state.fn = None
-        batch_size_finder = BatchSizeFinder(**batch_size_scale_kwargs, early_exit=True)
-        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
-        self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
-        return batch_size_finder.optimal_batch_size
+
+def _check_tuner_configuration(
+    trainer: "pl.Trainer",
+    train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
+    val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+    dataloaders: Optional[EVAL_DATALOADERS] = None,
+    method: str = "fit",
+):
+    supported_methods = ("fit", "validate", "test", "predict")
+    if method not in supported_methods:
+        raise MisconfigurationException(f"method {method!r} is invalid. Should be one of {supported_methods}.")
+
+    if method == "fit":
+        if dataloaders is not None:
+            raise MisconfigurationException(
+                f"In tuner with method {method!r}, `dataloaders` argument should be None,"
+                " please consider setting `train_dataloaders` and `val_dataloaders` instead."
+            )
+    else:
+        if train_dataloaders is not None or val_dataloaders is not None:
+            raise MisconfigurationException(
+                f"In tuner with `method` {method!r}, `train_dataloaders` and `val_dataloaders`"
+                " arguments should be None, please consider setting `dataloaders` instead."
+            )
+
+    if any(isinstance(cb, BatchSizeFinder) for cb in trainer.callbacks):
+        raise MisconfigurationException(
+            "Trainer is already configured with a `BatchSizeFinder` callback. Please remove it if you"
+            " want to use tuner."
+        )
