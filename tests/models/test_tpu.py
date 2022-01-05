@@ -24,6 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
@@ -314,6 +315,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
         assert trainer._accelerator_connector.tpu_id == expected_tpu_id
+        assert isinstance(trainer.strategy.cluster_environment, XLAEnvironment)
 
 
 @pytest.mark.parametrize(
