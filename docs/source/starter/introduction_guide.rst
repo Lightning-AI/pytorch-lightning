@@ -169,13 +169,13 @@ If you have LR Schedulers you can return them too:
 
 .. testcode::
 
-    from torch.optim.lr_scheduler import CosineAnnealing
+    from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
     class LitMNIST(LightningModule):
         def configure_optimizers(self):
             opt = Adam(self.parameters(), lr=1e-3)
-            scheduler = CosineAnnealing(opt, T_max=10)
+            scheduler = CosineAnnealingLR(opt, T_max=10)
             return [opt], [scheduler]
 
 
