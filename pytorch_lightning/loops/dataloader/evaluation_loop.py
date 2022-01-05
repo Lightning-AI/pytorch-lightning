@@ -308,7 +308,7 @@ class EvaluationLoop(DataLoaderLoop):
             import os
 
             term_size = os.get_terminal_size()
-            print("\n", u'\u2500' * (term_size.columns - 1))
+            print("\n", "\u2500" * (term_size.columns - 1))
 
             cols = [f"DATALOADER {i}" for i in range(len(results))]
 
@@ -335,4 +335,4 @@ class EvaluationLoop(DataLoaderLoop):
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
 
-            print(u'\u2500' * term_size.columns)
+            print("\u2500" * term_size.columns)
