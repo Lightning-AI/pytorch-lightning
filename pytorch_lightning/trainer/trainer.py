@@ -2374,7 +2374,7 @@ class Trainer(
         etc.).
 
         Args:
-            model: The `LightningModule` if calling this outside of the trainer scope.
+            model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
@@ -2461,7 +2461,7 @@ class Trainer(
         """Resets the validation dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
@@ -2478,7 +2478,7 @@ class Trainer(
         """Resets the test dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
@@ -2492,7 +2492,7 @@ class Trainer(
         """Resets the predict dataloader and determines the number of batches.
 
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
@@ -2507,7 +2507,7 @@ class Trainer(
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
         Args:
-            model: The `LightningModule` if called outside of the trainer scope.
+            model: The ``LightningModule`` if called outside of the trainer scope.
         """
         if self.train_dataloader is None:
             self.reset_train_dataloader(model=model)
