@@ -78,18 +78,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.start_method = "fork"
 
     @property
-    def global_rank(self) -> int:
-        return self.tpu_global_core_rank
-
-    @property
-    def local_rank(self) -> int:
-        return self.tpu_local_core_rank
-
-    @property
-    def world_size(self) -> int:
-        return xm.xrt_world_size()
-
-    @property
     def root_device(self) -> torch.device:
         return xm.xla_device()
 
