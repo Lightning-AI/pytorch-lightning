@@ -24,7 +24,7 @@ For advanced research topics like reinforcement learning, sparse coding, or GAN 
 manually manage the optimization process.
 
 This is only recommended for experts who need ultimate flexibility.
-Lightning will handle only acceleration, precision and strategy logic.
+Lightning will handle only accelerator, precision and strategy logic.
 The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
 
 To manually optimize, do the following:
@@ -69,26 +69,28 @@ Here is a minimal example of manual optimization.
 Access your Own Optimizer
 =========================
 
-``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+The provided ``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
 configured in your :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`. You can access your own optimizer
 with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
 support accelerators, precision and profiling for you.
 
 .. testcode:: python
 
-    def __init__(self):
-        super().__init__()
-        self.automatic_optimization = False
+   class Model(LightningModule):
 
+            def __init__(self):
+                super().__init__()
+                self.automatic_optimization = False
+                ...
 
-    def training_step(self, batch, batch_idx):
-        optimizer = self.optimizers()
-
-        # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
-        # To access it, do the following.
-        # However, it won't work on TPU, AMP, etc...
-        optimizer = optimizer.optimizer
-        ...
+            def training_step(self, batch, batch_idx):
+                optimizer = self.optimizers()
+        
+                # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+                # To access it, do the following.
+                # However, it won't work on TPU, AMP, etc...
+                optimizer = optimizer.optimizer
+                ...
 
 Gradient Accumulation
 =====================
@@ -477,7 +479,7 @@ Here we add a manual learning rate warm-up without an lr scheduler.
 Access your Own Optimizer
 =========================
 
-``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+The provided ``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
 configured in your :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`.
 You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer
 to perform a step, Lightning won't be able to support accelerators, precision and profiling for you.
