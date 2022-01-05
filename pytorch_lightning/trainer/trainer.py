@@ -371,7 +371,7 @@ class Trainer(
                 training will start from the beginning of the next epoch.
 
                 .. deprecated:: v1.5
-                    ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+                    ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
                     Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
@@ -766,7 +766,7 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        # TODO: ckpt_path only in v1.7
+        # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         results = self._run(model, ckpt_path=ckpt_path)
 
@@ -2053,8 +2053,9 @@ class Trainer(
         resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
-                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead."
+                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
+                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead.",
+                stacklevel=5,
             )
 
         return resume_from_checkpoint
