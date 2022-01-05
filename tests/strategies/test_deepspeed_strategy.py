@@ -664,8 +664,8 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     )
     with pytest.warns(
         UserWarning,
-        match="A single checkpoint file has been given. This means optimizer states and "
-        "scheduler states can not be restored. If you'd like to restore these states, you must "
+        match="A single checkpoint file has been given. This means optimizer states can not be restored. "
+        "If you'd like to restore these states, you must "
         "provide a path to the originally saved DeepSpeed checkpoint.",
     ):
         trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
