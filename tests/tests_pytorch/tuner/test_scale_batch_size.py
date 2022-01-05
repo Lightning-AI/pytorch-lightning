@@ -22,7 +22,6 @@ import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -62,12 +61,13 @@ class BatchSizeModel(BoringModel):
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_bs):
     """Test the tuner method `Tuner.scale_batch_size` with a datamodule."""
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
-    tuner = Tuner(trainer)
 
     model = BatchSizeModel(model_bs)
     datamodule = BatchSizeDataModule(dm_bs) if dm_bs != -1 else None
 
-    new_batch_size = tuner.scale_batch_size(model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule)
+    new_batch_size = trainer.tuner.scale_batch_size(
+        model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule
+    )
     assert new_batch_size == 16
 
     if model_bs is not None:
@@ -309,35 +309,112 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     assert trainer.val_dataloaders[0].batch_size == new_batch_size
 
 
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
+    """Test batch size tuner with Trainer's evaluation methods."""
+    tutils.reset_seed()
+    before_batch_size = 2
+    max_trials = 4
+    expected_scaled_batch_size = before_batch_size ** (max_trials + 1)
+
+    model = BatchSizeModel(batch_size=before_batch_size)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=100, auto_scale_batch_size=True)
+    trainer.tune(
+        model, scale_batch_size_kwargs={"max_trials": max_trials, "batch_arg_name": "batch_size"}, method=trainer_fn
+    )
+
+    after_batch_size = model.batch_size
+    loop = getattr(trainer, f"{trainer_fn}_loop")
+
+    assert trainer.global_step == 0
+    assert trainer.current_epoch == 0
+    assert loop.dataloader_progress.current.completed == 0
+    assert loop.epoch_loop.batch_progress.current.completed == 0
+    assert expected_scaled_batch_size == after_batch_size
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
+
+
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
-@pytest.mark.parametrize("early_exit", [False])
-# @pytest.mark.parametrize('early_exit', [True, False])
-def test_batch_size_finder_callback(tmpdir, trainer_fn, early_exit):
+def test_batch_size_finder_callback(tmpdir, trainer_fn):
     """Test batch size finder callback with different trainer methods."""
     tutils.reset_seed()
     before_batch_size = 2
+    max_trials = 4
+    max_epochs = 2
+    expected_scaled_batch_size = before_batch_size ** (max_trials + 1)
+
     model = BatchSizeModel(batch_size=before_batch_size)
-    batch_size_finder = BatchSizeFinder(max_trials=4, batch_arg_name="batch_size", early_exit=early_exit)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, callbacks=[batch_size_finder])
+    batch_size_finder = BatchSizeFinder(max_trials=max_trials, batch_arg_name="batch_size")
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, callbacks=[batch_size_finder])
     fn = getattr(trainer, trainer_fn)
+
     fn(model)
     after_batch_size = model.batch_size
     loop = getattr(trainer, f"{trainer_fn}_loop")
 
-    if early_exit:
-        trainer.global_step == 0
-        trainer.current_epoch == 0
-        if trainer_fn != "fit":
-            assert loop.dataloader_progress.current.completed == 0
-            assert loop.epoch_loop.batch_progress.current.completed == 0
+    if trainer_fn == "fit":
+        expected_steps = trainer.train_dataloader.loaders.dataset.len // after_batch_size
+        assert trainer.global_step == expected_steps * max_epochs
+        assert trainer.current_epoch == max_epochs - 1
+        assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
-        if trainer_fn == "fit":
-            assert trainer.global_step == 4
-            assert trainer.current_epoch == 1
-        else:
-            assert trainer.global_step == 0
-            assert loop.dataloader_progress.current.completed == 1
-            assert loop.epoch_loop.batch_progress.current.completed == 2
+        if trainer_fn == "validate":
+            dl = trainer.val_dataloaders[0]
+        elif trainer_fn == "test":
+            dl = trainer.test_dataloaders[0]
+        elif trainer_fn == "predict":
+            dl = trainer.predict_dataloaders[0]
 
-    assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
+        expected_steps = dl.dataset.len // after_batch_size
+        assert trainer.global_step == 0
+        assert trainer.current_epoch == 0
+        assert loop.dataloader_progress.current.completed == 1
+        assert loop.epoch_loop.batch_progress.current.completed == expected_steps
+
+    assert expected_scaled_batch_size == after_batch_size
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
+
+
+def test_invalid_method_in_tuner():
+    """Test that an invalid value for `method` raises an error in `Tuner`"""
+    trainer = Trainer(auto_scale_batch_size=True)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="method .* is invalid."):
+        trainer.tune(model, method="prediction")
+
+
+def test_if_batch_size_finder_callback_already_configured():
+    """Test that an error is raised if BatchSizeFinder is already configured inside `Tuner`"""
+    cb = BatchSizeFinder()
+    trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+        trainer.tune(model)
+
+
+def test_error_if_train_or_val_dataloaders_passed_with_eval_method():
+    """Test that an error is raised if `train_dataloaders` or `val_dataloaders` is passed with eval method inside
+    `Tuner`"""
+    trainer = Trainer(auto_scale_batch_size=True)
+    model = BoringModel()
+    dl = model.train_dataloader()
+
+    with pytest.raises(MisconfigurationException, match="please consider setting `dataloaders` instead"):
+        trainer.tune(model, train_dataloaders=dl, method="validate")
+
+    with pytest.raises(MisconfigurationException, match="please consider setting `dataloaders` instead"):
+        trainer.tune(model, val_dataloaders=dl, method="validate")
+
+
+def test_error_if_dataloaders_passed_with_fit_method():
+    """Test that an error is raised if `dataloaders` is passed with fit method inside `Tuner`"""
+    trainer = Trainer(auto_scale_batch_size=True)
+    model = BoringModel()
+    dl = model.val_dataloader()
+
+    with pytest.raises(
+        MisconfigurationException, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"
+    ):
+        trainer.tune(model, dataloaders=dl, method="fit")
