@@ -24,6 +24,8 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins import ClusterEnvironment
+from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnStrategy
@@ -55,15 +57,18 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
+        cluster_environment = cluster_environment or XLAEnvironment()
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )

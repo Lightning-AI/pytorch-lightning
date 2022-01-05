@@ -44,7 +44,7 @@ from pytorch_lightning.plugins.environments import (
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment,
+    TorchElasticEnvironment, XLAEnvironment,
 )
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
@@ -808,7 +808,7 @@ class AcceleratorConnector:
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
 
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment, XLAEnvironment):
             if env_type.detect():
                 return env_type()
 
