@@ -19,12 +19,12 @@ from weakref import proxy
 import torch
 from torch import optim
 from torch.optim import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
@@ -344,7 +344,7 @@ def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.Ligh
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
 
-        if not isinstance(scheduler, _SupportsLRScheduler) and not is_overridden("lr_scheduler_step", model):
+        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
             raise MisconfigurationException(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow the PyTorch LR Scheduler"
                 " Protocol. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
@@ -430,18 +430,3 @@ class _MockOptimizer(Optimizer):
 
     def __repr__(self) -> str:
         return "No Optimizer"
-
-
-@runtime_checkable
-class _SupportsLRScheduler(Protocol):
-    """This class is used to detect if a learning rate scheduler is supported for default configuration using
-    `isinstance(obj, _SupportsLRScheduler)`."""
-
-    def step(self, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...

@@ -784,7 +784,7 @@ def test_invalid_pt_lr_scheduler(tmpdir):
         def __init__(self, optimizer):
             self.optimizer = optimizer
 
-        def update(self, epoch):
+        def step(self, epoch):
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = param_group["lr"] / (epoch + 1)
 
