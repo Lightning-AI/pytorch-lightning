@@ -19,6 +19,7 @@ from typing import Dict, List
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class LSFEnvironment(ClusterEnvironment):
@@ -155,7 +156,9 @@ class LSFEnvironment(ClusterEnvironment):
             raise ValueError("Did not find the environment variable `LSB_DJOB_RANKFILE`")
         if not rankfile:
             raise ValueError("The environment variable `LSB_DJOB_RANKFILE` is empty")
-        with open(rankfile) as f:
+
+        fs = get_filesystem(rankfile)
+        with fs.open(rankfile) as f:
             ret = [line.strip() for line in f]
         # remove the launch node (i.e. the first node in LSB_DJOB_RANKFILE) from the list
         return ret[1:]
