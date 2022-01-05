@@ -82,6 +82,18 @@ class DataConnector:
             return self.sanity_check_data_fetcher
         return self.test_data_fetcher if self.trainer.testing else self.validate_data_fetcher
 
+    @property
+    def _should_reload_train_dl(self) -> bool:
+        """Check if train dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs)
+
+    @property
+    def _should_reload_val_dl(self) -> bool:
+        """Check if validation dataloader should be reloaded."""
+        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
+        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
+
     def on_trainer_init(
         self,
         check_val_every_n_epoch: int,
@@ -262,18 +274,6 @@ class DataConnector:
         # experimental feature for Flash
         if hasattr(datamodule, "data_pipeline"):
             model.data_pipeline = datamodule.data_pipeline
-
-    @property
-    def _should_reload_train_dl(self) -> bool:
-        """Check if train dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs)
-
-    @property
-    def _should_reload_val_dl(self) -> bool:
-        """Check if validation dataloader should be reloaded."""
-        n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
