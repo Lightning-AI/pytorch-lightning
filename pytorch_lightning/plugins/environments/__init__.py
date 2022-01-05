@@ -17,3 +17,4 @@ from pytorch_lightning.plugins.environments.lightning_environment import Lightni
 from pytorch_lightning.plugins.environments.lsf_environment import LSFEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.xla_environment import XLAEnvironment  # noqa: F401
