@@ -366,7 +366,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         strategy_registry.register(
             "ddp_spawn_find_unused_parameters_false",
             cls,
-            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 
