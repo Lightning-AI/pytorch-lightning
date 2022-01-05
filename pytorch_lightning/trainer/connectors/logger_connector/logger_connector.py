@@ -293,7 +293,7 @@ class LoggerConnector:
         .. deprecated:: v1.5
             Will be removed in v1.7.
         """
-        if self.trainer._device_type == _AcceleratorType.GPU and self.log_gpu_memory:
+        if self.trainer._accelerator_type == _AcceleratorType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)
         return self._gpus_metrics

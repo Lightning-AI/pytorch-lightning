@@ -439,7 +439,7 @@ def test_accelerator_cpu():
 
     trainer = Trainer(accelerator="cpu")
 
-    assert trainer._device_type == "cpu"
+    assert trainer._accelerator_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
@@ -454,7 +454,7 @@ def test_accelerator_gpu():
 
     trainer = Trainer(accelerator="gpu", gpus=1)
 
-    assert trainer._device_type == "gpu"
+    assert trainer._accelerator_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     with pytest.raises(
@@ -464,7 +464,7 @@ def test_accelerator_gpu():
 
     trainer = Trainer(accelerator="auto", gpus=1)
 
-    assert trainer._device_type == "gpu"
+    assert trainer._accelerator_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
@@ -473,7 +473,7 @@ def test_accelerator_cpu_with_gpus_flag():
 
     trainer = Trainer(accelerator="cpu", gpus=1)
 
-    assert trainer._device_type == "cpu"
+    assert trainer._accelerator_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -482,7 +482,7 @@ def test_accelerator_cpu_with_multiple_gpus():
 
     trainer = Trainer(accelerator="cpu", gpus=2)
 
-    assert trainer._device_type == "cpu"
+    assert trainer._accelerator_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -524,7 +524,7 @@ def test_accelerator_auto_with_devices_gpu():
 
     trainer = Trainer(accelerator="auto", devices=1)
 
-    assert trainer._device_type == "gpu"
+    assert trainer._accelerator_type == "gpu"
     assert trainer.gpus == 1
 
 
@@ -648,11 +648,11 @@ def test_strategy_choice_gpu_plugin(tmpdir, plugin):
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
+def test_accelerator_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.strategy, plugin)
-    assert trainer._device_type == _AcceleratorType.GPU
+    assert trainer._accelerator_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 

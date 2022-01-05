@@ -501,7 +501,7 @@ def test_accelerator_ipu():
 
     trainer = Trainer(accelerator="ipu", ipus=1)
 
-    assert trainer._device_type == "ipu"
+    assert trainer._accelerator_type == "ipu"
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     with pytest.raises(
@@ -511,7 +511,7 @@ def test_accelerator_ipu():
 
     trainer = Trainer(accelerator="auto", ipus=8)
 
-    assert trainer._device_type == "ipu"
+    assert trainer._accelerator_type == "ipu"
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
@@ -520,7 +520,7 @@ def test_accelerator_cpu_with_ipus_flag():
 
     trainer = Trainer(accelerator="cpu", ipus=1)
 
-    assert trainer._device_type == "cpu"
+    assert trainer._accelerator_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -539,7 +539,7 @@ def test_accelerator_auto_with_devices_ipu():
 
     trainer = Trainer(accelerator="auto", devices=8)
 
-    assert trainer._device_type == "ipu"
+    assert trainer._accelerator_type == "ipu"
     assert trainer.ipus == 8
 
 
@@ -568,11 +568,11 @@ def test_strategy_choice_ipu_plugin(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_device_type_when_training_plugin_ipu_passed(tmpdir):
+def test_accelerator_type_when_training_plugin_ipu_passed(tmpdir):
 
     trainer = Trainer(strategy=IPUStrategy(), ipus=8)
     assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer._device_type == _AcceleratorType.IPU
+    assert trainer._accelerator_type == _AcceleratorType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 

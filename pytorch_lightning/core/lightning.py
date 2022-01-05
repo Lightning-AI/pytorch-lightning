@@ -99,7 +99,7 @@ class LightningModule(
         self.trainer = None
 
         self._distrib_type = None
-        self._device_type = None
+        self._accelerator_type = None
 
         # true if using amp
         self.use_amp: bool = False

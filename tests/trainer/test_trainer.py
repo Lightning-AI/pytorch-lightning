@@ -1180,75 +1180,90 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     [
         (
             dict(accelerator=None, gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.CPU,
+                num_gpus=0,
+                num_processes=2,
+            ),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=1),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=1),
-            dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=1),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.CPU,
+                num_gpus=0,
+                num_processes=2,
+            ),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
-            dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=2),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.GPU,
+                num_gpus=2,
+                num_processes=2,
+            ),
         ),
         (
             dict(accelerator="dp", gpus=2),
-            dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=2),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=2),
-            dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
     ],
 )
@@ -2113,118 +2128,143 @@ def test_detect_anomaly_nan(tmpdir):
     [
         (
             dict(strategy=None, gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="dp", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp", num_nodes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp2", gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy=None, gpus=1),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="dp", gpus=1),
-            dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=1),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy="ddp_spawn", gpus=1),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.GPU,
+                num_gpus=1,
+                num_processes=1,
+            ),
         ),
         (
             dict(strategy="ddp2", gpus=1),
-            dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _accelerator_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(strategy=None, gpus=2),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.GPU,
+                num_gpus=2,
+                num_processes=2,
+            ),
         ),
         (
             dict(strategy="dp", gpus=2),
-            dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp", gpus=2),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(strategy="ddp2", gpus=2),
-            dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy="ddp2", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="dp", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.CPU,
+                num_gpus=0,
+                num_processes=2,
+            ),
         ),
         (
             dict(strategy="ddp_spawn", num_processes=1, gpus=None),
-            dict(_distrib_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            dict(_distrib_type=None, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(strategy="ddp_fully_sharded", gpus=1),
             dict(
                 _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
+                _accelerator_type=_AcceleratorType.GPU,
                 num_gpus=1,
                 num_processes=1,
             ),
         ),
         (
             dict(strategy=DDPSpawnStrategy(), num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.CPU,
+                num_gpus=0,
+                num_processes=2,
+            ),
         ),
         (
             dict(strategy=DDPSpawnStrategy(), gpus=2),
-            dict(_distrib_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(
+                _distrib_type=_StrategyType.DDP_SPAWN,
+                _accelerator_type=_AcceleratorType.GPU,
+                num_gpus=2,
+                num_processes=1,
+            ),
         ),
         (
             dict(strategy=DDPStrategy(), num_processes=2, gpus=None),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(strategy=DDPStrategy(), gpus=2),
-            dict(_distrib_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DDP2Strategy(), gpus=2),
-            dict(_distrib_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DDP2, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DataParallelStrategy(), gpus=2),
-            dict(_distrib_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
+            dict(_distrib_type=_StrategyType.DP, _accelerator_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(strategy=DDPFullyShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
+                _accelerator_type=_AcceleratorType.GPU,
                 num_gpus=2,
                 num_processes=1,
             ),
@@ -2233,7 +2273,7 @@ def test_detect_anomaly_nan(tmpdir):
             dict(strategy=DDPSpawnShardedStrategy(), gpus=2),
             dict(
                 _distrib_type=_StrategyType.DDP_SHARDED_SPAWN,
-                _device_type=_AcceleratorType.GPU,
+                _accelerator_type=_AcceleratorType.GPU,
                 num_gpus=2,
                 num_processes=1,
             ),
@@ -2241,7 +2281,10 @@ def test_detect_anomaly_nan(tmpdir):
         (
             dict(strategy=DDPShardedStrategy(), gpus=2),
             dict(
-                _distrib_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
+                _distrib_type=_StrategyType.DDP_SHARDED,
+                _accelerator_type=_AcceleratorType.GPU,
+                num_gpus=2,
+                num_processes=1,
             ),
         ),
     ],

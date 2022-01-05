@@ -70,7 +70,7 @@ class XLAStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != _AcceleratorType.TPU:
+        if trainer._accelerator_type != _AcceleratorType.TPU:
             raise MisconfigurationException(
                 "You are using XLAStatsMonitor but are not running on TPU"
                 f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."

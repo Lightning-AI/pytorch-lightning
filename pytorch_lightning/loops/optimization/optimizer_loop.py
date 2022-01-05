@@ -364,7 +364,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=(self.trainer._device_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
+            on_tpu=(self.trainer._accelerator_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
             using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )

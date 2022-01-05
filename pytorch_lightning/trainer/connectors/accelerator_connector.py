@@ -108,7 +108,7 @@ class AcceleratorConnector:
         plugins,
     ):
         # initialization
-        self._device_type = _AcceleratorType.CPU
+        self._accelerator_type = _AcceleratorType.CPU
         self._distrib_type = None
         self._accelerator_type = None
 
@@ -170,8 +170,8 @@ class AcceleratorConnector:
 
         self._cluster_environment = self.select_cluster_environment()
 
-        self.update_device_type_if_ipu_plugin()
-        self.update_device_type_if_strategy_passed()
+        self.update_accelerator_type_if_ipu_plugin()
+        self.update_accelerator_type_if_strategy_passed()
 
         self._validate_accelerator_type()
         self._set_devices_if_none()
@@ -241,13 +241,13 @@ class AcceleratorConnector:
             )
 
     def _validate_accelerator_type(self) -> None:
-        if self._accelerator_type and self._accelerator_type != self._device_type:
+        if self._accelerator_type and self._accelerator_type != self._accelerator_type:
             # internal error: should not happen.
             raise ValueError(
                 f"Mismatch between the requested accelerator type ({self._accelerator_type})"
-                f" and assigned device type ({self._device_type})."
+                f" and assigned device type ({self._accelerator_type})."
             )
-        self._accelerator_type = self._device_type
+        self._accelerator_type = self._accelerator_type
 
     def _warn_if_devices_flag_ignored(self) -> None:
         if self.devices is None:
@@ -864,16 +864,16 @@ class AcceleratorConnector:
                 self.num_processes = os.cpu_count()
         # special case with TPUs
         elif self.has_tpu and not _use_cpu:
-            self._device_type = _AcceleratorType.TPU
+            self._accelerator_type = _AcceleratorType.TPU
             if isinstance(self.tpu_cores, int):
                 self._distrib_type = _StrategyType.TPU_SPAWN
         elif self.has_ipu and not _use_cpu:
-            self._device_type = _AcceleratorType.IPU
+            self._accelerator_type = _AcceleratorType.IPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = _StrategyType(self.distributed_backend)
 
         if self.num_gpus > 0 and not _use_cpu:
-            self._device_type = _AcceleratorType.GPU
+            self._accelerator_type = _AcceleratorType.GPU
 
         _gpu_distrib_types = (_StrategyType.DP, _StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2)
         # DP and DDP2 cannot run without GPU
@@ -893,13 +893,13 @@ class AcceleratorConnector:
         self.check_interactive_compatibility()
 
         # for DDP overwrite nb processes by requested GPUs
-        if self._device_type == _AcceleratorType.GPU and self._distrib_type in (
+        if self._accelerator_type == _AcceleratorType.GPU and self._distrib_type in (
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
         ):
             self.num_processes = self.num_gpus
 
-        if self._device_type == _AcceleratorType.GPU and self._distrib_type == _StrategyType.DDP2:
+        if self._accelerator_type == _AcceleratorType.GPU and self._distrib_type == _StrategyType.DDP2:
             self.num_processes = self.num_nodes
 
         # Horovod is an extra case...
@@ -959,28 +959,28 @@ class AcceleratorConnector:
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ)
 
-    def update_device_type_if_ipu_plugin(self) -> None:
+    def update_accelerator_type_if_ipu_plugin(self) -> None:
         # This allows the poptorch.Options that are passed into the IPUStrategy to be the source of truth,
         # which gives users the flexibility to not have to pass `ipus` flag directly to Trainer
-        if isinstance(self._strategy, IPUStrategy) and self._device_type != _AcceleratorType.IPU:
-            self._device_type = _AcceleratorType.IPU
+        if isinstance(self._strategy, IPUStrategy) and self._accelerator_type != _AcceleratorType.IPU:
+            self._accelerator_type = _AcceleratorType.IPU
 
-    def update_device_type_if_strategy_passed(self) -> None:
+    def update_accelerator_type_if_strategy_passed(self) -> None:
         if isinstance(self._strategy_flag, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
             if self._accelerator_type is not None:
                 if self.use_ipu:
-                    self._device_type = _AcceleratorType.IPU
+                    self._accelerator_type = _AcceleratorType.IPU
                 elif self.use_tpu:
-                    self._device_type = _AcceleratorType.TPU
+                    self._accelerator_type = _AcceleratorType.TPU
                 elif self.use_gpu:
-                    self._device_type = _AcceleratorType.GPU
+                    self._accelerator_type = _AcceleratorType.GPU
             else:
                 if self.has_ipu:
-                    self._device_type = _AcceleratorType.IPU
+                    self._accelerator_type = _AcceleratorType.IPU
                 elif self.has_tpu:
-                    self._device_type = _AcceleratorType.TPU
+                    self._accelerator_type = _AcceleratorType.TPU
                 elif self.has_gpu:
-                    self._device_type = _AcceleratorType.GPU
+                    self._accelerator_type = _AcceleratorType.GPU
 
     def _set_distrib_type_if_strategy_passed(self):
         # This is required as when `Strategy` instance is passed to either `strategy`

@@ -468,9 +468,9 @@ def test_tpu_host_world_size(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_device_type_when_training_plugin_tpu_passed(tmpdir):
+def test_accelerator_type_when_training_plugin_tpu_passed(tmpdir):
 
     trainer = Trainer(strategy=TPUSpawnStrategy(), tpu_cores=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer._device_type == _AcceleratorType.TPU
+    assert trainer._accelerator_type == _AcceleratorType.TPU
     assert isinstance(trainer.accelerator, TPUAccelerator)

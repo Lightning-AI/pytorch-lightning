@@ -1704,23 +1704,25 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
+        rank_zero_info(
+            f"GPU available: {torch.cuda.is_available()}, used: {self._accelerator_type == _AcceleratorType.GPU}"
+        )
 
         num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+            self.tpu_cores if self.tpu_cores is not None and self._accelerator_type == _AcceleratorType.TPU else 0
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
+        if torch.cuda.is_available() and self._accelerator_type != _AcceleratorType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
+        if _TPU_AVAILABLE and self._accelerator_type != _AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
@@ -1728,7 +1730,7 @@ class Trainer(
 
         if (
             _IPU_AVAILABLE
-            and self._device_type != _AcceleratorType.IPU
+            and self._accelerator_type != _AcceleratorType.IPU
             and not isinstance(self.accelerator, IPUAccelerator)
         ):
             rank_zero_warn(
@@ -1801,8 +1803,8 @@ class Trainer(
         return self._accelerator_connector._distrib_type
 
     @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
+    def _accelerator_type(self) -> _AcceleratorType:
+        return self._accelerator_connector._accelerator_type
 
     @property
     def num_nodes(self) -> int:
