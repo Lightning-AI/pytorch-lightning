@@ -52,7 +52,7 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs 3 GPU transfers for EVERY batch:
 
 1. Copy model to device.
 2. Copy data to device.
@@ -60,14 +60,17 @@ Prefer DDP over DP
 
 |
 
-Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations: moving data to device and transfer and sync gradients, making DDP MUCH faster than DP.
+Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations, making DDP much faster than DP:
+
+1. Moving data to device.
+2. Transfer and sync gradients.
 
 
 When using DDP Plugins, set find_unused_parameters=False
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
-This by default comes with a performance hit, and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit, and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
 
 .. tip::
     It applies to all DDP strategies that support ``find_unused_parameters`` as input.
@@ -149,8 +152,8 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
 Spawn
 """""
 
-When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
-The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason we recommend you
+When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
+``.spawn()`` under the hood. The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason we recommend you
 use ``strategy="ddp"`` so you can increase the ``num_workers``, however since DDP doesn't work in interactive environment like ipython/jupyter notebooks
 your script has to be callable like so:
 
@@ -202,7 +205,7 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 Early Stopping
 **************
 
-Usually long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence. Here Early Stopping can help you stop
+Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence. Here Early Stopping can help you stop
 the training entirely by monitoring a metric of your choice. To configure this you can use :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
 You can read more about it :ref:`here <early_stopping>`.
 
@@ -214,7 +217,7 @@ You can read more about it :ref:`here <early_stopping>`.
 Mixed Precision (16-bit) Training
 *********************************
 
-Lower precision, such as the 16-bit floating-point, enables the training and deployment of marge neural networks since they require less memory, enhances data transfer operations since they required
+Lower precision, such as the 16-bit floating-point, enables the training and deployment of large neural networks since they require less memory, enhance data transfer operations since they required
 less memory bandwidth and run match operations much faster on GPUs that support Tensor Core.
 
 **Use when:**
@@ -257,7 +260,9 @@ Control Training Epochs
 **Use when:** You run a hyperparameter search to find good initial parameters and want to save time, cost (money), or power (environment).
 It can allow you to be more cost efficient and also run more experiments at the same time.
 
-You can use Trainer flags to force training for a minimum number of epochs or limit to a max number of epochs. Use the ``min_epochs`` and ``max_epochs`` Trainer flags to set the number of epochs to run.
+You can use Trainer flags to force training for a minimum number of epochs or limit it to a max number of epochs. Use the ``min_epochs`` and ``max_epochs`` Trainer flags to set the number of epochs to run.
+Setting ``min_epochs=N`` makes sure that the training will run for atleast ``N`` epochs and won't stop until some exception is raised. Setting ``max_epochs=N`` will ensure that training won't happen after
+``N`` epochs.
 
 .. testcode::
 
@@ -507,7 +512,7 @@ Clear Cache
 Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
 
 Transferring tensors to device
-============================
+==============================
 
 LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
 
