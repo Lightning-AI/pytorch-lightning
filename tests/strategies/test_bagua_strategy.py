@@ -64,7 +64,6 @@ def test_bagua_algorithm(algorithm):
         gpus=2,
     )
     trainer.fit(model)
-    trainer.validate(model)
     ret = trainer.test(model)
     assert ret[0]["mean_y"] < 2
 
@@ -99,7 +98,7 @@ def test_qadam():
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
 def test_bagua_reduce():
-    from pytorch_lightning.utilities.distributed import ReduceOp, sync_ddp
+    from pytorch_lightning.utilities.distributed import ReduceOp
 
     trainer = Trainer(strategy="bagua", gpus=2)
     trainer.strategy.setup_environment()
