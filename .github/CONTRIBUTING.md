@@ -235,8 +235,8 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one.
 
    - Start by opening a GitHub issue to explain the feature and the motivation.
-     In the case of features, ask yourself first - Is this NECESSARY for Lightning? There are some PRs which are just
-     purely about adding engineering complexity which have no place in Lightning.
+     In the case of features, ask yourself first - Is this NECESSARY for Lightning? There are some PRs that are just
+     purely about adding engineering complexity which has no place in Lightning.
    - Core contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it.
    - Once an agreement was reached - start coding.
 
@@ -264,7 +264,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
    Do your best but don't sweat about perfection! We do code-review to find any missed items.
 
-1. Use tags in PR name for following cases:
+1. Use tags in PR name for the following cases:
 
    - **\[blocked by #<number>\]** if your work is dependent on other PRs.
    - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
