@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Sequence, Union, Iterable
+from typing import Any, Iterable, List, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -274,13 +274,11 @@ class EvaluationLoop(DataLoaderLoop):
     def _get_keys(self, iterable: Union[List, dict]) -> Iterable[str]:
         if isinstance(iterable, list):
             for i in iterable:
-                for ret in self._get_keys(i):
-                    yield ret
+                yield from self._get_keys(i)
         elif isinstance(iterable, dict):
             for k, v in iterable.items():
                 if isinstance(v, dict):
-                    for ret in self._get_keys(v):
-                        yield ret
+                    yield from self._get_keys(v)
                 else:
                     yield k
 
