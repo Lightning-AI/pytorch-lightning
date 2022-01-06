@@ -67,25 +67,27 @@ Callbacks API
     :nosignatures:
     :template: classtemplate.rst
 
+    BackboneFinetuning
+    BaseFinetuning
+    BasePredictionWriter
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    BaseFinetuning
-    BackboneFinetuning
     GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor
     ModelCheckpoint
-    BasePredictionWriter
     ModelPruning
+    ModelSummary
+    ProgressBarBase
     QuantizationAwareTraining
     RichModelSummary
+    RichProgressBar
     StochasticWeightAveraging
     Timer
-    XLAStatsMonitor
-    RichProgressBar
     TQDMProgressBar
+    XLAStatsMonitor
 
 Loggers API
 -----------
