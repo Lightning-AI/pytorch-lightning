@@ -1802,8 +1802,8 @@ class Trainer(
         )
 
     @property
-    def _distrib_type(self) -> _StrategyType:
-        return self._accelerator_connector._distrib_type
+    def _strategy_type(self) -> _StrategyType:
+        return self._accelerator_connector._strategy_type
 
     @property
     def _device_type(self) -> _AcceleratorType:
@@ -1958,7 +1958,7 @@ class Trainer(
 
     @property
     def data_parallel(self) -> bool:
-        return self._distrib_type in (
+        return self._strategy_type in (
             _StrategyType.DP,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
