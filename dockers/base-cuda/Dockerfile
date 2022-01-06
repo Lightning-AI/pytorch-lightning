@@ -116,7 +116,7 @@ RUN \
 
 RUN \
     # install Bagua
-    curl -Ls https://raw.githubusercontent.com/BaguaSys/bagua/master/install_master.sh | bash
+    pip install bagua-cuda102
 
 RUN \
     # Show what we have
