@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Sequence, Union
+from typing import Any, List, Sequence, Union, Iterable
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -271,6 +271,26 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
+    def _get_keys(self, iterable: Union[List, dict]) -> Iterable[str]:
+        if isinstance(iterable, list):
+            for i in iterable:
+                for ret in self._get_keys(i):
+                    yield ret
+        elif isinstance(iterable, dict):
+            for k, v in iterable.items():
+                if isinstance(v, dict):
+                    for ret in self._get_keys(v):
+                        yield ret
+                else:
+                    yield k
+
+    def _find_value(self, data: dict, target: str) -> Iterable[Any]:
+        for k, v in data.items():
+            if k == target:
+                yield v
+            elif isinstance(v, dict):
+                yield from self._find_value(v, target)
+
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
         if _RICH_AVAILABLE:
             from rich.console import Console
@@ -282,22 +302,21 @@ class EvaluationLoop(DataLoaderLoop):
             table.add_column("Metric", justify="center", style="cyan")
 
             for i, result in enumerate(results):
-                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                results[i] = dict(zip(new_keys, result.values()))
+                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                results[i] = dict(zip(clean_keys, result.values()))
 
-            unique_keys: List[str] = sorted(set().union(*(d.keys() for d in results)))  # type: ignore
+            unique_keys: List[str] = sorted(list(set(self._get_keys(results))))
+            rows: List[List[str]] = [[i] for i in unique_keys]
 
-            rows = [[i] for i in unique_keys]
-
-            for i, metrics_dict in enumerate(results):
+            for i, metrics in enumerate(results):
                 table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
 
-                for j, metric in enumerate(rows):
-                    v = metrics_dict.get(metric[0])
-                    if v is None:
-                        rows[j].append(" ")
+                for metric in rows:
+                    v = list(self._find_value(metrics, metric[0]))
+                    if v:
+                        metric.append(f"{v[0]}")
                     else:
-                        rows[j].append(f"{v}")
+                        metric.append(" ")
 
             for row in rows:
                 table.add_row(*row)
@@ -313,24 +332,25 @@ class EvaluationLoop(DataLoaderLoop):
             cols = [f"DATALOADER {i}" for i in range(len(results))]
 
             for i, result in enumerate(results):
-                new_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                results[i] = dict(zip(new_keys, result.values()))
+                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                results[i] = dict(zip(clean_keys, result.values()))
 
-            unique_keys = sorted(set().union(*(d.keys() for d in results)))  # type: ignore
+            unique_keys = sorted(list(set(self._get_keys(results))))
+            rows = [[] for i in unique_keys]
 
-            rows = [[] for x in range(len(unique_keys))]
-
-            for i, metrics_dict in enumerate(results):
+            for i, metrics in enumerate(results):
                 for j in range(len(rows)):
-                    v = metrics_dict.get(unique_keys[j])
-                    if v is None:
-                        rows[j].append(" ")
+                    v = list(self._find_value(metrics, unique_keys[j]))
+                    if v:
+                        rows[j].append(f"{v[0]}")
                     else:
-                        rows[j].append(f"{v}")
+                        rows[j].append(" ")
 
             max_length = max(len(max(unique_keys + cols, key=len)), 25)
             row_format = "{:^{max_length}}" * (len(cols) + 1)
+
             print(row_format.format("Metric", *cols, max_length=max_length))
+            print("\u2500" * (term_size.columns - 1))
 
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
