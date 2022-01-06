@@ -88,19 +88,9 @@ jobs:
         pip list
       shell: bash
 
-    - name: Cache datasets
-      uses: actions/cache@v2
-      with:
-        path: Datasets
-        key: pl-dataset
-
     - name: Tests - ./tests/
       run: |
-        cp pl_examples/bug_report/bug_report_model.py .
-        python -m pytest bug_report_model.py
-
-        # we know this fails
-        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_free_memory_on_eval_outputs -v
+        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_foo -v
 
     - name: Setup tmate session
       if: ${{ failure() }}

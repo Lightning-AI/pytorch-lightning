@@ -78,3 +78,23 @@ def test_free_memory_on_eval_outputs(tmpdir):
     )
 
     trainer.fit(model)
+
+
+class SegfaultModel(BoringModel):
+    def backward(self, loss, optimizer, optimizer_idx, *args, **kwargs):
+        # this is causing the segfault, no segfault if commented
+        loss.backward(*args, **kwargs)
+
+
+def test_foo():
+    model = SegfaultModel()
+    trainer = Trainer(
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+    )
+    trainer.fit(model)
