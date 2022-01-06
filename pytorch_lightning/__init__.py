@@ -10,7 +10,8 @@ DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in produ
 
 def detail(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
     if self.isEnabledFor(DETAIL):
-        self._log(DETAIL, message, *args, **kwargs)
+        # logger takes its '*args' as 'args'
+        self._log(DETAIL, message, args, **kwargs)
 
 
 logging.addLevelName(DETAIL, "DETAIL")
