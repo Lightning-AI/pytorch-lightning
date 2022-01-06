@@ -51,5 +51,6 @@ def test_something(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
