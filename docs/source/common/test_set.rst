@@ -12,7 +12,7 @@ Validation is usually done during training, traditionally after each training ep
 It's a part of the training process.
 
 Testing is usually done once we are satisfied with the training and use the best model selected from the validation metrics and want to evaluate its performance on unseen data where the model acts
-as a black box. The test dataset is emulating the production/benchmark data where labels aren't available. 
+as a black box. The test dataset is emulating the production/benchmark data where labels aren't available.
 
 Let's see how these can be performed with Lightning.
 
