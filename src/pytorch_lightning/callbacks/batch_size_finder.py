@@ -21,9 +21,10 @@ Finds optimal batch size
 import os
 import uuid
 from copy import deepcopy
-from typing import List, Optional, Tuple, TypedDict, Union
+from typing import List, Optional, Tuple, Union
 
 from torch.utils.data.dataloader import DataLoader
+from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
