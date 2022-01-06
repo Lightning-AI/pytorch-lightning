@@ -1748,6 +1748,10 @@ class Trainer(
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
 
+    """
+    Data loading methods
+    """
+
     def reset_train_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the train dataloader and initialises required variables (number of batches, when to validate,
         etc.).
