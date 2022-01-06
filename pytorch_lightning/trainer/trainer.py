@@ -1085,11 +1085,12 @@ class Trainer(
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
         self.checkpoint_connector.resume_start(checkpoint_path)
-        self.checkpoint_connector.restore_model()
-        self.checkpoint_connector.restore_datamodule()
+        # FIXME
         if self.state.fn == TrainerFn.FITTING:
             # restore callback states
             self.checkpoint_connector.restore_callbacks()
+        self.checkpoint_connector.restore_model()
+        self.checkpoint_connector.restore_datamodule()
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None

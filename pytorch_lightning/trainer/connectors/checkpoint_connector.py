@@ -199,8 +199,9 @@ class CheckpointConnector:
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
-        if not self._loaded_checkpoint:
-            return
+        # FIXME
+        # if not self._loaded_checkpoint:
+        #     return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
 

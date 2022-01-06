@@ -200,7 +200,7 @@ class QuantizationAwareTraining(Callback):
             )
         self._collect_quantization = collect_quantization
 
-        self.modules_to_fuse = modules_to_fuse
+        self._modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
 
@@ -218,9 +218,9 @@ class QuantizationAwareTraining(Callback):
         self.__module_prepared = False
 
     def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
-        if not self.modules_to_fuse:
+        if not self._modules_to_fuse:
             return False
-        for group in self.modules_to_fuse:
+        for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
                     f"You have requested to fuse {group} but one or more of them is not your model attributes"
@@ -268,7 +268,7 @@ class QuantizationAwareTraining(Callback):
             pl_module.qconfig = self._qconfig
 
         if self._check_feasible_fuse(pl_module):
-            torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
+            torch.quantization.fuse_modules(pl_module, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
