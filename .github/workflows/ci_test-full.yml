@@ -103,6 +103,12 @@ jobs:
         pip list
       shell: bash
 
+    - name: Use latest pytest
+      run: |
+        pip install pytest -U
+        pip list
+      shell: bash
+
     - name: Install extra dependencies
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
