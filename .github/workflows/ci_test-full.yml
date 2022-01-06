@@ -98,7 +98,6 @@ jobs:
 
     - name: Tests - ./tests/
       run: |
-        # test if it's unrelated to pytest
         cp pl_examples/bug_report/bug_report_model.py .
         python -m pytest bug_report_model.py
 
