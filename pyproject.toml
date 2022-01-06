@@ -89,7 +89,6 @@ module = [
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.connectors.accelerator_connector",
     "pytorch_lightning.trainer.connectors.callback_connector",
-    "pytorch_lightning.trainer.connectors.checkpoint_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.data_loading",
     "pytorch_lightning.trainer.optimizers",
@@ -100,14 +99,9 @@ module = [
     "pytorch_lightning.tuner.tuning",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
-    "pytorch_lightning.utilities.deepspeed",
     "pytorch_lightning.utilities.distributed",
-    "pytorch_lightning.utilities.enums",
     "pytorch_lightning.utilities.fetching",
     "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.meta",
-    "pytorch_lightning.utilities.metrics",
-    "pytorch_lightning.utilities.migration",
-    "pytorch_lightning.utilities.upgrade_checkpoint",
 ]
 ignore_errors = "True"

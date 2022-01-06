@@ -14,7 +14,7 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import CheckpointIO, TrainingTypePluginsRegistry
+from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.strategies import (
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -22,39 +22,38 @@ from pytorch_lightning.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    StrategyRegistry,
     TPUSpawnStrategy,
 )
 from tests.helpers.runif import RunIf
 
 
-def test_training_type_plugins_registry_with_new_plugin():
-    class TestPlugin:
+def test_strategy_registry_with_new_strategy():
+    class TestStrategy:
 
-        distributed_backend = "test_plugin"
+        distributed_backend = "test_strategy"
 
         def __init__(self, param1, param2):
             self.param1 = param1
             self.param2 = param2
 
-    plugin_name = "test_plugin"
-    plugin_description = "Test Plugin"
+    strategy_name = "test_strategy"
+    strategy_description = "Test Strategy"
 
-    TrainingTypePluginsRegistry.register(
-        plugin_name, TestPlugin, description=plugin_description, param1="abc", param2=123
-    )
+    StrategyRegistry.register(strategy_name, TestStrategy, description=strategy_description, param1="abc", param2=123)
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["description"] == plugin_description
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert TrainingTypePluginsRegistry[plugin_name]["distributed_backend"] == "test_plugin"
-    assert isinstance(TrainingTypePluginsRegistry.get(plugin_name), TestPlugin)
+    assert strategy_name in StrategyRegistry
+    assert StrategyRegistry[strategy_name]["description"] == strategy_description
+    assert StrategyRegistry[strategy_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert StrategyRegistry[strategy_name]["distributed_backend"] == "test_strategy"
+    assert isinstance(StrategyRegistry.get(strategy_name), TestStrategy)
 
-    TrainingTypePluginsRegistry.remove(plugin_name)
-    assert plugin_name not in TrainingTypePluginsRegistry
+    StrategyRegistry.remove(strategy_name)
+    assert strategy_name not in StrategyRegistry
 
 
 @pytest.mark.parametrize(
-    "plugin_name, init_params",
+    "strategy_name, init_params",
     [
         ("deepspeed", {}),
         ("deepspeed_stage_1", {"stage": 1}),
@@ -64,49 +63,49 @@ def test_training_type_plugins_registry_with_new_plugin():
         ("deepspeed_stage_3_offload", {"stage": 3, "offload_parameters": True, "offload_optimizer": True}),
     ],
 )
-def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init_params):
+def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params):
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == init_params
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedStrategy
+    assert strategy_name in StrategyRegistry
+    assert StrategyRegistry[strategy_name]["init_params"] == init_params
+    assert StrategyRegistry[strategy_name]["strategy"] == DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("plugin", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
-def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
+@pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
+def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
-    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision=16)
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_plugins_registry(tmpdir):
+def test_tpu_spawn_debug_strategy_registry(tmpdir):
 
-    plugin = "tpu_spawn_debug"
+    strategy = "tpu_spawn_debug"
 
-    assert plugin in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin]["init_params"] == {"debug": True}
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == TPUSpawnStrategy
+    assert strategy in StrategyRegistry
+    assert StrategyRegistry[strategy]["init_params"] == {"debug": True}
+    assert StrategyRegistry[strategy]["strategy"] == TPUSpawnStrategy
 
-    trainer = Trainer(strategy=plugin)
+    trainer = Trainer(strategy=strategy)
 
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
-def test_fsdp_strategys_registry(tmpdir):
+def test_fsdp_strategy_registry(tmpdir):
 
-    plugin = "fsdp"
+    strategy = "fsdp"
 
-    assert plugin in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin]["plugin"] == DDPFullyShardedStrategy
+    assert strategy in StrategyRegistry
+    assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedStrategy
 
-    trainer = Trainer(strategy=plugin)
+    trainer = Trainer(strategy=strategy)
 
     assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
 
 
 @pytest.mark.parametrize(
-    "plugin_name, plugin",
+    "strategy_name, strategy",
     [
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
@@ -114,18 +113,18 @@ def test_fsdp_strategys_registry(tmpdir):
         ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
     ],
 )
-def test_ddp_find_unused_parameters_training_type_plugins_registry(tmpdir, plugin_name, plugin):
+def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy):
 
-    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin_name)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
 
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy)
 
-    assert plugin_name in TrainingTypePluginsRegistry
-    assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"find_unused_parameters": False}
-    assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == plugin
+    assert strategy_name in StrategyRegistry
+    assert StrategyRegistry[strategy_name]["init_params"] == {"find_unused_parameters": False}
+    assert StrategyRegistry[strategy_name]["strategy"] == strategy
 
 
-def test_custom_registered_training_plugin_to_strategy():
+def test_custom_registered_strategy_to_strategy_flag():
     class CustomCheckpointIO(CheckpointIO):
         def save_checkpoint(self, checkpoint, path):
             pass
@@ -139,7 +138,7 @@ def test_custom_registered_training_plugin_to_strategy():
     custom_checkpoint_io = CustomCheckpointIO()
 
     # Register the DDP Strategy with your custom CheckpointIO plugin
-    TrainingTypePluginsRegistry.register(
+    StrategyRegistry.register(
         "ddp_custom_checkpoint_io",
         DDPStrategy,
         description="DDP Strategy with custom checkpoint io plugin",
