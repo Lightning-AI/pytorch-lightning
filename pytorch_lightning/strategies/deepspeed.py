@@ -773,7 +773,7 @@ class DeepSpeedStrategy(DDPStrategy):
             rank_zero_warn(
                 "A single checkpoint file has been given. This means optimizer states cannot be restored."
                 " If you'd like to restore these states, you must"
-                " provide a path to the originally saved DeepSpeed checkpoint."
+                " provide a path to the originally saved DeepSpeed checkpoint. When using ZeRO 3, the original path should be a directory."
             )
         return False
 
