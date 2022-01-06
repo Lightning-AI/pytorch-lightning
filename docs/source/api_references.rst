@@ -27,11 +27,17 @@ Core API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    datamodule
-    decorators
-    hooks
-    lightning
+    hooks.CheckpointHooks
+    hooks.DataHooks
+    hooks.ModelHooks
+    LightningDataModule
+    LightningModule
+    mixins.DeviceDtypeModuleMixin
+    mixins.HyperparametersMixin
+    optimizer.LightningOptimizer
+    saving.ModelIO
 
 Strategy API
 ------------
