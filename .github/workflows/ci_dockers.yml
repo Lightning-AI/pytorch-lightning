@@ -17,6 +17,10 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
       - ".github/workflows/events-nightly.yml"
       - "setup.py"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-PL:
     runs-on: ubuntu-20.04
