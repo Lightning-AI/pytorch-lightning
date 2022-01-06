@@ -25,7 +25,7 @@ Here, we describe general expectations from core contributors:
 - Help users so they have an amazing experience. Issues range from questions from new people getting into DL to questions from researchers about doing something esoteric with Lightning.
   They often require some sort of bug fix, document clarification, or new functionality to be scoped out. You can help them solve their issues and guide them to completion.
 
-- To weigh in on discussions in a timely fashion. Most importantly, on the RFCs (request for comments) that will shape the future of Lightning.
+- Weigh in on discussions in a timely fashion. Most importantly, on the RFCs (request for comments) that will shape the future of Lightning.
   There are some big decisions which the project must make. For these, we expect core contributors to have something meaningful to add, especially if it’s their area of expertise.
 
 - Propose your own RFCs that align with the API design goals for Lightning.
