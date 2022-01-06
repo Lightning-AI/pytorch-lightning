@@ -110,7 +110,9 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, accelerator="gpu", devices=1, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, accelerator="gpu", devices=1, logger=False
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
@@ -126,7 +128,7 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_steps=1, gpus=None)
 
     with pytest.raises(MisconfigurationException, match="not running on GPU"):
-        trainer.fit(model)    
+        trainer.fit(model)
 
 
 def test_gpu_stats_monitor_parse_gpu_stats():
