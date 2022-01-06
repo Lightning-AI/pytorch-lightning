@@ -78,3 +78,7 @@ def test_free_memory_on_eval_outputs(tmpdir):
     )
 
     trainer.fit(model)
+
+
+def test_foo():
+    assert True

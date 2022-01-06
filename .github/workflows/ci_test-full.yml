@@ -98,11 +98,14 @@ jobs:
 
     - name: Tests - ./tests/
       run: |
+        # sanity check
+        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_foo -v
+
+        # test if it's unrelated to pytest
+        python pl_examples/bug_report/bug_report_model.py
+
+        # we know this fails
         python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_free_memory_on_eval_outputs -v
-        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_train_step_no_return[False] -v
-        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_train_step_no_return[True] -v
-        # in case the previous did not fail
-        python -m pytest tests/callbacks/test_callback_hook_outputs.py -v
 
     # - name: Examples
     #   run: |
