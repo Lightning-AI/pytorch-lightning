@@ -39,7 +39,7 @@ class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path: Optional[_PATH] = None
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
@@ -100,7 +100,7 @@ class CheckpointConnector:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
             elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         if (
             self.trainer.state.fn == TrainerFn.FITTING
             and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
