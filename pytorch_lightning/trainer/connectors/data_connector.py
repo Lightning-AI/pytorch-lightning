@@ -279,7 +279,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.trainer._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
+        using_spawn = self.trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
