@@ -113,6 +113,8 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
+        pip uninstall horovod
+        pip list
       shell: bash
 
     # - name: Reinstall Horovod if necessary
