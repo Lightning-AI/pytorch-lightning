@@ -61,7 +61,6 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt install gdb
-        python .github/prune-packages.py requirements/extra.txt "horovod"
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
@@ -113,25 +112,23 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
-        pip uninstall horovod
-        pip list
       shell: bash
 
-    # - name: Reinstall Horovod if necessary
-    #   if: runner.os != 'windows'
-    #   env:
-    #     HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-    #     HOROVOD_WITHOUT_MXNET: 1
-    #     HOROVOD_WITHOUT_TENSORFLOW: 1
-    #   run: |
-    #     HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-    #     if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-    #       pip uninstall -y horovod
-    #       echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
-    #       pip install --no-cache-dir -r requirements/horovod.txt
-    #     fi
-    #     horovodrun --check-build
-    #   shell: bash
+    - name: Reinstall Horovod if necessary
+      if: runner.os != 'windows'
+      env:
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
+      run: |
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
+        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+          pip uninstall -y horovod
+          echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
+          pip install --no-cache-dir -r requirements/horovod.txt
+        fi
+        horovodrun --check-build
+      shell: bash
 
     - name: Cache datasets
       uses: actions/cache@v2
