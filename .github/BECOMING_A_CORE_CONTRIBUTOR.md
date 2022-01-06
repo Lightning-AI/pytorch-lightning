@@ -22,14 +22,15 @@ Here, we describe general expectations from core contributors:
 
 ### Github issues
 
-- Here we want to help users have an amazing experience. These range from questions from new people getting into DL to questions from researchers about doing something esoteric with Lightning.
-  Often, these issues require some sort of bug fix, document clarification, or new functionality to be scoped out.
+- Help users so they have an amazing experience. Issues range from questions from new people getting into DL to questions from researchers about doing something esoteric with Lightning.
+  They often require some sort of bug fix, document clarification, or new functionality to be scoped out. You can help them solve their issues and guide them to completion.
 
 - To weigh in on discussions in a timely fashion. Most importantly, on the RFCs (request for comments) that will shape the future of Lightning.
+  There are some big decisions which the project must make. For these, we expect core contributors to have something meaningful to add, especially if it’s their area of expertise.
 
 - Propose your own RFCs that align with the API design goals for Lightning.
 
-- Can abstract from an issue or bug into functionality that might solve other related issues or make the platform more flexible.
+- Can abstract from an issue or bug into functionality that might solve other related issues or make the framework more flexible.
 
 - Don’t make users feel like they don’t know what they’re doing. We’re here to help and to make everyone’s experience delightful.
 
@@ -37,15 +38,11 @@ Here, we describe general expectations from core contributors:
 
 ### Pull requests
 
-- Pull requests are the evolution mechanism of Lightning, so quality is extremely important. Make sure contributors adhere to the guidelines described in the [contributing section](CONTRIBUTING.md#Pull-request)
+- Pull requests are the evolutionary mechanism of Lightning, so quality is extremely important. Make sure contributors adhere to the guidelines described in the [contributing section](CONTRIBUTING.md#Pull-request).
 
 - Some other PRs are for people who want to get involved and add something unnecessary. We do want their help though! So don’t approve the PR, but direct them to a Github issue that they might be interested in helping with instead!
 
 - Provide strong and valuable feedback during reviews. This is expected both when reviewing community PRs as well as PRs from other core contributors.
-
-### Project directions
-
-There are some big decisions which the project must make. For these I expect core contributors to have something meaningful to add if it’s their area of expertise.
 
 ### Diversity
 
