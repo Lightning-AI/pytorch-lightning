@@ -102,7 +102,8 @@ jobs:
         python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_foo -v
 
         # test if it's unrelated to pytest
-        python pl_examples/bug_report/bug_report_model.py
+        cp pl_examples/bug_report/bug_report_model.py .
+        python bug_report_model.py
 
         # we know this fails
         python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_free_memory_on_eval_outputs -v
