@@ -164,7 +164,3 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
     )
     with no_warning_call(UserWarning, match="Please add the following callbacks:"):
         trainer.fit(model, ckpt_path=ckpt_path)
-
-
-def test_foo():
-    assert True
