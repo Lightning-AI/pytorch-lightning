@@ -115,21 +115,21 @@ jobs:
         pip list
       shell: bash
 
-    - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
-      run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-          pip uninstall -y horovod
-          echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
-          pip install --no-cache-dir -r requirements/horovod.txt
-        fi
-        horovodrun --check-build
-      shell: bash
+    # - name: Reinstall Horovod if necessary
+    #   if: runner.os != 'windows'
+    #   env:
+    #     HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+    #     HOROVOD_WITHOUT_MXNET: 1
+    #     HOROVOD_WITHOUT_TENSORFLOW: 1
+    #   run: |
+    #     HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
+    #     if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+    #       pip uninstall -y horovod
+    #       echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
+    #       pip install --no-cache-dir -r requirements/horovod.txt
+    #     fi
+    #     horovodrun --check-build
+    #   shell: bash
 
     - name: Cache datasets
       uses: actions/cache@v2
