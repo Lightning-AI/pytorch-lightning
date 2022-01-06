@@ -144,12 +144,16 @@ jobs:
     - name: Tests - ./tests/
       run: |
         python -m pytest tests/accelerators -v
+        python -m pytest tests/base -v
         python -m pytest tests/callbacks -v
+        python -m pytest tests/checkpointing -v
         python -m pytest tests/core -v
-        python -m pytest tests/distributed -v
+        python -m pytest tests/deprecated_api -v
+        python -m pytest tests/helpers -v
         python -m pytest tests/lite -v
         python -m pytest tests/loggers -v
         python -m pytest tests/loops -v
+        python -m pytest tests/models -v
         python -m pytest tests/overrides -v
         python -m pytest tests/plugins -v
         python -m pytest tests/profiler -v
@@ -157,7 +161,6 @@ jobs:
         python -m pytest tests/trainer -v
         python -m pytest tests/tuner -v
         python -m pytest tests/utilities -v
-        python -m pytest tests -v  # all
 
     # - name: Examples
     #   run: |
