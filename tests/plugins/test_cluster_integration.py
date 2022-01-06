@@ -55,22 +55,22 @@ def environment_combinations():
 
 
 @pytest.mark.parametrize(
-    "plugin_cls",
+    "strategy_cls",
     [DDPStrategy, DDPShardedStrategy, DDP2Strategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-def test_ranks_available_manual_plugin_selection(plugin_cls):
+def test_ranks_available_manual_strategy_selection(strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
 
-        if plugin_cls == DDP2Strategy:
+        if strategy_cls == DDP2Strategy:
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
 
         with mock.patch.dict(os.environ, variables):
-            plugin = plugin_cls(
+            strategy = strategy_cls(
                 parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
             )
-            trainer = Trainer(strategy=plugin, num_nodes=num_nodes)
+            trainer = Trainer(strategy=strategy, num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]
@@ -90,7 +90,7 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
-def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
+def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
@@ -101,7 +101,7 @@ def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
         if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
-                # slurm and torchelastic do not work with spawn plugins
+                # slurm and torchelastic do not work with spawn strategies
                 continue
             # when using spawn, we don't reach rank > 0 until we call Trainer.fit()
             expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)

@@ -20,11 +20,11 @@ import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
@@ -53,7 +53,7 @@ class CheckpointConnector:
         if not os.path.isdir(self.trainer.weights_save_path):
             return None
         dir_path_hpc = str(self.trainer.weights_save_path)
-        max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
+        max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
@@ -300,41 +300,6 @@ class CheckpointConnector:
     # PRIVATE OPS
     # ----------------------------------
 
-    def hpc_save(self, folderpath: str, logger: Optional[LightningLoggerBase]) -> str:
-        # make sure the checkpoint folder exists
-        folderpath = str(folderpath)  # because the tests pass a path object
-        fs = get_filesystem(folderpath)
-        fs.makedirs(folderpath, exist_ok=True)
-
-        # save logger to make sure we get all the metrics
-        if logger:
-            logger.finalize("finished")
-
-        max_suffix = self.max_ckpt_version_in_folder(folderpath)
-        ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
-
-        fs.makedirs(folderpath, exist_ok=True)
-        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
-
-        # give model a chance to do something on hpc_save
-        model = self.trainer.lightning_module
-        checkpoint = self.dump_checkpoint()
-
-        # TODO: remove this in v1.8.
-        model.on_hpc_save(checkpoint)
-
-        # do the actual save
-        # TODO: fix for anything with multiprocess DP, DDP, DDP2
-        try:
-            atomic_save(checkpoint, filepath)
-        except AttributeError as err:
-            if pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                del checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn(f"warning, `hyper_parameters` dropped from checkpoint. An attribute is not picklable {err}")
-            atomic_save(checkpoint, filepath)
-
-        return filepath
-
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
         Args:
@@ -413,44 +378,12 @@ class CheckpointConnector:
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
+        # TODO: remove this in v1.8.
+        environment = self.trainer._accelerator_connector.cluster_environment
+        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
+            model.on_hpc_save(checkpoint)
+
         return checkpoint
-
-    def max_ckpt_version_in_folder(self, dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
-        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
-
-        Args:
-            dir_path: path of directory which may contain files whose name include `name_key`
-            name_key: file name prefix
-        Returns:
-            None if no-corresponding-file else maximum suffix number
-        """
-
-        # check directory existence
-        fs = get_filesystem(dir_path)
-        if not fs.exists(dir_path):
-            return None
-
-        # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
-        files = [x for x in files if name_key in x]
-        if len(files) == 0:
-            return None
-
-        # extract suffix number
-        ckpt_vs = []
-        for name in files:
-            name = name.split(name_key)[-1]
-            name = re.sub("[^0-9]", "", name)
-            ckpt_vs.append(int(name))
-
-        return max(ckpt_vs)
-
-    def get_max_ckpt_path_from_folder(self, folder_path: _PATH) -> str:
-        """Get path of maximum-epoch checkpoint in the folder."""
-
-        max_suffix = self.max_ckpt_version_in_folder(folder_path)
-        ckpt_number = max_suffix if max_suffix is not None else 0
-        return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -489,3 +422,49 @@ class CheckpointConnector:
             "test_loop": self.trainer.test_loop.state_dict(),
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
+
+    @staticmethod
+    def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
+        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
+
+        Args:
+            dir_path: path of directory which may contain files whose name include `name_key`
+            name_key: file name prefix
+        Returns:
+            None if no-corresponding-file else maximum suffix number
+        """
+
+        # check directory existence
+        fs = get_filesystem(dir_path)
+        if not fs.exists(dir_path):
+            return None
+
+        # check corresponding file existence
+        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [x for x in files if name_key in x]
+        if len(files) == 0:
+            return None
+
+        # extract suffix number
+        ckpt_vs = []
+        for name in files:
+            name = name.split(name_key)[-1]
+            name = re.sub("[^0-9]", "", name)
+            ckpt_vs.append(int(name))
+
+        return max(ckpt_vs)
+
+    @staticmethod
+    def __get_max_ckpt_path_from_folder(folder_path: _PATH) -> str:
+        """Get path of maximum-epoch checkpoint in the folder."""
+
+        max_suffix = CheckpointConnector.__max_ckpt_version_in_folder(folder_path)
+        ckpt_number = max_suffix if max_suffix is not None else 0
+        return f"{folder_path}/hpc_ckpt_{ckpt_number}.ckpt"
+
+    @staticmethod
+    def hpc_save_path(folderpath: _PATH) -> str:
+        max_suffix = CheckpointConnector.__max_ckpt_version_in_folder(folderpath)
+        ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
+        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
+        return filepath

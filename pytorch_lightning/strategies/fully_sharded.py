@@ -125,7 +125,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def setup_distributed(self) -> None:
         if not self.on_gpu:
             raise MisconfigurationException(
-                "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
+                "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
 
@@ -200,7 +200,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

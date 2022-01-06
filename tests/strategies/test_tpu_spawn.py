@@ -94,7 +94,7 @@ class BoringModelTPU(BoringModel):
 def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctely when training and after teardown for TPUSpawnStrategy."""
     trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
-    # assert training type plugin attributes for device setting
+    # assert training strategy attributes for device setting
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert not trainer.strategy.on_gpu
     assert trainer.strategy.on_tpu

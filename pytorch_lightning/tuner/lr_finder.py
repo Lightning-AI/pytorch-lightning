@@ -24,7 +24,11 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import (
+    _get_default_scheduler_config,
+    _init_optimizers_and_lr_schedulers,
+    _set_scheduler_opt_idx,
+)
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -124,11 +128,12 @@ class _LRFinder:
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
             sched_config = _get_default_scheduler_config()
-            sched_config.update({"scheduler": scheduler, "interval": "step"})
+            sched_config.update({"scheduler": scheduler, "interval": "step", "opt_idx": 0})
 
             trainer.strategy.optimizers = [optimizer]
             trainer.strategy.lr_schedulers = [sched_config]
             trainer.strategy.optimizer_frequencies = []
+            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_schedulers)
 
         return func
 
