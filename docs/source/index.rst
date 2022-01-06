@@ -47,12 +47,21 @@ PyTorch Lightning
    :name: docs
    :caption: Optional Extensions
 
-   extensions/accelerators
+   extensions/accelerator
    extensions/callbacks
    extensions/datamodules
    extensions/logging
    extensions/plugins
    extensions/loops
+
+.. toctree::
+   :maxdepth: 1
+   :name: Accelerators
+   :caption: Accelerators
+
+   accelerators/gpu
+   accelerators/tpu
+   accelerators/ipu
 
 .. toctree::
    :maxdepth: 1
@@ -66,11 +75,9 @@ PyTorch Lightning
    common/early_stopping
    common/hyperparameters
    common/production_inference
-   advanced/ipu
    common/lightning_cli
    advanced/lr_finder
    common/loggers
-   advanced/multi_gpu
    advanced/advanced_gpu
    advanced/mixed_precision
    common/checkpointing
@@ -79,11 +86,9 @@ PyTorch Lightning
    advanced/profiler
    advanced/strategy_registry
    common/remote_fs
-   common/single_gpu
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
-   advanced/tpu
    common/test_set
 
 .. toctree::

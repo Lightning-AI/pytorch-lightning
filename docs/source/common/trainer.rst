@@ -734,7 +734,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -1103,7 +1103,7 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <multi_gpu>`
+- :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Apex <amp>`
 
@@ -1430,9 +1430,9 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`.
     - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
