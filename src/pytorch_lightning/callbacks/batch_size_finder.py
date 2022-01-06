@@ -21,7 +21,7 @@ Finds optimal batch size
 import os
 import uuid
 from copy import deepcopy
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, TypedDict, Union
 
 from torch.utils.data.dataloader import DataLoader
 
@@ -86,6 +86,18 @@ class BatchSizeFinder(Callback):
         self.optimal_batch_size = init_val
 
         self._early_exit = False
+
+        from pytorch_lightning.loggers.base import LightningLoggerBase
+
+        class _BatchSizeFinderDumpedParams(TypedDict):
+            callbacks: List[Callback]
+            logger: Optional[LightningLoggerBase]
+            max_steps: int
+            global_step: Optional[None]
+            limit_val_batches: Union[int, float]
+            limit_eval_batches: Union[int, float]
+
+        self._dumped_params: _BatchSizeFinderDumpedParams = {}
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.fast_dev_run:
@@ -284,13 +296,13 @@ class BatchSizeFinder(Callback):
             self._dumped_params["limit_val_batches"] = trainer.limit_val_batches
         elif trainer.state.fn == TrainerFn.VALIDATING:
             loop = trainer.validate_loop
-            self._dumped_params["limit_val_batches"] = trainer.limit_val_batches
+            self._dumped_params["limit_eval_batches"] = trainer.limit_val_batches
         elif trainer.state.fn == TrainerFn.TESTING:
             loop = trainer.test_loop
-            self._dumped_params["limit_test_batches"] = trainer.limit_test_batches
+            self._dumped_params["limit_eval_batches"] = trainer.limit_test_batches
         elif trainer.state.fn == TrainerFn.PREDICTING:
             loop = trainer.predict_loop
-            self._dumped_params["limit_predict_batches"] = trainer.limit_predict_batches
+            self._dumped_params["limit_eval_batches"] = trainer.limit_predict_batches
 
         self._dumped_params["loop_state_dict"] = deepcopy(loop.state_dict(force_save_progress=True))
         if hasattr(loop, "verbose"):
@@ -328,13 +340,13 @@ class BatchSizeFinder(Callback):
             trainer.limit_val_batches = self._dumped_params["limit_val_batches"]
         elif trainer.state.fn == TrainerFn.VALIDATING:
             loop = trainer.validate_loop
-            trainer.limit_val_batches = self._dumped_params["limit_val_batches"]
+            trainer.limit_val_batches = self._dumped_params["limit_eval_batches"]
         elif trainer.state.fn == TrainerFn.TESTING:
             loop = trainer.test_loop
-            trainer.limit_test_batches = self._dumped_params["limit_test_batches"]
+            trainer.limit_test_batches = self._dumped_params["limit_eval_batches"]
         elif trainer.state.fn == TrainerFn.PREDICTING:
             loop = trainer.predict_loop
-            trainer.limit_predict_batches = self._dumped_params["limit_predict_batches"]
+            trainer.limit_predict_batches = self._dumped_params["limit_eval_batches"]
 
         loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
         if "loop_verbose" in self._dumped_params:
@@ -386,18 +398,18 @@ class BatchSizeFinder(Callback):
         if desc:
             rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-        # TODO improve this for CombinedLoader and multi dataloaders
+        # TODO improve this for eval CombinedLoader and multi dataloaders
         if trainer.state.fn == TrainerFn.FITTING:
             if not self._is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
                 new_size = min(new_size, len(trainer.train_dataloader.dataset))
         if trainer.state.fn == TrainerFn.VALIDATING:
-            if not self._is_valid_batch_size(new_size, trainer.val_dataloaders, trainer):
+            if not self._is_valid_batch_size(new_size, trainer.val_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.val_dataloaders[0].dataset))
         if trainer.state.fn == TrainerFn.TESTING:
-            if not self._is_valid_batch_size(new_size, trainer.test_dataloaders, trainer):
+            if not self._is_valid_batch_size(new_size, trainer.test_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.test_dataloaders[0].dataset))
         if trainer.state.fn == TrainerFn.PREDICTING:
-            if not self._is_valid_batch_size(new_size, trainer.predict_dataloaders, trainer):
+            if not self._is_valid_batch_size(new_size, trainer.predict_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.predict_dataloaders[0].dataset))
 
         changed = new_size != batch_size

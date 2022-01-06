@@ -80,56 +80,46 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
         assert trainer.train_dataloader.loaders.batch_size == new_batch_size
 
 
-def test_model_reset_correctly(tmpdir):
-    """Check that model weights are correctly reset after scaling batch size."""
+@pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
+def test_trainer_reset_correctly(tmpdir, trainer_fn):
+    """Check that model and all trainer parameters are reset correctly after scaling batch size."""
     tutils.reset_seed()
 
     model = BatchSizeModel(batch_size=2)
-
-    # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
     before_state_dict = deepcopy(model.state_dict())
-
-    trainer.tuner.scale_batch_size(model, max_trials=5)
-
-    after_state_dict = model.state_dict()
-
-    for key in before_state_dict.keys():
-        assert torch.all(
-            torch.eq(before_state_dict[key], after_state_dict[key])
-        ), "Model was not reset correctly after scaling batch size"
-
-    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size"))
-
-
-def test_trainer_reset_correctly(tmpdir):
-    """Check that all trainer parameters are reset correctly after scaling batch size."""
-    tutils.reset_seed()
-
-    model = BatchSizeModel(batch_size=2)
 
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     changed_attributes = [
+        "logger",
+        "callbacks",
         "global_step",
         "limit_val_batches",
         "max_steps",
-        "logger",
-        "callbacks",
+        "limit_val_batches",
+        "limit_test_batches",
+        "limit_predict_batches",
     ]
+
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
     expected_loop_state_dict = trainer.fit_loop.state_dict()
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
-        trainer.tuner.scale_batch_size(model, max_trials=64)
+        trainer.tuner.scale_batch_size(model, max_trials=64, method=trainer_fn)
+
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
-
     actual_loop_state_dict = trainer.fit_loop.state_dict()
-
     assert expected_loop_state_dict == actual_loop_state_dict
     assert actual == expected
+
+    after_state_dict = model.state_dict()
+    for key in before_state_dict.keys():
+        assert torch.all(
+            torch.eq(before_state_dict[key], after_state_dict[key])
+        ), "Model was not reset correctly after scaling batch size"
+
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size_temp_model"))
 
 
 @RunIf(min_cuda_gpus=1)
