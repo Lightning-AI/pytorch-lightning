@@ -145,6 +145,7 @@ jobs:
 
     - name: Tests - ./tests/
       run: |
+        python -m pytest tests/foo -v
         python -m pytest tests/callbacks -v
         python -m pytest tests/accelerators -v
         # python -m pytest tests/checkpointing -v
