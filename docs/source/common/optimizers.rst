@@ -358,18 +358,19 @@ and ``loss.backward()`` for the optimization. This mechanism is in place to supp
 output of the closure (e.g. the loss) or need to call the closure several times (e.g. :class:`~torch.optim.LBFGS`).
 
 .. warning::
+
    Before v1.2.2, Lightning internally calls ``backward``, ``step`` and ``zero_grad`` in the order.
    From v1.2.2, the order is changed to ``zero_grad``, ``backward`` and ``step``.
 
 
-Accumulate Gradients
---------------------
+Gradient Accumulation
+=====================
 
 .. include:: ../common/gradient_accumulation.rst
 
 
 Use Multiple Optimizers (like GANs)
------------------------------------
+===================================
 
 To use multiple optimizers (optionally with learning rate schedulers), return two or more optimizers from
 :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`.
