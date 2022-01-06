@@ -261,14 +261,14 @@ class TQDMProgressBar(ProgressBarBase):
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_update(self.val_batch_idx):
             _update_n(self.val_progress_bar, self.val_batch_idx)
-            if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
+            if trainer.state.fn == "fit":
                 _update_n(self.main_progress_bar, self.train_batch_idx + self._val_processed)
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         _update_n(self.val_progress_bar, self._val_processed)
 
     def on_validation_end(self, trainer, pl_module):
-        if self.main_progress_bar is not None and trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
+        if self.main_progress_bar is not None and trainer.state.fn == "fit":
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 
