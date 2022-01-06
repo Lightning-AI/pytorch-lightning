@@ -21,10 +21,10 @@ What is PyTorch Lightning
 *************************
 
 PyTorch has all you need to train your models. But there's a lot more to deep learning more than just attaching some layers together. It provides you the APIs required to build models, datasets etc.
-but when it comes to actual training, there's a lot of boiler-plate code involved that you need to write by youself and if you need to scale your training/inferencing on multiple devices/machines there's another
+but when it comes to actual training, there's a lot of boilerplate code involved that you need to write by yourself and if you need to scale your training/inferencing on multiple devices/machines there's another
 set of integrations you might need to do by yourself.
 
-So here PyTorch Lightning comes into picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
+So here PyTorch Lightning comes into the picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
 Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training accross multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
 and a lot more. Now all you need is to take care of your research code and leave the engineering to us.
 
