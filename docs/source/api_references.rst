@@ -33,6 +33,30 @@ Core API
     hooks
     lightning
 
+Strategy API
+------------
+
+.. currentmodule:: pytorch_lightning.strategies
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Strategy
+    SingleDeviceStrategy
+    ParallelStrategy
+    DataParallelStrategy
+    DDPStrategy
+    DDP2Strategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    SingleTPUStrategy
+    TPUSpawnStrategy
+
 Callbacks API
 -------------
 
@@ -135,31 +159,6 @@ Prediction
 
 Plugins API
 -----------
-
-Training Type Plugins
-^^^^^^^^^^^^^^^^^^^^^
-
-.. currentmodule:: pytorch_lightning.plugins.training_type
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    Strategy
-    SingleDeviceStrategy
-    ParallelStrategy
-    DataParallelStrategy
-    DDPStrategy
-    DDP2Strategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
-    DDPSpawnStrategy
-    DeepSpeedStrategy
-    HorovodStrategy
-    SingleTPUStrategy
-    TPUSpawnStrategy
-
 
 Precision Plugins
 ^^^^^^^^^^^^^^^^^

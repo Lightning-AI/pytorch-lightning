@@ -1376,7 +1376,7 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
     Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
@@ -1416,7 +1416,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPStrategy
+    from pytorch_lightning.strategies import DDPStrategy
 
 
     class CustomDDPStrategy(DDPStrategy):

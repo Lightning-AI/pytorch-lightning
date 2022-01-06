@@ -256,11 +256,11 @@ class TQDMProgressBar(ProgressBarBase):
             self.val_progress_bar.total = sum(trainer.num_sanity_val_batches)
         else:
             self.val_progress_bar = self.init_validation_tqdm()
-            self.val_progress_bar.total = self.total_val_batches
+            self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        if self._should_update(self._val_processed):
-            _update_n(self.val_progress_bar, self._val_processed)
+        if self._should_update(self.val_batch_idx):
+            _update_n(self.val_progress_bar, self.val_batch_idx)
             if trainer.state.fn == pl.trainer.states.TrainerFn.FITTING:
                 _update_n(self.main_progress_bar, self.train_batch_idx + self._val_processed)
 

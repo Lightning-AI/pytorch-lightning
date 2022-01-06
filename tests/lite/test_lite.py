@@ -25,7 +25,8 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DeepSpeedStrategy, PrecisionPlugin, Strategy
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function

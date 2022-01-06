@@ -7,7 +7,8 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import DDPFullyShardedStrategy, FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.strategies import DDPFullyShardedStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -20,11 +21,11 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
-        MisconfigurationException, match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
+        MisconfigurationException, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
-        assert isinstance(trainer.training_type_plugin, DDPFullyShardedStrategy)
-        trainer.training_type_plugin.setup_environment()
+        assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+        trainer.strategy.setup_environment()
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -34,8 +35,8 @@ def test_invalid_on_cpu(tmpdir):
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
-    assert isinstance(trainer.training_type_plugin, DDPFullyShardedStrategy)
-    assert isinstance(trainer.training_type_plugin.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
+    assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 class TestFSDPModel(BoringModel):
@@ -110,7 +111,7 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
     # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.training_type_plugin.lightning_module_state_dict()
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
 
     if trainer.is_global_zero:
         saved_model = cls.load_from_checkpoint(ckpt_path)

@@ -321,7 +321,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert state_dict["items"]["validation_step.v"]["value"].device.type == device
 
             # sync fn should be kept
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
 
             # sync fn dropped from the state dict
             assert "fn" not in state_dict["items"]["validation_step.v"]["meta"]["_sync"]
@@ -331,7 +331,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
             assert results["validation_step.v"].value.device.type == device
 
             # sync fn was preserved in the original result
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.training_type_plugin.reduce
+            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
 
             # default sync fn
             new_results = _ResultCollection(False, device)
@@ -458,7 +458,7 @@ def result_collection_reload(**kwargs):
     assert not model.has_validated_sum
 
     tmpdir = (
-        trainer.training_type_plugin.broadcast(trainer_kwargs["default_root_dir"], 0)
+        trainer.strategy.broadcast(trainer_kwargs["default_root_dir"], 0)
         if num_processes >= 2
         else trainer_kwargs["default_root_dir"]
     )
@@ -572,14 +572,14 @@ def test_metric_result_respects_dtype(floating_dtype):
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted
-    value, batch_size = torch.tensor(2), torch.tensor(3)
+    value, batch_size = torch.tensor(2), 3
     assert value.dtype == fixed_dtype
     with pytest.warns(
         UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
     ):
         rm.update(value, batch_size)
     # floating and fixed
-    rm.update(torch.tensor(4.0), torch.tensor(5))
+    rm.update(torch.tensor(4.0), 5)
 
     total = rm.compute()
 
@@ -588,3 +588,12 @@ def test_metric_result_respects_dtype(floating_dtype):
 
     # restore to avoid impacting other tests
     torch.set_default_dtype(torch.float)
+
+
+@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+def test_result_metric_max_min(reduce_fx, expected):
+    metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+    rm.update(torch.tensor(expected), 1)
+    assert rm.compute() == expected

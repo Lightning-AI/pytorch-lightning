@@ -14,15 +14,16 @@
 """
 Convention:
  - Do not include any `_TYPE` suffix
- - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
+ - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Sequence, Type, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
+from typing_extensions import TypedDict
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -43,7 +44,75 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
+
+
+# Copied from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+class _LRScheduler:
+    optimizer: Optimizer
+
+    def __init__(self, optimizer: Optimizer, last_epoch: int = ...) -> None:
+        ...
+
+    def state_dict(self) -> dict:
+        ...
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        ...
+
+    def get_last_lr(self) -> List[float]:
+        ...
+
+    def get_lr(self) -> float:
+        ...
+
+    def step(self, epoch: Optional[int] = ...) -> None:
+        ...
+
+
+# Copied from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+class ReduceLROnPlateau:
+    in_cooldown: bool
+    optimizer: Optimizer
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        mode: str = ...,
+        factor: float = ...,
+        patience: int = ...,
+        verbose: bool = ...,
+        threshold: float = ...,
+        threshold_mode: str = ...,
+        cooldown: int = ...,
+        min_lr: float = ...,
+        eps: float = ...,
+    ) -> None:
+        ...
+
+    def step(self, metrics: Any, epoch: Optional[int] = ...) -> None:
+        ...
+
+    def state_dict(self) -> dict:
+        ...
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        ...
+
+
 # todo: improve LRSchedulerType naming/typing
-LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
+LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+
+
+class LRSchedulerConfig(TypedDict):
+    scheduler: Union[_LRScheduler, ReduceLROnPlateau]
+    name: Optional[str]
+    interval: str
+    frequency: int
+    reduce_on_plateau: bool
+    monitor: Optional[str]
+    strict: bool
+    opt_idx: Optional[int]
