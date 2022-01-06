@@ -522,7 +522,11 @@ def test_dp_resume(tmpdir):
     # HPC LOAD/SAVE
     # ---------------------------
     # save
-    trainer.checkpoint_connector.hpc_save(tmpdir, logger)
+    # save logger to make sure we get all the metrics
+    if logger:
+        logger.finalize("finished")
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    trainer.save_checkpoint(hpc_save_path)
 
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)

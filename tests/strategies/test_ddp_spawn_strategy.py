@@ -53,7 +53,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
 @RunIf(skip_windows=True, skip_49370=True)
 def test_ddp_cpu():
     """Tests if device is set correctly when training for DDPSpawnStrategy."""
-    trainer = Trainer(num_processes=2, fast_dev_run=True)
+    trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
     # assert training type plugin attributes for device setting
 
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -134,7 +134,7 @@ class BoringModelDDP(BoringModel):
 
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
-    """Tests with ddp spawn plugin."""
+    """Tests with ddp spawn strategy."""
     trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
 
     model = BoringModelDDP()
@@ -147,16 +147,17 @@ def test_ddp_spawn_configure_ddp(tmpdir):
 
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
 def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
-    """Tests that the spawn plugin transfers the new weights to the main process and deletes the temporary file."""
+    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
+    file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
-    plugin = DDPSpawnStrategy()
-    plugin.model = model
+    strategy = DDPSpawnStrategy()
+    strategy.model = model
     trainer = Trainer(default_root_dir=tmpdir)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
     temp_file = Path(tmpdir, ".temp.ckpt")
 
     assert not temp_file.exists()
-    spawn_output = plugin._collect_rank_zero_results(trainer, {})
+    spawn_output = strategy._collect_rank_zero_results(trainer, {})
 
     model.state_dict.assert_called_once()
     if trainer_fn == TrainerFn.FITTING:
@@ -167,6 +168,6 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
         assert not temp_file.exists()
 
     # <-- here would normally be the multiprocessing boundary
-    plugin._recover_results_in_main_process(spawn_output, trainer)
+    strategy._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
     assert not temp_file.exists()

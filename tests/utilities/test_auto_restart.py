@@ -666,7 +666,7 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
+@mock.patch("pytorch_lightning.trainer.connectors.data_connector._validate_fault_tolerant_automatic")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
@@ -895,7 +895,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
+@mock.patch("pytorch_lightning.trainer.connectors.data_connector._validate_fault_tolerant_automatic")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     "dataset_classes",

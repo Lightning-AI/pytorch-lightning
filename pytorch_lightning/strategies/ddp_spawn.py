@@ -362,11 +362,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "ddp_spawn_find_unused_parameters_false",
             cls,
-            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 

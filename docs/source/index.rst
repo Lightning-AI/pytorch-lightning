@@ -77,7 +77,7 @@ PyTorch Lightning
    advanced/fault_tolerant_training
    common/optimizers
    advanced/profiler
-   advanced/plugins_registry
+   advanced/strategy_registry
    common/remote_fs
    common/single_gpu
    advanced/training_tricks
