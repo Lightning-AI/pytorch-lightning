@@ -25,7 +25,7 @@ Accumulate Gradients
 Gradient Clipping
 *****************
 
-Gradient clipping may be enabled to avoid exploding gradients. By default, this will clip the gradient norm by calling
+Gradient clipping can be enabled to avoid exploding gradients. By default, this will clip the gradient norm by calling
 :func:`torch.nn.utils.clip_grad_norm_` computed over all model parameters together.
 If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` by default), this will use instead
 :func:`torch.nn.utils.clip_grad_value_` for each parameter instead.
@@ -75,8 +75,8 @@ read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-we
 Batch Size Finder
 *****************
 
-Auto scaling of batch size may be enabled to find the largest batch size that fits into
-memory. Larger batch size often yields better estimates of gradients, but may also result in
+Auto-scaling of batch size can be enabled to find the largest batch size that fits into
+memory. Large batch size often yields a better estimation of the gradients, but may also result in
 longer training time. Inspired by https://github.com/BlackHC/toma.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
@@ -141,7 +141,7 @@ The algorithm in short works by:
     1. Dumping the current state of the model and trainer
     2. Iteratively until convergence or maximum number of tries ``max_trials`` (default 25) has been reached:
         - Call ``fit()`` method of trainer. This evaluates ``steps_per_trial`` (default 3) number of
-          training steps. Each training step can trigger an OOM error if the tensors
+          optimization steps. Each training step can trigger an OOM error if the tensors
           (training batch, weights, gradients, etc.) allocated during the steps have a
           too large memory footprint.
         - If an OOM error is encountered, decrease batch size else increase it.
@@ -177,10 +177,11 @@ To reduce the amount of guesswork concerning choosing a good initial learning
 rate, a `learning rate finder` can be used. As described in `this paper <https://arxiv.org/abs/1506.01186>`_
 a learning rate finder does a small run where the learning rate is increased
 after each processed batch and the corresponding loss is logged. The result of
-this is a ``lr`` vs. ``loss`` plot that can be used as guidance for choosing a optimal
+this is a ``lr`` vs. ``loss`` plot that can be used as guidance for choosing an optimal
 initial lr.
 
 .. warning::
+
     For the moment, this feature only works with models having a single optimizer.
     LR Finder support for DDP and any of its variations is not implemented yet. It is coming soon.
 
@@ -199,6 +200,7 @@ which can be accessed via ``self.learning_rate`` or ``self.lr``.
     class LitModel(LightningModule):
         def __init__(self, learning_rate):
             self.learning_rate = learning_rate
+            self.model = Model(...)
 
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=(self.lr or self.learning_rate))
