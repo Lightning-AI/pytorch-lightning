@@ -89,13 +89,12 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     # test without and with void Qaunt callback...
     trainer_args.update(max_epochs=curr_epoch + 1)
-    for cbs in ([], [QuantizationAwareTraining()]):
-        qmodel2 = RegressionModel()
-        trainer = Trainer(callbacks=cbs, **trainer_args)
-        trainer.fit(qmodel2, datamodule=dm, ckpt_path=ckpt_path)
-        quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-        # test that the test score is almost the same as with pure training
-        assert torch.allclose(org_score, quant2_score, atol=0.45)
+    qmodel2 = RegressionModel()
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
+    trainer.fit(qmodel2, datamodule=dm, ckpt_path=ckpt_path)
+    quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+    # test that the test score is almost the same as with pure training
+    assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 
 @RunIf(quantization=True)
