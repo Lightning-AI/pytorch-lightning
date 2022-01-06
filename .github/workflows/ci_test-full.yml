@@ -98,43 +98,11 @@ jobs:
 
     - name: Tests - ./tests/
       run: |
+        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_free_memory_on_eval_outputs -v
+        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_train_step_no_return[False] -v
+        python -m pytest tests/callbacks/test_callback_hook_outputs.py::test_train_step_no_return[True] -v
+        # in case the previous did not fail
         python -m pytest tests/callbacks/test_callback_hook_outputs.py -v
-        python -m pytest tests/callbacks/test_callbacks.py -v
-        python -m pytest tests/callbacks/test_device_stats_monitor.py -v
-        python -m pytest tests/callbacks/test_early_stopping.py -v
-        python -m pytest tests/callbacks/test_finetuning_callback.py -v
-        python -m pytest tests/callbacks/test_gpu_stats_monitor.py -v
-        python -m pytest tests/callbacks/test_gradient_accumulation_scheduler.py -v
-        python -m pytest tests/callbacks/test_lambda_function.py -v
-        python -m pytest tests/callbacks/test_lr_monitor.py -v
-        python -m pytest tests/callbacks/test_model_summary.py -v
-        python -m pytest tests/callbacks/test_prediction_writer.py -v
-        python -m pytest tests/callbacks/test_pruning.py -v
-        python -m pytest tests/callbacks/test_quantization.py -v
-        python -m pytest tests/callbacks/test_rich_model_summary.py -v
-        python -m pytest tests/callbacks/test_rich_progress_bar.py -v
-        python -m pytest tests/callbacks/test_stochastic_weight_avg.py -v
-        python -m pytest tests/callbacks/test_timer.py -v
-        python -m pytest tests/callbacks/test_tqdm_progress_bar.py -v
-        python -m pytest tests/callbacks/test_xla_stats_monitor.py -v
-
-        # python -m pytest tests/callbacks -v
-        # python -m pytest tests/accelerators -v
-        # python -m pytest tests/checkpointing -v
-        # python -m pytest tests/core -v
-        # python -m pytest tests/deprecated_api -v
-        # python -m pytest tests/helpers -v
-        # python -m pytest tests/lite -v
-        # python -m pytest tests/loggers -v
-        # python -m pytest tests/loops -v
-        # python -m pytest tests/models -v
-        # python -m pytest tests/overrides -v
-        # python -m pytest tests/plugins -v
-        # python -m pytest tests/profiler -v
-        # python -m pytest tests/strategies -v
-        # python -m pytest tests/trainer -v
-        # python -m pytest tests/tuner -v
-        # python -m pytest tests/utilities -v
 
     # - name: Examples
     #   run: |
