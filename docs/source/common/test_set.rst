@@ -8,11 +8,11 @@ During and after training we need a way to evaluate our models to make sure they
 generalize well on unseen or real-world data. There are generally 2 stages of evaluation: validation and testing. To some
 degree they serve the same purpose, to make sure models works on real data but they have some practical differences.
 
-Validation is usually done during training. It can be used for hyperparameter optimization or tracking model performance during training.
+Validation is usually done during training, traditionally after each training epoch. It can be used for hyperparameter optimization or tracking model performance during training.
 It's a part of the training process.
 
-Testing is usually done once we are satisfied with the trained model and want to evaluate it's performance on unseen data where model acts
-as a black box.
+Testing is usually done once we are satisfied with the training and use the best model selected from the validation metrics and want to evaluate its performance on unseen data where the model acts
+as a black box. The test dataset is emulating the production/benchmark data where labels aren't available. 
 
 Let's see how these can be performed with Lightning.
 
@@ -22,7 +22,7 @@ Testing
 
 Lightning allows the user to test their models with any compatible test dataloaders. This can be done before/after training
 and is completely agnostic to :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call. The logic used here is defined under
-:meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`.
 
 Testing is performed using the ``Trainer`` object's ``.test()`` method.
 
@@ -49,7 +49,7 @@ To run the test set after training completes, use this method.
     # (3) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
 
-.. note::
+.. warning::
 
     It is recommended to test on single device since Distributed Training such as DDP internally
     uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
