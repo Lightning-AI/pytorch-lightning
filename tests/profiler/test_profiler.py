@@ -313,7 +313,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     expected = {"[Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
-            "training_step_and_backward",
             "[Strategy]DDPStrategy.training_step",
             "[Strategy]DDPStrategy.backward",
         }
@@ -336,7 +335,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert any(f"{local_rank}-[Strategy]DDPStrategy.validation_step" in f for f in files)
 
 
-@RunIf(standalone=True)
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
