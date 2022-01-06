@@ -47,7 +47,7 @@ PyTorch Lightning
    :name: docs
    :caption: Optional Extensions
 
-   extensions/accelerators
+   extensions/accelerator
    extensions/callbacks
    extensions/datamodules
    extensions/logging

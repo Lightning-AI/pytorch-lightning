@@ -1,4 +1,4 @@
-.. _accelerators:
+.. _accelerator:
 
 ############
 Accelerators
