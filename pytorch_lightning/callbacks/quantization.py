@@ -98,6 +98,21 @@ class QuantizationAwareTraining(Callback):
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
+    The model set for quantization can appear in one of these stages::
+    TRAINER TRANSITIONS
+                      ( on_fit_start )               ( on_fit_end )
+    MODEL STATES
+        vanilla model   --------->    QuantAwareTrain     --->     quantized model
+                            |               |
+                  Trainer --|               |
+        ( resume_from_checkpoint )          v
+                   ^-----------------QAT checkpoints
+
+    The model enters the process as a "vanilla model" and it is prepared for QAT training in the ``on_fit_start`` hook.
+    Note that any saved checkpoint includes already collected stats for performing Quantization conversion,
+    but not any already quantized and/or fused modules/layers.
+    The quantization is performed in the ``on_fit_end`` hook and so the model needs to be saved independently after the training is finished.
+    If a user wants to continue any past training we encourage to create a Trainer with ``resume_from_checkpoint``.
 
     Args:
 
@@ -200,6 +215,7 @@ class QuantizationAwareTraining(Callback):
         self._forward_calls = 0
         self._fake_quant_to_initial_state_dict = {}
         self._last_fake_quant_to_observer_enabled = {}
+        self.__module_prepared = False
 
     def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
         if not self.modules_to_fuse:
@@ -224,7 +240,7 @@ class QuantizationAwareTraining(Callback):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def _prepare_model(self, pl_module: "pl.LightningModule") -> None:
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -262,6 +278,11 @@ class QuantizationAwareTraining(Callback):
         self._fake_quant_to_initial_state_dict = {
             fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
         }
+
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+        if self.__module_prepared:
+            return
+        self._prepare_model(pl_module)
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
@@ -318,3 +339,17 @@ class QuantizationAwareTraining(Callback):
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
+
+    def on_save_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        arg_names = ("qconfig", "observer_type", "collect_quantization", "modules_to_fuse", "input_compatible")
+        attribs = {n: getattr(self, f"_{n}") for n in arg_names}
+        return attribs
+
+    def on_load_checkpoint(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
+    ) -> None:
+        for k, v in callback_state.items():
+            setattr(self, f"_{k}", v)
+        self._prepare_model(pl_module)
