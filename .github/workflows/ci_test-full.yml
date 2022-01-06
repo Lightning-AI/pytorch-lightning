@@ -9,7 +9,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: true
 
 jobs:

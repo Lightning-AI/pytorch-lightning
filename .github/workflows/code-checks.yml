@@ -7,8 +7,8 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-#  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   mypy:
