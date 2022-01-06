@@ -125,7 +125,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def setup_distributed(self) -> None:
         if not self.on_gpu:
             raise MisconfigurationException(
-                "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
+                "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
 

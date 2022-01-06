@@ -348,6 +348,18 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Lightning Lite
+
+<div align="center">
+  <img src="docs/source/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
+</div>
+
+In the Lighting 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
+[blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
+[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
+
+______________________________________________________________________
+
 ## Examples
 
 ###### Hello world
@@ -388,7 +400,7 @@ ______________________________________________________________________
 The lightning community is maintained by
 
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 480+ active community contributors.
+- 590+ active community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
 

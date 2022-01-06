@@ -463,12 +463,12 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _initialize_deepspeed_train(self, model):
         if "optimizer" in self.config:
+            rank_zero_info(
+                "You have specified an optimizer and/or scheduler within the DeepSpeed config."
+                " It is recommended to define it in `LightningModule.configure_optimizers`."
+            )
             optimizer, lr_scheduler = None, _get_default_scheduler_config()
         else:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
             optimizer, lr_scheduler, _ = self._init_optimizers()
 
         scheduler = lr_scheduler["scheduler"]
