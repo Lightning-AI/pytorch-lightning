@@ -88,20 +88,20 @@ class XLAStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
-        logs = {}
         memory_info = xm.get_memory_info(pl_module.device)
         epoch_time = time.time() - self._start_time
 
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
 
-        free_memory = float(trainer.strategy.reduce(free_memory) * 0.001)
-        peak_memory = float(trainer.strategy.reduce(peak_memory) * 0.001)
-        epoch_time = float(trainer.strategy.reduce(epoch_time))
+        free_memory = trainer.strategy.reduce(free_memory) * 0.001
+        peak_memory = trainer.strategy.reduce(peak_memory) * 0.001
+        epoch_time = trainer.strategy.reduce(epoch_time)
 
-        logs["avg. free memory (MB)"] = free_memory
-        logs["avg. peak memory (MB)"] = peak_memory
-        trainer.logger.log_metrics(logs, step=trainer.current_epoch)
+        trainer.logger.log_metrics(
+            {"avg. free memory (MB)": float(free_memory), "avg. peak memory (MB)": float(peak_memory)},
+            step=trainer.current_epoch,
+        )
 
         if self._verbose:
             rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")
