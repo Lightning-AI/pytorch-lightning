@@ -42,7 +42,8 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
 _bagua_reduce_ops: Dict[ReduceOp, BaguaReduceOp] = {}
 
 
-def from_reduce_op(op: ReduceOp) -> Optional[BaguaReduceOp]:
+def from_torch_reduce_op(op: ReduceOp) -> Optional[BaguaReduceOp]:
+    """Convert a `torch.distributed.ReduceOp` to its equivalent `bagua.torch_api.ReduceOp`."""
     global _bagua_reduce_ops
 
     if len(_bagua_reduce_ops) == 0:
@@ -203,13 +204,13 @@ class BaguaStrategy(DDPStrategy):
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'.
+            tensor: The tensor to sync and reduce.
+            group: The process group to gather results from. Defaults to all processes (world).
+            reduce_op: The reduction operation. Defaults to 'mean'.
                 Can also be a string 'sum' or ReduceOp.
 
         Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
+            The reduced value, except when the input was not a tensor the output remains is unchanged.
         """
         if not isinstance(tensor, torch.Tensor):
             return tensor
@@ -226,7 +227,7 @@ class BaguaStrategy(DDPStrategy):
             else:
                 raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
         elif isinstance(reduce_op, ReduceOp):
-            op = from_reduce_op(reduce_op)
+            op = from_torch_reduce_op(reduce_op)
             if op is None:
                 raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 
