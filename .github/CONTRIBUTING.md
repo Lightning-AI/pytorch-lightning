@@ -232,13 +232,18 @@ python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 
 We welcome any useful contribution! For your convenience here's a recommended workflow:
 
-0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one, start by opening a GitHub issue to explain the feature and the motivation. Members from core-contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it. Once an agreement was reached - start coding.
-   In the case of features, ask yourself first - Is this NECESSARY for Lightning? There are some PRs which are just purely about adding engineering complexity which have no place in Lightning.
+0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one.
 
-1. Start your work locally (usually until you need our CI testing).
+   - Start by opening a GitHub issue to explain the feature and the motivation.
+     In the case of features, ask yourself first - Is this NECESSARY for Lightning? There are some PRs which are just
+     purely about adding engineering complexity which have no place in Lightning.
+   - Core contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it.
+   - Once an agreement was reached - start coding.
+
+1. Start your work locally.
 
    - Create a branch and prepare your changes.
-   - Tip: do not work with your master directly, it may become complicated when you need to rebase.
+   - Tip: do not work on your master branch directly, it may become complicated when you need to rebase.
    - Tip: give your PR a good name! It will be useful later when you may work on multiple tasks/PRs.
 
 1. Test your code!
