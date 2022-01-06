@@ -118,6 +118,7 @@ PyTorch Lightning
    :caption: Examples
 
    ecosystem/community_examples
+   ecosystem/asr_nlp_tts
    Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html>
    BYOL <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
    DQN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
@@ -126,13 +127,6 @@ PyTorch Lightning
    Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#image-gpt>
    SimCLR <https://lightning-bolts.readthedocs.io/en/latest/deprecated/transforms/self_supervised.html#simclr-transforms>
    VAE <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Partner Domain Frameworks
-   :caption: Partner Domain Frameworks
-
-   ecosystem/asr_nlp_tts
 
 .. toctree::
    :maxdepth: 1
