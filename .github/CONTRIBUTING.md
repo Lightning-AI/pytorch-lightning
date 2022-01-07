@@ -263,6 +263,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - The code should be elegant and simple. No over-engineering or hard-to-read code.
 
    Do your best but don't sweat about perfection! We do code-review to find any missed items.
+   If you need help, don't hesitate to ping the core team on the PR.
 
 1. Use tags in PR name for the following cases:
 
