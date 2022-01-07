@@ -35,7 +35,7 @@ def test_rich_model_summary_callback():
 
 def test_rich_progress_bar_import_error():
     if not _RICH_AVAILABLE:
-        with pytest.raises(ModuleNotFoundError, match="`RichModelSummary` requires `rich` to be installed."):
+        with pytest.raises(ImportError, match="`RichModelSummary` requires `rich` to be installed."):
             Trainer(callbacks=RichModelSummary())
 
 
