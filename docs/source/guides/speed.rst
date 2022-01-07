@@ -21,7 +21,7 @@ Training on Accelerators
 
 **Use when:** Whenever possible!
 
-With Lightning, running on GPUs, TPUs, IPUs on multiple node is a simple switch of a flag.
+With Lightning, running on GPUs, TPUs, IPUs on multiple nodes is a simple switch of a flag.
 
 GPU Training
 ============
@@ -54,16 +54,28 @@ Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
 :class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs 3 GPU transfers for EVERY batch:
 
-1. Copy model to device.
-2. Copy data to device.
-3. Copy outputs of each device back to main device.
+1. Copy model to the device.
+2. Copy data to the device.
+3. Copy outputs of each device back to the main device.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/ddp.gif
+    :alt: Animation showing DP execution.
+    :width: 500
+    :align: center
 
 |
 
 Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations, making DDP much faster than DP:
 
-1. Moving data to device.
+1. Moving data to the device.
 2. Transfer and sync gradients.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
+    :alt: Animation showing DDP execution.
+    :width: 500
+    :align: center
+
+|
 
 
 When using DDP Plugins, set find_unused_parameters=False
@@ -114,7 +126,7 @@ NCCL parameters can be adjusted via environment variables.
     export NCCL_SOCKET_NTHREADS=2
 
 Dataloaders
-"""""""""""
+^^^^^^^^^^^
 
 When building your DataLoader set ``num_workers>0`` and ``pin_memory=True`` (only for GPUs).
 
@@ -123,7 +135,7 @@ When building your DataLoader set ``num_workers>0`` and ``pin_memory=True`` (onl
     Dataloader(dataset, num_workers=8, pin_memory=True)
 
 num_workers
-"""""""""""
+^^^^^^^^^^^
 
 The question of how many workers to specify in ``num_workers`` is tricky. Here's a summary of `some references <https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813>`_, and our suggestions:
 
@@ -150,21 +162,24 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 Spawn
-"""""
+^^^^^
 
-When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
-``.spawn()`` under the hood. The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason we recommend you
-use ``strategy="ddp"`` so you can increase the ``num_workers``, however since DDP doesn't work in interactive environment like ipython/jupyter notebooks
+When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling :obj:`torch.multiprocessing`
+``.spawn()`` under the hood. The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason, we recommend you
+use ``strategy="ddp"`` so you can increase the ``num_workers``, however since DDP doesn't work in an interactive environment like IPython/Jupyter notebooks
 your script has to be callable like so:
 
 .. code-block:: bash
 
     python my_program.py
 
-Persistent Workers
-""""""""""""""""""
+However, using ``strategy="ddp_spawn"`` enables to reduce memory usage with In-Memory Dataset and shared memory tensors. For more info, checkout
+:ref:`Sharing Datasets Across Process Boundaries <ddp_spawn_shared_memory>` section.
 
-When using ``strategy="ddp_spawn"`` and ``num_workers > 0``, consider setting ``persistent_workers=True`` inside your DataLoader since it can result in data-loading bottlenecks and slowdowns.
+Persistent Workers
+^^^^^^^^^^^^^^^^^^
+
+When using ``strategy="ddp_spawn"`` and ``num_workers>0``, consider setting ``persistent_workers=True`` inside your DataLoader since it can result in data-loading bottlenecks and slowdowns.
 This is a limitation of Python ``.spawn()`` and PyTorch.
 
 
@@ -205,8 +220,9 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 Early Stopping
 **************
 
-Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence. Here Early Stopping can help you stop
-the training entirely by monitoring a metric of your choice. To configure this you can use :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence.
+Here :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
+
 You can read more about it :ref:`here <early_stopping>`.
 
 ----------

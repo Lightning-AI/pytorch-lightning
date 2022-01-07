@@ -157,6 +157,9 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 ----------
 
+
+.. _ddp_spawn_shared_memory:
+
 Sharing Datasets Across Process Boundaries
 ------------------------------------------
 The :class:`~pytorch_lightning.DataModule` class provides an organized way to decouple data loading from training logic, with :meth:`~pytorch_lightning.DataModule.prepare_data` being used for downloading and pre-processing the dataset on a single process, and :meth:`~pytorch_lightning.DataModule.setup` loading the pre-processed data for each process individually:
