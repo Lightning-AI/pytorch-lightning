@@ -89,6 +89,7 @@ def test_rich_progress_bar_import_error(monkeypatch):
     with pytest.raises(ModuleNotFoundError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
         RichProgressBar()
 
+
 @RunIf(rich=True)
 def test_rich_progress_bar_custom_theme(tmpdir):
     """Test to ensure that custom theme styles are used."""
