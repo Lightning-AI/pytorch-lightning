@@ -29,15 +29,15 @@ Core API
     :nosignatures:
     :template: classtemplate.rst
 
-    hooks.CheckpointHooks
-    hooks.DataHooks
-    hooks.ModelHooks
+    ~hooks.CheckpointHooks
+    ~hooks.DataHooks
+    ~hooks.ModelHooks
     LightningDataModule
     LightningModule
-    mixins.DeviceDtypeModuleMixin
-    mixins.HyperparametersMixin
-    optimizer.LightningOptimizer
-    saving.ModelIO
+    ~mixins.DeviceDtypeModuleMixin
+    ~mixins.HyperparametersMixin
+    ~optimizer.LightningOptimizer
+    ~saving.ModelIO
 
 Strategy API
 ------------
