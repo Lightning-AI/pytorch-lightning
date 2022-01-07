@@ -123,21 +123,15 @@ PyTorch Lightning
    :caption: Examples
 
    ecosystem/community_examples
-   Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html>
-   BYOL <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
-   DQN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
-   GAN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/gans.html#basic-gan>
-   GPT-2 <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#gpt-2>
-   Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#image-gpt>
-   SimCLR <https://lightning-bolts.readthedocs.io/en/latest/deprecated/transforms/self_supervised.html#simclr-transforms>
-   VAE <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Partner Domain Frameworks
-   :caption: Partner Domain Frameworks
-
    ecosystem/asr_nlp_tts
+   Autoencoder <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html>
+   BYOL <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
+   DQN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/gans.html#basic-gan>
+   GPT-2 <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2>
+   Image-GPT <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#image-gpt>
+   SimCLR <https://lightning-bolts.readthedocs.io/en/stable/deprecated/transforms/self_supervised.html#simclr-transforms>
+   VAE <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1
