@@ -2,7 +2,7 @@ name: Schema
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push: {}
   pull_request:
-    branches: ["release/*"]
+    branches: [master, "release/*"]
 
 jobs:
   check:

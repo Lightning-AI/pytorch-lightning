@@ -15,6 +15,7 @@ trigger:
       - "release/*"
       - "refs/tags/*"
 pr:
+  - "master"
   - "release/*"
 
 # Workflow Steps:
