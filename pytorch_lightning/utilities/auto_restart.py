@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _SupportsStateDict
 
 
 class FastForwardSampler(Sampler):
@@ -575,9 +576,6 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
 def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
     # therefore, we need to reload the states manually.
-
-    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
-
     latest_worker_id = state_dict["latest_worker_id"]
     num_workers = state_dict["state"][latest_worker_id]["num_workers"]
     sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
@@ -646,8 +644,6 @@ class _StatefulDataLoaderIter:
 
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
-        from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
-
         sampler_state = {
             k: v.state_dict()
             for k, v in self._loader.__dict__.items()

@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
@@ -334,8 +334,6 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
 
 
 def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.LightningModule") -> None:
-    from pytorch_lightning.trainer.connectors.checkpoint_connector import _SupportsStateDict
-
     for scheduler_config in lr_schedulers:
         scheduler = scheduler_config["scheduler"]
         if not isinstance(scheduler, _SupportsStateDict):

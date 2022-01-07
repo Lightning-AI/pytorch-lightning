@@ -23,7 +23,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import TypedDict
+from typing_extensions import Protocol, runtime_checkable, TypedDict
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -106,3 +106,14 @@ class LRSchedulerConfig(TypedDict):
     monitor: Optional[str]
     strict: bool
     opt_idx: Optional[int]
+
+
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...

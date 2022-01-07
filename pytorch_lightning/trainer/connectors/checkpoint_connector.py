@@ -18,7 +18,6 @@ from typing import Any, Dict, Optional
 
 import torch
 from torchmetrics import Metric
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
@@ -476,14 +475,3 @@ class CheckpointConnector:
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
         filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
         return filepath
-
-
-@runtime_checkable
-class _SupportsStateDict(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
