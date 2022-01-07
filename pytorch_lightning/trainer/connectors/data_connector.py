@@ -631,19 +631,28 @@ class _DataHookSource:
         datamodule: A LightningDataModule
     """
 
-    model: Optional["pl.LightningModule"]
+    model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
 
     def get_hook(self, hook_name):
+        if hook_name not in self._valid_hooks:
+            raise ValueError(
+                f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
+                f" Valid hooks are {self._valid_hooks}."
+            )
+
         if self.datamodule is None:
             return getattr(self.model, hook_name)
 
         if is_overridden(hook_name, self.datamodule):
             if is_overridden(hook_name, self.model):
                 warning_cache.warn(
-                    f"You have overridden `{hook_name}` in both LightningModule and LightningDataModule."
-                    " We will use the implementation from LightningDataModule instance."
+                    f"You have overridden `{hook_name}` in both `LightningModule` and `LightningDataModule`."
+                    " It will use the implementation from `LightningDataModule` instance."
                 )
             return getattr(self.datamodule, hook_name)
 
         return getattr(self.model, hook_name)
+
+    def __post_init__(self):
+        self._valid_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")

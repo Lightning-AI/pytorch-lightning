@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource, warning_cache
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource, _DataLoaderSource, warning_cache
 from tests.deprecated_api import no_warning_call
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -74,7 +74,7 @@ def test_dataloader_source_request_from_module():
 @pytest.mark.parametrize(
     "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
 )
-@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.strategies.strategy.Strategy.lightning_module", new_callable=PropertyMock)
 def test_shared_datahook_call(module_mock, hook_name):
     class CustomBatch:
         def __init__(self):
@@ -106,7 +106,7 @@ def test_shared_datahook_call(module_mock, hook_name):
         setattr(model, hook_name, Mock(getattr(model, hook_name)))
         trainer._data_connector.attach_datamodule(model, datamodule=None)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
 
         assert getattr(model, hook_name).call_count == 1
 
@@ -116,7 +116,7 @@ def test_shared_datahook_call(module_mock, hook_name):
         setattr(model, hook_name, Mock(getattr(model, hook_name)))
         setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
 
         assert getattr(model, hook_name).call_count == 1
         assert getattr(dm, hook_name).call_count == 0
@@ -127,7 +127,7 @@ def test_shared_datahook_call(module_mock, hook_name):
         setattr(model, hook_name, overridden_model_func)
         setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
 
         assert batch.instance_type == ["model"]
         assert getattr(dm, hook_name).call_count == 0
@@ -138,7 +138,7 @@ def test_shared_datahook_call(module_mock, hook_name):
         setattr(model, hook_name, Mock(getattr(model, hook_name)))
         setattr(dm, hook_name, overridden_dm_func)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
 
         assert batch.instance_type == ["datamodule"]
         assert getattr(model, hook_name).call_count == 0
@@ -149,7 +149,7 @@ def test_shared_datahook_call(module_mock, hook_name):
         setattr(model, hook_name, overridden_model_func)
         setattr(dm, hook_name, overridden_dm_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
-            trainer.accelerator.batch_to_device(batch, torch.device("cpu"))
+            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
 
         warning_cache.clear()
 
@@ -160,3 +160,9 @@ def test_shared_datahook_call(module_mock, hook_name):
     _override_model_hook()
     _override_datamodule_hook()
     _override_both_model_and_datamodule()
+
+
+def test_invalid_hook_passed_in_datahook_source():
+    dh_source = _DataHookSource(BoringModel(), None)
+    with pytest.raises(ValueError, match="is not a shared hook"):
+        dh_source.get_hook("setup")
