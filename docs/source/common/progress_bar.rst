@@ -22,7 +22,7 @@ Supported Progress Bars
 TQDMProgressBar
 ---------------
 
-It uses the `tqdm <https://github.com/tqdm/tqdm>`_ library internally and is the default progress bar used by Lightning.
+The :class:`~pytorch_lightning.callbacks.TQDMProgressBar` uses the `tqdm <https://github.com/tqdm/tqdm>`_ library internally and is the default progress bar used by Lightning.
 It prints to ``stdout`` and shows up to four different bars:
 
 - **sanity check progress:** the progress during the sanity check run
@@ -38,7 +38,7 @@ You can update ``refresh_rate`` (rate (number of batches) at which the progress 
 
     from pytorch_lightning.callbacks import TQDMProgressBar
 
-    trainer = Trainer(callbacks=TQDMProgressBar(refresh_rate=10))
+    trainer = Trainer(callbacks=[TQDMProgressBar(refresh_rate=10)])
 
 If you want to customize the default :class:`~pytorch_lightning.callbacks.TQDMProgressBar` used by Lightning, you can override
 specific methods of the callback class and pass your custom implementation to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
@@ -52,8 +52,7 @@ specific methods of the callback class and pass your custom implementation to th
             return bar
 
 
-    bar = LitProgressBar()
-    trainer = Trainer(callbacks=[bar])
+    trainer = Trainer(callbacks=[LitProgressBar()])
 
 .. seealso::
     - :class:`~pytorch_lightning.callbacks.TQDMProgressBar` docs.
@@ -63,3 +62,72 @@ specific methods of the callback class and pass your custom implementation to th
 
 RichProgressBar
 ---------------
+
+`Rich <https://github.com/Textualize/rich>`_ is a Python library for rich text and beautiful formatting in the terminal.
+To use the :class:`~pytorch_lightning.callbacks.RichProgressBar` as your progress bar, first install the package:
+
+.. code-block:: bash
+
+    pip install rich
+
+Then configure the callback and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks import RichProgressBar
+
+    trainer = Trainer(callbacks=[RichProgressBar()])
+
+Customize the theme for your :class:`~pytorch_lightning.callbacks.RichProgressBar` like this:
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks import RichProgressBar
+    from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
+
+    # create your own theme!
+    progress_bar = RichProgressBar(
+        theme=RichProgressBarTheme(
+            description="green_yellow",
+            progress_bar="green1",
+            progress_bar_finished="green1",
+            progress_bar_pulse="#6206E0",
+            batch_progress="green_yellow",
+            time="grey82",
+            processing_speed="grey82",
+            metrics="grey82",
+        )
+    )
+
+    trainer = Trainer(callbacks=progress_bar)
+
+You can customize the components used within :class:`~pytorch_lightning.callbacks.RichProgressBar` with ease by overriding the
+:func:`~pytorch_lightning.callbacks.RichProgressBar.configure_columns` method.
+
+.. code-block:: python
+
+    from rich.progress import TextColumn
+
+    custom_column = TextColumn("[progress.description]Custom Rich Progress Bar!")
+
+
+    class CustomRichProgressBar(RichProgressBar):
+        def configure_columns(self, trainer):
+            return [custom_column]
+
+
+    progress_bar = CustomRichProgressBar()
+
+If you wish for a new progress bar to be displayed at the end of every epoch, you should enable
+:paramref:`RichProgressBar.leave <pytorch_lightning.callbacks.RichProgressBar.leave>` by passing ``True``
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks import RichProgressBar
+
+    trainer = Trainer(callbacks=[RichProgressBar(leave=True)])
+
+.. seealso::
+    - :class:`~pytorch_lightning.callbacks.RichProgressBar` docs.
+    - :class:`~pytorch_lightning.callbacks.RichModelSummary` docs to customize the model summary table.
+    - `Rich library <https://github.com/Textualize/rich>`__.
