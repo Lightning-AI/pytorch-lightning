@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
 from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")  # the output type of `run`
@@ -58,7 +59,7 @@ class Loop(ABC, Generic[T]):
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: "pl.Trainer"):
+    def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
         if not isinstance(trainer, pl.Trainer):
             raise MisconfigurationException(
@@ -99,7 +100,52 @@ class Loop(ABC, Generic[T]):
         Linked loops should form a tree.
         """
 
-    def on_skip(self) -> Optional[Any]:
+    def replace(self, **loops: Union["Loop", Type["Loop"]]) -> None:
+        """Optionally replace one or multiple of this loop's sub-loops.
+
+        This methods takes care of instantiating the class (if necessary) with all existing arguments, connecting all
+        sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and connecting the new loop to
+        the parent.
+
+        Args:
+            **loops: ``Loop`` subclasses or instances. The name used should match the loop attribute name you want to
+                replace.
+
+        Raises:
+            MisconfigurationException: When passing a ``Loop`` class, if the ``__init__`` arguments do not match those
+                of the Loop class it replaces.
+        """
+        new_loops = {}
+
+        for name, type_or_object in loops.items():
+            old_loop = getattr(self, name)
+
+            if isinstance(type_or_object, type):
+                # compare the signatures
+                old_parameters = inspect.signature(old_loop.__class__.__init__).parameters
+                current_parameters = inspect.signature(type_or_object.__init__).parameters
+                if old_parameters != current_parameters:
+                    raise MisconfigurationException(
+                        f"`{self.__class__.__name__}.replace({type_or_object.__name__})` can only be used if the"
+                        f" `__init__` signatures match but `{old_loop.__class__.__name__}` does not."
+                    )
+                # instantiate the loop
+                kwargs = {p: getattr(old_loop, p) for p in old_parameters if p != "self"}
+                loop = type_or_object(**kwargs)
+            else:
+                loop = type_or_object
+
+            # connect sub-loops
+            kwargs = {n: l for n, l in old_loop.__dict__.items() if isinstance(l, Loop)}
+            loop.connect(**kwargs)
+            # set the trainer reference
+            loop.trainer = self.trainer
+
+            new_loops[name] = loop
+        # connect to self
+        self.connect(**new_loops)
+
+    def on_skip(self) -> T:
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
         Returns:
@@ -215,7 +261,7 @@ class Loop(ABC, Generic[T]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[Dict] = None, prefix: Optional[str] = "") -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
         """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:
@@ -228,13 +274,15 @@ class Loop(ABC, Generic[T]):
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
+        # do not get the mode from `self.trainer` because it might not have been attached yet
+        ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
         for k, v in self.__dict__.items():
             key = prefix + k
-            if isinstance(v, BaseProgress):
+            if ft_enabled and isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
-            elif isinstance(v, ResultCollection):
+            elif isinstance(v, _ResultCollection):
                 # sync / unsync metrics
                 v.sync()
                 destination[key] = v.state_dict()
@@ -257,12 +305,16 @@ class Loop(ABC, Generic[T]):
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
+            if key not in state_dict:
+                # no state for this object, maybe we are loading an old checkpoint
+                continue
+
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
             elif (
-                isinstance(v, ResultCollection)
+                isinstance(v, _ResultCollection)
                 and self.trainer is not None
-                and getattr(self.trainer, "lightning_module", None) is not None
+                and self.trainer.lightning_module is not None
             ):
                 metric_attributes = {
                     name: module
@@ -272,14 +324,12 @@ class Loop(ABC, Generic[T]):
                 if metrics:
                     metric_attributes.update(metrics)
 
-                # The `ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
+                # The `_ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
                 # When creating a checkpoint, the `Metric`s are dropped from the loop `state_dict` to serialize only
                 # Python primitives. However, their states are saved with the model's `state_dict`.
-                # On reload, we need to re-attach the `Metric`s back to the `ResultCollection`.
+                # On reload, we need to re-attach the `Metric`s back to the `_ResultCollection`.
                 # The references are provided through the `metric_attributes` dictionary.
-                v.load_state_dict(
-                    state_dict[prefix + k], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
-                )
+                v.load_state_dict(state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.strategy.reduce)
 
                 if not self.trainer.is_global_zero:
                     v.reset(metrics=False)

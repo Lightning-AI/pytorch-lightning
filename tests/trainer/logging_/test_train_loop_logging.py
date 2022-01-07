@@ -27,7 +27,6 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -92,6 +91,9 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -129,6 +131,9 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -170,6 +175,9 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(
@@ -434,7 +442,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
@@ -716,10 +724,10 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_train_batch_start(self, batch, batch_idx):
-            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
-            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
@@ -746,36 +754,3 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-
-
-def test_no_batch_size_extraction_with_specifying_explictly(tmpdir):
-    batch_size = BoringModel().train_dataloader().batch_size + 1
-    fast_dev_run = 2
-    log_val = 7
-
-    class CustomBoringModel(BoringModel):
-        def on_before_batch_transfer(self, batch, *args, **kwargs):
-            # This is an ambiguous batch which have multiple potential batch sizes
-            if self.trainer.training:
-                batch = {"batch1": torch.randn(batch_size, 10), "batch2": batch}
-            return batch
-
-        def training_step(self, batch, batch_idx):
-            self.log("step_log_val", log_val, on_epoch=False)
-            self.log("epoch_log_val", log_val, batch_size=batch_size, on_step=False, on_epoch=True)
-            self.log("epoch_sum_log_val", log_val, on_epoch=True, reduce_fx="sum")
-            return super().training_step(batch["batch2"], batch_idx)
-
-        def on_train_epoch_end(self, *args, **kwargs):
-            results = self.trainer._results
-            assert results["training_step.step_log_val"].value == log_val
-            assert results["training_step.step_log_val"].cumulated_batch_size == 0
-            assert results["training_step.epoch_log_val"].value == log_val * batch_size * fast_dev_run
-            assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size * fast_dev_run
-            assert results["training_step.epoch_sum_log_val"].value == log_val * fast_dev_run
-
-    model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=fast_dev_run)
-
-    with no_warning_call(match="Trying to infer the `batch_size`"):
-        trainer.fit(model)

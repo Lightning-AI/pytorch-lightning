@@ -63,8 +63,12 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.checkpoint_connector.hpc_save(trainer.weights_save_path, logger)
-    assert os.path.exists(saved_filepath)
+    # save logger to make sure we get all the metrics
+    if logger:
+        logger.finalize("finished")
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(trainer.weights_save_path)
+    trainer.save_checkpoint(hpc_save_path)
+    assert os.path.exists(hpc_save_path)
 
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
@@ -106,7 +110,6 @@ def test_early_stopping_cpu_model(tmpdir):
         callbacks=[stopping],
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
-        overfit_batches=0.20,
         track_grad_norm=2,
         enable_progress_bar=False,
         accumulate_grad_batches=2,

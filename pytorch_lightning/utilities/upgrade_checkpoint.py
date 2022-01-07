@@ -19,6 +19,7 @@ import torch
 
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.types import _PATH
 
 KEYS_MAPPING = {
     "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
@@ -31,7 +32,7 @@ KEYS_MAPPING = {
 log = logging.getLogger(__name__)
 
 
-def upgrade_checkpoint(filepath):
+def upgrade_checkpoint(filepath: _PATH) -> None:
     checkpoint = torch.load(filepath)
     checkpoint["callbacks"] = checkpoint.get("callbacks") or {}
 

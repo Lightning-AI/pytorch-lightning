@@ -43,6 +43,27 @@ PyTorch Lightning
    common/trainer
 
 .. toctree::
+   :maxdepth: 2
+   :name: docs
+   :caption: Optional Extensions
+
+   extensions/accelerator
+   extensions/callbacks
+   extensions/datamodules
+   extensions/logging
+   extensions/plugins
+   extensions/loops
+
+.. toctree::
+   :maxdepth: 1
+   :name: Accelerators
+   :caption: Accelerators
+
+   accelerators/gpu
+   accelerators/tpu
+   accelerators/ipu
+
+.. toctree::
    :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
@@ -54,38 +75,21 @@ PyTorch Lightning
    common/early_stopping
    common/hyperparameters
    common/production_inference
-   advanced/ipu
    common/lightning_cli
    advanced/lr_finder
    common/loggers
-   advanced/multi_gpu
    advanced/advanced_gpu
    advanced/mixed_precision
-   common/weights_loading
+   common/checkpointing
    advanced/fault_tolerant_training
-   advanced/checkpoint_io
    common/optimizers
    advanced/profiler
-   advanced/plugins_registry
-   advanced/sequences
-   common/single_gpu
+   advanced/strategy_registry
+   common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
-   advanced/tpu
    common/test_set
-
-.. toctree::
-   :maxdepth: 2
-   :name: docs
-   :caption: Optional extensions
-
-   extensions/accelerators
-   extensions/callbacks
-   extensions/datamodules
-   extensions/logging
-   extensions/plugins
-   extensions/loops
 
 .. toctree::
    :maxdepth: 1

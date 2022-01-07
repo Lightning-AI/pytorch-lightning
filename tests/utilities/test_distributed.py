@@ -64,15 +64,14 @@ def test_rank_zero_none_set(rank_key, rank):
 def _test_collect_states(rank, world_size):
     os.environ["MASTER_ADDR"] = "localhost"
 
+    torch.cuda.set_device(f"cuda:{rank}")
+
     # initialize the process group
     torch.distributed.init_process_group("nccl", rank=rank, world_size=world_size)
 
     state = {"something": torch.tensor([rank])}
-    collected_state = _collect_states_on_rank_zero(state, device=torch.device(f"cuda:{rank}"))
-    if rank == 0:
-        assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
-    else:
-        assert collected_state is None
+    collected_state = _collect_states_on_rank_zero(state)
+    assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
 
 
 @RunIf(skip_windows=True, min_gpus=2, min_torch="1.10")

@@ -56,9 +56,44 @@ def test_logger_collection():
     mock2.finalize.assert_called_once()
 
 
+def test_logger_collection_unique_names():
+    unique_name = "name1"
+    logger1 = CustomLogger(name=unique_name)
+    logger2 = CustomLogger(name=unique_name)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.name == unique_name
+
+
+def test_logger_collection_names_order():
+    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
+    logger = LoggerCollection(loggers)
+    assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
+
+
+def test_logger_collection_unique_versions():
+    unique_version = "1"
+    logger1 = CustomLogger(version=unique_version)
+    logger2 = CustomLogger(version=unique_version)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.version == unique_version
+
+
+def test_logger_collection_versions_order():
+    loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
+    logger = LoggerCollection(loggers)
+    assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
+
+
 class CustomLogger(LightningLoggerBase):
-    def __init__(self):
+    def __init__(self, experiment: str = "test", name: str = "name", version: str = "1"):
         super().__init__()
+        self._experiment = experiment
+        self._name = name
+        self._version = version
         self.hparams_logged = None
         self.metrics_logged = {}
         self.finalized = False
@@ -66,7 +101,7 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        return "test"
+        return self._experiment
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -88,11 +123,11 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def name(self):
-        return "name"
+        return self._name
 
     @property
     def version(self):
-        return "1"
+        return self._version
 
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
@@ -111,7 +146,6 @@ def test_custom_logger(tmpdir):
     trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger, default_root_dir=tmpdir)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.after_save_checkpoint_called
     assert logger.finalized_status == "success"
@@ -133,11 +167,11 @@ def test_multiple_loggers(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert logger1.hparams_logged == model.hparams
+    assert logger1.hparams_logged is None
     assert logger1.metrics_logged != {}
     assert logger1.finalized_status == "success"
 
-    assert logger2.hparams_logged == model.hparams
+    assert logger2.hparams_logged is None
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 
@@ -239,6 +273,13 @@ def test_dummylogger_noop_method_calls():
     logger = DummyLogger()
     logger.log_hyperparams("1", 2, three="three")
     logger.log_metrics("1", 2, three="three")
+
+
+def test_dummyexperiment_support_item_assignment():
+    """Test that the DummyExperiment supports item assignment."""
+    experiment = DummyExperiment()
+    experiment["variable"] = "value"
+    assert experiment["variable"] != "value"  # this is only a stateless mock experiment
 
 
 def test_np_sanitization():

@@ -153,11 +153,11 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.state.finished, "amp + ddp model failed to complete"
 
     # test root model address
-    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
+    assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
+    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
     assert generated == "abc23"
 
 

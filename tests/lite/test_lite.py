@@ -25,7 +25,8 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DeepSpeedPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function
@@ -164,32 +165,16 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-def test_setup_dataloaders_with_custom_type():
-    """Test that Lite intercepts arguments passed to custom subclasses of torch.utils.DataLoader and sets them as
-    attributes."""
+@mock.patch("pytorch_lightning.lite.lite._replace_dataloader_init_method")
+def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
+    """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
-    class DataLoaderSubclass1(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute1 = attribute1
-            super().__init__(*args, **kwargs)
-
-    class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute1, attribute2, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute2 = attribute2
-            super().__init__(attribute1, *args, **kwargs)
-
-    class LiteWithCustomDataLoader(LightningLite):
+    class Lite(LightningLite):
         def run(self):
-            dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
-            assert dataloader.attribute1 == "attribute1"
-            assert dataloader.attribute2 == "attribute2"
-            lite_dataloader = self.setup_dataloaders(dataloader)
-            assert lite_dataloader.attribute1 == "attribute1"
-            assert lite_dataloader.attribute2 == "attribute2"
+            ctx_manager().__enter__.assert_called_once()
 
-    LiteWithCustomDataLoader().run()
+    Lite().run()
+    ctx_manager().__exit__.assert_called_once()
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
@@ -343,7 +328,7 @@ def test_to_device(accelerator, expected):
 def test_rank_properties():
     """Test that the rank properties are determined by the strategy."""
     lite = EmptyLite()
-    lite._strategy = Mock(spec=TrainingTypePlugin)
+    lite._strategy = Mock(spec=Strategy)
     lite._strategy.world_size = 1000
     assert lite.world_size == 1000
     lite._strategy.global_rank = 100
@@ -396,7 +381,7 @@ def test_autocast():
     lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
+@RunIf(min_gpus=2, deepspeed=True, standalone=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
         def run(self):
@@ -459,4 +444,4 @@ def test_deepspeed_multiple_models():
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 
-    Lite(strategy=DeepSpeedPlugin(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()

@@ -23,15 +23,20 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
-if _TORCHTEXT_AVAILABLE:
+if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
         from torchtext.data import Batch
 else:
     Batch = type(None)
+
+
+_CPU_DEVICES = ("cpu", torch.device("cpu"))
 
 
 def to_dtype_tensor(
@@ -143,7 +148,13 @@ def apply_to_collection(
                 )
             if not field_init or (not include_none and v is None):  # retain old value
                 v = getattr(data, field_name)
-            setattr(result, field_name, v)
+            try:
+                setattr(result, field_name, v)
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
         return result
 
     # data is neither of dtype, nor a collection
@@ -257,8 +268,13 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
     def batch_to(data: Any) -> Any:
         # try to move torchtext data first
-        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
-
+        if _TORCHTEXT_LEGACY and isinstance(data, Batch):
+            # TODO: also remove the torchtext dependency with Lightning 1.8
+            rank_zero_deprecation(
+                "The `torchtext.legacy.Batch` object is deprecated and Lightning will remove support for it in v1.8."
+                " We recommend you to migrate away from Batch by following the TorchText README:"
+                " https://github.com/pytorch/text#bc-breaking-legacy"
+            )
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field, field_value in data.dataset.fields.items():
@@ -268,14 +284,17 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
                 setattr(device_data, field, device_field)
             return device_data
 
-        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        kwargs = {}
+        # Don't issue non-blocking transfers to CPU
+        if isinstance(data, torch.Tensor) and device not in _CPU_DEVICES:
+            kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
             return data_output
         # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
         return data
 
-    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_LEGACY else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 

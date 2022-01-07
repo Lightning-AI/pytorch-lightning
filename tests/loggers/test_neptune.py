@@ -77,7 +77,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
 class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
-        created_run_mock = logger._run_instance
+        created_run_mock = logger.run
 
         self.assertEqual(logger._run_instance, created_run_mock)
         self.assertEqual(logger.name, "Run test name")
@@ -109,7 +109,7 @@ class TestNeptuneLogger(unittest.TestCase):
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
-        neptune.init.assert_called_once_with(project="test-project", api_token=None, run="TEST-42")
+        neptune.init.assert_called_once_with(name="Test name", run=unpickleable_run._short_id)
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -276,14 +276,15 @@ class TestNeptuneLogger(unittest.TestCase):
             logger, run_instance_mock, run_attr_mock = self._get_logger_with_mocks(
                 api_key="test", project="project", **prefix
             )
+            models_root_dir = os.path.join("path", "to", "models")
             cb_mock = MagicMock(
-                dirpath="path/to/models",
-                last_model_path="path/to/models/last",
+                dirpath=models_root_dir,
+                last_model_path=os.path.join(models_root_dir, "last"),
                 best_k_models={
-                    "path/to/models/model1": None,
-                    "path/to/models/model2/with/slashes": None,
+                    f"{os.path.join(models_root_dir, 'model1')}": None,
+                    f"{os.path.join(models_root_dir, 'model2/with/slashes')}": None,
                 },
-                best_model_path="path/to/models/best_model",
+                best_model_path=os.path.join(models_root_dir, "best_model"),
                 best_model_score=None,
             )
 
@@ -292,19 +293,21 @@ class TestNeptuneLogger(unittest.TestCase):
 
             # then:
             self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
-            self.assertEqual(run_instance_mock.__getitem__.call_count, 3)
-            self.assertEqual(run_attr_mock.upload.call_count, 3)
+            self.assertEqual(run_instance_mock.__getitem__.call_count, 4)
+            self.assertEqual(run_attr_mock.upload.call_count, 4)
             run_instance_mock.__setitem__.assert_called_once_with(
-                f"{model_key_prefix}/best_model_path", "path/to/models/best_model"
+                f"{model_key_prefix}/best_model_path", os.path.join(models_root_dir, "best_model")
             )
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/last")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
             run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
+            run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/best_model")
             run_attr_mock.upload.assert_has_calls(
                 [
-                    call("path/to/models/last"),
-                    call("path/to/models/model1"),
-                    call("path/to/models/model2/with/slashes"),
+                    call(os.path.join(models_root_dir, "last")),
+                    call(os.path.join(models_root_dir, "model1")),
+                    call(os.path.join(models_root_dir, "model2/with/slashes")),
+                    call(os.path.join(models_root_dir, "best_model")),
                 ]
             )
 
@@ -357,7 +360,7 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
-        attr_mock = logger._run_instance.__getitem__
+        attr_mock = logger.run.__getitem__
         attr_mock.reset_mock()
         fake_image = {}
 
@@ -394,8 +397,12 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         # given:
         SimpleCheckpoint = namedtuple("SimpleCheckpoint", ["dirpath"])
         test_input_data = [
-            ("key.ext", "foo/bar/key.ext", SimpleCheckpoint(dirpath="foo/bar")),
-            ("key/in/parts.ext", "foo/bar/key/in/parts.ext", SimpleCheckpoint(dirpath="foo/bar")),
+            ("key", os.path.join("foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("foo", "bar"))),
+            (
+                "key/in/parts",
+                os.path.join("foo", "bar", "key/in/parts.ext"),
+                SimpleCheckpoint(dirpath=os.path.join("foo", "bar")),
+            ),
         ]
 
         # expect:
