@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
@@ -83,11 +82,12 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
     assert progress_update.call_count == 8
 
 
-def test_rich_progress_bar_import_error():
-    if not _RICH_AVAILABLE:
-        with pytest.raises(ModuleNotFoundError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
-            Trainer(callbacks=RichProgressBar())
+def test_rich_progress_bar_import_error(monkeypatch):
+    import pytorch_lightning.callbacks.progress.rich_progress as imports
 
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+    with pytest.raises(ModuleNotFoundError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
+        RichProgressBar()
 
 @RunIf(rich=True)
 def test_rich_progress_bar_custom_theme(tmpdir):
