@@ -62,7 +62,7 @@ def test_eval_limit_batches(stage, mode, limit_batches):
     trainer = Trainer(**{limit_eval_batches: limit_batches})
     model.trainer = trainer
     trainer._data_connector.attach_dataloaders(model)
-    loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
+    loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
     expected_batches = int(limit_batches * len(eval_loader)) if isinstance(limit_batches, float) else limit_batches
     assert loader_num_batches[0] == expected_batches
     assert len(dataloaders[0]) == len(eval_loader)

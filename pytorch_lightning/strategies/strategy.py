@@ -381,7 +381,7 @@ class Strategy(ABC):
         return False
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+    def lightning_restore_optimizer(self) -> bool:
         """Override to disable Lightning restoring optimizers/schedulers.
 
         This is useful for plugins which manage restoring optimizers/schedulers.
@@ -436,7 +436,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
 
     @classmethod
-    def register_plugins(cls, plugin_registry) -> None:
+    def register_strategies(cls, strategies_registry) -> None:
         pass
 
     def on_train_start(self) -> None:
