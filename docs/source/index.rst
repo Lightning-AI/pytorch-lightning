@@ -112,6 +112,7 @@ Welcome to PyTorch Lightning
    common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
+   common/progress_bar
    advanced/transfer_learning
    common/evaluation
 
