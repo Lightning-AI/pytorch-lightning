@@ -8,7 +8,6 @@ trigger:
       - release/*
       - refs/tags/*
 pr:
-  - master
   - release/*
 
 variables:
