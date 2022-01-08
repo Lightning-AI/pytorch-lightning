@@ -290,6 +290,11 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from self._find_value(v, target)
 
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
+        unique_keys: List[str]
+        rows: List[List[str]]
+
+        new_results: List[_OUT_DICT] = []
+
         if _RICH_AVAILABLE:
             from rich.console import Console
             from rich.table import Table
@@ -299,14 +304,12 @@ class EvaluationLoop(DataLoaderLoop):
 
             table.add_column("Metric", justify="center", style="cyan")
 
-            new_results: List[_OUT_DICT] = []
-
             for result in results:
                 clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
                 new_results.append(dict(zip(clean_keys, result.values())))
 
-            unique_keys: List[str] = sorted(list(set(self._get_keys(new_results))))
-            rows: List[List[str]] = [[i] for i in unique_keys]
+            unique_keys = sorted(list(set(self._get_keys(new_results))))
+            rows = [[i] for i in unique_keys]
 
             for i, metrics in enumerate(new_results):
                 table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
@@ -321,17 +324,15 @@ class EvaluationLoop(DataLoaderLoop):
             for row in rows:
                 table.add_row(*row)
 
-            console.print("", table)
+            console.print(table)
 
         else:
             import os
 
-            term_size = max(120, os.get_terminal_size())
-            print("\n", "\u2500" * (term_size.columns - 1))
+            term_size = max(120, os.get_terminal_size().columns)
+            print("\u2500" * term_size)
 
             cols = [f"DATALOADER {i}" for i in range(len(results))]
-
-            new_results = []
 
             for result in results:
                 clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
@@ -352,9 +353,9 @@ class EvaluationLoop(DataLoaderLoop):
             row_format = "{:^{max_length}}" * (len(cols) + 1)
 
             print(row_format.format("Metric", *cols, max_length=max_length))
-            print("\u2500" * (term_size.columns - 1))
+            print("\u2500" * term_size)
 
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
 
-            print("\u2500" * term_size.columns)
+            print("\u2500" * term_size)
