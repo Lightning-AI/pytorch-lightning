@@ -14,6 +14,7 @@
 from typing import Any, Iterable, List, Sequence, Union
 
 from deprecate.utils import void
+from rich.table import Column
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
@@ -293,18 +294,19 @@ class EvaluationLoop(DataLoaderLoop):
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         unique_keys = sorted(set(self._get_keys(results)))
+        headers = [f"{stage} Metric".capitalize()] + [f"DataLoader {i}" for i in range(len(results))]
 
         if _RICH_AVAILABLE:
             from rich.console import Console
             from rich.table import Table
 
             console = Console()
-            table = Table()
+            columns = [Column(h, justify="center", style="magenta") for h in headers]
+            columns[0].style = "cyan"
+            table = Table(*columns)
 
             rows = [[key] for key in unique_keys]
-            table.add_column(f"{stage.capitalize()} Metric", justify="center", style="cyan")
-            for i, metrics in enumerate(results):
-                table.add_column(f"DataLoader {i}", justify="center", style="magenta")
+            for metrics in results:
                 for metric in rows:
                     v = list(self._find_value(metrics, metric[0]))
                     metric.append(f"{v[0]}" if v else " ")
@@ -316,19 +318,18 @@ class EvaluationLoop(DataLoaderLoop):
             import os
 
             rows = [[] for _ in unique_keys]
-            for i, metrics in enumerate(results):
-                for j in range(len(rows)):
-                    v = list(self._find_value(metrics, unique_keys[j]))
-                    rows[j].append(f"{v[0]}" if v else " ")
+            for metrics in results:
+                for i in range(len(rows)):
+                    v = list(self._find_value(metrics, unique_keys[i]))
+                    rows[i].append(f"{v[0]}" if v else " ")
 
-            cols = [f"{stage.capitalize()} Metric"] + [f"DataLoader {i}" for i in range(len(results))]
-            max_length = max(len(max(unique_keys + cols, key=len)), 25)
-            row_format = "{:^{max_length}}" * len(cols)
-            # cap wide terminals to 120 columns, but go over if there are many table columns
-            term_size = max(min(120, os.get_terminal_size().columns), max_length * len(cols))
+            max_length = max(len(max(unique_keys + headers, key=len)), 25)
+            row_format = "{:^{max_length}}" * len(headers)
+            # cap wide terminals to 120 columns, but go over if there are many headers
+            term_size = max(min(120, os.get_terminal_size().columns), max_length * len(headers))
 
             print("\u2500" * term_size)
-            print(row_format.format(*cols, max_length=max_length))
+            print(row_format.format(*headers, max_length=max_length))
             print("\u2500" * term_size)
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
