@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 import torch
@@ -699,13 +699,8 @@ def test_lr_scheduler_step_hook(tmpdir):
             ...
 
     class CustomBoringModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer1 = torch.nn.Linear(32, 2)
-            self.layer2 = torch.nn.Linear(32, 2)
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return (self.layer1 if optimizer_idx == 0 else self.layer2)(batch).sum()
+        def training_step(self, batch, batch_idx, optimizer_idx=0):
+            return super().training_step(batch, batch_idx)
 
         def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
             # step-level
@@ -716,18 +711,18 @@ def test_lr_scheduler_step_hook(tmpdir):
                 scheduler.step(epoch=self.current_epoch)
 
         def configure_optimizers(self):
-            opt1 = torch.optim.SGD(self.layer1.parameters(), lr=1e-2)
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
             lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
-            opt2 = torch.optim.SGD(self.layer2.parameters(), lr=1e-2)
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
             lr_scheduler2 = CustomEpochScheduler(opt2)
             return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
                 "optimizer": opt2,
                 "lr_scheduler": lr_scheduler2,
             }
 
-    max_epochs = 3
     model = CustomBoringModel()
     model.training_epoch_end = None
+    max_epochs = 3
     limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -742,10 +737,10 @@ def test_lr_scheduler_step_hook(tmpdir):
         torch.optim.lr_scheduler.StepLR, "step"
     ) as mock_method_step:
         trainer.fit(model)
-        assert mock_method_epoch.call_count == max_epochs
-        assert (
-            mock_method_step.call_count == max_epochs * limit_train_batches + 1
-        )  # first step is called by PyTorch _LRScheduler
+
+    assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # first step is called by PyTorch _LRScheduler
+    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
 
 
 def test_invalid_scheduler_missing_state_dict():
