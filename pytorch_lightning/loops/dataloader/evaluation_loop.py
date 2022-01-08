@@ -271,23 +271,25 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-    def _get_keys(self, iterable: Union[List, dict]) -> Iterable[str]:
+    @staticmethod
+    def _get_keys(iterable: Union[List, dict]) -> Iterable[str]:
         if isinstance(iterable, list):
             for i in iterable:
-                yield from self._get_keys(i)
+                yield from EvaluationLoop._get_keys(i)
         elif isinstance(iterable, dict):
             for k, v in iterable.items():
                 if isinstance(v, dict):
-                    yield from self._get_keys(v)
+                    yield from EvaluationLoop._get_keys(v)
                 else:
                     yield k
 
-    def _find_value(self, data: dict, target: str) -> Iterable[Any]:
+    @staticmethod
+    def _find_value(data: dict, target: str) -> Iterable[Any]:
         for k, v in data.items():
             if k == target:
                 yield v
             elif isinstance(v, dict):
-                yield from self._find_value(v, target)
+                yield from EvaluationLoop._find_value(v, target)
 
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
         # remove the dl idx suffix
