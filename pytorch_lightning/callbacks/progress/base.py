@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -46,11 +46,13 @@ class ProgressBarBase(Callback):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._trainer: Optional["pl.Trainer"] = None
 
     @property
     def trainer(self) -> "pl.Trainer":
+        if self._trainer is None:
+            raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
 
     @property
@@ -96,7 +98,7 @@ class ProgressBarBase(Callback):
         return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
 
     @property
-    def total_train_batches(self) -> int:
+    def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
@@ -105,7 +107,7 @@ class ProgressBarBase(Callback):
         return self.trainer.num_training_batches
 
     @property
-    def total_val_batches(self) -> int:
+    def total_val_batches(self) -> Union[int, float]:
         """The total number of validation batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
@@ -136,7 +138,7 @@ class ProgressBarBase(Callback):
         """
         return sum(self.trainer.num_predict_batches)
 
-    def disable(self):
+    def disable(self) -> None:
         """You should provide a way to disable the progress bar.
 
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
@@ -144,7 +146,7 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
-    def enable(self):
+    def enable(self) -> None:
         """You should provide a way to enable the progress bar.
 
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
@@ -153,7 +155,7 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
-    def print(self, *args, **kwargs):
+    def print(self, *args: Any, **kwargs: Any) -> None:
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
@@ -211,17 +213,18 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     elif pl_module.automatic_optimization:
         avg_training_loss = float("NaN")
 
-    items_dict = {}
+    items_dict: Dict[str, Union[int, str]] = {}
     if avg_training_loss is not None:
         items_dict["loss"] = f"{avg_training_loss:.3g}"
 
-    if pl_module.truncated_bptt_steps > 0:
+    if pl_module.truncated_bptt_steps > 0 and trainer.fit_loop.split_idx is not None:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
     if trainer.logger is not None and trainer.logger.version is not None:
         version = trainer.logger.version
-        # show last 4 places of long version strings
-        version = version[-4:] if isinstance(version, str) else version
+        if isinstance(version, str):
+            # show last 4 places of long version strings
+            version = version[-4:]
         items_dict["v_num"] = version
 
     return items_dict
