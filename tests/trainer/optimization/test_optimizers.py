@@ -705,12 +705,7 @@ def test_lr_scheduler_step_hook(tmpdir):
             self.layer2 = torch.nn.Linear(32, 2)
 
         def training_step(self, batch, batch_idx, optimizer_idx):
-            if optimizer_idx == 0:
-                output = self.layer1(batch)
-            else:
-                output = self.layer2(batch)
-
-            return self.loss(batch, output)
+            return (self.layer1 if optimizer_idx == 0 else self.layer2)(batch).sum()
 
         def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
             # step-level
