@@ -309,9 +309,9 @@ class EvaluationLoop(DataLoaderLoop):
             unique_keys = sorted(set(self._get_keys(new_results)))
             rows = [[i] for i in unique_keys]
 
-            table.add_column("Metric", justify="center", style="cyan")
+            table.add_column(f"{stage.capitalize()} Metric", justify="center", style="cyan")
             for i, metrics in enumerate(new_results):
-                table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
+                table.add_column(f"DataLoader {i}", justify="center", style="magenta")
                 for metric in rows:
                     v = list(self._find_value(metrics, metric[0]))
                     metric.append(f"{v[0]}" if v else " ")
@@ -336,7 +336,7 @@ class EvaluationLoop(DataLoaderLoop):
                     v = list(self._find_value(metrics, unique_keys[j]))
                     rows[j].append(f"{v[0]}" if v else " ")
 
-            cols = ["Metric"] + [f"DATALOADER {i}" for i in range(len(results))]
+            cols = [f"{stage.capitalize()} Metric"] + [f"DataLoader {i}" for i in range(len(results))]
             max_length = max(len(max(unique_keys + cols, key=len)), 25)
             row_format = "{:^{max_length}}" * len(cols)
             # cap wide terminals to 120 columns, but go over if there are many columns
