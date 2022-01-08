@@ -339,7 +339,7 @@ class EvaluationLoop(DataLoaderLoop):
             cols = [f"{stage.capitalize()} Metric"] + [f"DataLoader {i}" for i in range(len(results))]
             max_length = max(len(max(unique_keys + cols, key=len)), 25)
             row_format = "{:^{max_length}}" * len(cols)
-            # cap wide terminals to 120 columns, but go over if there are many columns
+            # cap wide terminals to 120 columns, but go over if there are many table columns
             term_size = max(min(120, os.get_terminal_size().columns), max_length * len(cols))
 
             print("\u2500" * term_size)
