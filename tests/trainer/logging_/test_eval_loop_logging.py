@@ -262,7 +262,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     for i, r in enumerate(results):
         expected = {"test_loss", "test_loss_epoch"}
         if suffix:
-            expected = {e for e in expected}
+            expected = {e + f"/dataloader_idx_{i}" for e in expected}
         assert set(r) == expected
 
 
@@ -740,15 +740,15 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
     assert len(results) == num_dataloaders
     assert results[0] == {
-        "test_log_common": 789.0,
-        "test_log_common_diff_value": 1.0,
+        "test_log_common/dataloader_idx_0": 789.0,
+        "test_log_common_diff_value/dataloader_idx_0": 1.0,
         "test_log_no_dl_idx_0": 321,
         "test_log_a_class": 123.0,
     }
     assert results[1] == {
-        "test_log_common": 789.0,
-        "test_log_common_diff_value": 2.0,
-        "test_log_no_dl_idx_1": 642.0,
+        "test_log_common/dataloader_idx_1": 789.0,
+        "test_log_common_diff_value/dataloader_idx_1": 2.0,
+        "test_log_no_dl_idx_1": 321 * 2,
         "test_log_b_class": 456.0,
     }
 
@@ -769,4 +769,4 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     results = trainer.test(model)
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
-    assert results == [{"foo": 1.0, "foobar": 3.0}, {"foo": 2.0, "foobar": 3.0}]
+    assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
