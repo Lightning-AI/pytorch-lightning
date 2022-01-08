@@ -537,7 +537,7 @@ If you are using native PyTorch schedulers, there is no need to override this ho
         return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
 
 
-    def lr_scheduler_step(self, scheduler, optimizer_idx, metric=None):
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
 
 

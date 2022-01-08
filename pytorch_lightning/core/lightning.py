@@ -1496,8 +1496,8 @@ class LightningModule(
     def lr_scheduler_step(
         self,
         scheduler: LRSchedulerTypeUnion,
-        optimizer_idx: Optional[int] = None,
-        metric: Any = None,
+        optimizer_idx: int,
+        metric: Optional[Any],
     ) -> None:
         r"""
         Override this method to adjust the default way the

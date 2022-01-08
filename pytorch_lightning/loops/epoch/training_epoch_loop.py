@@ -457,8 +457,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.trainer._call_lightning_module_hook(
                     "lr_scheduler_step",
                     lr_scheduler["scheduler"],
-                    optimizer_idx=lr_scheduler["opt_idx"],
-                    metric=monitor_val,
+                    lr_scheduler["opt_idx"] or 0,
+                    monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
 

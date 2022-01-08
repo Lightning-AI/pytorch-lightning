@@ -717,7 +717,7 @@ def test_lr_scheduler_step_hook(tmpdir):
         def training_epoch_end(self, *args, **kwargs):
             pass
 
-        def lr_scheduler_step(self, scheduler, optimizer_idx, metric=None):
+        def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
             # step-level
             if optimizer_idx == 0:
                 super().lr_scheduler_step(scheduler, optimizer_idx, metric)

@@ -327,13 +327,7 @@ class HookedModel(BoringModel):
                         kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
                     ),
                     *(
-                        [
-                            dict(
-                                name="lr_scheduler_step",
-                                args=(ANY,),
-                                kwargs=dict(optimizer_idx=0, metric=None),
-                            )
-                        ]
+                        [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
                         if i == (trainer.num_training_batches - 1)
                         else []
                     ),
