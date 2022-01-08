@@ -302,24 +302,19 @@ class EvaluationLoop(DataLoaderLoop):
             console = Console()
             table = Table()
 
-            table.add_column("Metric", justify="center", style="cyan")
-
             for result in results:
                 clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
                 new_results.append(dict(zip(clean_keys, result.values())))
 
-            unique_keys = sorted(list(set(self._get_keys(new_results))))
+            unique_keys = sorted(set(self._get_keys(new_results)))
             rows = [[i] for i in unique_keys]
 
+            table.add_column("Metric", justify="center", style="cyan")
             for i, metrics in enumerate(new_results):
                 table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
-
                 for metric in rows:
                     v = list(self._find_value(metrics, metric[0]))
-                    if v:
-                        metric.append(f"{v[0]}")
-                    else:
-                        metric.append(" ")
+                    metric.append(f"{v[0]}" if v else " ")
 
             for row in rows:
                 table.add_row(*row)
@@ -333,16 +328,13 @@ class EvaluationLoop(DataLoaderLoop):
                 clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
                 new_results.append(dict(zip(clean_keys, result.values())))
 
-            unique_keys = sorted(list(set(self._get_keys(new_results))))
-            rows = [[] for i in unique_keys]
+            unique_keys = sorted(set(self._get_keys(new_results)))
+            rows = [[] for _ in unique_keys]
 
             for i, metrics in enumerate(new_results):
                 for j in range(len(rows)):
                     v = list(self._find_value(metrics, unique_keys[j]))
-                    if v:
-                        rows[j].append(f"{v[0]}")
-                    else:
-                        rows[j].append(" ")
+                    rows[j].append(f"{v[0]}" if v else " ")
 
             cols = ["Metric"] + [f"DATALOADER {i}" for i in range(len(results))]
             max_length = max(len(max(unique_keys + cols, key=len)), 25)
