@@ -299,14 +299,16 @@ class EvaluationLoop(DataLoaderLoop):
 
             table.add_column("Metric", justify="center", style="cyan")
 
-            for i, result in enumerate(results):
-                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                results[i] = dict(zip(clean_keys, result.values()))
+            new_results: List[_OUT_DICT] = []
 
-            unique_keys: List[str] = sorted(list(set(self._get_keys(results))))
+            for result in results:
+                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                new_results.append(dict(zip(clean_keys, result.values())))
+
+            unique_keys: List[str] = sorted(list(set(self._get_keys(new_results))))
             rows: List[List[str]] = [[i] for i in unique_keys]
 
-            for i, metrics in enumerate(results):
+            for i, metrics in enumerate(new_results):
                 table.add_column(f"DATALOADER {i}", justify="center", style="magenta")
 
                 for metric in rows:
@@ -324,19 +326,21 @@ class EvaluationLoop(DataLoaderLoop):
         else:
             import os
 
-            term_size = os.get_terminal_size()
+            term_size = max(120, os.get_terminal_size())
             print("\n", "\u2500" * (term_size.columns - 1))
 
             cols = [f"DATALOADER {i}" for i in range(len(results))]
 
-            for i, result in enumerate(results):
-                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                results[i] = dict(zip(clean_keys, result.values()))
+            new_results = []
 
-            unique_keys = sorted(list(set(self._get_keys(results))))
+            for result in results:
+                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
+                new_results.append(dict(zip(clean_keys, result.values())))
+
+            unique_keys = sorted(list(set(self._get_keys(new_results))))
             rows = [[] for i in unique_keys]
 
-            for i, metrics in enumerate(results):
+            for i, metrics in enumerate(new_results):
                 for j in range(len(rows)):
                     v = list(self._find_value(metrics, unique_keys[j]))
                     if v:
