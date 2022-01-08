@@ -776,8 +776,7 @@ def test_invalid_scheduler_missing_state_dict():
 
 @pytest.mark.parametrize("override", (False, True))
 def test_invalid_lr_scheduler_with_custom_step_method(override):
-    """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler protocol API and
-    `lr_scheduler_step` is also not overridden."""
+    """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler API."""
 
     class CustomScheduler:
         def __init__(self, optimizer):
@@ -802,7 +801,7 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
     model.trainer = Trainer()
     if override:
 
-        def lr_scheduler_step(*args):
+        def lr_scheduler_step(*_):
             ...
 
         # the user did override the hook, no error
