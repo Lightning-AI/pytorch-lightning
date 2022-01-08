@@ -344,8 +344,8 @@ def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.Ligh
 
         if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
             raise MisconfigurationException(
-                f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow the PyTorch LR Scheduler"
-                " Protocol. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
+                f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
+                " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
                 " you are using a custom LR scheduler."
             )
 
