@@ -14,7 +14,6 @@
 from typing import Any, Iterable, List, Sequence, Union
 
 from deprecate.utils import void
-from rich.table import Column
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
@@ -298,7 +297,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         if _RICH_AVAILABLE:
             from rich.console import Console
-            from rich.table import Table
+            from rich.table import Column, Table
 
             console = Console()
             columns = [Column(h, justify="center", style="magenta") for h in headers]
