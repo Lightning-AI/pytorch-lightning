@@ -173,8 +173,6 @@ class TQDMProgressBar(ProgressBarBase):
 
     @property
     def _val_processed(self) -> int:
-        if self.trainer is None:
-            return 0
         if self.trainer.state.fn == "fit":
             # use total in case validation runs more than once per training epoch
             return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
@@ -229,7 +227,7 @@ class TQDMProgressBar(ProgressBarBase):
     def init_validation_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
-        has_main_bar = self.main_progress_bar is not None
+        has_main_bar = self._main_progress_bar is not None
         bar = Tqdm(
             desc="Validating",
             position=(2 * self.process_position + has_main_bar),
@@ -304,7 +302,7 @@ class TQDMProgressBar(ProgressBarBase):
         _update_n(self.val_progress_bar, self._val_processed)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.main_progress_bar is not None and trainer.state.fn == "fit":
+        if self._main_progress_bar is not None and trainer.state.fn == "fit":
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 
@@ -336,13 +334,13 @@ class TQDMProgressBar(ProgressBarBase):
     def print(self, *args: Any, sep: str = " ", **kwargs: Any) -> None:
         active_progress_bar = None
 
-        if self.main_progress_bar is not None and not self.main_progress_bar.disable:
+        if self._main_progress_bar is not None and not self.main_progress_bar.disable:
             active_progress_bar = self.main_progress_bar
-        elif self.val_progress_bar is not None and not self.val_progress_bar.disable:
+        elif self._val_progress_bar is not None and not self.val_progress_bar.disable:
             active_progress_bar = self.val_progress_bar
-        elif self.test_progress_bar is not None and not self.test_progress_bar.disable:
+        elif self._test_progress_bar is not None and not self.test_progress_bar.disable:
             active_progress_bar = self.test_progress_bar
-        elif self.predict_progress_bar is not None and not self.predict_progress_bar.disable:
+        elif self._predict_progress_bar is not None and not self.predict_progress_bar.disable:
             active_progress_bar = self.predict_progress_bar
 
         if active_progress_bar is not None:

@@ -61,8 +61,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
     @property
@@ -71,8 +69,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         if self.trainer.state.fn == "fit":
             return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
         return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
@@ -83,8 +79,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
 
     @property
@@ -93,8 +87,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
 
     @property
