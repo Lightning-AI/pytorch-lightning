@@ -87,7 +87,7 @@ class FitLoop(Loop[None]):
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> Optional[int]:
+    def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt."""
         return self.epoch_loop.batch_loop.split_idx
 

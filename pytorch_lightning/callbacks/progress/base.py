@@ -209,7 +209,7 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     if avg_training_loss is not None:
         items_dict["loss"] = f"{avg_training_loss:.3g}"
 
-    if pl_module.truncated_bptt_steps > 0 and trainer.fit_loop.split_idx is not None:
+    if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
     if trainer.logger is not None and trainer.logger.version is not None:
