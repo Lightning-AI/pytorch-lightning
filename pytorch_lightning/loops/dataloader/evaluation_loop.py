@@ -329,11 +329,6 @@ class EvaluationLoop(DataLoaderLoop):
         else:
             import os
 
-            term_size = max(120, os.get_terminal_size().columns)
-            print("\u2500" * term_size)
-
-            cols = [f"DATALOADER {i}" for i in range(len(results))]
-
             for result in results:
                 clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
                 new_results.append(dict(zip(clean_keys, result.values())))
@@ -349,13 +344,15 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         rows[j].append(" ")
 
+            cols = ["Metric"] + [f"DATALOADER {i}" for i in range(len(results))]
             max_length = max(len(max(unique_keys + cols, key=len)), 25)
-            row_format = "{:^{max_length}}" * (len(cols) + 1)
+            row_format = "{:^{max_length}}" * len(cols)
+            # cap wide terminals to 120 columns, but go over if there are many columns
+            term_size = max(min(120, os.get_terminal_size().columns), max_length * len(cols))
 
-            print(row_format.format("Metric", *cols, max_length=max_length))
             print("\u2500" * term_size)
-
+            print(row_format.format(*cols, max_length=max_length))
+            print("\u2500" * term_size)
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
-
             print("\u2500" * term_size)
