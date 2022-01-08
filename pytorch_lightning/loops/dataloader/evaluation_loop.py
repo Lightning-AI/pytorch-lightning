@@ -290,10 +290,9 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from self._find_value(v, target)
 
     def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
-        unique_keys: List[str]
-        rows: List[List[str]]
-
-        new_results: List[_OUT_DICT] = []
+        # remove the dl idx suffix
+        results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
+        unique_keys = sorted(set(self._get_keys(results)))
 
         if _RICH_AVAILABLE:
             from rich.console import Console
@@ -302,36 +301,22 @@ class EvaluationLoop(DataLoaderLoop):
             console = Console()
             table = Table()
 
-            for result in results:
-                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                new_results.append(dict(zip(clean_keys, result.values())))
-
-            unique_keys = sorted(set(self._get_keys(new_results)))
-            rows = [[i] for i in unique_keys]
-
+            rows = [[key] for key in unique_keys]
             table.add_column(f"{stage.capitalize()} Metric", justify="center", style="cyan")
-            for i, metrics in enumerate(new_results):
+            for i, metrics in enumerate(results):
                 table.add_column(f"DataLoader {i}", justify="center", style="magenta")
                 for metric in rows:
                     v = list(self._find_value(metrics, metric[0]))
                     metric.append(f"{v[0]}" if v else " ")
-
             for row in rows:
                 table.add_row(*row)
 
             console.print(table)
-
         else:
             import os
 
-            for result in results:
-                clean_keys = [i.split("/dataloader_idx_")[0] for i in result.keys()]
-                new_results.append(dict(zip(clean_keys, result.values())))
-
-            unique_keys = sorted(set(self._get_keys(new_results)))
             rows = [[] for _ in unique_keys]
-
-            for i, metrics in enumerate(new_results):
+            for i, metrics in enumerate(results):
                 for j in range(len(rows)):
                     v = list(self._find_value(metrics, unique_keys[j]))
                     rows[j].append(f"{v[0]}" if v else " ")
