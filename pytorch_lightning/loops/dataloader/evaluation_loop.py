@@ -331,7 +331,7 @@ class EvaluationLoop(DataLoaderLoop):
 
             print("─" * term_size)
             print(row_format.format(*headers, max_length=max_length))
-            print("\u2500" * term_size)
+            print("─" * term_size)
             for col, row in zip(unique_keys, rows):
                 print(row_format.format(col, *row, max_length=max_length))
-            print("\u2500" * term_size)
+            print("─" * term_size)
