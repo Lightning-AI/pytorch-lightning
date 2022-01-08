@@ -46,23 +46,29 @@ TRAIN_DATALOADERS = Union[
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 
 
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
 # Inferred from `torch.optim.lr_scheduler.pyi`
-class _LRScheduler:
+# Missing attributes were added to improve typing
+class _LRScheduler(_SupportsStateDict):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
 
-    def state_dict(self) -> dict:
-        ...
 
-    def load_state_dict(self, state_dict: dict) -> None:
-        ...
-
-
-# Copied from `torch.optim.lr_scheduler.pyi`
+# Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau:
+class ReduceLROnPlateau(_SupportsStateDict):
     in_cooldown: bool
     optimizer: Optimizer
 
@@ -81,15 +87,6 @@ class ReduceLROnPlateau:
     ) -> None:
         ...
 
-    def step(self, metrics: Any, epoch: Optional[int] = ...) -> None:
-        ...
-
-    def state_dict(self) -> dict:
-        ...
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        ...
-
 
 # todo: improve LRSchedulerType naming/typing
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
@@ -106,14 +103,3 @@ class LRSchedulerConfig(TypedDict):
     monitor: Optional[str]
     strict: bool
     opt_idx: Optional[int]
-
-
-@runtime_checkable
-class _SupportsStateDict(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
