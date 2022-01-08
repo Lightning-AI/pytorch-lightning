@@ -22,7 +22,7 @@ Here, we describe general expectations from core contributors:
 
 ### Github issues
 
-- Our community is the main motivation for our work. Help them have an amazing experience. Issues range from questions from new people getting into DL to questions from researchers about doing something esoteric with Lightning.
+- Our community is the main motivation for our work. Help them have an amazing experience. Issues range from answering questions from new people getting into deep learning to helping researchers doing something esoteric.
   They often require some sort of bug fix, document clarification, or new functionality to be scoped out. You can help them solve their issues and guide them to completion.
 
 - Weigh in on discussions in a timely fashion. Most importantly, on the RFCs (request for comments) that will shape the future of Lightning.
@@ -30,7 +30,7 @@ Here, we describe general expectations from core contributors:
 
 - Propose your own RFCs that align with the API design goals for Lightning.
 
-- Can abstract from an issue or bug into functionality that might solve other related issues or make the framework more flexible.
+- Identify opportunities from an issue or bug that can solve other related issues or make the framework more flexible.
 
 - Don’t make users feel like they don’t know what they’re doing. We’re here to help and to make everyone’s experience delightful.
 
