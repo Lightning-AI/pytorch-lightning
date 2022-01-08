@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -690,19 +690,17 @@ def test_lr_scheduler_step_hook(tmpdir):
             self.optimizer = optimizer
 
         def step(self, epoch):
-            for param_group in self.optimizer.param_groups:
-                param_group["lr"] = param_group["lr"] / (epoch + 1)
+            ...
 
         def state_dict(self):
-            return {key: value for key, value in self.__dict__.items() if key != "optimizer"}
+            ...
 
         def load_state_dict(self, state_dict):
-            self.__dict__.update(state_dict)
+            ...
 
     class CustomBoringModel(BoringModel):
-        def __init__(self, learning_rate):
+        def __init__(self):
             super().__init__()
-            self.learning_rate = learning_rate
             self.layer1 = torch.nn.Linear(32, 2)
             self.layer2 = torch.nn.Linear(32, 2)
 
@@ -714,9 +712,6 @@ def test_lr_scheduler_step_hook(tmpdir):
 
             return self.loss(batch, output)
 
-        def training_epoch_end(self, *args, **kwargs):
-            pass
-
         def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
             # step-level
             if optimizer_idx == 0:
@@ -726,30 +721,36 @@ def test_lr_scheduler_step_hook(tmpdir):
                 scheduler.step(epoch=self.current_epoch)
 
         def configure_optimizers(self):
-            opt1 = torch.optim.SGD(self.layer1.parameters(), lr=self.learning_rate)
+            opt1 = torch.optim.SGD(self.layer1.parameters(), lr=1e-2)
             lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
-            opt2 = torch.optim.SGD(self.layer2.parameters(), lr=self.learning_rate)
+            opt2 = torch.optim.SGD(self.layer2.parameters(), lr=1e-2)
             lr_scheduler2 = CustomEpochScheduler(opt2)
             return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
                 "optimizer": opt2,
                 "lr_scheduler": lr_scheduler2,
             }
 
-    lr = 1e-2
     max_epochs = 3
-    model = CustomBoringModel(learning_rate=lr)
+    model = CustomBoringModel()
+    model.training_epoch_end = None
+    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_checkpointing=False,
         logger=False,
         max_epochs=max_epochs,
-        limit_train_batches=2,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=0,
     )
-    trainer.fit(model)
 
-    for param_group in trainer.optimizers[1].param_groups:
-        assert param_group["lr"] == lr / math.factorial(max_epochs)
+    with patch.object(CustomEpochScheduler, "step") as mock_method_epoch, patch.object(
+        torch.optim.lr_scheduler.StepLR, "step"
+    ) as mock_method_step:
+        trainer.fit(model)
+        assert mock_method_epoch.call_count == max_epochs
+        assert (
+            mock_method_step.call_count == max_epochs * limit_train_batches + 1
+        )  # first step is called by PyTorch _LRScheduler
 
 
 def test_invalid_scheduler_missing_state_dict():
