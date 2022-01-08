@@ -329,7 +329,7 @@ class EvaluationLoop(DataLoaderLoop):
             # cap wide terminals to 120 columns, but go over if there are many headers
             term_size = max(min(120, os.get_terminal_size().columns), max_length * len(headers))
 
-            print("\u2500" * term_size)
+            print("─" * term_size)
             print(row_format.format(*headers, max_length=max_length))
             print("\u2500" * term_size)
             for col, row in zip(unique_keys, rows):
