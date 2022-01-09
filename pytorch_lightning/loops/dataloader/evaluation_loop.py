@@ -291,10 +291,11 @@ class EvaluationLoop(DataLoaderLoop):
             elif isinstance(v, dict):
                 yield from EvaluationLoop._find_value(v, target)
 
-    def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: RunningStage) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        unique_keys = sorted(set(self._get_keys(results)))
+        unique_keys = sorted(set(EvaluationLoop._get_keys(results)))
         headers = [f"{stage} Metric".capitalize()] + [f"DataLoader {i}" for i in range(len(results))]
 
         if _RICH_AVAILABLE:
@@ -309,7 +310,7 @@ class EvaluationLoop(DataLoaderLoop):
             rows = [[key] for key in unique_keys]
             for metrics in results:
                 for metric in rows:
-                    v = list(self._find_value(metrics, metric[0]))
+                    v = list(EvaluationLoop._find_value(metrics, metric[0]))
                     metric.append(f"{v[0]}" if v else " ")
             for row in rows:
                 table.add_row(*row)
@@ -321,7 +322,7 @@ class EvaluationLoop(DataLoaderLoop):
             rows = [[] for _ in unique_keys]
             for metrics in results:
                 for i in range(len(rows)):
-                    v = list(self._find_value(metrics, unique_keys[i]))
+                    v = list(EvaluationLoop._find_value(metrics, unique_keys[i]))
                     rows[i].append(f"{v[0]}" if v else " ")
 
             max_length = max(len(max(unique_keys + headers, key=len)), 25)
