@@ -74,22 +74,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Pull checkpoints from S3
-      working-directory: ./legacy
-      run: |
-        # wget is simpler but does not work on Windows
-        python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
-        ls -l .
-        unzip -o checkpoints.zip
-        ls -l checkpoints/
-
     - name: Install dependencies
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
-        # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/examples.txt
-        pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt --upgrade
         pip list
       shell: bash
@@ -122,47 +110,11 @@ jobs:
         horovodrun --check-build
       shell: bash
 
-    - name: Cache datasets
-      uses: actions/cache@v2
-      with:
-        path: Datasets
-        key: pl-dataset
-
     - name: Tests
-      timeout-minutes: 35
+      timeout-minutes: 3
       run: |
-        # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        python -m pytest tests/core/test_lightning_module.py::test_sharded_tensor_state_dict tests/models/test_horovod.py::test_horovod_multi_optimizer -v
 
     - name: Setup tmate session
       if: failure()
       uses: mxschmitt/action-tmate@v3
-
-    - name: Examples
-      run: |
-        python -m pytest pl_examples -v --durations=10
-
-    - name: Upload pytest results
-      uses: actions/upload-artifact@v2
-      with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-      if: failure()
-
-    - name: Statistics
-      if: success()
-      run: |
-        coverage report
-        coverage xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      if: always()
-      # see: https://github.com/actions/toolkit/issues/399
-      continue-on-error: true
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
-        name: CPU-coverage
-        fail_ci_if_error: false

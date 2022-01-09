@@ -313,6 +313,24 @@ class BoringModelWithShardedTensor(BoringModel):
 
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
+
+    # PROBLEM 1:
+    # this test fails when run standalone UNLESS a `BoringModel()` is instantiated before:
+    # python -m pytest tests/core/test_lightning_module.py::test_sharded_tensor_state_dict
+    BoringModel()  # uncomment and it will fail
+
+    # PROBLEM 2:
+    """
+    Exception ignored in: <function ShardedTensor.__del__ at 0x13fbe3b90>
+    Traceback (most recent call last):
+      File "/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/torch/distributed/_sharded_tensor/api.py", line 287, in __del__
+    AttributeError: __enter__
+    Exception ignored in: <function ShardedTensor.__del__ at 0x13fbe3b90>
+    Traceback (most recent call last):
+      File "/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/torch/distributed/_sharded_tensor/api.py", line 287, in __del__
+    AttributeError: __enter__
+    """
+
     spec = dist._sharding_spec.ChunkShardingSpec(
         dim=0,
         placements=[
