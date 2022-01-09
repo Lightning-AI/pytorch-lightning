@@ -87,7 +87,7 @@ Loggers API
 
     base
     comet
-    csv_logs
+    csv
     mlflow
     neptune
     tensorboard

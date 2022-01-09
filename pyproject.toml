@@ -59,7 +59,7 @@ module = [
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
     "pytorch_lightning.loggers.comet",
-    "pytorch_lightning.loggers.csv_logs",
+    "pytorch_lightning.loggers.csv",
     "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
