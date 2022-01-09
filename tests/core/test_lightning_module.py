@@ -19,7 +19,7 @@ import torch.distributed as dist
 from torch import nn
 from torch.optim import Adam, SGD
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -313,21 +313,24 @@ class BoringModelWithShardedTensor(BoringModel):
 
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
-
     # PROBLEM 1:
-    # this test fails when run standalone UNLESS a `BoringModel()` is instantiated before:
-    # python -m pytest tests/core/test_lightning_module.py::test_sharded_tensor_state_dict
-    BoringModel()  # uncomment and it will fail
+    # this test fails when run standalone UNLESS the next line runs:
+    LightningModule()
+    # this is because `LightningModule.__init__` calls `self._register_sharded_tensor_state_dict_hooks_if_available()`
+
+    # importing this fixes the problem too
+    import torch.distributed._sharded_tensor
 
     # PROBLEM 2:
+    # this one only seems to happen in the hanging environment, the stacktrace appears after `pytest` runs
     """
     Exception ignored in: <function ShardedTensor.__del__ at 0x13fbe3b90>
     Traceback (most recent call last):
-      File "/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/torch/distributed/_sharded_tensor/api.py", line 287, in __del__
+      File ".../torch/distributed/_sharded_tensor/api.py", line 287, in __del__
     AttributeError: __enter__
     Exception ignored in: <function ShardedTensor.__del__ at 0x13fbe3b90>
     Traceback (most recent call last):
-      File "/Users/runner/hostedtoolcache/Python/3.7.12/x64/lib/python3.7/site-packages/torch/distributed/_sharded_tensor/api.py", line 287, in __del__
+      File ".../torch/distributed/_sharded_tensor/api.py", line 287, in __del__
     AttributeError: __enter__
     """
 
