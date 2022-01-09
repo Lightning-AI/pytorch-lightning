@@ -181,8 +181,8 @@ Under the hood, Lightning does the following (pseudocode):
     torch.set_grad_enabled(True)
 
     losses = []
-    for batch in train_dataloader:
-        loss = training_step(batch)
+    for batch_idx, batch in enumerate(train_dataloader):
+        loss = training_step(batch, batch_idx)
         losses.append(loss.detach())
 
         # clear gradients
@@ -195,7 +195,7 @@ Under the hood, Lightning does the following (pseudocode):
         optimizer.step()
 
 
-Train Epoch-Level Metrics
+Train Epoch-level Metrics
 =========================
 
 If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
@@ -218,9 +218,9 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
 .. code-block:: python
 
     outs = []
-    for batch in train_dataloader:
+    for batch_idx, batch in enumerate(train_dataloader):
         # forward
-        out = training_step(val_batch)
+        out = training_step(batch, batch_idx)
         outs.append(out)
 
         # clear gradients
@@ -234,7 +234,7 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
 
     epoch_metric = torch.mean(torch.stack([x["train_loss"] for x in outs]))
 
-Train Epoch-Level Operations
+Train Epoch-level Operations
 ============================
 
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
@@ -259,9 +259,9 @@ The matching pseudocode is:
 .. code-block:: python
 
     outs = []
-    for batch in train_dataloader:
+    for batch_idx, batch in enumerate(train_dataloader):
         # forward
-        out = training_step(val_batch)
+        out = training_step(batch, batch_idx)
         outs.append(out)
 
         # clear gradients
@@ -316,12 +316,12 @@ Here is the Lightning training pseudo-code for DP:
 .. code-block:: python
 
     outs = []
-    for train_batch in train_dataloader:
+    for batch_idx, train_batch in enumerate(train_dataloader):
         batches = split_batch(train_batch)
         dp_outs = []
         for sub_batch in batches:
             # 1
-            dp_out = training_step(sub_batch)
+            dp_out = training_step(sub_batch, batch_idx)
             dp_outs.append(dp_out)
 
         # 2
@@ -387,13 +387,14 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 
 .. note::
 
-    It is recommended to validate on single device since Distributed Training such as DDP internally
-    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
-    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
-    benchmarking for research papers is done the right way.
+    It is recommended to validate on single device to ensure each sample/batch gets evaluated exactly once.
+    This is helpful to make sure benchmarking for research papers is done the right way. Otherwise, in a
+    multi-device setting, samples could occur duplicated when :class:`~torch.utils.data.distributed.DistributedSampler`
+    is used, for eg. with ``strategy="ddp"``. It replicates some samples on some devices to make sure all devices have
+    same batch size in case of uneven inputs.
 
 
-Validation Epoch-Level Metrics
+Validation Epoch-level Metrics
 ==============================
 
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
@@ -511,10 +512,12 @@ There are two ways to call ``test()``:
 
 .. note::
 
-    It is recommended to test on single device since Distributed Training such as DDP internally
-    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
-    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
-    benchmarking for research papers is done the right way.
+    It is recommended to validate on single device to ensure each sample/batch gets evaluated exactly once.
+    This is helpful to make sure benchmarking for research papers is done the right way. Otherwise, in a
+    multi-device setting, samples could occur duplicated when :class:`~torch.utils.data.distributed.DistributedSampler`
+    is used, for eg. with ``strategy="ddp"``. It replicates some samples on some devices to make sure all devices have
+    same batch size in case of uneven inputs.
+
 
 ----------
 
@@ -533,18 +536,19 @@ For the example let's override ``predict_step`` and try out `Monte Carlo Dropout
 
 .. code-block:: python
 
-    class LitModel(pl.LightningModule):
-        def __init__(self):
+    class LitMCdropoutModel(pl.LightningModule):
+        def __init__(self, model, mc_iteration):
             super().__init__()
-            self.linear = nn.Linear(4, 5)
+            self.model = model
             self.dropout = nn.Dropout()
+            self.mc_iteration = mc_iteration
 
         def predict_step(self, batch, batch_idx):
             # enable Monte Carlo Dropout
             self.dropout.train()
 
             # take average of 7 iterations
-            pred = torch.vstack([self.dropout(self.linear(x)).unsqueeze(0) for _ in range(7)]).mean(dim=0)
+            pred = torch.vstack([self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]).mean(dim=0)
             return pred
 
 Under the hood, Lightning does the following (pseudocode):
@@ -556,8 +560,8 @@ Under the hood, Lightning does the following (pseudocode):
     model.eval()
     all_preds = []
 
-    for batch in predict_dataloader:
-        pred = model.predict_step()
+    for batch_idx, batch in enumerate(predict_dataloader):
+        pred = model.predict_step(batch, batch_idx)
         all_preds.append(pred)
 
 There are two ways to call ``predict()``:
@@ -898,6 +902,7 @@ validation_epoch_end
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
+-----------
 
 Properties
 ==========
@@ -911,7 +916,7 @@ The current epoch
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         if self.current_epoch == 0:
             ...
 
@@ -922,7 +927,7 @@ The device the module is on. Use it to keep your code device agnostic.
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         z = torch.rand(2, 3, device=self.device)
 
 global_rank
@@ -934,7 +939,7 @@ usually do not need to use this property, but it is useful to know how to access
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         if self.global_rank == 0:
             # do something only once across all the nodes
             self.log("global_step", self.trainer.global_step)
@@ -946,7 +951,7 @@ The current step (does not reset each epoch)
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         self.logger.experiment.log_image(..., step=self.global_step)
 
 hparams
@@ -971,7 +976,7 @@ The current logger being used (tensorboard or other supported logger)
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         # the generic logger (same no matter if tensorboard or other supported logger)
         self.logger
 
@@ -987,7 +992,7 @@ For example, if using 10 machines (or nodes), the GPU at index 0 on each machine
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         if self.global_rank == 0:
             # do something only once across each node
             self.log("global_step", self.trainer.global_step)
@@ -999,7 +1004,7 @@ The type of precision used:
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         if self.precision == 16:
             ...
 
@@ -1010,7 +1015,7 @@ Pointer to the trainer
 
 .. code-block:: python
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         max_steps = self.trainer.max_steps
         any_flag = self.trainer.any_flag
 
@@ -1093,17 +1098,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-datamodule
-~~~~~~~~~~
-
-Set or access your datamodule.
-
-.. code-block:: python
-
-    def configure_optimizers(self):
-        num_training_samples = len(self.trainer.datamodule.train_dataloader())
-        ...
 
 model_size
 ~~~~~~~~~~
@@ -1269,17 +1263,20 @@ for more information.
         on_epoch_start()
         on_validation_epoch_start()
 
-        for batch in val_dataloader():
-            on_validation_batch_start()
+        val_outs = []
+        for batch_idx, batch in enumerate(val_dataloader()):
+            on_validation_batch_start(batch, batch_idx)
 
-            on_before_batch_transfer()
-            transfer_batch_to_device()
-            on_after_batch_transfer()
+            batch = on_before_batch_transfer(batch)
+            batch = transfer_batch_to_device(batch)
+            batch = on_after_batch_transfer(batch)
 
-            validation_step()
+            out = validation_step(batch, batch_idx)
 
-            on_validation_batch_end()
-        validation_epoch_end()
+            on_validation_batch_end(batch, batch_idx)
+            val_outs.append(out)
+
+        validation_epoch_end(val_outs)
 
         on_validation_epoch_end()
         on_epoch_end()

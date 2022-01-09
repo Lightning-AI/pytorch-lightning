@@ -1,7 +1,7 @@
 Research projects tend to test different approaches to the same dataset.
 This is very easy to do in Lightning with inheritance.
 
-For example, imagine we now want to train an ``LitAutoEncoder`` to use as a feature extractor for MNIST images.
+For example, imagine we now want to train an ``AutoEncoder`` to use as a feature extractor for images.
 The only things that change in the ``LitAutoEncoder`` model are the init, forward, training, validation and test step.
 
 .. code-block:: python
@@ -56,15 +56,15 @@ and we can train this using the ``Trainer``:
 
 .. code-block:: python
 
-    model = AutoEncoder()
-    autoencoder = LitAutoEncoder(model)
+    auto_encoder = AutoEncoder()
+    lightning_module = LitAutoEncoder(auto_encoder)
     trainer = Trainer()
-    trainer.fit(autoencoder, train_dataloader, val_dataloader)
+    trainer.fit(lightning_module, train_dataloader, val_dataloader)
 
-And remember that the forward method should define the practical use of a LightningModule.
-In this case, we want to use the ``LitAutoEncoder`` to extract image representations
+And remember that the forward method should define the practical use of a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+In this case, we want to use the ``LitAutoEncoder`` to extract image representations:
 
 .. code-block:: python
 
     some_images = torch.Tensor(32, 1, 28, 28)
-    representations = autoencoder(some_images)
+    representations = lightning_module(some_images)
