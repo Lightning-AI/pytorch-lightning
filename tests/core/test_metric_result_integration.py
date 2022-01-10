@@ -590,6 +590,27 @@ def test_metric_result_respects_dtype(floating_dtype):
     torch.set_default_dtype(torch.float)
 
 
+@pytest.mark.parametrize("reduce_fx", ("mean", sum))
+def test_metric_result_dtype_promotion(reduce_fx):
+    metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+
+    value, batch_size = torch.tensor(2, dtype=torch.double), 3
+    assert rm.value.dtype == torch.float
+    # log a double
+    rm.update(value, batch_size)
+    # `rm.value.dtype` is promoted
+    assert rm.value.dtype == torch.double
+    # log a float
+    rm.update(torch.tensor(4.0, dtype=torch.float), 5)
+    # the previous dtype stays
+    assert rm.value.dtype == torch.double
+
+    total = rm.compute()
+    assert total.dtype == torch.double
+
+
 @pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)

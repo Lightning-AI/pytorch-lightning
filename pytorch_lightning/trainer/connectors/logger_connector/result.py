@@ -241,14 +241,15 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
 
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
-                self.value += value.mean() * batch_size
+                # do not use `+=` as it doesn't do type promotion
+                self.value = self.value + value.mean() * batch_size
                 # `Metric.add_state` does not work well with mypy, mypy doesn't know this is a `Tensor`
                 # we could add an assertion, but this is a hot code path
-                self.cumulated_batch_size += batch_size  # type: ignore[operator]
+                self.cumulated_batch_size = self.cumulated_batch_size + batch_size  # type: ignore[operator]
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
-                self.value += value.mean()
+                self.value = self.value + value.mean()
         else:
             value = cast(Metric, value)
             self.value = value
