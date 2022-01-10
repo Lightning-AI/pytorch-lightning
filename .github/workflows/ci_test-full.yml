@@ -116,5 +116,5 @@ jobs:
         python -m pytest tests/core/test_lightning_module.py::test_sharded_tensor_state_dict tests/models/test_horovod.py::test_horovod_multi_optimizer -v
 
     - name: Setup tmate session
-      if: failure()
+      if: always()
       uses: mxschmitt/action-tmate@v3
