@@ -337,7 +337,7 @@ def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.Ligh
     for scheduler_config in lr_schedulers:
         scheduler = scheduler_config["scheduler"]
         if not isinstance(scheduler, _SupportsStateDict):
-            raise ValueError(
+            raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
