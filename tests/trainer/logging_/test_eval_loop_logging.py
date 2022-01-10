@@ -14,9 +14,8 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
-
-from io import StringIO
 from contextlib import redirect_stdout
+from io import StringIO
 from unittest import mock
 from unittest.mock import call
 
@@ -782,13 +781,15 @@ def test_print_results():
         loop = EvaluationLoop()
         loop._print_results([{"log": 5}, {"no_log": 6}], "Testing")
 
-    expected = ("─────────────────────────────────────────────────────────────────────────────"
-                "───────────────────────────────────────────\n"
-                "     Testing metric            DataLoader 0             DataLoader 1       \n"
-                "─────────────────────────────────────────────────────────────────────────────"
-                "───────────────────────────────────────────\n"
-                "           log                       5                                     \n"
-                "         no_log                                               6            \n"
-                "─────────────────────────────────────────────────────────────────────────────"
-                "───────────────────────────────────────────\n")
+    expected = (
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+        "     Testing metric            DataLoader 0             DataLoader 1       \n"
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+        "           log                       5                                     \n"
+        "         no_log                                               6            \n"
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+    )
     assert out.getvalue() == expected
