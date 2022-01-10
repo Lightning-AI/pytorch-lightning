@@ -183,7 +183,7 @@ def test_pruning_callback_ddp_spawn(tmpdir):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", devices=2)
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
