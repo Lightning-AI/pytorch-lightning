@@ -232,7 +232,7 @@ python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 
 We welcome any useful contribution! For your convenience here's a recommended workflow:
 
-0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one, start by opening a GitHub issue to explain the feature and the motivation. Members from core-contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it. Once an agreement was reached - start coding.
+0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one, start by opening a GitHub issue to explain the feature and the motivation. Members from core-lightning will take a look (it might take some time - we are often overloaded with issues!) and discuss it. Once an agreement was reached - start coding.
 1. Start your work locally (usually until you need our CI testing).
    - Create a branch and prepare your changes.
    - Tip: do not work with your master directly, it may become complicated when you need to rebase.
