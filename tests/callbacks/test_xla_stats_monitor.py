@@ -77,7 +77,7 @@ def test_xla_stats_monitor_no_tpu_warning(tmpdir):
     model = BoringModel()
     xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_steps=1, accelerator="tpu", devices=None)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_steps=1, devices=None)
 
     with pytest.raises(MisconfigurationException, match="not running on TPU"):
         trainer.fit(model)
