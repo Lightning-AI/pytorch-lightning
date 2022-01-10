@@ -112,8 +112,7 @@ def train_with_swa(
     batchnorm=True,
     strategy=None,
     accelerator=None,
-    devices=None,
-    num_processes=1,
+    devices=1,
     interval="epoch",
     iterable_dataset=False,
 ):
@@ -135,7 +134,6 @@ def train_with_swa(
         strategy=strategy,
         accelerator=accelerator,
         devices=devices,
-        num_processes=num_processes,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
@@ -157,7 +155,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @RunIf(min_gpus=1)

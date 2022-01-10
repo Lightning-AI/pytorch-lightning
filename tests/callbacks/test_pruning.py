@@ -66,7 +66,6 @@ def train_with_pruning_callback(
     strategy=None,
     accelerator="cpu",
     devices=1,
-    num_processes=1,
 ):
     model = TestModel()
 
@@ -116,7 +115,6 @@ def train_with_pruning_callback(
         strategy=strategy,
         accelerator=accelerator,
         devices=devices,
-        num_processes=num_processes,
         callbacks=pruning,
     )
     trainer.fit(model)
@@ -185,7 +183,7 @@ def test_pruning_callback_ddp_spawn(tmpdir):
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", num_processes=2)
+    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", devices=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
