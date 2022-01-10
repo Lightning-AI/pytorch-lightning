@@ -565,12 +565,12 @@ def test_devices_with_cpu_only_supports_integer():
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
-def test_unsupported_distrib_types_on_cpu(training_type):
+def test_unsupported_strategy_types_on_cpu(training_type):
 
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
 
-    assert trainer._distrib_type == _StrategyType.DDP
+    assert trainer._strategy_type == _StrategyType.DDP
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):

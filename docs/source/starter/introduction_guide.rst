@@ -562,7 +562,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
-Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
+Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
 
 Train on TPUs
 ^^^^^^^^^^^^^
