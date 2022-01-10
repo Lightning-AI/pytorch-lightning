@@ -216,6 +216,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             # do not set a dtype in case the default dtype was changed
             self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
+                self.cumulated_batch_size: torch.Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
@@ -243,9 +244,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 # do not use `+=` as it doesn't do type promotion
                 self.value = self.value + value.mean() * batch_size
-                # `Metric.add_state` does not work well with mypy, mypy doesn't know this is a `Tensor`
-                # we could add an assertion, but this is a hot code path
-                self.cumulated_batch_size = self.cumulated_batch_size + batch_size  # type: ignore[operator]
+                self.cumulated_batch_size = self.cumulated_batch_size + batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
