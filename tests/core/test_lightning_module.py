@@ -314,12 +314,17 @@ class BoringModelWithShardedTensor(BoringModel):
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     # PROBLEM 1:
-    # this test fails when run standalone UNLESS the next line runs:
-    LightningModule()
-    # this is because `LightningModule.__init__` calls `self._register_sharded_tensor_state_dict_hooks_if_available()`
-
-    # importing this fixes the problem too
-    import torch.distributed._sharded_tensor
+    #  `dist._sharding_spec.ChunkShardingSpec(...)` below raises
+    #  `AttributeError: module 'torch.distributed' has no attribute '_sharding_spec'`
+    #  without any of the following (1) and (2).
+    import torch.distributed._sharding_spec  # (1)
+    LightningModule()  # (2) which makes `_sharding_spec` subpackage available in its init.
+    spec = dist._sharding_spec.ChunkShardingSpec(
+        dim=0,
+        placements=[
+            "rank:0/cpu",
+        ],
+    )
 
     # PROBLEM 2:
     # this one only seems to happen in the hanging environment, the stacktrace appears after `pytest` runs
@@ -333,13 +338,6 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
       File ".../torch/distributed/_sharded_tensor/api.py", line 287, in __del__
     AttributeError: __enter__
     """
-
-    spec = dist._sharding_spec.ChunkShardingSpec(
-        dim=0,
-        placements=[
-            "rank:0/cpu",
-        ],
-    )
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
