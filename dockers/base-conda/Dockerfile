@@ -14,7 +14,7 @@
 
 ARG CUDA_VERSION=11.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 
 ARG PYTHON_VERSION=3.8
 ARG PYTORCH_VERSION=1.6
