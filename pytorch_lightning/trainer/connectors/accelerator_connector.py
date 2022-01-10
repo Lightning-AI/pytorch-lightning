@@ -32,6 +32,7 @@ from pytorch_lightning.plugins import (
     FullyShardedNativeMixedPrecisionPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
+    PLUGIN_INPUT,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
@@ -89,28 +90,28 @@ log = logging.getLogger(__name__)
 class AcceleratorConnector:
     def __init__(
         self,
-        num_processes,
-        devices,
-        tpu_cores,
-        ipus,
-        accelerator,
+        num_processes: int,
+        devices: Optional[Union[List[int], str, int]],
+        tpu_cores: Optional[Union[List[int], int]],
+        ipus: Optional[int],
+        accelerator: Optional[Union[str, Accelerator]],
         strategy: Optional[Union[str, Strategy]],
-        gpus,
-        gpu_ids,
-        num_nodes,
-        sync_batchnorm,
-        benchmark,
-        replace_sampler_ddp,
+        gpus: Optional[Union[List[int], str, int]],
+        gpu_ids: Optional[List[int]],
+        num_nodes: int,
+        sync_batchnorm: bool,
+        benchmark: bool,
+        replace_sampler_ddp: bool,
         deterministic: bool,
-        precision,
-        amp_type,
-        amp_level,
-        plugins,
+        precision: Union[int, str],
+        amp_type: str,
+        amp_level: Optional[str],
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
     ):
         # initialization
         self._device_type = _AcceleratorType.CPU
-        self._strategy_type = None
-        self._accelerator_type = None
+        self._strategy_type: Optional[_StrategyType] = None
+        self._accelerator_type: Optional[_AcceleratorType] = None
 
         self._strategy_flag = strategy.lower() if isinstance(strategy, str) else strategy
         # TODO: Rename this to something else once all the distributed flags are moved to strategy
@@ -594,7 +595,7 @@ class AcceleratorConnector:
         )
 
     @staticmethod
-    def _is_plugin_training_type(plugin: Union[str, Strategy]) -> bool:
+    def _is_plugin_training_type(plugin: PLUGIN_INPUT) -> bool:
         if isinstance(plugin, str) and (plugin in StrategyRegistry or plugin in list(_StrategyType)):
             return True
         return isinstance(plugin, Strategy)
