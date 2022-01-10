@@ -23,6 +23,10 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
+if _RICH_AVAILABLE:
+    from rich.console import Console
+    from rich.table import Column, Table
+
 
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
@@ -299,9 +303,6 @@ class EvaluationLoop(DataLoaderLoop):
         headers = [f"{stage} Metric".capitalize()] + [f"DataLoader {i}" for i in range(len(results))]
 
         if _RICH_AVAILABLE:
-            from rich.console import Console
-            from rich.table import Column, Table
-
             console = Console()
             columns = [Column(h, justify="center", style="magenta") for h in headers]
             columns[0].style = "cyan"

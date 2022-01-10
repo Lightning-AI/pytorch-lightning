@@ -776,7 +776,7 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
 
 
 def test_print_results_native(monkeypatch):
-    import pytorch_lightning.callbacks.progress.rich_progress as imports
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
