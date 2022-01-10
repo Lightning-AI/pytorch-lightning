@@ -55,7 +55,7 @@ def rank_zero_only(fn: Callable) -> Callable:
 
 # TODO: this should be part of the cluster environment
 def _get_rank() -> int:
-    rank_keys = ("RANK", "SLURM_PROCID", "LOCAL_RANK")
+    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID")
     for key in rank_keys:
         rank = os.environ.get(key)
         if rank is not None:
