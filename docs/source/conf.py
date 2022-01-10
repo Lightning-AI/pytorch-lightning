@@ -46,7 +46,9 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
-    AssistantCLI.copy_notebooks(PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"])
+    AssistantCLI.copy_notebooks(
+        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+    )
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
