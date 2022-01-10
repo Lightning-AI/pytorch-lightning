@@ -14,8 +14,9 @@
 Logging
 #######
 
+*****************
 Supported Loggers
-=================
+*****************
 
 The following are loggers we support:
 
@@ -101,6 +102,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 
 Automatic Logging
 =================
+
 Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method to log from anywhere in a :doc:`lightning module <../common/lightning_module>` and :doc:`callbacks <../extensions/callbacks>`.
 
@@ -182,6 +184,7 @@ If your work requires to log in an unsupported method, please open an issue with
 
 Manual Logging Non-Scalar Artifacts
 ===================================
+
 If you want to log anything that is not a scalar, like histograms, text, images, etc., you may need to use the logger object directly.
 
 .. code-block:: python
@@ -388,3 +391,14 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
             self.log("hp/metric_2", some_scalar_2)
 
     In the example, using ``"hp/"`` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers
+such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
+
+Checkout :ref:`remote_fs` doc for more info.

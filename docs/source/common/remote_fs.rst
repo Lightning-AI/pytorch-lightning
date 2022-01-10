@@ -1,5 +1,8 @@
-Remote filesystems
-==================
+.. _remote_fs:
+
+##################
+Remote Filesystems
+##################
 
 PyTorch Lightning enables working with data from a variety of filesystems, including local filesystems and several cloud storage providers
 such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
@@ -7,10 +10,9 @@ such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
 This applies to saving and writing checkpoints, as well as for logging.
 Working with different filesystems can be accomplished by appending a protocol like "s3:/" to file paths for writing and reading data.
 
-
 .. code-block:: python
 
-    # `default_root_dir` is the default path used for logs and weights
+    # `default_root_dir` is the default path used for logs and checkpoints
     trainer = Trainer(default_root_dir="s3://my_bucket/data/")
     trainer.fit(model)
 
@@ -32,7 +34,7 @@ Additionally, you could also resume training with a checkpoint stored at a remot
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
     trainer.fit(model, ckpt_path="s3://my_bucket/ckpts/classifier.ckpt")
 
-PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/en/latest/>`__ internally to handle all filesystem operations.
+PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
 
 The most common filesystems supported by Lightning are:
 
