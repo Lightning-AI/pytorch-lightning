@@ -14,6 +14,9 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
+
+from io import StringIO
+from contextlib import redirect_stdout
 from unittest import mock
 from unittest.mock import call
 
@@ -23,6 +26,7 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -770,3 +774,21 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     results = trainer.test(model)
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
+
+
+def test_print_results():
+    out = StringIO()
+    with redirect_stdout(out):
+        loop = EvaluationLoop()
+        loop._print_results([{"log": 5}, {"no_log": 6}], "Testing")
+
+    expected = ("─────────────────────────────────────────────────────────────────────────────"
+                "───────────────────────────────────────────\n"
+                "     Testing metric            DataLoader 0             DataLoader 1       \n"
+                "─────────────────────────────────────────────────────────────────────────────"
+                "───────────────────────────────────────────\n"
+                "           log                       5                                     \n"
+                "         no_log                                               6            \n"
+                "─────────────────────────────────────────────────────────────────────────────"
+                "───────────────────────────────────────────\n")
+    assert out.getvalue() == expected
