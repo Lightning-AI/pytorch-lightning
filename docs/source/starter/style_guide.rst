@@ -13,7 +13,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices about structuring your :class:`pytorch_lightning.core.lightning.LightningModule` class:
+These are best practices about structuring your :class:`~pytorch_lightning.core.lightning.LightningModule` class:
 
 Systems vs Models
 =================
@@ -192,15 +192,14 @@ Dataloaders
 Lightning uses :class:`~torch.utils.data.DataLoader` to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
-.. warning:: Make sure not to use ``Trainer(strategy="ddp_spawn")`` with ``num_workers>0` in a DataLoader or you will bottleneck your code.
+.. warning:: Make sure not to use ``Trainer(strategy="ddp_spawn")`` with ``num_workers>0`` in a DataLoader or you will bottleneck your code.
 
 DataModules
 ===========
 
-Lightning introduced :class:`~pytorch_lightning.core.datamodule.LightningDataModule` in v0.9 release. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
-was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset
-agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different datasets with your model, so
-you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
+Lightning introduced :class:`~pytorch_lightning.core.datamodule.LightningDataModule` in v0.9 release. They are designed as a way of decoupling data-related
+hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 The problem with dataloaders is that sharing full datasets is often still challenging because all these questions need to be answered:
 
