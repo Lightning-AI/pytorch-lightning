@@ -113,7 +113,7 @@ class ProgressBarBase(Callback):
         return total_val_batches
 
     @property
-    def total_test_batches(self) -> int:
+    def total_test_batches(self) -> Union[int, float]:
         """The total number of testing batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
@@ -122,7 +122,7 @@ class ProgressBarBase(Callback):
         return sum(self.trainer.num_test_batches)
 
     @property
-    def total_predict_batches(self) -> int:
+    def total_predict_batches(self) -> Union[int, float]:
         """The total number of prediction batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
