@@ -318,6 +318,7 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     #  `AttributeError: module 'torch.distributed' has no attribute '_sharding_spec'`
     #  without any of the following (1) and (2).
     import torch.distributed._sharding_spec  # (1)
+
     LightningModule()  # (2) which makes `_sharding_spec` subpackage available in its init.
     spec = dist._sharding_spec.ChunkShardingSpec(
         dim=0,
