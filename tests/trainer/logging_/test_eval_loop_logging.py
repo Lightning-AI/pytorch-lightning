@@ -775,7 +775,11 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
 
 
-def test_print_results():
+def test_print_results_native(monkeypatch):
+    import pytorch_lightning.callbacks.progress.rich_progress as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
     out = StringIO()
     with redirect_stdout(out):
         loop = EvaluationLoop()
