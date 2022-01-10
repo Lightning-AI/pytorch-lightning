@@ -318,7 +318,7 @@ class EvaluationLoop(DataLoaderLoop):
 
             console.print(table)
         else:
-            import os
+            import shutil
 
             rows = [[] for _ in unique_keys]
             for metrics in results:
@@ -329,7 +329,7 @@ class EvaluationLoop(DataLoaderLoop):
             max_length = max(len(max(unique_keys + headers, key=len)), 25)
             row_format = "{:^{max_length}}" * len(headers)
             # cap wide terminals to 120 columns, but go over if there are many headers
-            term_size = max(min(120, os.get_terminal_size().columns), max_length * len(headers))
+            term_size = max(min(120, shutil.get_terminal_size(fallback=(120, 30)).columns), max_length * len(headers))
 
             print("─" * term_size)
             print(row_format.format(*headers, max_length=max_length))
