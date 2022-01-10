@@ -7,11 +7,11 @@ The only things that change in the ``LitAutoEncoder`` model are the init, forwar
 .. code-block:: python
 
     class Encoder(torch.nn.Module):
-        pass
+        ...
 
 
     class Decoder(torch.nn.Module):
-        pass
+        ...
 
 
     class AutoEncoder(torch.nn.Module):
@@ -28,7 +28,7 @@ The only things that change in the ``LitAutoEncoder`` model are the init, forwar
         def __init__(self, auto_encoder):
             super().__init__()
             self.auto_encoder = auto_encoder
-            self.metric = MSE()
+            self.metric = torch.nn.MSELoss()
 
         def forward(self, x):
             return self.auto_encoder.encoder(x)

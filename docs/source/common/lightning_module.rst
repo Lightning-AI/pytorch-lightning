@@ -180,10 +180,10 @@ Under the hood, Lightning does the following (pseudocode):
     model.train()
     torch.set_grad_enabled(True)
 
-    losses = []
+    outs = []
     for batch_idx, batch in enumerate(train_dataloader):
         loss = training_step(batch, batch_idx)
-        losses.append(loss.detach())
+        outs.append(loss.detach())
 
         # clear gradients
         optimizer.zero_grad()
@@ -220,8 +220,8 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
     outs = []
     for batch_idx, batch in enumerate(train_dataloader):
         # forward
-        out = training_step(batch, batch_idx)
-        outs.append(out)
+        loss = training_step(batch, batch_idx)
+        outs.append(loss)
 
         # clear gradients
         optimizer.zero_grad()
@@ -232,12 +232,12 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
         # update parameters
         optimizer.step()
 
-    epoch_metric = torch.mean(torch.stack([x["train_loss"] for x in outs]))
+    epoch_metric = torch.mean(torch.stack([x for x in outs]))
 
 Train Epoch-level Operations
 ============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
 override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end` method.
 
 .. code-block:: python
@@ -261,8 +261,8 @@ The matching pseudocode is:
     outs = []
     for batch_idx, batch in enumerate(train_dataloader):
         # forward
-        out = training_step(batch, batch_idx)
-        outs.append(out)
+        loss = training_step(batch, batch_idx)
+        outs.append(loss)
 
         # clear gradients
         optimizer.zero_grad()
@@ -357,8 +357,8 @@ Under the hood, Lightning does the following (pseudocode):
 .. code-block:: python
 
     # ...
-    for batch in train_dataloader:
-        loss = model.training_step()
+    for batch_idx, batch in enumerate(train_dataloader):
+        loss = model.training_step(batch, batch_idx)
         loss.backward()
         # ...
 
@@ -368,8 +368,8 @@ Under the hood, Lightning does the following (pseudocode):
             model.eval()
 
             # ----------------- VAL LOOP ---------------
-            for val_batch in model.val_dataloader:
-                val_out = model.validation_step(val_batch)
+            for val_batch_idx, val_batch in enumerate(val_dataloader):
+                val_out = model.validation_step(val_batch, val_batch_idx)
             # ----------------- VAL LOOP ---------------
 
             # enable grads + batchnorm + dropout
@@ -547,7 +547,7 @@ For the example let's override ``predict_step`` and try out `Monte Carlo Dropout
             # enable Monte Carlo Dropout
             self.dropout.train()
 
-            # take average of 7 iterations
+            # take average of `self.mc_iteration` iterations
             pred = torch.vstack([self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]).mean(dim=0)
             return pred
 
