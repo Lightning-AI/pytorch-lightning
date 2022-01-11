@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-import torch.distributed as dist
 from torch import nn
 from torch.optim import Adam, SGD
 
@@ -304,16 +303,18 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
 
 
-class BoringModelWithShardedTensor(BoringModel):
-    def __init__(self, spec):
-        super().__init__()
-        self.sharded_tensor = dist._sharded_tensor.empty(spec, 10, 20)
-        self.sharded_tensor.local_shards()[0].tensor.fill_(0)
-
-
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
-    spec = dist._sharding_spec.ChunkShardingSpec(
+    from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._sharding_spec import ChunkShardingSpec
+
+    class BoringModelWithShardedTensor(BoringModel):
+        def __init__(self, spec):
+            super().__init__()
+            self.sharded_tensor = sharded_tensor_empty(spec, 10, 20)
+            self.sharded_tensor.local_shards()[0].tensor.fill_(0)
+
+    spec = ChunkShardingSpec(
         dim=0,
         placements=[
             "rank:0/cpu",
