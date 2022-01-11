@@ -292,7 +292,7 @@ class DDPStrategy(ParallelStrategy):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
-        log.detail(f"registering ddp hooks")
+        log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
         if _TORCH_GREATER_EQUAL_1_9 or (
@@ -312,7 +312,7 @@ class DDPStrategy(ParallelStrategy):
                     self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
-        log.detail("reinitializing optimizers with post localSGD")
+        log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
