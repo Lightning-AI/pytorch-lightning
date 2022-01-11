@@ -705,21 +705,7 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
 a ``LightningModule``.
 
-- You can export to `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_onnx`.
-- Or trace using `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`.
-- Or run in the Python runtime.
-
-.. code-block:: python
-
-    task = ClassificationTask(model)
-
-    trainer = Trainer(gpus=2)
-    trainer.fit(task, train_dataloader, val_dataloader)
-
-    # use model after training or load weights and drop into the production system
-    model.eval()
-    with torch.no_grad():
-        y_hat = model(x)
+Checkout :ref:`Inference in Production <production_inference>` doc to learn about the possible ways to perform inference in production.
 
 
 -----------
