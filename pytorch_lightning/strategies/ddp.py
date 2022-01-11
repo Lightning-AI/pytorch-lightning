@@ -387,7 +387,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
-        log.detail(f"{self.__class__.__qualname__}: moving model to device [{self.root_device}]...")
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
@@ -508,7 +508,7 @@ class DDPStrategy(ParallelStrategy):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
-        log.detail(f"{self.__class__.__qualname__}: tearing down DDP plugin")
+        log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
@@ -518,7 +518,7 @@ class DDPStrategy(ParallelStrategy):
 
         if self.on_gpu:
             # GPU teardown
-            log.detail(f"{self.__class__.__qualname__}: moving model to CPU")
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()

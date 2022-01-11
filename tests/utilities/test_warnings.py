@@ -53,7 +53,7 @@ if standalone:
 
     # check that logging is properly configured
     import logging
-    from pytorch_lightning import DETAIL
+    from pytorch_lightning import _DETAIL
 
     root_logger = logging.getLogger()
     lightning_logger = logging.getLogger("pytorch_lightning")
@@ -84,7 +84,7 @@ if standalone:
     with redirect_stderr(stderr):
         # Lightning should not output DETAIL level logging by default
         lightning_logger.detail("test1")
-        lightning_logger.setLevel(DETAIL)
+        lightning_logger.setLevel(_DETAIL)
         lightning_logger.detail("test2")
         # logger should not output anything for DEBUG statements if set to DETAIL
         lightning_logger.debug("test3")
