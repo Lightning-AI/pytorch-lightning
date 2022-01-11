@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Dict, Generator, List, Optional
 import logging
+from typing import Dict, Generator, List, Optional
 
 import torch
 

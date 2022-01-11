@@ -53,6 +53,7 @@ if standalone:
 
     # check that logging is properly configured
     import logging
+
     from pytorch_lightning import _DETAIL
 
     root_logger = logging.getLogger()
