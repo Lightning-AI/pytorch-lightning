@@ -797,3 +797,27 @@ def test_print_results_native(monkeypatch):
         "───────────────────────────────────────────\n"
     )
     assert out.getvalue() == expected
+
+
+def test_print_results_native_nested_dicts(monkeypatch):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = StringIO()
+    with redirect_stdout(out):
+        loop = EvaluationLoop()
+        loop._print_results([{"performance": {"log": 5}}, {"test": {"no_log": 6}}], "Testing")
+
+    expected = (
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+        "     Testing metric            DataLoader 0             DataLoader 1       \n"
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+        "           log                       5                                     \n"
+        "         no_log                                               6            \n"
+        "─────────────────────────────────────────────────────────────────────────────"
+        "───────────────────────────────────────────\n"
+    )
+    assert out.getvalue() == expected
