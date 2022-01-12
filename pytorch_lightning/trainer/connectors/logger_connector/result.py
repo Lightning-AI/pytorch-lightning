@@ -217,6 +217,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             # do not set a dtype in case the default dtype was changed
             self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
+                self.cumulated_batch_size: torch.Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
 
     def update(self, value: _IN_METRIC, batch_size: int) -> None:
@@ -240,12 +241,13 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
-                self.value += value.mean() * batch_size
-                self.cumulated_batch_size += batch_size
+                # do not use `+=` as it doesn't do type promotion
+                self.value = self.value + value.mean() * batch_size
+                self.cumulated_batch_size = self.cumulated_batch_size + batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
-                self.value += value.mean()
+                self.value = self.value + value.mean()
         else:
             self.value = value
             self._forward_cache = value._forward_cache
