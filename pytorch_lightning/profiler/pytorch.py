@@ -339,12 +339,12 @@ class BasePyTorchProfiler(Profiler):
 
         if self.profiler is not None and action_name not in self._recording_map:
 
+            # Add [pl][profile] in name for pytorch profiler to recognize
             action_name = "[pl][profile]" + action_name
 
             # start profile first then record_function to allow it can be captured by the stop
             if _KINETO_AVAILABLE and not self._emit_nvtx:
                 self._start_action(action_name)
-            # Add [pl][profile] in name for pytorch profiler to recognize
             recording = record_function(action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
@@ -746,22 +746,31 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
 
     def _start_action(self, action_name: str) -> None:
         self._action_step_num[action_name] += 1
-        if self._lightning_module:
-            total_steps = self.get_total_steps(action_name)
-            if total_steps is not None and total_steps < self.profile_steps:
-                warning_cache.warn(
-                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
-                    "steps to properly record traces."
-                )
-                self._override_steps = True
-                # No need to call prepare_trace & start_trace here
-                # since the profiler is already started when created.
-                return
+
+        if self._lightning_module is None:
+            # we don't call prepare_trace/start_trace if the lightning_module is None
+            # like the following scenarios
+            # with pytorch_profiler.profile("a"):
+            #   a = torch.ones(42)
+            return
+
+        total_steps = self.get_total_steps(action_name)
+        if total_steps is None or total_steps < self.profile_steps:
+            # if the total_step is None, it means the action_name is not belong to
+            # any train/validation/test/prediction steps
+            warning_cache.warn(
+                "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                "steps to properly record traces."
+            )
+            self._override_steps = True
+            # No need to call prepare_trace & start_trace here
+            # since the profiler is already started when created.
+            return
 
         step_num = self._action_step_num[action_name]
         if step_num == self._wait_step:
             # warm up
-            self._prepare_trace()
+            self.profiler.prepare_trace()
         elif step_num >= self._wait_step + self._warmup_step and step_num < self.profile_steps:
             # begin profile
             if not torch.autograd._profiler_enabled():
@@ -769,9 +778,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                 # CuptiActivityProfiler::transferCpuTrace
                 # No need call _prepare_trace for warm up step
                 if self.profiler_disposed:
-                    self._prepare_trace()
-                if _KINETO_AVAILABLE:
-                    self.profiler.start_trace()
+                    self.profiler.prepare_trace()
+                self.profiler.start_trace()
 
     def _stop_action(self, action_name: str) -> None:
         if self.profiler is not None and (
@@ -784,8 +792,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                 self._saved_action_name = action_name
 
             if self._action_step_num[action_name] == self.profile_steps:
-                if _KINETO_AVAILABLE:
-                    self.profiler.stop()
+                self.profiler.stop()
                 if self.dirpath is not None:
                     self._save_result(action_name)
                 else:
@@ -803,10 +810,6 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                     self._save_result(self._saved_action_name)
             self._cache_functions_events()
             self.profiler = None
-
-    def _prepare_trace(self) -> None:
-        if _KINETO_AVAILABLE:
-            self.profiler.prepare_trace()
 
     def _save_result(self, action_name: str) -> None:
         os.makedirs(self.dirpath, exist_ok=True)
