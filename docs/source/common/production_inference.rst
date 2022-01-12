@@ -4,14 +4,89 @@
 Inference in Production
 #######################
 
-Since :class:`~pytorch_lightning.core.lightning.LightningModule` is just :class:`torch.nn.Module`, all the possible inferencing techniques for deploying PyTorch models to production
-apply here too. Lightning provides some helper methods to help you out with it.
+******************
+With Lightning API
+******************
 
----------------
+Following are some possible ways you can use Lightning to run inference in production. Note that this can introduce extra required Lightning dependencies
+in your production environment.
 
-**********
-Using ONNX
-**********
+------------
+
+Prediction API
+==============
+
+Lightning provides you with a prediction API that can be accessed using :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
+To configure this with LightningModule, you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+By default :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`
+method. In order to customize this behaviour, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+
+For the example let's override ``predict_step`` and try out `Monte Carlo Dropout <https://arxiv.org/pdf/1506.02142.pdf>`_:
+
+.. code-block:: python
+
+    class LitMCdropoutModel(pl.LightningModule):
+        def __init__(self, model, mc_iteration):
+            super().__init__()
+            self.model = model
+            self.dropout = nn.Dropout()
+            self.mc_iteration = mc_iteration
+
+        def predict_step(self, batch, batch_idx):
+            # enable Monte Carlo Dropout
+            self.dropout.train()
+
+            # take average of `self.mc_iteration` iterations
+            pred = torch.vstack([self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]).mean(dim=0)
+            return pred
+
+------------
+
+PyTorch Runtime
+===============
+
+You can also load the saved checkpoint and use it as a regular :class:`torch.nn.Module`.
+
+.. code-block:: python
+
+    class SimpleModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+    # create the model
+    model = SimpleModel()
+
+    # train it
+    trainer = Trainer(gpus=2)
+    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.save_checkpoint("best_model.ckpt")
+
+    # use model after training or load weights and drop into the production system
+    model = SimpleModel.load_from_checkpoint("best_model.ckpt")
+    model.eval()
+    x = torch.randn(1, 64)
+
+    with torch.no_grad():
+        y_hat = model(x)
+
+------------
+
+*********************
+Without Lightning API
+*********************
+
+As the :class:`~pytorch_lightning.core.lightning.LightningModule` is simply a :class:`torch.nn.Module`, common techniques to export PyTorch models
+to production apply here too. However, the :class:`~pytorch_lightning.core.lightning.LightningModule` provides helper methods to help you out with it.
+
+------------
+
+Convert to ONNX
+===============
 
 Lightning provides a handy function to quickly export your model to `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ format
 which allows the model to be independent of PyTorch and run on an ONNX Runtime.
@@ -29,12 +104,30 @@ To export your model to ONNX format call the :meth:`~pytorch_lightning.core.ligh
             return torch.relu(self.l1(x.view(x.size(0), -1)))
 
 
-    filepath = "model.onnx"
+    # create the model
     model = SimpleModel()
+    filepath = "model.onnx"
     input_sample = torch.randn((1, 64))
     model.to_onnx(filepath, input_sample, export_params=True)
 
 You can also skip passing the input sample if the ``example_input_array`` property is specified in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+.. code-block:: python
+
+    class SimpleModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            self.example_input_array = torch.randn(7, 64)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+    # create the model
+    model = SimpleModel()
+    filepath = "model.onnx"
+    model.to_onnx(filepath, export_params=True)
 
 Once you have the exported model, you can run it on your ONNX runtime in the following way:
 
@@ -45,11 +138,10 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
     ort_inputs = {input_name: np.random.randn(1, 64)}
     ort_outs = ort_session.run(None, ort_inputs)
 
----------------
+------------
 
-*****************
-Using TorchScript
-*****************
+Convert to TorchScript
+======================
 
 `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ allows you to serialize your models in a way that it can be loaded in non-Python environments.
 The ``LightningModule`` has a handy method :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript` that returns a scripted module which you
@@ -57,6 +149,16 @@ can save or directly use.
 
 .. code-block:: python
 
+    class SimpleModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+    # create the model
     model = SimpleModel()
     script = model.to_torchscript()
 
@@ -73,23 +175,64 @@ Once you have the exported model, you can run it in Pytorch or C++ runtime:
     scripted_module = torch.jit.load("model.pt")
     output = scripted_module(dummy_input)
 
----------------
+------------
 
-********************
-Using Python Runtime
-********************
+PyTorch Runtime
+===============
 
-You can also load the saved checkpoint inside a Python runtime and use it as a regular :class:`torch.nn.Module`.
+You can also load the saved checkpoint and use it as a regular :class:`torch.nn.Module`. You can extract all your :class:`torch.nn.Module`
+and load the weights using the checkpoint saved using LightningModule after training. For this, we recommend copying the exact implementation
+from your LightningModule ``init`` and ``forward`` method.
 
 .. code-block:: python
 
-    model = SimpleModel()
+    class Encoder(nn.Module):
+        ...
+
+
+    class Decoder(nn.Module):
+        ...
+
+
+    class AutoEncoder(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.encoder = Encoder()
+            self.decoder = Decoder()
+
+        def forward(self, x):
+            return self.encoder(x)
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.encoder(x)
+            y_hat = self.decoder(y_hat)
+            loss = ...
+            return loss
+
+
+    class AutoEncoderProd(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.encoder = Encoder()
+            self.decoder = Decoder()
+
+        def forward(self, x):
+            return self.encoder(x)
+
 
     # train it
     trainer = Trainer(gpus=2)
     trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.save_checkpoint("best_model.ckpt")
 
-    # use model after training or load weights and drop into the production system
+
+    # create the PyTorch model and load the checkpoint weights
+    model = AutoEncoderProd()
+    checkpoint_weights = torch.load("best_model.ckpt")
+    model.load_state_dict(checkpoint_weights["state_dict"])
     model.eval()
+    x = torch.randn(1, 64)
+
     with torch.no_grad():
         y_hat = model(x)

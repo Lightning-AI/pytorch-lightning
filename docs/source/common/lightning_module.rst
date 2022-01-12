@@ -705,7 +705,23 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
 a ``LightningModule``.
 
-Checkout :ref:`Inference in Production <production_inference>` doc to learn about the possible ways to perform inference in production.
+The following example shows how you can run inference in the Python runtime:
+
+.. code-block:: python
+
+    task = ClassificationTask(model)
+    trainer = Trainer(gpus=2)
+    trainer.fit(task, train_dataloader, val_dataloader)
+    trainer.save_checkpoint("best_model.ckpt")
+
+    # use model after training or load weights and drop into the production system
+    model = ClassificationTask.load_from_checkpoint("best_model.ckpt")
+    x = ...
+    model.eval()
+    with torch.no_grad():
+        y_hat = model(x)
+
+Check out :ref:`Inference in Production <production_inference>` doc to learn about the possible ways to perform inference in production.
 
 
 -----------
