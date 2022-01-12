@@ -131,11 +131,7 @@ class ProgressBarBase(Callback):
         return sum(self.trainer.num_predict_batches)
 
     def disable(self) -> None:
-        """You should provide a way to disable the progress bar.
-
-        The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
-        output on processes that have a rank different from 0, e.g., in multi-node training.
-        """
+        """You should provide a way to disable the progress bar."""
         raise NotImplementedError
 
     def enable(self) -> None:
