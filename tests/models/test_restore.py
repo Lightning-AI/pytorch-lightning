@@ -168,24 +168,26 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _check_optimizers(self):
             return all(
-                self._is_equal(self.trainer.optimizers[i].state_dict(), state_dict["optimizer_states"][i])
-                for i in range(len(self.trainer.optimizers))
+                self._is_equal(optimizer.state_dict(), state)
+                for optimizer, state in zip(self.trainer.optimizers, state_dict["optimizer_states"])
             )
 
         def _check_schedulers(self):
             return all(
-                self._is_equal(config.scheduler.state_dict(), state_dict["lr_schedulers"][i])
-                for i, config in enumerate(self.trainer.lr_scheduler_configs)
+                self._is_equal(config.scheduler.state_dict(), state)
+                for config, state in zip(self.trainer.lr_scheduler_configs, state_dict["lr_schedulers"])
             )
 
         def _check_model_state_dict(self):
-            for k in self.state_dict():
-                yield self._is_equal(self.state_dict()[k], state_dict["state_dict"][k])
+            return all(
+                self._is_equal(actual, expected)
+                for actual, expected in zip(self.state_dict(), state_dict["state_dict"])
+            )
 
         def _test_on_val_test_predict_tune_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
             assert self.trainer.global_step == state_dict["global_step"]
-            assert all(self._check_model_state_dict())
+            assert self._check_model_state_dict()
 
             # no optimizes and schedulers are loaded otherwise
             if self.trainer.state.fn != TrainerFn.TUNING:
@@ -200,7 +202,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             else:
                 assert self.trainer.current_epoch == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
-                assert all(self._check_model_state_dict())
+                assert self._check_model_state_dict()
                 assert self._check_optimizers()
                 assert self._check_schedulers()
 
