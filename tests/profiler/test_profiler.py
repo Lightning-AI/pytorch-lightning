@@ -604,7 +604,10 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)
-        assert trainer.profiler._schedule is None
+        if hasattr(trainer.profiler, "_schedule"):
+            assert trainer.profiler._schedule is None
+        elif hasattr(trainer.profiler, "_override_steps"):
+            assert trainer.profiler._override_steps
         warning_cache.clear()
 
 

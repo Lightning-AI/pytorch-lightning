@@ -338,13 +338,19 @@ class BasePyTorchProfiler(Profiler):
             self._register.__enter__()
 
         if self.profiler is not None and action_name not in self._recording_map:
+
+            action_name = "[pl][profile]" + action_name
+
+            # start profile first then record_function to allow it can be captured by the stop
+            if _KINETO_AVAILABLE and not self._emit_nvtx:
+                self._start_action(action_name)
             # Add [pl][profile] in name for pytorch profiler to recognize
-            recording = record_function("[pl][profile]" + action_name)
+            recording = record_function(action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
-            self._start_action(action_name)
 
     def stop(self, action_name: str) -> None:
+        action_name = "[pl][profile]" + action_name
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
@@ -352,11 +358,7 @@ class BasePyTorchProfiler(Profiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        if self.profiler is not None and (
-            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
-            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
-        ):
-            self._stop_action(action_name)
+        self._stop_action(action_name)
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
@@ -528,7 +530,6 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
                 raise MisconfigurationException(
                     f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
                 )
-        self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
@@ -579,43 +580,47 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             self._parent_profiler.__enter__()
 
     def _stop_action(self, action_name: str) -> None:
-        if self._schedule is not None:
-            self._schedule.pre_step(action_name)
+        if self.profiler is not None and (
+            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
+            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
+        ):
+            if self._schedule is not None:
+                self._schedule.pre_step(action_name)
 
-        # the default schedule requires a minimum of 5 steps to properly work: `wait=1, warmup=1, active=3`.
-        # otherwise, this will raise a `segmentation fault`.
-        if self._should_override_schedule():
-            warning_cache.warn(
-                "The PyTorch Profiler default schedule will be overridden as there is not enough "
-                "steps to properly record traces."
-            )
-            self._schedule = None
-            self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
+            # the default schedule requires a minimum of 5 steps to properly work: `wait=1, warmup=1, active=3`.
+            # otherwise, this will raise a `segmentation fault`.
+            if self._should_override_schedule():
+                warning_cache.warn(
+                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                    "steps to properly record traces."
+                )
+                self._schedule = None
+                self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
-        def on_trace_ready(profiler):
-            if self.dirpath is not None:
-                if self._export_to_chrome:
-                    handler = tensorboard_trace_handler(
-                        self.dirpath, self._prepare_filename(action_name=action_name, extension="")
-                    )
-                    handler(profiler)
+            def on_trace_ready(profiler):
+                if self.dirpath is not None:
+                    if self._export_to_chrome:
+                        handler = tensorboard_trace_handler(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension="")
+                        )
+                        handler(profiler)
 
-                if self._export_to_flame_graph:
-                    path = os.path.join(
-                        self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack")
-                    )
-                    profiler.export_stacks(path, metric=self._metric)
-            else:
-                rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
+                    if self._export_to_flame_graph:
+                        path = os.path.join(
+                            self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack")
+                        )
+                        profiler.export_stacks(path, metric=self._metric)
+                else:
+                    rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
 
-        if not self._has_on_trace_ready:
-            self.profiler.on_trace_ready = on_trace_ready
+            if not self._has_on_trace_ready:
+                self.profiler.on_trace_ready = on_trace_ready
 
-        if self._schedule is not None:
-            self.profiler.step_num = self._schedule.num_step
-        self.profiler.step()
-        if _TORCH_GREATER_EQUAL_1_9:
-	    self.profiler.add_metadata("Framework", "pytorch-lightning")
+            if self._schedule is not None:
+                self.profiler.step_num = self._schedule.num_step
+            self.profiler.step()
+            if _TORCH_GREATER_EQUAL_1_9:
+	        self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def _delete_profiler(self) -> None:
         if self.profiler is not None:
@@ -713,6 +718,11 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         self._warmup_step: int = warmup_step
         self._active_step: int = active_step
 
+        self._override_steps = False
+        self._saved_action_name: str = None
+
+        self.profiler_disposed: bool = False
+
         if _KINETO_AVAILABLE:
             self._init_kineto_params(profiler_kwargs)
 
@@ -731,45 +741,72 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
 
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             self.profiler.__enter__()
-
-    def _start_action(self, action_name: str) -> None:
-        self._action_step_num[action_name] += 1
-
-    def _stop_action(self, action_name: str) -> None:
-        step_num = self._action_step_num[action_name]
-        if step_num == self._wait_step:
-            # warm up
-            self._start_profiler()
-            self._stop_profiler()
-        elif step_num == self._wait_step + self._warmup_step:
-            # begin profile
-            self._start_profiler()
-        elif step_num == self._wait_step + self._warmup_step + self._active_step:
-            self._stop_profiler()
-            if self.dirpath is not None:
-                self._save_result(action_name)
-            else:
-                rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
-
-    def _delete_profiler(self) -> None:
-        if self.profiler is not None:
-            self._stop_profiler()
-            self.profiler = None
-
-    def _start_profiler(self) -> None:
-        if not _KINETO_AVAILABLE or self._emit_nvtx:
-            self.profiler.__enter__()
         else:
             self.profiler.start()
 
-    def _stop_profiler(self) -> None:
+    def _start_action(self, action_name: str) -> None:
+        self._action_step_num[action_name] += 1
+        if self._lightning_module:
+            total_steps = self.get_total_steps(action_name)
+            if total_steps is not None and total_steps < self.profile_steps:
+                warning_cache.warn(
+                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                    "steps to properly record traces."
+                )
+                self._override_steps = True
+                # No need to call prepare_trace & start_trace here
+                # since the profiler is already started when created.
+                return
+
+        step_num = self._action_step_num[action_name]
+        if step_num == self._wait_step:
+            # warm up
+            self._prepare_trace()
+        elif step_num >= self._wait_step + self._warmup_step and step_num < self.profile_steps:
+            # begin profile
+            if not torch.autograd._profiler_enabled():
+                # recreate the profile. Otherwise, the pytorch profiler would crash at
+                # CuptiActivityProfiler::transferCpuTrace
+                # No need call _prepare_trace for warm up step
+                if self.profiler_disposed:
+                    self._prepare_trace()
+                if _KINETO_AVAILABLE:
+                    self.profiler.start_trace()
+
+    def _stop_action(self, action_name: str) -> None:
+        if self.profiler is not None and (
+            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
+            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
+        ):
+            # Save the first action name in order to save the profile data
+            # when destroying profiler like what the original on_trace_ready did.
+            if self._saved_action_name is None:
+                self._saved_action_name = action_name
+
+            if self._action_step_num[action_name] == self.profile_steps:
+                if _KINETO_AVAILABLE:
+                    self.profiler.stop()
+                if self.dirpath is not None:
+                    self._save_result(action_name)
+                else:
+                    rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
+                self.profiler_disposed = True
+
+    def _delete_profiler(self) -> None:
         if self.profiler is not None:
             if not _KINETO_AVAILABLE or self._emit_nvtx:
                 self.profiler.__exit__(None, None, None)
             else:
-                self.profiler.stop()
-
+                # At the moment, the profiler should already be stoped.
+                if torch.autograd._profiler_enabled():
+                    self.profiler.stop()
+                    self._save_result(self._saved_action_name)
             self._cache_functions_events()
+            self.profiler = None
+
+    def _prepare_trace(self) -> None:
+        if _KINETO_AVAILABLE:
+            self.profiler.prepare_trace()
 
     def _save_result(self, action_name: str) -> None:
         os.makedirs(self.dirpath, exist_ok=True)
@@ -784,6 +821,26 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if self._export_to_flame_graph:
             path = os.path.join(self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack"))
             self.profiler.export_stacks(path, metric=self._metric)
+
+    @property
+    def profile_steps(self):
+        return self._wait_step + self._warmup_step + self._active_step
+
+    def get_total_steps(self, action_name) -> int:
+        trainer = self._lightning_module.trainer
+
+        # when the model is used in automatic optimization, we use `optimizer_step_with_closure` to step the model.
+        # this profiler event is generated in the `LightningOptimizer.step` method
+        if (
+            self._lightning_module.automatic_optimization and action_name.startswith("optimizer_step_with_closure_")
+        ) or (not self._lightning_module.automatic_optimization and action_name.endswith("training_step")):
+            return trainer.num_training_batches
+        if action_name.endswith("validation_step"):
+            return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
+        if action_name.endswith("test_step"):
+            return sum(trainer.num_test_batches)
+        if action_name.endswith("predict_step"):
+            return sum(trainer.num_predict_batches)
 
 
 if _TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile"):
