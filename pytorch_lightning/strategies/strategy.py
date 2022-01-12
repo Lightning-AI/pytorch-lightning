@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -51,7 +51,8 @@ class Strategy(ABC):
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
-        self.optimizers: List[Optimizer] = []
+        self._optimizers: List[Optimizer] = []
+        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
@@ -83,6 +84,24 @@ class Strategy(ABC):
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
         self._precision_plugin = precision_plugin
+
+    @property
+    def optimizers(self) -> List[Optimizer]:
+        return self._optimizers
+
+    @optimizers.setter
+    def optimizers(self, optimizers: List[Optimizer]) -> None:
+        self._optimizers = optimizers
+        self._lightning_optimizers = {
+            # FIXME: LightningOptimizer needs the trainer currently.
+            idx: LightningOptimizer._to_lightning_optimizer(opt, None, idx)
+            for idx, opt in enumerate(self.optimizers)
+        }
+
+    @property
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
+        # FIXME: should this property be protected?
+        return self._lightning_optimizers
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""

@@ -58,20 +58,14 @@ class LightningOptimizer:
     def optimizer(self) -> Optimizer:
         return self._optimizer
 
-    def _on_trainer_init(self, trainer: "pl.Trainer") -> None:
-        # check if trainer is already of type weakproxy since we can't call proxy on a weakproxy
-        self._trainer = trainer if isinstance(trainer, weakref.ProxyType) else proxy(trainer)
-        for opt_idx, opt in enumerate(trainer.optimizers):
-            if opt == self._optimizer:
-                self._optimizer_idx = opt_idx
-                break
-
     @classmethod
     def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: "pl.Trainer", opt_idx: int) -> "LightningOptimizer":
         # apex overrides .step function and need to be wrapped on each step
-        if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:
+        if trainer.amp_backend == AMPType.APEX:
             lightning_optimizer = cls(optimizer)
-            lightning_optimizer._on_trainer_init(trainer)
+            # check if trainer is already of type weakproxy since we can't call proxy on a weakproxy
+            cls._trainer = trainer if isinstance(trainer, weakref.ProxyType) else proxy(trainer)
+            cls._optimizer_idx = opt_idx
         else:
             lightning_optimizer = trainer.lightning_optimizers[opt_idx]
         return lightning_optimizer
@@ -174,7 +168,6 @@ def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
 ) -> Tuple[List[Optimizer], List[Dict[str, Any]], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
-    model.trainer._lightning_optimizers = None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
     if optim_conf is None:
@@ -389,18 +382,6 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
         rank_zero_warn(
             f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", category=RuntimeWarning
         )
-
-
-def _convert_to_lightning_optimizers(trainer: "pl.Trainer") -> None:
-    def _convert_to_lightning_optimizer(optimizer: Optimizer) -> LightningOptimizer:
-        if not isinstance(optimizer, LightningOptimizer):
-            optimizer = LightningOptimizer(optimizer)  # type: ignore [assignment]
-        optimizer._on_trainer_init(trainer)
-        return optimizer  # type: ignore [return-value]
-
-    trainer._lightning_optimizers = {  # type: ignore [assignment]
-        opt_idx: _convert_to_lightning_optimizer(opt) for opt_idx, opt in enumerate(trainer.optimizers)
-    }
 
 
 class _MockOptimizer(Optimizer):
