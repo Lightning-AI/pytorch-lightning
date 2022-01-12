@@ -272,7 +272,7 @@ def register_ddp_comm_hook(
 
     Examples:
 
-        >>> from torch.distributed.algorithms.ddp_comm_hooks import (
+        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
         ...     default_hooks as default,
         ...     powerSGD_hook as powerSGD,
         ...     post_localSGD_hook as post_localSGD,
