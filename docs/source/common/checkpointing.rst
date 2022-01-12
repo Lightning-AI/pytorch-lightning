@@ -395,4 +395,4 @@ Managing Remote Filesystems
 Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers
 such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
 
-Checkout :ref:`remote_fs` doc for more info.
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.
