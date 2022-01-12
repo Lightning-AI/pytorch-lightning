@@ -500,6 +500,7 @@ class Strategy(ABC):
 
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
+        self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         r"""
