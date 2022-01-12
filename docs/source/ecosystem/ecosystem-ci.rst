@@ -4,7 +4,7 @@ Ecosystem CI
 `Ecosystem CI <https://github.com/PyTorchLightning/ecosystem-ci>`_ automates issue discovery for your projects against Lightning nightly and releases.
 It is a lightweight repository that provides easy configuration of Continues Integration running on CPUs and GPUs.
 Any user who wants to keep their project aligned with current and future Lightning releases can use the EcoSystem CI to configure their integrations.
-
+Read more: `Stay Ahead of Breaking Changes with the New Lightning Ecosystem CI <https://devblog.pytorchlightning.ai/stay-ahead-of-breaking-changes-with-the-new-lightning-ecosystem-ci-b7e1cf78a6c7>`_
 --------------
 
 ***********************
