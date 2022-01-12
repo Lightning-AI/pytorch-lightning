@@ -501,6 +501,14 @@ class Strategy(ABC):
         """Hook to do something before the training/evaluation/prediction starts."""
         self.precision_plugin.dispatch(trainer)
 
+    def __getstate__(self) -> Dict:
+        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
+        self._cached_lightning_optimizers.clear()
+        return self.__dict__
+
+    def __setstate__(self, state: Dict) -> None:
+        self.__dict__ = state
+
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         r"""
         .. deprecated::

@@ -59,6 +59,6 @@ class TrainerOptimizersMixin(ABC):
                     break
             return optimizer  # type: ignore [return-value]
 
-        self.strategy._lightning_optimizers = {  # type: ignore [assignment]
+        self.strategy._cached_lightning_optimizers = {  # type: ignore [assignment]
             idx: _convert_to_lightning_optimizer(opt) for idx, opt in enumerate(self.optimizers)
         }
