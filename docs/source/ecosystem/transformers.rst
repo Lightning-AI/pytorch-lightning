@@ -41,6 +41,5 @@ Lightning Transformers has a collections of tasks for common NLP problems such a
         optimizer=<OPTIMIZER> # Optionally specify optimizer (Default AdamW)
         trainer.<ANY_TRAINER_FLAGS> # Optionally specify Lightning trainer arguments
 
------------------
 
 To learn more about Lightning Transformers, please refer to the `Lightning Transformers documentation <https://lightning-transformers.readthedocs.io/en/latest/>`_.

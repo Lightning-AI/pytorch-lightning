@@ -12,8 +12,9 @@ want a quick way to get a deep learning baseline with advanced features PyTorch 
 
 -----------------
 
+*********************************
 Using Lightning-Flash in 3 Steps!
----------------------------------
+*********************************
 
 1. Load your data
 -----------------
@@ -71,6 +72,5 @@ Once you've chosen, create the model:
     trainer.finetune(model, datamodule=datamodule, strategy="freeze")
     trainer.save_checkpoint("semantic_segmentation_model.pt")
 
-------------
 
 To learn more about Lightning Flash, please refer to the `Lightning Flash documentation <https://lightning-flash.readthedocs.io/en/latest/>`_.
