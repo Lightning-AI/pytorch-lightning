@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions to operate on metric values."""
-import numbers
+from __future__ import annotations
+
 from typing import Any
 
 import torch
@@ -29,7 +30,7 @@ def metrics_to_scalars(metrics: Any) -> Any:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 
-    def to_item(value: torch.Tensor) -> numbers.Number:
+    def to_item(value: torch.Tensor) -> int | float | bool:
         if value.numel() != 1:
             raise MisconfigurationException(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."

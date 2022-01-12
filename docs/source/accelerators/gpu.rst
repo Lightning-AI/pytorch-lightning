@@ -4,10 +4,28 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _multi_gpu:
+.. _gpu:
 
-Multi-GPU training
-==================
+Graphics Processing Unit (GPU)
+==============================
+
+
+Single GPU Training
+-------------------
+
+Make sure you're running on a machine with at least one GPU. There's no need to specify any NVIDIA flags
+as Lightning will do it for you.
+
+.. testcode::
+    :skipif: torch.cuda.device_count() < 1
+
+    trainer = Trainer(gpus=1)
+
+----------------
+
+Multi GPU Training
+------------------
+
 Lightning supports multiple ways of doing distributed training.
 
 .. raw:: html
@@ -594,9 +612,9 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPStrategy.init_dist_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.init_dist_connection`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPStrategy.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.configure_ddp`.
 
 
 Batch size

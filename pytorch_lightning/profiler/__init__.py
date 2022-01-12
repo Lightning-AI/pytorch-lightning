@@ -141,9 +141,9 @@ output in your terminal. If no filename is given, it will be logged only on rank
 
 The profiler's results will be printed on the completion of ``{fit,validate,test,predict}``.
 
-This profiler will record ``training_step_and_backward``, ``training_step``, ``backward``,
+This profiler will record ``training_step``, ``backward``,
 ``validation_step``, ``test_step``, and ``predict_step`` by default.
-The output below shows the profiling for the action ``training_step_and_backward``.
+The output below shows the profiling for the action ``training_step``.
 The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
 
 .. note::
@@ -156,7 +156,7 @@ The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the s
 
     Profiler Report
 
-    Profile stats for: training_step_and_backward
+    Profile stats for: training_step
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Name                   Self CPU total %  Self CPU total   CPU total %      CPU total        CPU time avg
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------

@@ -47,52 +47,57 @@ class ProgressBarBase(Callback):
     """
 
     def __init__(self):
-
-        self._trainer = None
-        self._train_batch_idx = 0
-        self._val_batch_idx = 0
-        self._test_batch_idx = 0
-        self._predict_batch_idx = 0
+        self._trainer: Optional["pl.Trainer"] = None
 
     @property
-    def trainer(self):
+    def trainer(self) -> "pl.Trainer":
         return self._trainer
 
     @property
     def train_batch_idx(self) -> int:
-        """The current batch index being processed during training.
+        """The number of batches processed during training.
 
         Use this to update your progress bar.
         """
-        return self._train_batch_idx
+        if self.trainer is None:
+            return 0
+        return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def val_batch_idx(self) -> int:
-        """The current batch index being processed during validation.
+        """The number of batches processed during validation.
 
         Use this to update your progress bar.
         """
-        return self._val_batch_idx
+        if self.trainer is None:
+            return 0
+        if self.trainer.state.fn == "fit":
+            return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
+        return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def test_batch_idx(self) -> int:
-        """The current batch index being processed during testing.
+        """The number of batches processed during testing.
 
         Use this to update your progress bar.
         """
-        return self._test_batch_idx
+        if self.trainer is None:
+            return 0
+        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def predict_batch_idx(self) -> int:
-        """The current batch index being processed during predicting.
+        """The number of batches processed during prediction.
 
         Use this to update your progress bar.
         """
-        return self._predict_batch_idx
+        if self.trainer is None:
+            return 0
+        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
 
     @property
     def total_train_batches(self) -> int:
-        """The total number of training batches during training, which may change from epoch to epoch.
+        """The total number of training batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
         dataloader is of infinite size.
@@ -101,7 +106,7 @@ class ProgressBarBase(Callback):
 
     @property
     def total_val_batches(self) -> int:
-        """The total number of validation batches during validation, which may change from epoch to epoch.
+        """The total number of validation batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
@@ -115,7 +120,7 @@ class ProgressBarBase(Callback):
 
     @property
     def total_test_batches(self) -> int:
-        """The total number of testing batches during testing, which may change from epoch to epoch.
+        """The total number of testing batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
@@ -124,7 +129,7 @@ class ProgressBarBase(Callback):
 
     @property
     def total_predict_batches(self) -> int:
-        """The total number of predicting batches during testing, which may change from epoch to epoch.
+        """The total number of prediction batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
@@ -154,33 +159,6 @@ class ProgressBarBase(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._trainer = trainer
-
-    def on_train_start(self, trainer, pl_module):
-        self._train_batch_idx = 0
-
-    def on_train_epoch_start(self, trainer, pl_module):
-        self._train_batch_idx = trainer.fit_loop.epoch_loop.batch_progress.current.completed
-
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        self._train_batch_idx += 1
-
-    def on_validation_start(self, trainer, pl_module):
-        self._val_batch_idx = 0
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._val_batch_idx += 1
-
-    def on_test_start(self, trainer, pl_module):
-        self._test_batch_idx = 0
-
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._test_batch_idx += 1
-
-    def on_predict_epoch_start(self, trainer, pl_module):
-        self._predict_batch_idx = 0
-
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._predict_batch_idx += 1
 
     def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""

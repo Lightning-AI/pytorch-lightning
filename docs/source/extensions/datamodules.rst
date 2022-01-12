@@ -253,6 +253,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
         def train_dataloader(self):
             return DataLoader(self.mnist_train, batch_size=64)
 
+.. _datamodule_val_dataloader_label:
 
 val_dataloader
 ~~~~~~~~~~~~~~
@@ -270,7 +271,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
             return DataLoader(self.mnist_val, batch_size=64)
 
 
-.. _datamodule-test-dataloader-label:
+.. _datamodule_test_dataloader_label:
 
 test_dataloader
 ~~~~~~~~~~~~~~~

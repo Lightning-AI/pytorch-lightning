@@ -129,7 +129,7 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
-    assert trainer._accelerator_connector._distrib_type == _StrategyType.DDP_SPAWN
+    assert trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
@@ -248,17 +248,17 @@ def test_dataloader_reinit_for_subclass():
     class CustomDummyObj:
         sampler = None
 
-    result = trainer.prepare_dataloader(CustomDummyObj(), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDummyObj(), shuffle=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
     dataset = list(range(10))
-    result = trainer.prepare_dataloader(CustomDataLoader(dataset), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset), shuffle=True)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
 
     # Shuffled DataLoader should also work
-    result = trainer.prepare_dataloader(CustomDataLoader(dataset, shuffle=True), shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(CustomDataLoader(dataset, shuffle=True), shuffle=True)
     assert isinstance(result, DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert result.dummy_kwarg is None
@@ -269,7 +269,7 @@ def test_dataloader_reinit_for_subclass():
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     with pytest.raises(MisconfigurationException, match="will be replaced by `DistributedSampler`"):
-        trainer.prepare_dataloader(dataloader, shuffle=True)
+        trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
 
 
 class LoaderTestModel(BoringModel):
@@ -351,7 +351,7 @@ def test_error_raised_with_float_limited_eval_batches():
         MisconfigurationException,
         match=fr"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
-        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
+        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
 
 
 @pytest.mark.parametrize(
@@ -375,4 +375,4 @@ def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     with pytest.warns(PossibleUserWarning, match="recommended .* turn this off for val/test/predict"):
-        trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
+        trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
