@@ -19,7 +19,6 @@ import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from copy import deepcopy
-from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
@@ -2028,6 +2027,8 @@ class Trainer(
             " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
             stacklevel=5,
         )
+        from dataclasses import asdict
+
         return [asdict(config) for config in self.strategy.lr_schedulers]
 
     @property
