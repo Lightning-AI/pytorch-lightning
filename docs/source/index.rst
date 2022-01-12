@@ -116,6 +116,8 @@ PyTorch Lightning
    ecosystem/metrics
    ecosystem/flash
    ecosystem/bolts
+   ecosystem/transformers
+   ecosystem/ecosystem-ci
 
 .. toctree::
    :maxdepth: 1

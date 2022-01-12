@@ -12,8 +12,8 @@ want a quick way to get a deep learning baseline with advanced features PyTorch 
 
 -----------------
 
-Using Lightning-Flash
----------------------
+Using Lightning-Flash in 3 Steps!
+---------------------------------
 
 1. Load your data
 -----------------
@@ -64,6 +64,7 @@ Once you've chosen, create the model:
 ------------
 
 .. code-block:: python
+
     from flash import Trainer
 
     trainer = Trainer(max_epochs=3)
