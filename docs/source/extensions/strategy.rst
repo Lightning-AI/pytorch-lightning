@@ -5,7 +5,7 @@ Strategy
 ########
 
 Strategy depicts the training strategy to be used by the :doc:`Lightning Trainer <../common/trainer>`. It can be controlled by passing different
-training strategies with aliases (``ddp``, ``ddp_spawn``, etc) as well as custom training strategies to the ``strategy`` parameter for Trainer.
+training strategies with aliases (``ddp``, ``ddp_spawn``, ``deepspeed``, etc) as well as custom training strategies to the ``strategy`` parameter for Trainer.
 
 ****************************************
 Training Strategies with various configs
@@ -46,7 +46,7 @@ Strategy in Lightning handles some of the following responsibilities:
 * Provide access to the wrapped LightningModule
 
 
-Strategy class :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
+:class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
 
 
 ************************
