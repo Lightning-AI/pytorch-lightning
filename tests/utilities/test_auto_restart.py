@@ -48,7 +48,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
-    _SupportsStateDict,
     _teardown_dataloader_get_iterators,
     _validate_fault_tolerant_automatic,
     CaptureIterableDataset,
@@ -60,6 +59,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.types import _SupportsStateDict
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 

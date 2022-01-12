@@ -55,7 +55,7 @@ class GradientAccumulationScheduler(Callback):
         >>> from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
         # from epoch 5, it starts accumulating every 2 batches. Here we have 4 instead of 5
-        because epoch (key) should be zero-indexed.
+        # because epoch (key) should be zero-indexed.
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
 

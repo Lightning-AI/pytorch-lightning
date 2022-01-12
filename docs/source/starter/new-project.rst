@@ -757,8 +757,8 @@ Once you define and train your first Lightning model, you might want to try othe
 
 - :doc:`Automatic early stopping <../common/early_stopping>`
 - :ref:`Automatic truncated-back-propagation-through-time <common/lightning_module:truncated_bptt_steps>`
-- :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
-- :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
+- :ref:`Automatically scale your batch size <advanced/training_tricks:Batch Size Finder>`
+- :ref:`Automatically scale your batch size <advanced/training_tricks:Learning Rate Finder>`
 - :ref:`Load checkpoints directly from S3 <common/checkpointing:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`

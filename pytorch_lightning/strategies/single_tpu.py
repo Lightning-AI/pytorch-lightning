@@ -36,10 +36,12 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
-        device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
-            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            device=xm.xla_device(device),
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
 
         self.debug = debug
@@ -59,9 +61,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             set_shared_parameters(self.model, shared_params)
 
         super().setup(trainer)
-
-        if isinstance(self.device, int):
-            self.device = xm.xla_device(self.device)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
