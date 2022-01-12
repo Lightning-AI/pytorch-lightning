@@ -515,11 +515,6 @@ class Trainer(
         # hook
         self._call_callback_hooks("on_init_start")
 
-        # init optimizer + lr scheduler related flags
-        self.lr_schedulers = []
-        self.optimizers = []
-        self.optimizer_frequencies = []
-
         # init data flags
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
@@ -2021,6 +2016,7 @@ class Trainer(
 
         self.strategy.optimizers = new_optims
 
+    # FIXME: bc compat
     @property
     def lr_schedulers(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_schedulers
@@ -2030,11 +2026,11 @@ class Trainer(
         self.strategy.lr_schedulers = new_schedulers
 
     @property
-    def optimizer_frequencies(self) -> list:
+    def optimizer_frequencies(self) -> List[int]:
         return self.strategy.optimizer_frequencies
 
     @optimizer_frequencies.setter
-    def optimizer_frequencies(self, new_freqs: list) -> None:
+    def optimizer_frequencies(self, new_freqs: List[int]) -> None:
         self.strategy.optimizer_frequencies = new_freqs
 
     @property

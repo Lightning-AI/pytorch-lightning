@@ -112,7 +112,7 @@ class LearningRateMonitor(Callback):
 
             def _check_no_key(key: str) -> bool:
                 if trainer.lr_schedulers:
-                    return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
+                    return any(key not in config.scheduler.optimizer.defaults for config in trainer.lr_schedulers)
 
                 return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
 
@@ -176,9 +176,9 @@ class LearningRateMonitor(Callback):
         ) = self._find_names_from_schedulers(trainer.lr_schedulers, add_lr_sch_names=False)
         self._remap_keys(scheduler_hparam_keys)
 
-        for name, scheduler in zip(scheduler_hparam_keys, trainer.lr_schedulers):
-            if interval in [scheduler["interval"], "any"]:
-                opt = scheduler["scheduler"].optimizer
+        for name, config in zip(scheduler_hparam_keys, trainer.lr_schedulers):
+            if interval in [config.interval, "any"]:
+                opt = config.scheduler.optimizer
                 current_stat = self._get_lr_momentum_stat(opt, name)
                 latest_stat.update(current_stat)
 

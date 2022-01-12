@@ -53,7 +53,13 @@ from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
+from pytorch_lightning.utilities.types import (
+    _LRScheduler,
+    _METRIC_COLLECTION,
+    EPOCH_OUTPUT,
+    LRSchedulerTypeUnion,
+    STEP_OUTPUT,
+)
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -158,7 +164,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+    def lr_schedulers(self) -> Optional[Union[_LRScheduler, List[_LRScheduler]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -170,7 +176,7 @@ class LightningModule(
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+        lr_schedulers = [config.scheduler for config in self.trainer.lr_schedulers]
 
         # single scheduler
         if len(lr_schedulers) == 1:

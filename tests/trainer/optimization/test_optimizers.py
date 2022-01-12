@@ -26,6 +26,7 @@ from pytorch_lightning.core.optimizer import (
     _init_optimizers_and_lr_schedulers,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
@@ -134,8 +135,8 @@ def test_reducelronplateau_scheduling(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     lr_scheduler = trainer.lr_schedulers[0]
-    assert lr_scheduler == dict(
-        scheduler=lr_scheduler["scheduler"],
+    assert lr_scheduler == LRSchedulerConfig(
+        scheduler=lr_scheduler.scheduler,
         monitor="foo",
         interval="epoch",
         frequency=1,
@@ -175,7 +176,7 @@ def test_optimizer_return_options(tmpdir):
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
-    ref_lr_sched = dict(
+    ref_lr_sched = LRSchedulerConfig(
         scheduler=scheduler_a,
         interval="epoch",
         frequency=1,
@@ -218,10 +219,10 @@ def test_optimizer_return_options(tmpdir):
     opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == len(freq) == 2
     assert opt[0] == opt_a
-    ref_lr_sched["opt_idx"] = 0
+    ref_lr_sched.opt_idx = 0
     assert lr_sched[0] == ref_lr_sched
-    ref_lr_sched["scheduler"] = scheduler_b
-    ref_lr_sched["opt_idx"] = 1
+    ref_lr_sched.scheduler = scheduler_b
+    ref_lr_sched.opt_idx = 1
     assert lr_sched[1] == ref_lr_sched
     assert freq == [1, 5]
 
@@ -309,11 +310,11 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert trainer.lr_schedulers[0]["opt_idx"] == 0
-    assert trainer.lr_schedulers[1]["opt_idx"] == 1
+    assert trainer.lr_schedulers[0].opt_idx == 0
+    assert trainer.lr_schedulers[1].opt_idx == 1
     # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization
-    assert trainer.lr_schedulers[0]["scheduler"]._step_count == expected_steps[0]
-    assert trainer.lr_schedulers[1]["scheduler"]._step_count == expected_steps[1]
+    assert trainer.lr_schedulers[0].scheduler._step_count == expected_steps[0]
+    assert trainer.lr_schedulers[1].scheduler._step_count == expected_steps[1]
 
 
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
@@ -483,7 +484,7 @@ def test_lr_scheduler_with_extra_keys_warns(tmpdir):
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1), "foo": 1, "bar": 2},
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the lr scheduler dict: \[.+\]"):
+    with pytest.raises(MisconfigurationException, match=r"Found unsupported keys in the lr scheduler dict: \{.+\}"):
         trainer.fit(model)
 
 
@@ -761,7 +762,7 @@ def test_invalid_scheduler_missing_state_dict():
 
     model = CustomBoringModel()
     model.trainer = Trainer()
-    with pytest.raises(TypeError, match="provided lr scheduler `CustomScheduler` is invalid"):
+    with pytest.raises(ValueError, match="provided lr scheduler `CustomScheduler` is invalid"):
         _init_optimizers_and_lr_schedulers(model)
 
 
