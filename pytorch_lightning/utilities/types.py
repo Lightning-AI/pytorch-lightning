@@ -23,7 +23,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import TypedDict
+from typing_extensions import Protocol, runtime_checkable, TypedDict
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -47,33 +47,29 @@ EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
 
 
-# Copied from `torch.optim.lr_scheduler.pyi`
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
+# Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class _LRScheduler:
+class _LRScheduler(_SupportsStateDict):
     optimizer: Optimizer
 
-    def __init__(self, optimizer: Optimizer, last_epoch: int = ...) -> None:
-        ...
-
-    def state_dict(self) -> dict:
-        ...
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        ...
-
-    def get_last_lr(self) -> List[float]:
-        ...
-
-    def get_lr(self) -> float:
-        ...
-
-    def step(self, epoch: Optional[int] = ...) -> None:
+    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
 
 
-# Copied from `torch.optim.lr_scheduler.pyi`
+# Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau:
+class ReduceLROnPlateau(_SupportsStateDict):
     in_cooldown: bool
     optimizer: Optimizer
 
@@ -90,15 +86,6 @@ class ReduceLROnPlateau:
         min_lr: float = ...,
         eps: float = ...,
     ) -> None:
-        ...
-
-    def step(self, metrics: Any, epoch: Optional[int] = ...) -> None:
-        ...
-
-    def state_dict(self) -> dict:
-        ...
-
-    def load_state_dict(self, state_dict: dict) -> None:
         ...
 
 
