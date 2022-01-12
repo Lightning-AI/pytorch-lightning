@@ -392,7 +392,6 @@ Custom Checkpoint IO Plugin
 Managing Remote Filesystems
 ***************************
 
-Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers
-such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
+Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers.
 
 Check out :ref:`Remote Filesystems <remote_fs>` document for more info.

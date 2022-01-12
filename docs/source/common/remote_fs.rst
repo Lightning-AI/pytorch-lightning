@@ -4,8 +4,9 @@
 Remote Filesystems
 ##################
 
-PyTorch Lightning enables working with data from a variety of filesystems, including local filesystems and several cloud storage providers
-such as ``s3`` on AWS, ``gcs`` on Google Cloud, or ``adl`` on Azure.
+PyTorch Lightning enables working with data from a variety of filesystems, including local filesystems and several cloud storage providers such as
+`S3 <https://aws.amazon.com/s3/>`_ on `AWS <https://aws.amazon.com/>`_, `GCS <https://cloud.google.com/storage>`_ on `Google Cloud <https://cloud.google.com/>`_,
+or `ADL <https://azure.microsoft.com/solutions/data-lake/>`_ on `Azure <https://azure.microsoft.com/>`_.
 
 This applies to saving and writing checkpoints, as well as for logging.
 Working with different filesystems can be accomplished by appending a protocol like "s3:/" to file paths for writing and reading data.
