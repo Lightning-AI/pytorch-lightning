@@ -50,7 +50,6 @@ class LightningOptimizer:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
-        self._lightning_module: Optional[pl.LightningModule] = None
         self._strategy: Optional[pl.strategies.Strategy] = None
         self._optimizer_idx = 0
 
@@ -60,11 +59,7 @@ class LightningOptimizer:
 
     @classmethod
     def _to_lightning_optimizer(
-        cls,
-        optimizer: Union[Optimizer, "LightningOptimizer"],
-        pl_module: "pl.LightningModule",
-        strategy: "pl.strategies.Strategy",
-        opt_idx: int,
+        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy", opt_idx: int
     ) -> "LightningOptimizer":
         if isinstance(optimizer, LightningOptimizer):
             # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
@@ -73,7 +68,6 @@ class LightningOptimizer:
         else:
             lightning_optimizer = cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
-        lightning_optimizer._lightning_module = pl_module
         lightning_optimizer._optimizer_idx = opt_idx
         return lightning_optimizer
 
@@ -92,11 +86,12 @@ class LightningOptimizer:
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
         assert self._strategy is not None
-        assert self._lightning_module is not None
+        lightning_module = self._strategy.lightning_module
+        assert lightning_module is not None
         with _block_parallel_sync_behavior(self._strategy, block=(not sync_grad)):
-            self._lightning_module.toggle_optimizer(self, self._optimizer_idx)
+            lightning_module.toggle_optimizer(self, self._optimizer_idx)
             yield
-            self._lightning_module.untoggle_optimizer(self._optimizer_idx)
+            lightning_module.untoggle_optimizer(self._optimizer_idx)
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
         """Performs a single optimization step (parameter update).
@@ -164,9 +159,9 @@ class LightningOptimizer:
             profiler_action = "optimizer_step_with_closure"
         profiler_action += f"_{self._optimizer_idx}"
 
-        assert self._lightning_module is not None
         assert self._strategy is not None
-        with self._lightning_module.trainer.profiler.profile(profiler_action):
+        assert self._strategy.lightning_module is not None
+        with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
             self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
 

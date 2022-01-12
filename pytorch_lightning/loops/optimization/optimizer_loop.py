@@ -355,9 +355,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # wraps into LightningOptimizer only for running step
         if self.trainer.amp_backend == AMPType.APEX:
             # apex overrides .step function and need to be wrapped on each step
-            optimizer = LightningOptimizer._to_lightning_optimizer(
-                optimizer, self.trainer.lightning_module, self.trainer.strategy, opt_idx
-            )
+            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
         else:
             optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
