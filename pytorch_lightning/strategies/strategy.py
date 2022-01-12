@@ -13,6 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -52,7 +53,6 @@ class Strategy(ABC):
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
-        self._cached_lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
@@ -92,19 +92,18 @@ class Strategy(ABC):
     @optimizers.setter
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
-        self._lightning_optimizers.clear()
+        self.__class__._lightning_optimizers.fget.cache_clear()
 
     @property
+    @lru_cache(1)
     def _lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        if not self._cached_lightning_optimizers:
-            # we create this on-the-fly instead of only in the optimizers setter because deleting this reference
-            # after every batch is supported as indicated by the test:
-            # tests/core/test_lightning_optimizer.py::test_lightning_optimizer_keeps_hooks
-            self._cached_lightning_optimizers = {
-                idx: LightningOptimizer._to_lightning_optimizer(opt, self.lightning_module, self, idx)
-                for idx, opt in enumerate(self.optimizers)
-            }
-        return self._cached_lightning_optimizers
+        # we create this on-the-fly instead of only in the optimizers setter because deleting this reference
+        # after every batch is supported as indicated by the test:
+        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer_keeps_hooks
+        return {
+            idx: LightningOptimizer._to_lightning_optimizer(opt, self.lightning_module, self, idx)
+            for idx, opt in enumerate(self.optimizers)
+        }
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
@@ -500,14 +499,6 @@ class Strategy(ABC):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.precision_plugin.dispatch(trainer)
-
-    def __getstate__(self) -> Dict:
-        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
-        self._cached_lightning_optimizers.clear()
-        return self.__dict__
-
-    def __setstate__(self, state: Dict) -> None:
-        self.__dict__ = state
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         r"""
