@@ -448,7 +448,7 @@ def result_collection_reload(devices=1, **kwargs):
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
-    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0, "devices": devices}
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
 
