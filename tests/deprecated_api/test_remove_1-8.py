@@ -337,3 +337,11 @@ def test_v1_8_0_deprecated_single_tpu_plugin_class():
         )
     ):
         SingleTPUPlugin(0)
+
+
+def test_v1_8_0_deprecated_lightning_optimizers():
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
+    ):
+        assert trainer.lightning_optimizers == {}

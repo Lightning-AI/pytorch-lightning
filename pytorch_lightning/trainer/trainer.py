@@ -2008,8 +2008,10 @@ class Trainer(
 
     @property
     def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        # FIXME: why do we expose this?
-        return self.strategy.lightning_optimizers
+        rank_zero_deprecation(
+            "`Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8", stacklevel=5
+        )
+        return self.strategy._lightning_optimizers
 
     @property
     def lr_schedulers(self) -> List[LRSchedulerConfig]:

@@ -359,7 +359,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 optimizer, self.trainer.lightning_module, self.trainer.strategy, opt_idx
             )
         else:
-            optimizer = self.trainer.lightning_optimizers[opt_idx]
+            optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
         self.optim_progress.optimizer.step.increment_ready()
 
