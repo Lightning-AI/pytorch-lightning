@@ -762,7 +762,7 @@ def test_invalid_scheduler_missing_state_dict():
 
     model = CustomBoringModel()
     model.trainer = Trainer()
-    with pytest.raises(ValueError, match="provided lr scheduler `CustomScheduler` is invalid"):
+    with pytest.raises(TypeError, match="provided lr scheduler `CustomScheduler` is invalid"):
         _init_optimizers_and_lr_schedulers(model)
 
 

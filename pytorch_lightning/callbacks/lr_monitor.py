@@ -316,7 +316,7 @@ class LearningRateMonitor(Callback):
         name: str,
         seen_optimizers: List[Optimizer],
         seen_optimizer_types: DefaultDict[Type[Optimizer], int],
-        lr_scheduler_config: LRSchedulerConfig,
+        lr_scheduler_config: Optional[LRSchedulerConfig],
         add_lr_sch_names: bool = True,
     ) -> List[str]:
         seen_optimizers.append(optimizer)
