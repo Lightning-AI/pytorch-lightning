@@ -1,7 +1,7 @@
 .. _tpu:
 
-TPU support
-===========
+Tensor Processing Unit (TPU)
+============================
 
 .. raw:: html
 

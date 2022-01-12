@@ -133,15 +133,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._outputs = []
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
-        # hook
-        self.trainer.logger_connector.on_epoch_start()
-        self.trainer._call_callback_hooks("on_epoch_start")
-        self.trainer._call_lightning_module_hook("on_epoch_start")
-
-        self.trainer._call_callback_hooks("on_train_epoch_start")
-        self.trainer._call_lightning_module_hook("on_train_epoch_start")
-        self.trainer.fit_loop.epoch_progress.increment_started()
-
         self._reload_dataloader_state_dict(data_fetcher)
         self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
 
@@ -260,58 +251,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # progress global step according to grads progress
             self.global_step += 1
 
-        # if training finished, try to exit in `on_run_end` instead as we should have enough time
-        # TODO: @tchaton verify this assumption is True.
+        # if training finished, defer exit to the parent. this assumes there will be enough time in between
+        # which might not be the case depending on what's in the `*_epoch_end` hooks
         if not self._is_training_done:
             # if fault tolerant is enabled and process has been notified, exit.
             self.trainer._exit_gracefully_on_signal()
 
-    def on_run_end(self) -> None:
-        """Calls the on_epoch_end hook.
-
-        Returns:
-            The output of each training step for each optimizer
-
-        Raises:
-            MisconfigurationException: ``train_epoch_end`` does not return ``None``
-        """
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.epoch_end_reached()
-
-        # get the model and call model.training_epoch_end
-        model = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self._prepare_outputs_training_epoch_end(
-                self._outputs,
-                automatic=model.automatic_optimization,
-                num_optimizers=len(self.trainer.optimizers),
-            )
-            # run lightning module hook training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
-            if epoch_end_outputs is not None:
-                raise MisconfigurationException(
-                    "`training_epoch_end` expects a return of None. "
-                    "HINT: remove the return statement in `training_epoch_end`."
-                )
-        # free memory
-        self._outputs = []
-
-        self.trainer.fit_loop.epoch_progress.increment_processed()
-
-        # call train epoch end hooks
-        self.trainer._call_callback_hooks("on_train_epoch_end")
-        self.trainer._call_lightning_module_hook("on_train_epoch_end")
-
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
-        self.trainer.logger_connector.on_epoch_end()
-
-        if self._num_ready_batches_reached():
-            self.update_lr_schedulers("epoch", update_plateau_schedulers=True)
-
-        # if fault tolerant is enabled and process has been notified, exit.
-        self.trainer._exit_gracefully_on_signal()
+    def on_run_end(self) -> _OUTPUTS_TYPE:
+        outputs, self._outputs = self._outputs, []
+        return outputs
 
     def teardown(self) -> None:
         self._results.cpu()
@@ -506,11 +454,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                if lr_scheduler["reduce_on_plateau"]:
-                    lr_scheduler["scheduler"].step(monitor_val)
-                else:
-                    lr_scheduler["scheduler"].step()
-
+                self.trainer._call_lightning_module_hook(
+                    "lr_scheduler_step",
+                    lr_scheduler["scheduler"],
+                    lr_scheduler["opt_idx"],
+                    monitor_val,
+                )
                 self.scheduler_progress.increment_completed()
 
     def _get_monitor_value(self, key: str) -> Any:

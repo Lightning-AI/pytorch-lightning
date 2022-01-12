@@ -24,7 +24,6 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
@@ -41,7 +40,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -133,7 +132,7 @@ class DeepSpeedStrategy(DDPStrategy):
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
+        lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed`.
 
         .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
@@ -399,7 +398,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
-        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -445,7 +444,7 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[List[LRSchedulerConfig]], Optional[int]]:
         optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(schedulers) > 1:
             raise MisconfigurationException(
@@ -587,7 +586,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
+                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
@@ -757,7 +756,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
         _, client_state = self.deepspeed_engine.load_checkpoint(
-            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
+            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
         if client_state is None:
             raise MisconfigurationException(
@@ -767,13 +766,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return client_state
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+    def lightning_restore_optimizer(self) -> bool:
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must "
-                "provide a path to the originally saved DeepSpeed checkpoint."
+                "A single checkpoint file has been given. This means optimizer states cannot be restored."
+                " If you'd like to restore these states, you must provide a path to the originally saved DeepSpeed"
+                " checkpoint. When using ZeRO 3, the original path should be a directory."
             )
         return False
 

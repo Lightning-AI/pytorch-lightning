@@ -23,6 +23,8 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
@@ -168,7 +170,9 @@ class LightningOptimizer:
             trainer.strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
 
-def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[List, List, List]:
+def _init_optimizers_and_lr_schedulers(
+    model: "pl.LightningModule",
+) -> Tuple[List[Optimizer], List[Dict[str, Any]], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     model.trainer._lightning_optimizers = None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
@@ -185,6 +189,7 @@ def _init_optimizers_and_lr_schedulers(model: "pl.LightningModule") -> Tuple[Lis
     )
     lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
     _set_scheduler_opt_idx(optimizers, lr_schedulers)
+    _validate_scheduler_api(lr_schedulers, model)
     return optimizers, lr_schedulers, optimizer_frequencies
 
 
@@ -298,10 +303,9 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             lr_schedulers.append(
                 {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
             )
-        elif isinstance(scheduler, optim.lr_scheduler._LRScheduler):
-            lr_schedulers.append({**default_config, "scheduler": scheduler})
         else:
-            raise ValueError(f'The provided lr scheduler "{scheduler}" is invalid')
+            lr_schedulers.append({**default_config, "scheduler": scheduler})
+
     return lr_schedulers
 
 
@@ -325,7 +329,25 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
             lr_schedulers.append({**default_config, **scheduler})
         else:
             lr_schedulers.append({**default_config, "scheduler": scheduler})
+
     return lr_schedulers
+
+
+def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.LightningModule") -> None:
+    for scheduler_config in lr_schedulers:
+        scheduler = scheduler_config["scheduler"]
+        if not isinstance(scheduler, _SupportsStateDict):
+            raise TypeError(
+                f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
+                " It should have `state_dict` and `load_state_dict` methods defined."
+            )
+
+        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
+            raise MisconfigurationException(
+                f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
+                " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
+                " you are using a custom LR scheduler."
+            )
 
 
 def _get_default_scheduler_config() -> Dict[str, Any]:
@@ -341,7 +363,7 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
     }
 
 
-def _set_scheduler_opt_idx(optimizers: List[Any], lr_schedulers: List[Any]) -> None:
+def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_schedulers: List[Dict[str, Any]]) -> None:
     for sch in lr_schedulers:
 
         for opt_idx, opt in enumerate(optimizers):

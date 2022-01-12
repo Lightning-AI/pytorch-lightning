@@ -256,7 +256,7 @@ class ModelHooks:
     def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Called before ``optimizer.step()``.
 
-        The hook is only called if gradients do not need to be accumulated.
+        If using gradient accumulation, the hook is called once the gradients have been accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
 
         If using native AMP, the loss will be unscaled before calling this hook.
