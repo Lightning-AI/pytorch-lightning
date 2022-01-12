@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
 from unittest.mock import DEFAULT, patch
 
 import pytest
@@ -288,27 +287,12 @@ class OptimizerWithHooks(Optimizer):
 
 
 def test_lightning_optimizer_keeps_hooks(tmpdir):
-    class TestModel(BoringModel):
-        count_on_train_batch_start = 0
-        count_on_train_batch_end = 0
-
-        def configure_optimizers(self):
-            return OptimizerWithHooks(self)
-
-        def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-            self.count_on_train_batch_start += 1
-            optimizer = self.optimizers(use_pl_optimizer=False)
-            assert len(optimizer._fwd_handles) == 1
-
-        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
-            self.count_on_train_batch_end += 1
-            self.trainer.strategy.__class__._lightning_optimizers.fget.cache_clear()
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=4, limit_val_batches=1, max_epochs=1)
-    model = TestModel()
-    trainer.fit(model)
-    assert model.count_on_train_batch_start == 4
-    assert model.count_on_train_batch_end == 4
+    model = BoringModel()
+    optimizer = OptimizerWithHooks(model)
+    lightning_optimizer = LightningOptimizer(optimizer)
+    assert len(optimizer._fwd_handles) == 1
+    del lightning_optimizer
+    assert len(optimizer._fwd_handles) == 1
 
 
 def test_init_optimizers_resets_lightning_optimizers(tmpdir):
