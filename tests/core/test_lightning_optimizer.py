@@ -302,7 +302,7 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
 
         def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_end += 1
-            self.trainer.lightning_optimizers.clear()
+            self.trainer.strategy._lightning_optimizers.clear()
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=4, limit_val_batches=1, max_epochs=1)
     model = TestModel()

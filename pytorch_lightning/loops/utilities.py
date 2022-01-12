@@ -167,7 +167,7 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
     for example when when accumulating gradients to reduce communication when it is not needed.
 
     Args:
-        trainer: the trainer instance with a reference to a training type plugin
+        strategy: the strategy instance to use.
         block: whether the context manager is enabled or not
 
     Returns:
