@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
 from typing import Any
 from unittest.mock import DEFAULT, patch
 
@@ -301,8 +300,7 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
 
         def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
             self.count_on_train_batch_end += 1
-            del self.trainer._lightning_optimizers
-            gc.collect()  # not necessary, just in case
+            del self.trainer.strategy._lightning_optimizers
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=4, limit_val_batches=1, max_epochs=1)
     model = TestModel()

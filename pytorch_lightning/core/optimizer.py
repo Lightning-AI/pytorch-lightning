@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import weakref
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from weakref import proxy
@@ -21,7 +20,7 @@ from torch import optim
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerTypeTuple
@@ -51,7 +50,8 @@ class LightningOptimizer:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
-        self._trainer: Optional["pl.Trainer"] = None
+        self._lightning_module: Optional[pl.LightningModule] = None
+        self._strategy: Optional[pl.strategies.Strategy] = None
         self._optimizer_idx = 0
 
     @property
@@ -59,15 +59,13 @@ class LightningOptimizer:
         return self._optimizer
 
     @classmethod
-    def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: "pl.Trainer", opt_idx: int) -> "LightningOptimizer":
-        # apex overrides .step function and need to be wrapped on each step
-        if trainer.amp_backend == AMPType.APEX:
-            lightning_optimizer = cls(optimizer)
-            # check if trainer is already of type weakproxy since we can't call proxy on a weakproxy
-            cls._trainer = trainer if isinstance(trainer, weakref.ProxyType) else proxy(trainer)
-            cls._optimizer_idx = opt_idx
-        else:
-            lightning_optimizer = trainer.lightning_optimizers[opt_idx]
+    def _to_lightning_optimizer(
+        cls, optimizer: Optimizer, pl_module: "pl.LightningModule", strategy: "pl.strategies.Strategy", opt_idx: int
+    ) -> "LightningOptimizer":
+        lightning_optimizer = cls(optimizer)
+        lightning_optimizer._strategy = proxy(strategy)
+        lightning_optimizer._lightning_module = pl_module
+        lightning_optimizer._optimizer_idx = opt_idx
         return lightning_optimizer
 
     @contextmanager
@@ -84,13 +82,10 @@ class LightningOptimizer:
         # local import here to avoid circular import
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
-        assert self._trainer is not None
-        lightning_module = self._trainer.lightning_module
-
-        with _block_parallel_sync_behavior(self._trainer, block=(not sync_grad)):
-            lightning_module.toggle_optimizer(self, self._optimizer_idx)
+        with _block_parallel_sync_behavior(self._strategy, block=(not sync_grad)):
+            self._lightning_module.toggle_optimizer(self, self._optimizer_idx)
             yield
-            lightning_module.untoggle_optimizer(self._optimizer_idx)
+            self._lightning_module.untoggle_optimizer(self._optimizer_idx)
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
         """Performs a single optimization step (parameter update).
@@ -158,10 +153,8 @@ class LightningOptimizer:
             profiler_action = "optimizer_step_with_closure"
         profiler_action += f"_{self._optimizer_idx}"
 
-        trainer = self._trainer
-        assert trainer is not None
-        with trainer.profiler.profile(profiler_action):
-            trainer.strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+        with self._lightning_module.trainer.profiler.profile(profiler_action):
+            self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
 
 def _init_optimizers_and_lr_schedulers(

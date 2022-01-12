@@ -93,8 +93,7 @@ class Strategy(ABC):
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
         self._lightning_optimizers = {
-            # FIXME: LightningOptimizer needs the trainer currently.
-            idx: LightningOptimizer._to_lightning_optimizer(opt, None, idx)
+            idx: LightningOptimizer._to_lightning_optimizer(opt, self.lightning_module, self, idx)
             for idx, opt in enumerate(self.optimizers)
         }
 

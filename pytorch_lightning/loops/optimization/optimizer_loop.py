@@ -351,8 +351,15 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 gradients. By default called by the optimizer (if possible)
         """
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+
         # wraps into LightningOptimizer only for running step
-        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
+        if self.trainer.amp_backend == AMPType.APEX:
+            # apex overrides .step function and need to be wrapped on each step
+            optimizer = LightningOptimizer._to_lightning_optimizer(
+                optimizer, self.trainer.lightning_module, self.trainer.strategy, opt_idx
+            )
+        else:
+            optimizer = self.trainer.lightning_optimizers[opt_idx]
 
         self.optim_progress.optimizer.step.increment_ready()
 
@@ -365,7 +372,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=(self.trainer._device_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
-            using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
+            using_native_amp=(self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
 
