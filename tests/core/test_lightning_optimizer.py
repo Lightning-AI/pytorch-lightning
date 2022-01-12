@@ -127,7 +127,9 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, Optimizer)
 
     lightning_dict = {
-        k: v for k, v in lightning_optimizer.__dict__.items() if k not in {"_optimizer", "_optimizer_idx", "_trainer"}
+        k: v
+        for k, v in lightning_optimizer.__dict__.items()
+        if k not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module"}
     }
 
     assert lightning_dict == optimizer.__dict__

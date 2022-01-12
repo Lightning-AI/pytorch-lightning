@@ -60,9 +60,18 @@ class LightningOptimizer:
 
     @classmethod
     def _to_lightning_optimizer(
-        cls, optimizer: Optimizer, pl_module: "pl.LightningModule", strategy: "pl.strategies.Strategy", opt_idx: int
+        cls,
+        optimizer: Union[Optimizer, "LightningOptimizer"],
+        pl_module: "pl.LightningModule",
+        strategy: "pl.strategies.Strategy",
+        opt_idx: int,
     ) -> "LightningOptimizer":
-        lightning_optimizer = cls(optimizer)
+        if isinstance(optimizer, LightningOptimizer):
+            # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
+            # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
+            lightning_optimizer = optimizer
+        else:
+            lightning_optimizer = cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
         lightning_optimizer._lightning_module = pl_module
         lightning_optimizer._optimizer_idx = opt_idx
