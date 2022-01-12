@@ -92,14 +92,19 @@ class Strategy(ABC):
     @optimizers.setter
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
-        self._lightning_optimizers = {
-            idx: LightningOptimizer._to_lightning_optimizer(opt, self.lightning_module, self, idx)
-            for idx, opt in enumerate(self.optimizers)
-        }
+        self._lightning_optimizers.clear()
 
     @property
     def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         # FIXME: should this property be protected?
+        if not self._lightning_optimizers:
+            # we create this on-the-fly instead of only in the optimizers setter because deleting this reference
+            # after every batch is supported as indicated by the test:
+            # tests/core/test_lightning_optimizer.py::test_lightning_optimizer_keeps_hooks
+            self._lightning_optimizers = {
+                idx: LightningOptimizer._to_lightning_optimizer(opt, self.lightning_module, self, idx)
+                for idx, opt in enumerate(self.optimizers)
+            }
         return self._lightning_optimizers
 
     def connect(self, model: Module) -> None:
