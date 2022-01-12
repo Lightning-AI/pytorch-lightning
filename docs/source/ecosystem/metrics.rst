@@ -87,9 +87,5 @@ The example below shows how to use a metric in your `LightningModule <https://py
             ...
             # log step metric
             self.accuracy(preds, y)
-            self.log("train_acc_step", self.accuracy)
+            self.log("train_acc_step", self.accuracy, on_epoch=True)
             ...
-
-        def training_epoch_end(self, outs):
-            # log epoch metric
-            self.log("train_acc_epoch", self.accuracy)
