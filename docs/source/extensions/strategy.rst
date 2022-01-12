@@ -44,3 +44,68 @@ Strategy in Lightning handles some of the following responsibilities:
 * Provide a unified communication interface for reduction, broadcast, etc.
 
 * Provide access to the wrapped LightningModule
+
+
+Strategy class :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
+
+
+************************
+Create a custom Strategy
+************************
+
+Expert users may choose to extend an existing strategy by overriding its methods ...
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPStrategy
+
+
+    class CustomDDPStrategy(DDPStrategy):
+        def configure_ddp(self):
+            self._model = MyCustomDistributedDataParallel(
+                self.model,
+                device_ids=...,
+            )
+
+or by subclassing the base classes :class:`~pytorch_lightning.strategies.Strategy` to create new ones. These custom strategies
+can then be passed into the Trainer directly via the ``strategy`` parameter.
+
+.. code-block:: python
+
+    # custom plugins
+    trainer = Trainer(strategy=CustomDDPStrategy())
+
+    # fully custom accelerator and plugins
+    accelerator = MyAccelerator()
+    precision_plugin = MyPrecisionPlugin()
+    training_strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_strategy)
+
+
+The full list of built-in strategies is listed below.
+
+----------
+
+
+Training Strategies
+-------------------
+
+.. currentmodule:: pytorch_lightning.strategies
+
+.. autosummary::
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Strategy
+    SingleDeviceStrategy
+    ParallelStrategy
+    DataParallelStrategy
+    DDPStrategy
+    DDP2Strategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    SingleTPUStrategy
+    TPUSpawnStrategy

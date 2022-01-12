@@ -45,74 +45,11 @@ to configure Lightning to integrate with a :ref:`custom-cluster`.
 .. image:: ../_static/images/accelerator/overview.svg
 
 
-**********************
-Create a custom plugin
-**********************
-
-Expert users may choose to extend an existing plugin by overriding its methods ...
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPStrategy
-
-
-    class CustomDDPStrategy(DDPStrategy):
-        def configure_ddp(self):
-            self._model = MyCustomDistributedDataParallel(
-                self.model,
-                device_ids=...,
-            )
-
-or by subclassing the base classes :class:`~pytorch_lightning.strategies.Strategy` or
-:class:`~pytorch_lightning.plugins.precision.PrecisionPlugin` to create new ones. These custom plugins
-can then be passed into the Trainer directly or via a (custom) accelerator:
-
-.. code-block:: python
-
-    # custom plugins
-    trainer = Trainer(strategy=CustomDDPStrategy(), plugins=[CustomPrecisionPlugin()])
-
-    # fully custom accelerator and plugins
-    accelerator = MyAccelerator()
-    precision_plugin = MyPrecisionPlugin()
-    training_type_plugin = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=training_type_plugin)
-
-
 The full list of built-in plugins is listed below.
 
 
 .. warning:: The Plugin API is in beta and subject to change.
     For help setting up custom plugins/accelerators, please reach out to us at **support@pytorchlightning.ai**
-
-
-----------
-
-
-Training Strategies
--------------------
-
-.. currentmodule:: pytorch_lightning.strategies
-
-.. autosummary::
-    :nosignatures:
-    :template: classtemplate.rst
-
-    Strategy
-    SingleDeviceStrategy
-    ParallelStrategy
-    DataParallelStrategy
-    DDPStrategy
-    DDP2Strategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
-    DDPSpawnStrategy
-    BaguaStrategy
-    DeepSpeedStrategy
-    HorovodStrategy
-    SingleTPUStrategy
-    TPUSpawnStrategy
-
 
 
 Precision Plugins
