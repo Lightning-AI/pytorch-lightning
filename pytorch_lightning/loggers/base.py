@@ -452,13 +452,15 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        """Returns the experiment names for all the loggers in the logger collection joined by an underscore."""
-        return "_".join(str(logger.name) for logger in self._logger_iterable)
+        """Returns the unique experiment names for all the loggers in the logger collection joined by an
+        underscore."""
+        return "_".join(dict.fromkeys(str(logger.name) for logger in self._logger_iterable))
 
     @property
     def version(self) -> str:
-        """Returns the experiment versions for all the loggers in the logger collection joined by an underscore."""
-        return "_".join(str(logger.version) for logger in self._logger_iterable)
+        """Returns the unique experiment versions for all the loggers in the logger collection joined by an
+        underscore."""
+        return "_".join(dict.fromkeys(str(logger.version) for logger in self._logger_iterable))
 
 
 class DummyExperiment:

@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
+from __future__ import annotations
+
 import os
 from enum import Enum, EnumMeta
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
@@ -24,14 +26,14 @@ class LightningEnum(str, Enum):
     """Type of any enumerator with allowed comparison to string invariant to cases."""
 
     @classmethod
-    def from_str(cls, value: str) -> Optional["LightningEnum"]:
+    def from_str(cls, value: str) -> LightningEnum | None:
         statuses = [status for status in dir(cls) if not status.startswith("_")]
         for st in statuses:
             if st.lower() == value.lower():
                 return getattr(cls, st)
         return None
 
-    def __eq__(self, other: Union[str, Enum]) -> bool:
+    def __eq__(self, other: object) -> bool:
         other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
@@ -55,12 +57,12 @@ class _OnAccessEnumMeta(EnumMeta):
         return obj
 
     def __getitem__(cls, name: str) -> Any:
-        member = super().__getitem__(name)
+        member: _OnAccessEnumMeta = super().__getitem__(name)
         member.deprecate()
         return member
 
-    def __call__(cls, value: str, *args: Any, **kwargs: Any) -> Any:
-        obj = super().__call__(value, *args, **kwargs)
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+        obj = super().__call__(*args, **kwargs)
         if isinstance(obj, Enum):
             obj.deprecate()
         return obj
@@ -94,11 +96,11 @@ class PrecisionType(LightningEnum):
     MIXED = "mixed"
 
     @staticmethod
-    def supported_type(precision: Union[str, int]) -> bool:
+    def supported_type(precision: str | int) -> bool:
         return any(x == precision for x in PrecisionType)
 
     @staticmethod
-    def supported_types() -> List[str]:
+    def supported_types() -> list[str]:
         return [x.value for x in PrecisionType]
 
 
@@ -123,7 +125,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
     @staticmethod
-    def interactive_compatible_types() -> List["DistributedType"]:
+    def interactive_compatible_types() -> list[DistributedType]:
         """Returns a list containing interactive compatible DistributeTypes."""
         return [
             DistributedType.DP,
@@ -181,7 +183,7 @@ class GradClipAlgorithmType(LightningEnum):
         return any(x.value == val for x in GradClipAlgorithmType)
 
     @staticmethod
-    def supported_types() -> List[str]:
+    def supported_types() -> list[str]:
         return [x.value for x in GradClipAlgorithmType]
 
 
@@ -219,7 +221,7 @@ class ModelSummaryMode(LightningEnum):
         raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
 
     @staticmethod
-    def supported_types() -> List[str]:
+    def supported_types() -> list[str]:
         return [x.value for x in ModelSummaryMode]
 
 
@@ -247,7 +249,7 @@ class _StrategyType(LightningEnum):
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
     @staticmethod
-    def interactive_compatible_types() -> List["_StrategyType"]:
+    def interactive_compatible_types() -> list[_StrategyType]:
         """Returns a list containing interactive compatible _StrategyTypes."""
         return [
             _StrategyType.DP,
@@ -299,7 +301,7 @@ class _FaultTolerantMode(LightningEnum):
         return self is _FaultTolerantMode.MANUAL
 
     @classmethod
-    def detect_current_mode(cls) -> "_FaultTolerantMode":
+    def detect_current_mode(cls) -> _FaultTolerantMode:
         """This classmethod detects if `Fault Tolerant` is activated and maps its value to `_FaultTolerantMode`."""
         env_value = os.getenv("PL_FAULT_TOLERANT_TRAINING", "0").lower()
         # the int values are kept for backwards compatibility, but long-term we want to keep only the strings

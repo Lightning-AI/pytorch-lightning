@@ -213,6 +213,7 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loop_hierarchy():
     @dataclass
     class SimpleProgress(BaseProgress):
@@ -324,7 +325,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
-        num_sanity_val_steps=0,
     )
 
     # simulate a failure
@@ -344,7 +344,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
-    nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
+    # the fit-validation total batch progress is reset per epoch so it's not counted for the total value.
+    nbe_total_val_batch = 0  # stop_epoch * n_dataloaders * n_batches
     be_total_val_batch = stop_dataloader * n_batches + stop_batch
     total_val_batch = nbe_total_val_batch + be_total_val_batch
     expected = {
@@ -717,7 +718,6 @@ def test_fit_loop_reset(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=4,
-        num_sanity_val_steps=0,
         max_epochs=2,
         callbacks=[checkpoint_callback],
         logger=False,
@@ -922,7 +922,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
-        num_sanity_val_steps=0,
         enable_progress_bar=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)

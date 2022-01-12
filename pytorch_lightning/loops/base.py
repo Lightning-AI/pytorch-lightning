@@ -19,8 +19,9 @@ from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")  # the output type of `run`
@@ -273,13 +274,15 @@ class Loop(ABC, Generic[T]):
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
+        # do not get the mode from `self.trainer` because it might not have been attached yet
+        ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
         for k, v in self.__dict__.items():
             key = prefix + k
-            if isinstance(v, BaseProgress):
+            if ft_enabled and isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
-            elif isinstance(v, ResultCollection):
+            elif isinstance(v, _ResultCollection):
                 # sync / unsync metrics
                 v.sync()
                 destination[key] = v.state_dict()
@@ -302,10 +305,14 @@ class Loop(ABC, Generic[T]):
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
+            if key not in state_dict:
+                # no state for this object, maybe we are loading an old checkpoint
+                continue
+
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
             elif (
-                isinstance(v, ResultCollection)
+                isinstance(v, _ResultCollection)
                 and self.trainer is not None
                 and self.trainer.lightning_module is not None
             ):
@@ -317,14 +324,12 @@ class Loop(ABC, Generic[T]):
                 if metrics:
                     metric_attributes.update(metrics)
 
-                # The `ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
+                # The `_ResultCollection` objects have 2 types of metrics: `Tensor` and `torchmetrics.Metric`.
                 # When creating a checkpoint, the `Metric`s are dropped from the loop `state_dict` to serialize only
                 # Python primitives. However, their states are saved with the model's `state_dict`.
-                # On reload, we need to re-attach the `Metric`s back to the `ResultCollection`.
+                # On reload, we need to re-attach the `Metric`s back to the `_ResultCollection`.
                 # The references are provided through the `metric_attributes` dictionary.
-                v.load_state_dict(
-                    state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.training_type_plugin.reduce
-                )
+                v.load_state_dict(state_dict[key], metrics=metric_attributes, sync_fn=self.trainer.strategy.reduce)
 
                 if not self.trainer.is_global_zero:
                     v.reset(metrics=False)

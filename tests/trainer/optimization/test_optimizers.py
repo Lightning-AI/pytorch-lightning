@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+from unittest.mock import call, patch
 
 import pytest
 import torch
@@ -19,7 +20,11 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.core.optimizer import (
+    _configure_optimizers,
+    _configure_schedulers_automatic_opt,
+    _init_optimizers_and_lr_schedulers,
+)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -106,7 +111,7 @@ def test_onecyclelr_with_epoch_interval_warns():
     optimizer = optim.Adam(model.parameters())
     lr_scheduler = {"scheduler": optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, total_steps=3)}
     with pytest.warns(RuntimeWarning, match="Are you sure you didn't mean 'interval': 'step'?"):
-        TrainerOptimizersMixin._configure_schedulers([lr_scheduler], None, False)
+        _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
 def test_reducelronplateau_scheduling(tmpdir):
@@ -136,7 +141,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
-        opt_idx=None,
+        opt_idx=0,
         name=None,
     )
 
@@ -144,6 +149,8 @@ def test_reducelronplateau_scheduling(tmpdir):
 def test_optimizer_return_options(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = BoringModel()
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
 
     # single optimizer
     opt_a = optim.Adam(model.parameters(), lr=0.002)
@@ -153,18 +160,18 @@ def test_optimizer_return_options(tmpdir):
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == 1 and len(lr_sched) == len(freq) == 0
 
     # opt tuple
     model.configure_optimizers = lambda: (opt_a, opt_b)
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
     # opt list
     model.configure_optimizers = lambda: [opt_a, opt_b]
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
@@ -176,12 +183,12 @@ def test_optimizer_return_options(tmpdir):
         monitor=None,
         strict=True,
         name=None,
-        opt_idx=None,
+        opt_idx=0,
     )
 
     # opt tuple of 2 lists
     model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -189,7 +196,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt tuple of 1 list
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -197,7 +204,7 @@ def test_optimizer_return_options(tmpdir):
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
     assert len(freq) == 0
     assert opt[0] == opt_a
@@ -208,7 +215,7 @@ def test_optimizer_return_options(tmpdir):
         {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
         {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
     )
-    opt, lr_sched, freq = trainer.init_optimizers(model)
+    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == len(freq) == 2
     assert opt[0] == opt_a
     ref_lr_sched["opt_idx"] = 0
@@ -436,7 +443,7 @@ def test_optimizer_config_dict_with_extra_keys_warns(tmpdir):
         "bar": 2,
     }
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
-        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+        _configure_optimizers(optim_conf)
 
 
 def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
@@ -451,7 +458,7 @@ def test_multiple_optimizer_config_dicts_with_extra_keys_warns(tmpdir):
         {"optimizer": optimizer2, "lr_scheduler": lr_scheduler_config_2, "foo": 1, "bar": 2},
     ]
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the optimizer configuration: \{.+\}"):
-        TrainerOptimizersMixin._configure_optimizers(optim_conf)
+        _configure_optimizers(optim_conf)
 
 
 def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
@@ -502,6 +509,24 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
+        trainer.fit(model)
+
+
+def test_invalid_opt_idx_in_scheduler(tmpdir):
+    """Test exception when incorrect opt_idx is set in lr_scheduler config."""
+
+    class InvalidOptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            opt1 = optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = {"scheduler": optim.lr_scheduler.StepLR(opt2, step_size=1), "opt_idx": 0}
+            return [opt1, opt2], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(
+        MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
+    ):
         trainer.fit(model)
 
 
@@ -655,3 +680,124 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
+
+
+def test_lr_scheduler_step_hook(tmpdir):
+    """Test that custom lr scheduler works and `lr_scheduler_step` is called at appropriate time."""
+
+    class CustomEpochScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, epoch):
+            ...
+
+        def state_dict(self):
+            ...
+
+        def load_state_dict(self, state_dict):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx=0):
+            return super().training_step(batch, batch_idx)
+
+        def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+            # step-level
+            if optimizer_idx == 0:
+                super().lr_scheduler_step(scheduler, optimizer_idx, metric)
+            # epoch-level
+            elif optimizer_idx == 1:
+                scheduler.step(epoch=self.current_epoch)
+
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            lr_scheduler2 = CustomEpochScheduler(opt2)
+            return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
+                "optimizer": opt2,
+                "lr_scheduler": lr_scheduler2,
+            }
+
+    model = CustomBoringModel()
+    model.training_epoch_end = None
+    max_epochs = 3
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_checkpointing=False,
+        logger=False,
+        max_epochs=max_epochs,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+    )
+
+    with patch.object(CustomEpochScheduler, "step") as mock_method_epoch, patch.object(
+        torch.optim.lr_scheduler.StepLR, "step"
+    ) as mock_method_step:
+        trainer.fit(model)
+
+    assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # first step is called by PyTorch _LRScheduler
+    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
+
+
+def test_invalid_scheduler_missing_state_dict():
+    """Test that custom lr scheduler raises an error if it's missing the state dict."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    model.trainer = Trainer()
+    with pytest.raises(TypeError, match="provided lr scheduler `CustomScheduler` is invalid"):
+        _init_optimizers_and_lr_schedulers(model)
+
+
+@pytest.mark.parametrize("override", (False, True))
+def test_invalid_lr_scheduler_with_custom_step_method(override):
+    """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler API."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, foobar):  # breaks the API, forces user to override `lr_scheduler_step`
+            ...
+
+        def state_dict(self):
+            ...
+
+        def load_state_dict(self, state_dict):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    model.trainer = Trainer()
+    if override:
+
+        def lr_scheduler_step(*_):
+            ...
+
+        # the user did override the hook, no error
+        model.lr_scheduler_step = lr_scheduler_step
+        _init_optimizers_and_lr_schedulers(model)
+    else:
+        with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
+            _init_optimizers_and_lr_schedulers(model)

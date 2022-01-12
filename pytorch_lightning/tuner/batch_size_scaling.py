@@ -41,7 +41,7 @@ def scale_batch_size(
 ) -> Optional[int]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
-        rank_zero_warn("Skipping batch size scaler since fast_dev_run is enabled.", UserWarning)
+        rank_zero_warn("Skipping batch size scaler since fast_dev_run is enabled.")
         return
 
     if not lightning_hasattr(model, batch_arg_name):
@@ -266,4 +266,4 @@ def _adjust_batch_size(
 
 def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
     module = trainer.lightning_module or trainer.datamodule
-    return not has_len_all_ranks(dataloader, trainer.training_type_plugin, module) or batch_size <= len(dataloader)
+    return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)

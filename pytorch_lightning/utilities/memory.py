@@ -163,9 +163,7 @@ def get_gpu_memory_map() -> Dict[str, float]:
     result = subprocess.run(
         [nvidia_smi_path, "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
-        # capture_output=True,          # valid for python version >=3.7
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+        capture_output=True,
         check=True,
     )
 

@@ -14,8 +14,9 @@
 Logging
 #######
 
+*****************
 Supported Loggers
-=================
+*****************
 
 The following are loggers we support:
 
@@ -391,3 +392,13 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
             self.log("hp/metric_2", some_scalar_2)
 
     In the example, using ``"hp/"`` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
+
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.
