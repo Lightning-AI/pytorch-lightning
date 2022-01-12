@@ -349,7 +349,8 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_train_batches=2,
         limit_val_batches=2,
         callbacks=[ckpt],
-        gpus=1 if device == "cuda" else 0,
+        accelerator="gpu" if device == "cuda" else "cpu",
+        devices=1,
     )
     trainer.fit(model)
 
@@ -379,7 +380,7 @@ def result_collection_reload(**kwargs):
     if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
 
-    num_processes = kwargs.get("gpus", 1)
+    num_processes = kwargs.get("devices", 1)
 
     class CustomException(Exception):
         pass
@@ -477,13 +478,13 @@ def test_result_collection_reload(tmpdir):
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=1)
 
 
 @RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
 def test_metric_collections(tmpdir):
