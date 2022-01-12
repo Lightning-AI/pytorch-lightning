@@ -138,7 +138,7 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: int = 1,
+        num_processes: int = None,
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
@@ -435,23 +435,23 @@ class Trainer(
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
         self._accelerator_connector = AcceleratorConnector(
-            num_processes,
-            devices,
-            tpu_cores,
-            ipus,
-            accelerator,
-            strategy,
-            gpus,
-            gpu_ids,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_backend,
-            amp_level,
-            plugins,
+            num_processes = num_processes,
+            devices = devices,
+            tpu_cores = tpu_cores,
+            ipus = ipus,
+            accelerator = accelerator,
+            strategy = strategy,
+            gpus = gpus,
+            gpu_ids = gpu_ids,
+            num_nodes = num_nodes,
+            sync_batchnorm = sync_batchnorm,
+            benchmark = benchmark,
+            replace_sampler_ddp = replace_sampler_ddp,
+            deterministic = deterministic,
+            precision = precision,
+            amp_type = amp_backend,
+            amp_level = amp_level,
+            plugins = plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
@@ -636,7 +636,7 @@ class Trainer(
             self.limit_val_batches = 0
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
-        self._log_device_info()
+        # self._log_device_info()
 
         self.should_stop = False
         self.state = TrainerState()
@@ -1967,45 +1967,45 @@ class Trainer(
             isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
         )
 
-    @property
-    def _strategy_type(self) -> _StrategyType:
-        return self._accelerator_connector._strategy_type
+    # @property
+    # def _strategy_type(self) -> _StrategyType:
+    #     return self._accelerator_connector._strategy_type
 
-    @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
+    # @property
+    # def _device_type(self) -> _AcceleratorType:
+    #     return self._accelerator_connector._device_type
 
-    @property
-    def num_nodes(self) -> int:
-        return self._accelerator_connector.num_nodes
+    # @property
+    # def num_nodes(self) -> int:
+    #     return self._accelerator_connector.num_nodes
 
-    @property
-    def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+    # @property
+    # def num_processes(self) -> int:
+    #     return self._accelerator_connector.num_processes
 
-    @property
-    def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+    # @property
+    # def root_gpu(self) -> Optional[int]:
+    #     return self._accelerator_connector.root_gpu
 
-    @property
-    def tpu_cores(self) -> int:
-        return self._accelerator_connector.tpu_cores
+    # @property
+    # def tpu_cores(self) -> int:
+    #     return self._accelerator_connector.tpu_cores
 
-    @property
-    def ipus(self) -> int:
-        return self._accelerator_connector.num_ipus
+    # @property
+    # def ipus(self) -> int:
+    #     return self._accelerator_connector.num_ipus
 
-    @property
-    def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+    # @property
+    # def num_gpus(self) -> int:
+    #     return self._accelerator_connector.num_gpus
 
     @property
     def devices(self) -> Optional[Union[List[int], str, int]]:
         return self._accelerator_connector.devices
 
-    @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_device_ids
+    # @property
+    # def data_parallel_device_ids(self) -> Optional[List[int]]:
+    #     return self._accelerator_connector.parallel_device_ids
 
     @property
     def lightning_module(self) -> "pl.LightningModule":

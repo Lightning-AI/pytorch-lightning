@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from typing import Dict
 
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -22,7 +23,7 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 class DDP2Strategy(DDPStrategy):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
-    distributed_backend = _StrategyType.DDP2
+    distributed_backend = "ddp2"
 
     @property
     def global_rank(self) -> int:
@@ -73,3 +74,11 @@ class DDP2Strategy(DDPStrategy):
             return
         self.cluster_environment.set_global_rank(self.node_rank)
         self.cluster_environment.set_world_size(self.num_nodes)
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description="Strategy",
+        )

@@ -53,7 +53,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = _StrategyType.DDP_SPAWN
+    distributed_backend = "ddp_spawn"
 
     def __init__(
         self,
@@ -366,6 +366,11 @@ class DDPSpawnStrategy(ParallelStrategy):
             cls,
             description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description="Strategy",
         )
 
     def teardown(self) -> None:
