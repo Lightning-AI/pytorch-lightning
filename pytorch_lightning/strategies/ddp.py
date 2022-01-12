@@ -75,7 +75,7 @@ class DDPStrategy(ParallelStrategy):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = _StrategyType.DDP
+    distributed_backend = "ddp"
 
     def __init__(
         self,
@@ -427,6 +427,11 @@ class DDPStrategy(ParallelStrategy):
             cls,
             description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description="Strategy",
         )
 
     def _should_run_deadlock_detection(self) -> bool:
