@@ -114,6 +114,7 @@ PyTorch Lightning
    :caption: Lightning Ecosystem
 
    ecosystem/metrics
+   ecosystem/flash
    ecosystem/bolts
 
 .. toctree::
