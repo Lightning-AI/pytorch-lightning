@@ -72,10 +72,12 @@ class Loop(ABC, Generic[T]):
 
     @property
     def restarting(self) -> bool:
+        """Whether the state of this loop was reloaded and it needs to restart."""
         return self._restarting
 
     @restarting.setter
     def restarting(self, restarting: bool) -> None:
+        """Connects this loop's restarting value and its children."""
         self._restarting = restarting
         for loop in vars(self).values():
             if isinstance(loop, Loop):
