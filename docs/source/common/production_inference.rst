@@ -4,6 +4,11 @@
 Inference in Production
 #######################
 
+Once a model is trained, deploying to production and running inference is the next task. To help you with it, following are the possible approaches
+you can use to deploy and use your models for inference.
+
+------------
+
 ******************
 With Lightning API
 ******************
