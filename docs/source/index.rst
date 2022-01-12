@@ -52,6 +52,7 @@ PyTorch Lightning
    extensions/datamodules
    extensions/logging
    extensions/plugins
+   extensions/strategy
    extensions/loops
 
 .. toctree::
