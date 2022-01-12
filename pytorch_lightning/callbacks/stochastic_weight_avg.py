@@ -208,6 +208,7 @@ class StochasticWeightAveraging(Callback):
             default_scheduler_cfg = _get_default_scheduler_config()
             assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
             default_scheduler_cfg["scheduler"] = self._swa_scheduler
+            default_scheduler_cfg["opt_idx"] = 0
 
             if trainer.lr_schedulers:
                 scheduler_cfg = trainer.lr_schedulers[0]
