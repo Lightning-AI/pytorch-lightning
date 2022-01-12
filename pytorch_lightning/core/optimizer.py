@@ -345,8 +345,8 @@ def _validate_scheduler_api(lr_schedulers: List[LRSchedulerConfig], model: "pl.L
             )
 
 
-def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_schedulers: List[LRSchedulerConfig]) -> None:
-    for config in lr_schedulers:
+def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
+    for config in lr_scheduler_configs:
 
         for opt_idx, opt in enumerate(optimizers):
             if config.scheduler.optimizer is opt:

@@ -44,7 +44,7 @@ def test_optimizer_with_scheduling(tmpdir):
     init_lr = 0.1
     adjusted_lr = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
 
-    assert len(trainer.lr_schedulers) == 1
+    assert len(trainer.lr_scheduler_configs) == 1
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     assert init_lr * 0.1 == adjusted_lr[0]
 
@@ -74,7 +74,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg["lr"] for pg in trainer.optimizers[1].param_groups]
 
-    assert len(trainer.lr_schedulers) == 2
+    assert len(trainer.lr_scheduler_configs) == 2
     assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
     assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
     assert model.init_lr * 0.1 == adjusted_lr1[0]
@@ -134,7 +134,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    lr_scheduler = trainer.lr_schedulers[0]
+    lr_scheduler = trainer.lr_scheduler_configs[0]
     assert lr_scheduler == LRSchedulerConfig(
         scheduler=lr_scheduler.scheduler,
         monitor="foo",
@@ -310,11 +310,11 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert trainer.lr_schedulers[0].opt_idx == 0
-    assert trainer.lr_schedulers[1].opt_idx == 1
+    assert trainer.lr_scheduler_configs[0].opt_idx == 0
+    assert trainer.lr_scheduler_configs[1].opt_idx == 1
     # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization
-    assert trainer.lr_schedulers[0].scheduler._step_count == expected_steps[0]
-    assert trainer.lr_schedulers[1].scheduler._step_count == expected_steps[1]
+    assert trainer.lr_scheduler_configs[0].scheduler._step_count == expected_steps[0]
+    assert trainer.lr_scheduler_configs[1].scheduler._step_count == expected_steps[1]
 
 
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
@@ -333,7 +333,7 @@ def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
     train_fn = getattr(trainer, fn)
     train_fn(TestModel(), datamodule=BoringDataModule(), ckpt_path=None)
 
-    assert len(trainer.lr_schedulers) == 0
+    assert len(trainer.lr_scheduler_configs) == 0
     assert len(trainer.optimizers) == 0
     assert len(trainer.optimizer_frequencies) == 0
 

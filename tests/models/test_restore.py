@@ -174,8 +174,8 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _check_schedulers(self):
             return all(
-                self._is_equal(self.trainer.lr_schedulers[i]["scheduler"].state_dict(), state_dict["lr_schedulers"][i])
-                for i in range(len(self.trainer.lr_schedulers))
+                self._is_equal(config.scheduler.state_dict(), state_dict["lr_schedulers"][i])
+                for i, config in enumerate(self.trainer.lr_scheduler_configs)
             )
 
         def _check_model_state_dict(self):

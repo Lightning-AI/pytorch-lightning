@@ -142,13 +142,10 @@ class StochasticWeightAveraging(Callback):
             self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        optimizers = trainer.optimizers
-        lr_schedulers = trainer.lr_schedulers
-
-        if len(optimizers) != 1:
+        if len(trainer.optimizers) != 1:
             raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
 
-        if len(lr_schedulers) > 1:
+        if len(trainer.lr_scheduler_configs) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
         if isinstance(self._swa_epoch_start, float):
@@ -185,17 +182,17 @@ class StochasticWeightAveraging(Callback):
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
-            if trainer.lr_schedulers:
-                scheduler_cfg = trainer.lr_schedulers[0]
+            if trainer.lr_scheduler_configs:
+                scheduler_cfg = trainer.lr_scheduler_configs[0]
                 if scheduler_cfg.interval != "epoch" or scheduler_cfg.frequency != 1:
                     rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
                 rank_zero_info(
                     f"Swapping scheduler `{scheduler_cfg.scheduler.__class__.__name__}`"
                     f" for `{self._swa_scheduler.__class__.__name__}`"
                 )
-                trainer.lr_schedulers[0] = default_scheduler_cfg
+                trainer.lr_scheduler_configs[0] = default_scheduler_cfg
             else:
-                trainer.lr_schedulers.append(default_scheduler_cfg)
+                trainer.lr_scheduler_configs.append(default_scheduler_cfg)
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 

@@ -127,9 +127,9 @@ class _LRFinder:
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_schedulers = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
-            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_schedulers)
+            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
         return func
 
@@ -335,7 +335,7 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc="Finding best initial lr", total=self.num_training)
 
-        self.lrs.append(trainer.lr_schedulers[0]["scheduler"].lr[0])
+        self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Called when the training batch ends, logs the calculated loss."""

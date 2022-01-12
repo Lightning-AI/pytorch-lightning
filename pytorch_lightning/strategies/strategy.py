@@ -52,6 +52,7 @@ class Strategy(ABC):
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self.optimizers: List[Optimizer] = []
+        # FIXME: rename to _config?
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):

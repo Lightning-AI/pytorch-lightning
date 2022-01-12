@@ -19,6 +19,7 @@ import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from copy import deepcopy
+from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
@@ -2016,14 +2017,19 @@ class Trainer(
 
         self.strategy.optimizers = new_optims
 
-    # FIXME: bc compat
     @property
-    def lr_schedulers(self) -> List[LRSchedulerConfig]:
+    def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
+        # FIXME: should we have this property at all?
         return self.strategy.lr_schedulers
 
-    @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: List[LRSchedulerConfig]) -> None:
-        self.strategy.lr_schedulers = new_schedulers
+    @property
+    def lr_schedulers(self) -> List[Dict[str, Any]]:
+        rank_zero_deprecation(
+            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
+            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
+            stacklevel=5,
+        )
+        return [asdict(config) for config in self.strategy.lr_schedulers]
 
     @property
     def optimizer_frequencies(self) -> List[int]:

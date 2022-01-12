@@ -305,7 +305,7 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        for config, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
+        for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
     # ----------------------------------
@@ -368,7 +368,7 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            for config in self.trainer.lr_schedulers:
+            for config in self.trainer.lr_scheduler_configs:
                 lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
