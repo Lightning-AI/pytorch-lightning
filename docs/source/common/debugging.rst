@@ -26,7 +26,7 @@ fast_dev_run
 ============
 
 This flag runs a "unit test" by running ``N`` if set to ``N`` (int) else 1 if set to ``True`` training, validation, testing and predict batch(es)
-for a single epoch. The point is to detect any bugs in the respective loop without having to wait for a complete loop to crash.
+for a single epoch. The point is to have a dry run to detect any bugs in the respective loop without having to wait for a complete loop to crash.
 
 Internally, it just updates ``limit_<train/test/val/predict>_batches=fast_dev_run`` and sets ``max_epoch=1`` to limit the batches.
 
