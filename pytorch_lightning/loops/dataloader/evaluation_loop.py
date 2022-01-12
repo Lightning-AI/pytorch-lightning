@@ -327,13 +327,47 @@ class EvaluationLoop(DataLoaderLoop):
                     rows[i].append(f"{v[0]}" if v else " ")
 
             max_length = max(len(max(unique_keys + headers, key=len)), 25)
-            row_format = "{:^{max_length}}" * len(headers)
+            term_size = shutil.get_terminal_size(fallback=(120, 30)).columns
             # cap wide terminals to 120 columns, but go over if there are many headers
-            term_size = max(min(120, shutil.get_terminal_size(fallback=(120, 30)).columns), max_length * len(headers))
+            table_size = max(min(120, term_size), max_length * len(headers))
 
-            print("─" * term_size)
-            print(row_format.format(*headers, max_length=max_length))
-            print("─" * term_size)
-            for col, row in zip(unique_keys, rows):
-                print(row_format.format(col, *row, max_length=max_length))
-            print("─" * term_size)
+            if table_size < term_size:
+                row_format = "{:^{max_length}}" * len(headers)
+
+                print("─" * table_size)
+                print(row_format.format(*headers, max_length=max_length))
+                print("─" * table_size)
+                for col, row in zip(unique_keys, rows):
+                    print(row_format.format(col, *row, max_length=max_length))
+                print("─" * table_size)
+
+            else:
+                # remove stage so it can be added to each column later
+                headers.pop(0)
+                num_headers = len(headers)
+
+                # keep one header space for stage
+                cols_table = int((term_size - max_length) / max_length)
+                row_format = "{:^{max_length}}" * (cols_table + 1)
+
+                for i in range(0, num_headers, cols_table):
+                    max_cols = i + cols_table
+
+                    if max_cols <= num_headers:
+                        col_headers = headers[i:max_cols]
+                        col_headers.insert(0, f"{stage} Metric".capitalize())
+                        col_rows = [row[i:(i + max_cols)] for row in rows]
+
+                    else:
+                        add_el = max_cols - num_headers
+                        col_headers = headers[i:num_headers]
+                        col_headers.extend([" "] * add_el)
+                        col_headers.insert(0, f"{stage} Metric".capitalize())
+                        col_rows = [row[i:i + num_headers] + [" "] * add_el for row in rows]
+
+                    print("─" * term_size)
+                    print(row_format.format(*col_headers, max_length=max_length))
+                    print("─" * term_size)
+                    for col, row in zip(unique_keys, col_rows):
+                        print(row_format.format(col, *row, max_length=max_length))
+                    print("─" * term_size)
