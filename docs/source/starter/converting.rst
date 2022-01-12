@@ -49,16 +49,21 @@ Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningMo
     class LitModel(LightningModule):
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-            return optimizer
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer], [lr_scheduler]
 
 --------
 
-*****************************
-3. Find the Train Loop "meat"
-*****************************
+***************************
+3. Configure Training Logic
+***************************
 
-Lightning automates most of the training for you, the epoch and batch iterations, all you need to keep is the ``training_step`` logic.
-This should go into the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
+Lightning automates the training loop for you and manages all the associated components, such as epoch and batch tracking, optimizer and schedulers,
+metrics reduction. As a user, all you need is to define how your model behaves with a batch of data within the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method. When using Lightning, simply override the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method which takes the current ``batch`` and the ``batch_idx``
+as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule defines multiple optimizers within its
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` hook.
 
 .. testcode::
 
@@ -71,9 +76,14 @@ This should go into the :meth:`~pytorch_lightning.core.lightning.LightningModule
 
 --------
 
-***************************
-4. Find the Val Loop "meat"
-***************************
+*****************************
+4. Configure Validation Logic
+*****************************
+
+Lightning automates the validation loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
+all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
+method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method which takes the current
+``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
 
 To add an (optional) validation loop add logic to the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
@@ -87,16 +97,27 @@ To add an (optional) validation loop add logic to the
             val_loss = F.cross_entropy(y_hat, y)
             self.log("val_loss", val_loss)
 
+Additionally, you can also run the validation loop using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
+
+.. code-block:: python
+
+    model = LitModel()
+    trainer.validate(model)
+
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for validation.
+
+.. tip:: ``trainer.validate()`` loads the best checkpoint automatically by default if checkpointing is enabled.
 
 --------
 
-****************************
-5. Find the Test Loop "meat"
-****************************
+**************************
+5. Configure Testing Logic
+**************************
 
-To add an (optional) test loop add logic to the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
+Lightning automates the testing loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
+all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`
+method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method which takes the current
+``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
 
 .. testcode::
 
@@ -107,25 +128,28 @@ To add an (optional) test loop add logic to the
             test_loss = F.cross_entropy(y_hat, y)
             self.log("test_loss", test_loss)
 
-.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for testing.
-
-The test loop will not be used until you call.
+The test loop will not be used until you call :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
 
 .. code-block:: python
 
-    trainer.test()
+    model = LitModel()
+    trainer.test(model)
+
+.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for testing.
 
 .. tip:: ``trainer.test()`` loads the best checkpoint automatically by default if checkpointing is enabled.
 
 --------
 
-*******************************
-6. Find the Predict Loop "meat"
-*******************************
+*****************************
+6. Configure Prediction Logic
+*****************************
 
-To add an (optional) prediction loop add logic to the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
-If you don't override ``predict_step`` hook, it by default calls ``forward`` method on the batch.
+Lightning automates the prediction loop for you and manages all the associated components, such as epoch and batch tracking. As a user,
+all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method which takes the current
+``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
+If you don't override ``predict_step`` hook, it by default calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method on the batch.
 
 .. testcode::
 
@@ -135,13 +159,14 @@ If you don't override ``predict_step`` hook, it by default calls ``forward`` met
             pred = self(x)
             return pred
 
-.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for prediction.
-
-The predict loop will not be used until you call.
+The predict loop will not be used until you call :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
 
 .. code-block:: python
 
-    trainer.predict()
+    model = LitModel()
+    trainer.predict(model)
+
+.. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for testing.
 
 .. tip:: ``trainer.predict()`` loads the best checkpoint automatically by default if checkpointing is enabled.
 
