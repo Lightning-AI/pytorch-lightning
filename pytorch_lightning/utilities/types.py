@@ -60,7 +60,8 @@ class _SupportsStateDict(Protocol):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class _LRScheduler(_SupportsStateDict):
+@runtime_checkable
+class _LRScheduler(_SupportsStateDict, Protocol):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
@@ -69,7 +70,8 @@ class _LRScheduler(_SupportsStateDict):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau(_SupportsStateDict):
+@runtime_checkable
+class ReduceLROnPlateau(_SupportsStateDict, Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 

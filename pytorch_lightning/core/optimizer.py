@@ -25,7 +25,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerConfig, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import (
+    _SupportsStateDict,
+    LRSchedulerConfig,
+    LRSchedulerTypeTuple,
+    ReduceLROnPlateau,
+)
 
 
 def do_nothing_closure() -> None:
@@ -295,7 +300,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     category=RuntimeWarning,
                 )
             scheduler = LRSchedulerConfig(**scheduler)
-        elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+        elif isinstance(scheduler, ReduceLROnPlateau):
             if monitor is None:
                 raise MisconfigurationException(
                     "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
