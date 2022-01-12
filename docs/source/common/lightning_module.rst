@@ -721,7 +721,7 @@ The following example shows how you can run inference in the Python runtime:
     with torch.no_grad():
         y_hat = model(x)
 
-Check out :ref:`Inference in Production <production_inference>` doc to learn about the possible ways to perform inference in production.
+Check out :ref:`Inference in Production <production_inference>` guide to learn about the possible ways to perform inference in production.
 
 
 -----------
