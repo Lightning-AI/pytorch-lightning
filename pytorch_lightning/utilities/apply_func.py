@@ -226,7 +226,7 @@ def apply_to_collections(
 
 
 class TransferableDataType(ABC):
-    """A custom type for data that can be moved to a torch device via `.to(...)`.
+    """A custom type for data that can be moved to a torch device via ``.to(...)``.
 
     Example:
 
@@ -257,7 +257,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     moved and all other objects in the collection will be left untouched.
 
     Args:
-        batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
+        batch: A tensor or collection of tensors or anything that has a method ``.to(...)``.
             See :func:`apply_to_collection` for a list of supported collection types.
         device: The device to which the data should be moved
 
