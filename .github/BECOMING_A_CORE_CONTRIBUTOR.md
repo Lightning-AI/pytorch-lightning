@@ -1,13 +1,14 @@
 # How to become a core contributor
 
 Thanks for your interest in joining the Lightning team! We’re a rapidly growing project which is poised to become the go-to framework for DL researchers!
-We're currently recruiting for a team of 5 core maintainers.
 
-As a core maintainer you will have a strong say in the direction of the project. Big changes will require a majority of maintainers to agree.
+As a core maintainer, you will have a strong say in the direction of the project. Big changes will require a majority of maintainers to agree.
+Our development is fully open, so you can still raise your voice just by commenting on issues and pull requests! Doing so is a big step in becoming part of core.
 
 ## Code of conduct
 
-First and foremost, you'll be evaluated against [these core values](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md). Any code we commit or feature we add needs to align with those core values.
+First and foremost, you'll be evaluated against [these core values](CONTRIBUTING.md). Any code we commit or feature we add needs to align with those core values.
+Any collaboration and communication must adhere to our [code of conduct](CODE_OF_CONDUCT.md).
 
 ## The bar for joining the team
 
@@ -17,53 +18,48 @@ With that said, the Lightning team will be diverse and a reflection of an inclus
 
 ## Responsibilities:
 
-The responsibilities mainly revolve around 3 things.
+Here, we describe general expectations from core contributors:
 
 ### Github issues
 
-- Here we want to help users have an amazing experience. These range from questions from new people getting into DL to questions from researchers about doing something esoteric with Lightning
-  Often, these issues require some sort of bug fix, document clarification or new functionality to be scoped out.
+- Our community is the main motivation for our work. Help them have an amazing experience. Issues range from answering questions from new people getting into deep learning to helping researchers doing something esoteric.
+  They often require some sort of bug fix, document clarification, or new functionality to be scoped out. You can help them solve their issues and guide them to completion.
 
-- To become a core member you must resolve at least 10 Github issues which align with the API design goals for Lightning. By the end of these 10 issues I should feel comfortable in the way you answer user questions
-  Pleasant/helpful tone.
+- Weigh in on discussions in a timely fashion. Most importantly, on the RFCs (request for comments) that will shape the future of Lightning.
+  There are some big decisions which the project must make. For these, we expect core contributors to have something meaningful to add, especially if it’s their area of expertise.
 
-- Can abstract from that issue or bug into functionality that might solve other related issues or makes the platform more flexible.
+- Propose your own RFCs that align with the API design goals for Lightning.
+
+- Identify opportunities from an issue or bug that can solve other related issues or make the framework more flexible.
 
 - Don’t make users feel like they don’t know what they’re doing. We’re here to help and to make everyone’s experience delightful.
 
-### Pull requests
+- Help out with critical bugs. Nobody likes bugs so you'll be a hero if you fix them!
 
-- Here we need to ensure the code that enters Lightning is high quality. For each PR we need to:
-- Make sure code coverage does not decrease
-- Documents are updated
-- Code is elegant and simple
-- Code is NOT overly engineered or hard to read
-- Ask yourself, could a non-engineer understand what’s happening here?
-- Make sure new tests are written
-- Is this NECESSARY for Lightning? There are some PRs which are just purely about adding engineering complexity which have no place in Lightning.
-  Guidance
-- Some other PRs are for people who are wanting to get involved and add something unnecessary. We do want their help though! So don’t approve the PR, but direct them to a Github issue that they might be interested in helping with instead!
-- To be considered for core contributor, please review 10 PRs and help the authors land it on master. Once you've finished the review, ping me
-  for a sanity check. At the end of 10 PRs if your PR reviews are inline with expectations described above, then you can merge PRs on your own going forward,
-  otherwise we'll do a few more until we're both comfortable :)
+### Pull requests (PRs)
 
-### Project directions
+- Pull requests are the evolutionary mechanism of Lightning, so quality is extremely important. Make sure contributors adhere to the guidelines described in the [contributing section](CONTRIBUTING.md#Pull-request).
 
-There are some big decisions which the project must make. For these I expect core contributors to have something meaningful to add if it’s their area of expertise.
+- Some PRs are from people who want to get involved and try to add something unnecessary. We do want their help though! So don’t approve the PR, but direct them to a Github issue that they might be interested in helping with instead!
+
+- Provide strong and valuable feedback during reviews. This is expected both when reviewing community PRs as well as PRs from other core contributors.
+  Even if you are not part of core yet, you can still review and approve PRs. This will show us your abilities.
 
 ### Diversity
 
-Lightning should reflect the broader community it serves. As such we should have scientists/researchers from
-different fields contributing!
+Lightning should reflect the broader community it serves. As such we should have scientists/researchers from different fields contributing!
 
-The first 5 core contributors will fit this profile. Thus if you overlap strongly with experiences and expertise as someone else on the team, you might have to wait until the next set of contributors are added.
+### Community
 
-### Summary: Requirements to apply
+We have an active [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ) community, where questions are asked daily.
+This is a great way to show off your Lightning and PyTorch knowledge, and help out others.
+There's also [GitHub discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions).
 
-The goal is to be inline with expectations for solving issues by the last one so you can do them on your own. If not, I might ask you to solve a few more specific ones.
+## Applying
 
-- Solve 10+ Github issues.
-- Create 5+ meaningful PRs which solves some reported issue - bug,
-- Perform 10+ PR reviews from other contributors.
+There are no precise targets for becoming a core contributor. In the past, community members have become core after fitting the previous expectations consistently.
+We are on the lookout for new people to join, however, if you feel like you meet the expectations already and we haven't reached out to you yet, feel free to ping us privately on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)!.
 
-If you want to be considered, ping me on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ).
+## Employment
+
+You can also become a [Grid.ai](https://www.grid.ai) employee or intern and work on Lightning. To get started, you can email `careers@grid.ai` with your resume or check out our [open job postings](https://boards.greenhouse.io/gridai).
