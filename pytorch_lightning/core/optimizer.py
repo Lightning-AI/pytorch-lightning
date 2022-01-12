@@ -270,12 +270,15 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
             # check provided keys
-            extra_keys = scheduler.keys() - {field.name for field in fields(LRSchedulerConfig)}
+            supported_keys = {field.name for field in fields(LRSchedulerConfig)}
+            extra_keys = scheduler.keys() - supported_keys
             if extra_keys:
-                raise MisconfigurationException(
-                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}. HINT: remove them from the output"
-                    " of `configure_optimizers`."
+                rank_zero_warn(
+                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}. "
+                    " HINT: remove them from the output of `configure_optimizers`.",
+                    category=RuntimeWarning,
                 )
+                scheduler = {k: v for k, v in scheduler.items() if k in supported_keys}
             if "scheduler" not in scheduler:
                 raise MisconfigurationException(
                     'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'

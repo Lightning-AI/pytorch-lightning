@@ -484,7 +484,7 @@ def test_lr_scheduler_with_extra_keys_warns(tmpdir):
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1), "foo": 1, "bar": 2},
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match=r"Found unsupported keys in the lr scheduler dict: \{.+\}"):
+    with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the lr scheduler dict: \{.+\}"):
         trainer.fit(model)
 
 
