@@ -78,7 +78,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
         trainer = Trainer(
             default_root_dir=str(tmpdir),
-            accelerator="gpu" if torch.cuda.is_available() else "cpu",
+            accelerator="auto",
             devices=1,
             precision=(16 if torch.cuda.is_available() else 32),
             callbacks=[es, stop],
