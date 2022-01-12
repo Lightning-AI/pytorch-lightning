@@ -7,7 +7,7 @@ docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
-sphinx-autodoc-typehints>=1.0
+sphinx-autodoc-typehints>=1.0,<1.15  # v1.15 failing on master (#11405)
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
