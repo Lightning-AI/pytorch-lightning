@@ -326,7 +326,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
             " Use `.*SingleDeviceStrategy` instead."
         )
     ):
-        SingleDevicePlugin(Mock())
+        SingleDevicePlugin("cpu")
 
 
 @RunIf(tpu=True)
