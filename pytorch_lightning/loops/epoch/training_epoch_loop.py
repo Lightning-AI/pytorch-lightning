@@ -454,11 +454,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                if lr_scheduler["reduce_on_plateau"]:
-                    lr_scheduler["scheduler"].step(monitor_val)
-                else:
-                    lr_scheduler["scheduler"].step()
-
+                self.trainer._call_lightning_module_hook(
+                    "lr_scheduler_step",
+                    lr_scheduler["scheduler"],
+                    lr_scheduler["opt_idx"],
+                    monitor_val,
+                )
                 self.scheduler_progress.increment_completed()
 
     def _get_monitor_value(self, key: str) -> Any:

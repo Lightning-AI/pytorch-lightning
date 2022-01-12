@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+from unittest.mock import call, patch
 
 import pytest
 import torch
@@ -679,3 +680,124 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
+
+
+def test_lr_scheduler_step_hook(tmpdir):
+    """Test that custom lr scheduler works and `lr_scheduler_step` is called at appropriate time."""
+
+    class CustomEpochScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, epoch):
+            ...
+
+        def state_dict(self):
+            ...
+
+        def load_state_dict(self, state_dict):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx=0):
+            return super().training_step(batch, batch_idx)
+
+        def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+            # step-level
+            if optimizer_idx == 0:
+                super().lr_scheduler_step(scheduler, optimizer_idx, metric)
+            # epoch-level
+            elif optimizer_idx == 1:
+                scheduler.step(epoch=self.current_epoch)
+
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            lr_scheduler2 = CustomEpochScheduler(opt2)
+            return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
+                "optimizer": opt2,
+                "lr_scheduler": lr_scheduler2,
+            }
+
+    model = CustomBoringModel()
+    model.training_epoch_end = None
+    max_epochs = 3
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_checkpointing=False,
+        logger=False,
+        max_epochs=max_epochs,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+    )
+
+    with patch.object(CustomEpochScheduler, "step") as mock_method_epoch, patch.object(
+        torch.optim.lr_scheduler.StepLR, "step"
+    ) as mock_method_step:
+        trainer.fit(model)
+
+    assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # first step is called by PyTorch _LRScheduler
+    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
+
+
+def test_invalid_scheduler_missing_state_dict():
+    """Test that custom lr scheduler raises an error if it's missing the state dict."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    model.trainer = Trainer()
+    with pytest.raises(TypeError, match="provided lr scheduler `CustomScheduler` is invalid"):
+        _init_optimizers_and_lr_schedulers(model)
+
+
+@pytest.mark.parametrize("override", (False, True))
+def test_invalid_lr_scheduler_with_custom_step_method(override):
+    """Test that custom lr scheduler raises an error if it doesn't follow PyTorch LR Scheduler API."""
+
+    class CustomScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def step(self, foobar):  # breaks the API, forces user to override `lr_scheduler_step`
+            ...
+
+        def state_dict(self):
+            ...
+
+        def load_state_dict(self, state_dict):
+            ...
+
+    class CustomBoringModel(BoringModel):
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.parameters(), lr=1e-2)
+            lr_scheduler = CustomScheduler(opt)
+            return {"optimizer": opt, "lr_scheduler": lr_scheduler}
+
+    model = CustomBoringModel()
+    model.trainer = Trainer()
+    if override:
+
+        def lr_scheduler_step(*_):
+            ...
+
+        # the user did override the hook, no error
+        model.lr_scheduler_step = lr_scheduler_step
+        _init_optimizers_and_lr_schedulers(model)
+    else:
+        with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
+            _init_optimizers_and_lr_schedulers(model)

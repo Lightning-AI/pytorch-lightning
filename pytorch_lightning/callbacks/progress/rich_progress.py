@@ -17,7 +17,6 @@ from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
 Task, Style = None, None
@@ -231,7 +230,7 @@ class RichProgressBar(ProgressBarBase):
         console_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not _RICH_AVAILABLE:
-            raise MisconfigurationException(
+            raise ModuleNotFoundError(
                 "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
             )
 
