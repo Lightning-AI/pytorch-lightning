@@ -21,14 +21,14 @@ What is PyTorch Lightning
 *************************
 
 PyTorch has all you need to train your models. But there's a lot more to deep learning more than just attaching some layers together. It provides you the APIs required to build models, datasets etc.
-but when it comes to actual training, there's a lot of boilerplate code involved that you need to write by yourself and if you need to scale your training/inferencing on multiple devices/machines there's another
+But when it comes to actual training, there's a lot of boilerplate code involved that you need to write by yourself. And if you need to scale your training/inferencing on multiple devices/machines there's another
 set of integrations you might need to do by yourself.
 
-So here PyTorch Lightning comes into the picture. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
+PyTorch Lightning solves these for you. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
 Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training accross multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
-and a lot more. Now all you need is to take care of your research code and leave the engineering to us.
+and a lot more.
 
-Code organization is the core of Lightning. It leaves core training and validation logic to you and automates the rest.
+Code organization is the core of Lightning. It leaves the research logic to you and automates the rest.
 
 ----------
 
@@ -51,10 +51,7 @@ Lightning is built for:
 * Data Scientists who want to try out different models for their tasks and build-in ML techniques
 * Educators who seek to study and teach Deep Learning with PyTorch
 
-The team makes sure that all the latest techniques are already integrated and maintained periodically to make sure you don't
-have to worry about any engineering stuff and just focus on research.
-
-It is tested across multiple Python/PyTorch versions to ensure its reach.
+The team makes sure that all the latest techniques are already integrated and well maintained.
 
 
 ----------
@@ -260,8 +257,8 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * Calling of ``model.eval()``, enabling/disabling grads during evaluation
 * :doc:`Checkpoint Saving and Loading <../common/checkpointing>`
 * Tensorboard (see :doc:`loggers <../common/loggers>` options)
-* :doc:`Accelerator Support <../extensions/accelerators>`
-* :doc:`Multi-GPU <../advanced/multi_gpu>` support
+* :ref:`Multi-GPU <accelerators/gpu:Multi GPU Training>` support
+* :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <amp>` support
 
 .. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode (ie: RL, GANs, etc...).

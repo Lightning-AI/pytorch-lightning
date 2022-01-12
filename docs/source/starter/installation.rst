@@ -4,15 +4,20 @@
 Installation
 ############
 
+--------------
+
 ******************
 Lightning Coverage
 ******************
 
-PyTorch Lightning is maintained and tested on Pytorch 3.7.0+ and PyTorch 1.7.0+.
+PyTorch Lightning is maintained and tested on different Pytorch and PyTorch versions.
+
+Check out the `CI Coverage <https://github.com/PyTorchLightning/pytorch-lightning#continuous-integration>`_ for more info.
 
 It is rigorously tested across multiple GPUs, TPUs, CPUs and IPUs. GPU tests run on two NVIDIA P100. TPU tests run on Google GKE TPUv2/3.
 TPU py3.7 means we support Colab and Kaggle env. IPU tests run on MK1 IPU boxes.
 
+--------------
 
 *********************
 Installation with Pip
@@ -25,6 +30,7 @@ Now you can install using `pip <https://pypi.org/project/pytorch-lightning/>`_ u
 
     pip install pytorch-lightning
 
+--------------
 
 ***********************
 Installation with Conda
@@ -44,6 +50,8 @@ You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/la
     conda activate my_env
     conda install pytorch-lightning -c conda-forge
 
+--------------
+
 ************************
 Installation from Source
 ************************
@@ -56,7 +64,7 @@ Install future patch release from the source. Note that patch release contains o
 
 
 Install from the source. Note that it contains all the bugfixes and newly released features that
-are not published yet. Also newly added features might contain bugs so no gurantess.
+are not published yet. This is the bleeding edge so use it at your own discretion.
 
 .. code-block:: bash
 
