@@ -494,8 +494,9 @@ class Strategy(ABC):
 
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
-        self._lightning_optimizers.clear()
-        return self.__dict__
+        state = dict(vars(self))  # copy
+        state["_lightning_optimizers"] = {}
+        return state
 
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
