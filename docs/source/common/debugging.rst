@@ -173,3 +173,17 @@ Profiling
 =========
 
 Check out the :ref:`Profiler <profiler>` document.
+
+----------------
+
+Detect Anomaly
+==============
+
+You can enable anomaly detection for the autograd engine. It uses PyTorch's built-in
+`Anomaly Detection Context-manager <https://pytorch.org/docs/stable/autograd.html#anomaly-detection>`_.
+
+To enable it within Lightning, use:
+
+.. testcode::
+
+    trainer = Trainer(detect_anomaly=True)
