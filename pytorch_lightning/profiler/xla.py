@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""XLA Profiler will help you debug and optimize training workload performance for your models using Cloud TPU
-performance tools."""
 import logging
 from typing import Dict
 
@@ -38,7 +36,7 @@ class XLAProfiler(BaseProfiler):
     }
 
     def __init__(self, port: int = 9012) -> None:
-        """This Profiler will help you debug and optimize training workload performance for your models using Cloud
+        """XLA Profiler will help you debug and optimize training workload performance for your models using Cloud
         TPU performance tools."""
         if not _TPU_AVAILABLE:
             raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
