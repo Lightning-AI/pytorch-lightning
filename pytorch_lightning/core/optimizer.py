@@ -332,7 +332,7 @@ def _validate_scheduler_api(lr_schedulers: List[LRSchedulerConfig], model: "pl.L
     for config in lr_schedulers:
         scheduler = config.scheduler
         if not isinstance(scheduler, _SupportsStateDict):
-            raise ValueError(
+            raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )

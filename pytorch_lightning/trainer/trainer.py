@@ -2019,7 +2019,6 @@ class Trainer(
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
-        # FIXME: should we have this property at all?
         return self.strategy.lr_schedulers
 
     @property
