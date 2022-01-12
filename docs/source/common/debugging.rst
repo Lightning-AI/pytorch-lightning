@@ -8,7 +8,7 @@
 Debugging
 #########
 
-Lightning Trainer is empowered with a lot of debugging flags that can help you debug your :class:`~pytorch_lightning.core.lightning.LightningModule`.
+The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` is empowered with a lot of flags that can help you debug your :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
 .. raw:: html
 
@@ -27,6 +27,8 @@ fast_dev_run
 
 This flag runs a "unit test" by running ``N`` if set to ``N`` (int) else 1 if set to ``True`` training, validation, testing and predict batch(es)
 for a single epoch. The point is to detect any bugs in the respective loop without having to wait for a complete loop to crash.
+
+Internally, it just updates ``limit_<train/test/val/predict>_batches=fast_dev_run`` and sets ``max_epoch=1`` to limit the batches.
 
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
@@ -75,7 +77,7 @@ Monitor and log device stats during training with the :class:`~pytorch_lightning
 
 ----------------
 
-Make Model overfit on Subset of Data
+Make Model Overfit on Subset of Data
 ====================================
 
 A good debugging technique is to take a tiny portion of your data (say 2 samples per class),
@@ -97,11 +99,10 @@ in the training set to turn off shuffle for you.
 
 ----------------
 
-Print a Summary of your LightningModule
+Print a Summary of Your LightningModule
 =======================================
 
 Whenever the ``.fit()`` function gets called, the Trainer will print the weights summary for the LightningModule.
-If is enabled by default and can be turned-off using ``Trainer(enable_model_summary=False)``.
 By default it only prints the top-level modules. If you want to show all submodules in your network, use the
 ``max_depth`` option of :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary` callback:
 
@@ -124,6 +125,8 @@ You can also display the intermediate input- and output sizes of all your layers
     2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
 
 when you call ``.fit()`` on the Trainer. This can help you find bugs in the composition of your layers.
+
+It is enabled by default and can be turned off using ``Trainer(enable_model_summary=False)``.
 
 See Also:
     - :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
@@ -169,4 +172,4 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 Profiling
 =========
 
-Checkout the :ref:`profiler` doc.
+Check out the :ref:`Profiler <profiler>` document.
