@@ -44,16 +44,17 @@ def run_cli():
     cli = MyLightningCLI(ImageNetLightningModel, seed_everything_default=42, save_config_overwrite=True, run=False)
     if cli.config["evaluate"]:
         from neural_compressor.utils.pytorch import load
+
         print("Load quantized configure from ", cli.trainer.default_root_dir)
         cli.model.model = load(cli.trainer.default_root_dir, cli.model.model)
         out = cli.trainer.validate(cli.model, datamodule=cli.datamodule)
         print("val_acc1:{}".format(out[0]["val_acc1"]))
     else:
         callback = pl.callbacks.INCQuantization(
-            'config/quantization.yaml',
+            "config/quantization.yaml",
             monitor="val_acc1",
             module_name_to_quant="model",
-            dirpath=cli.trainer.default_root_dir
+            dirpath=cli.trainer.default_root_dir,
         )
         cli.trainer.callbacks.append(callback)
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)

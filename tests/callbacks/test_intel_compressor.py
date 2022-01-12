@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import os
+
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torchmetrics import MeanSquaredError
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import INCQuantization
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.datamodules import RegressDataModule
@@ -60,7 +60,6 @@ class LightningModel(LightningModule):
         self.valid_mse = MeanSquaredError()
         self.test_mse = MeanSquaredError()
 
-
     def forward(self, x):
         x = self.model(x)
         return x
@@ -91,7 +90,7 @@ class LightningModel(LightningModule):
 
 
 def build_yaml():
-    fake_ptq_yaml = '''
+    fake_ptq_yaml = """
         version: 1.0
 
         model:
@@ -113,13 +112,13 @@ def build_yaml():
             timeout: 0
             max_trials: 1200
           random_seed: 9527
-    '''
-    with open('ptq_yaml.yaml', 'w', encoding="utf-8") as f:
+    """
+    with open("ptq_yaml.yaml", "w", encoding="utf-8") as f:
         f.write(fake_ptq_yaml)
 
 
 def tearDown():
-    os.remove('ptq_yaml.yaml')
+    os.remove("ptq_yaml.yaml")
 
 
 @RunIf(quantization=True)
@@ -137,11 +136,7 @@ def test_INCQuantization(tmpdir):
     org_score = torch.mean(torch.tensor([mape(model(x), y) for x, y in dm.test_dataloader()]))
 
     inc_cb = INCQuantization(
-        'ptq_yaml.yaml',
-        monitor="val_MSE",
-        module_name_to_quant="model",
-        datamodule=dm,
-        dirpath=tmpdir
+        "ptq_yaml.yaml", monitor="val_MSE", module_name_to_quant="model", datamodule=dm, dirpath=tmpdir
     )
     trainer = Trainer(callbacks=[inc_cb], **trainer_args)
     trainer.fit(model, datamodule=dm)

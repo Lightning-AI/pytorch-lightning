@@ -17,6 +17,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
+from pytorch_lightning.callbacks.intel_compressor import INCQuantization
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -29,7 +30,6 @@ from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
-from pytorch_lightning.callbacks.intel_compressor import INCQuantization
 
 __all__ = [
     "BackboneFinetuning",

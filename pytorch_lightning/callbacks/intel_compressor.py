@@ -18,10 +18,11 @@ Intel Quantization (TODO: pruning)
 """
 from enum import Enum
 
-from pytorch_lightning.core import LightningDataModule
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.core import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 class QuantizationMode(Enum):
     PTQ_DYNAMIC = "post_training_dynamic_quant"
@@ -33,7 +34,6 @@ class INCQuantization(Callback):
     """Quantization allows speeding up inference and decreasing memory requirements by performing computations and
     storing tensors at lower bitwidths (such as INT8) than floating point precision. And this callback will
     quantized model with Intel Neural Compressor(INC) tool.
-
 
     Args:
 
@@ -59,7 +59,7 @@ class INCQuantization(Callback):
         try:
             from neural_compressor.conf.config import Quantization_Conf
         except ImportError as e:
-            raise RuntimeError('Please install neural-compressor with: pip install neural-compressor') from e
+            raise RuntimeError("Please install neural-compressor with: pip install neural-compressor") from e
 
         self.config = (
             config_path_or_obj
@@ -69,8 +69,9 @@ class INCQuantization(Callback):
         self.approach = self.config.usr_cfg.quantization.approach
         assert monitor is not None, "Please set metric name for evaluation loop!"
         self.monitor = monitor
-        assert module_name_to_quant is not None, \
-            "Please set module_name_to_quant with module name which you want to quantize"
+        assert (
+            module_name_to_quant is not None
+        ), "Please set module_name_to_quant with module name which you want to quantize"
         self.module_name_to_quant = module_name_to_quant
         self.datamodule = datamodule
         self.dirpath = dirpath
@@ -80,13 +81,11 @@ class INCQuantization(Callback):
         try:
             from neural_compressor.experimental import Quantization
         except ImportError as e:
-            raise RuntimeError('Please install neural-compressor with: pip install neural-compressor') from e
+            raise RuntimeError("Please install neural-compressor with: pip install neural-compressor") from e
 
         def eval_func(model):
             setattr(pl_module, self.module_name_to_quant, model)
-            out = trainer.validate(
-                pl_module, self.datamodule.val_dataloader() if self.datamodule is not None else None
-            )
+            out = trainer.validate(pl_module, self.datamodule.val_dataloader() if self.datamodule is not None else None)
             return out[0][self.monitor]
 
         trainer.quantizing = True
@@ -98,8 +97,9 @@ class INCQuantization(Callback):
         quantizer.model = getattr(pl_module, self.module_name_to_quant)
 
         if self.approach == QuantizationMode.PTQ_STATIC.value:
-            quantizer.calib_dataloader = \
+            quantizer.calib_dataloader = (
                 pl_module.train_dataloader() if self.datamodule is None else self.datamodule.train_dataloader()
+            )
         elif self.approach != QuantizationMode.PTQ_DYNAMIC.value:
             raise MisconfigurationException("Unsupport quantization approach:" + self.approach)
 

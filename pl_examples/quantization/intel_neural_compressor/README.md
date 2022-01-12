@@ -75,9 +75,7 @@ The quantized model saved in args.default_root_dir
 model = ImageNetLightningModel(**vars(args))  # fp32 model
 from neural_compressor.utils.pytorch import load
 
-model.model = load(
-        args.default_root_dir,
-        model.model)
+model.model = load(args.default_root_dir, model.model)
 ```
 
 Please refer to [Sample code](./imagenet.py).
