@@ -217,7 +217,7 @@ workload performance for your models using Cloud TPU performance tools.
 Manual capture via TensorBoard
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following instructions are for capturing trace from a running program:
+The following instructions are for capturing traces from a running program:
 
 0. This `guide <https://cloud.google.com/tpu/docs/pytorch-xla-performance-profiling-tpu-vm#tpu-vm>`_ will
 help you with the Cloud TPU setup with the required installations
@@ -229,7 +229,7 @@ help you with the Cloud TPU setup with the required installations
 
     tensorboard --logdir ./tensorboard --port 9001
 
-2. Once the code you'd like to profile is running, click on ``CAPTURE PROFILE`` button. You could enter
+2. Once the code you'd like to profile is running, click on the ``CAPTURE PROFILE`` button. You could enter
 ``localhost:9012`` (default port for XLA Profiler) as the Profile Service URL. Then, you could enter
 the number of milliseconds for the profiling duration, and click ``CAPTURE``
 
