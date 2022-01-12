@@ -44,13 +44,9 @@ warn_no_return = "False"
 module = [
     "pytorch_lightning.callbacks.finetuning",
     "pytorch_lightning.callbacks.model_checkpoint",
-    "pytorch_lightning.callbacks.progress.base",
-    "pytorch_lightning.callbacks.progress.progress",
     "pytorch_lightning.callbacks.progress.rich_progress",
-    "pytorch_lightning.callbacks.progress.tqdm_progress",
     "pytorch_lightning.callbacks.quantization",
     "pytorch_lightning.callbacks.stochastic_weight_avg",
-    "pytorch_lightning.callbacks.xla_stats_monitor",
     "pytorch_lightning.core.datamodule",
     "pytorch_lightning.core.decorators",
     "pytorch_lightning.core.lightning",

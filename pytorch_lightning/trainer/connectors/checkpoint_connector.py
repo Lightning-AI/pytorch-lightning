@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import re
 from typing import Any, Dict, Optional
@@ -35,11 +36,14 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
 
 
+log: logging.Logger = logging.getLogger(__name__)
+
+
 class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path: Optional[_PATH] = None
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
@@ -74,6 +78,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
+            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
@@ -100,7 +105,7 @@ class CheckpointConnector:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
             elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         if (
             self.trainer.state.fn == TrainerFn.FITTING
             and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
@@ -258,16 +263,23 @@ class CheckpointConnector:
 
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
-        if not self._loaded_checkpoint or not self.trainer.strategy.lightning_restore_optimizer_and_schedulers:
+        if not self._loaded_checkpoint:
             return
 
-        # validation
-        if "optimizer_states" not in self._loaded_checkpoint or "lr_schedulers" not in self._loaded_checkpoint:
+        if self.trainer.strategy.lightning_restore_optimizer:
+            # validation
+            if "optimizer_states" not in self._loaded_checkpoint:
+                raise KeyError(
+                    "Trying to restore optimizer state but checkpoint contains only the model."
+                    " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
+                )
+            self.restore_optimizers()
+
+        if "lr_schedulers" not in self._loaded_checkpoint:
             raise KeyError(
-                "Trying to restore training state but checkpoint contains only the model."
+                "Trying to restore learning rate scheduler state but checkpoint contains only the model."
                 " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
             )
-        self.restore_optimizers()
         self.restore_lr_schedulers()
 
     def restore_optimizers(self) -> None:

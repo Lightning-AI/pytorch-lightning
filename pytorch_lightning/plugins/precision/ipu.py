@@ -27,6 +27,8 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for IPU integration."""
+
     def __init__(self, precision: int) -> None:
         super().__init__()
         self.precision = precision
