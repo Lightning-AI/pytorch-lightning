@@ -356,14 +356,14 @@ class EvaluationLoop(DataLoaderLoop):
                     if max_cols <= num_headers:
                         col_headers = headers[i:max_cols]
                         col_headers.insert(0, f"{stage} Metric".capitalize())
-                        col_rows = [row[i:(i + max_cols)] for row in rows]
+                        col_rows = [row[i : (i + max_cols)] for row in rows]
 
                     else:
                         add_el = max_cols - num_headers
                         col_headers = headers[i:num_headers]
                         col_headers.extend([" "] * add_el)
                         col_headers.insert(0, f"{stage} Metric".capitalize())
-                        col_rows = [row[i:i + num_headers] + [" "] * add_el for row in rows]
+                        col_rows = [row[i : i + num_headers] + [" "] * add_el for row in rows]
 
                     print("─" * term_size)
                     print(row_format.format(*col_headers, max_length=max_length))
