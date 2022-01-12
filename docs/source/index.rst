@@ -70,7 +70,6 @@ PyTorch Lightning
 
    clouds/cloud_training
    clouds/cluster
-   common/child_modules
    common/debugging
    common/early_stopping
    common/hyperparameters
