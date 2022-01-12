@@ -91,6 +91,8 @@ class LightningOptimizer:
         # local import here to avoid circular import
         from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior
 
+        assert self._strategy is not None
+        assert self._lightning_module is not None
         with _block_parallel_sync_behavior(self._strategy, block=(not sync_grad)):
             self._lightning_module.toggle_optimizer(self, self._optimizer_idx)
             yield
@@ -162,6 +164,8 @@ class LightningOptimizer:
             profiler_action = "optimizer_step_with_closure"
         profiler_action += f"_{self._optimizer_idx}"
 
+        assert self._lightning_module is not None
+        assert self._strategy is not None
         with self._lightning_module.trainer.profiler.profile(profiler_action):
             self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 

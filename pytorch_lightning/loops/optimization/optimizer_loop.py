@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -245,7 +245,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # calculate loss (train step + train step end)
             # -------------------
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            with _block_parallel_sync_behavior(self.trainer, block=True):
+            with _block_parallel_sync_behavior(self.trainer.strategy, block=True):
                 closure()
 
         # ------------------------------
@@ -336,7 +336,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def _optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Union[Optimizer, LightningOptimizer],
         opt_idx: int,
         batch_idx: int,
         train_step_and_backward_closure: Callable[[], Optional[Tensor]],
