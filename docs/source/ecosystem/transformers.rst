@@ -17,3 +17,30 @@ In Lightning Transformers, we offer the following benefits:
 - Seamless Memory and Speed Optimizations - Out of the box training optimizations such as `DeepSpeed ZeRO <https://pytorch-lightning.readthedocs.io/en/latest/multi_gpu.html#deepspeed>`_ or `FairScale Sharded Training <https://pytorch-lightning.readthedocs.io/en/latest/multi_gpu.html#sharded-training>`_ with no code changes.
 
 -----------------
+
+Using Lightning-Transformers
+----------------------------
+
+Lightning Transformers has a collections of tasks for common NLP problems such as `language_modeling <https://lightning-transformers.readthedocs.io/en/latest/tasks/nlp/language_modeling.html#language-modeling>`_,
+`translation <https://lightning-transformers.readthedocs.io/en/latest/tasks/nlp/translation.html#translation>`_ and more. To use, simply:
+
+1. Pick a task to train (passed to ``train.py`` as ``task=``)
+
+2. Pick a dataset (passed to ``train.py`` as ``dataset=``)
+
+3. Customize the backbone, optimizer, or any component within the config
+
+4. Add any `Lightning supported parameters and optimizations <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html>`_
+
+.. code-block:: bash
+
+    python train.py \
+        task=<TASK> \
+        dataset=<DATASET>
+        backbone.pretrained_model_name_or_path=<BACKBONE> # Optionally change the HF backbone
+        optimizer=<OPTIMIZER> # Optionally specify optimizer (Default AdamW)
+        trainer.<ANY_TRAINER_FLAGS> # Optionally specify Lightning trainer arguments
+
+-----------------
+
+To learn more about Lightning Transformers, please refer to the `Lightning Transformers documentation <https://lightning-transformers.readthedocs.io/en/latest/>`_.
