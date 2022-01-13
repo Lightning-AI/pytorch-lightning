@@ -10,7 +10,7 @@ Installation
 Lightning Coverage
 ******************
 
-PyTorch Lightning is maintained and tested on different Pytorch and PyTorch versions.
+PyTorch Lightning is maintained and tested on different Python and PyTorch versions.
 
 Check out the `CI Coverage <https://github.com/PyTorchLightning/pytorch-lightning#continuous-integration>`_ for more info.
 
@@ -56,16 +56,15 @@ You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/la
 Installation from Source
 ************************
 
-Install future patch release from the source. Note that patch release contains only the bugfixes for the recent major release.
-
-.. code-block:: bash
-
-    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/refs/heads/release/1.5.x.zip
-
-
-Install from the source. Note that it contains all the bugfixes and newly released features that
+Install nightly from the source. Note that it contains all the bugfixes and newly released features that
 are not published yet. This is the bleeding edge so use it at your own discretion.
 
 .. code-block:: bash
 
     pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
+
+Install future patch release from the source. Note that patch release contains only the bugfixes for the recent major release.
+
+.. code-block:: bash
+
+    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/refs/heads/release/1.5.x.zip

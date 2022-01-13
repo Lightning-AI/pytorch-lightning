@@ -545,7 +545,7 @@ The equivalent in Lightning is:
         for out in outs:
             ...
 
-In the event that you use DP or DDP2 distributed modes (i.e: split a batch across devices), checkout *Training with DataParallel* section :ref:`here <lightning_module>`.
+In the event that you use DP or DDP2 distributed modes (i.e: split a batch across devices), check out *Training with DataParallel* section :ref:`here <lightning_module>`.
 The validation, test and prediction loops have the same structure.
 
 
