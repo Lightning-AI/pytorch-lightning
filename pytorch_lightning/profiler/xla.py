@@ -37,7 +37,12 @@ class XLAProfiler(BaseProfiler):
 
     def __init__(self, port: int = 9012) -> None:
         """XLA Profiler will help you debug and optimize training workload performance for your models using Cloud
-        TPU performance tools."""
+        TPU performance tools.
+
+        Args:
+            port : the port to start the profiler server on. An exception is
+                raised if the provided port is invalid or busy. Default: ``9012``.
+        """
         if not _TPU_AVAILABLE:
             raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
         if not _TORCH_GREATER_EQUAL_1_8:

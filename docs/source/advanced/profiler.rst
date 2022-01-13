@@ -214,6 +214,18 @@ XLA Profiler
 :class:`~pytorch_lightning.profiler.xla.XLAProfiler` will help you debug and optimize training
 workload performance for your models using Cloud TPU performance tools.
 
+.. code-block:: python
+
+    # by passing the `XLAProfiler` alias
+    trainer = Trainer(..., profiler="xla")
+
+    # or by passing an instance
+    from pytorch_lightning.profiler.xla import XLAProfiler
+
+    profiler = XLAProfiler(port=9012)
+    trainer = Trainer(..., profiler=profiler)
+
+
 Manual capture via TensorBoard
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
