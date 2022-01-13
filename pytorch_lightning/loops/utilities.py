@@ -15,7 +15,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, Generator, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -27,7 +27,6 @@ from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -150,15 +149,6 @@ def _build_training_step_kwargs(
         step_kwargs["hiddens"] = hiddens
 
     return step_kwargs
-
-
-def _update_dataloader_iter(data_fetcher: AbstractDataFetcher, batch_idx: int) -> Iterator:
-    """Attach the dataloader."""
-    if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-        # restore iteration
-        return enumerate(data_fetcher, batch_idx)
-    else:
-        return iter(data_fetcher)
 
 
 @contextmanager

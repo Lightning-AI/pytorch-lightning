@@ -55,7 +55,7 @@ class AbstractDataFetcher(ABC):
         """Override with your own fetching logic."""
 
     @abstractmethod
-    def prefetching(self, prefetch_batches: int) -> None:
+    def prefetching(self) -> None:
         """Override with your own pre-fetching logic."""
 
     def __init__(self, prefetch_batches: int = 0) -> None:
@@ -181,7 +181,7 @@ class AbstractDataFetcher(ABC):
         _patch_dataloader_get_iterators()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
-        self.prefetching(self.prefetch_batches)
+        self.prefetching()
         return self
 
     def __next__(self):
@@ -227,8 +227,8 @@ class DataFetcher(AbstractDataFetcher):
     def wait(self) -> None:
         """Hook to override to indicate the `DataFetcher` to wait for an event."""
 
-    def prefetching(self, prefetch_batches: int) -> None:
-        for _ in range(prefetch_batches):
+    def prefetching(self) -> None:
+        for _ in range(self.prefetch_batches):
             try:
                 self._fetch_next_batch()
             except StopIteration:
@@ -369,7 +369,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
         super().__init__()
         self.store_on_device = False
 
-    def prefetching(self, prefetch_batches: int) -> None:
+    def prefetching(self) -> None:
         self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
 
     def fetching_function(self):

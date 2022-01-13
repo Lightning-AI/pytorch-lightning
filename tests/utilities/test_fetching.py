@@ -40,7 +40,7 @@ def test_prefetch_iterator(use_combined_loader):
             yield 2
             yield 3
 
-    for prefetch_batches in range(0, 4):
+    for prefetch_batches in range(1, 5):
         if use_combined_loader:
             loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
             expected = [
@@ -52,7 +52,6 @@ def test_prefetch_iterator(use_combined_loader):
             loader = DataLoader(IterDataset())
             expected = [(1, False), (2, False), (3, True)]
         iterator = DataFetcher(prefetch_batches=prefetch_batches)
-        prefetch_batches += 1
         assert iterator.prefetch_batches == prefetch_batches
         iterator.setup(loader)
 
