@@ -92,12 +92,6 @@ class AbstractDataFetcher(ABC):
 
         apply_to_collection(dataloader, DataLoader, _add_capture_metadata_collate)
 
-    def append_batch(self, batch) -> None:
-        self.batches.append(batch)
-
-    def pop_batch(self) -> Any:
-        return self.batches.pop(0)
-
     def _apply_patch(self):
         def _apply_patch_fn(loader: DataLoader, iterator: Iterator):
             if isinstance(loader, CycleIterator):
@@ -228,8 +222,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
         """Hook to extend which handles the logic after fetching a batch."""
-        batch = self.move_to_device(batch)
-        self.append_batch(batch)
+        self.batches.append(batch)
 
     def wait(self) -> None:
         """Hook to override to indicate the `DataFetcher` to wait for an event."""
@@ -248,14 +241,14 @@ class DataFetcher(AbstractDataFetcher):
             raise StopIteration
         else:
             try:
-                yield_batch = self.pop_batch()
+                yield_batch = self.batches.pop(0)
                 self._fetch_next_batch()
 
+                # TODO: move `wait` into `move_to_device`?
                 # wait for batch to be available.
                 self.wait()
-
                 # yield last and has next
-                return yield_batch, False
+                return self.move_to_device(yield_batch), False
             except StopIteration:
                 self.batches.insert(0, yield_batch)
                 self.done = True
@@ -271,10 +264,10 @@ class DataFetcher(AbstractDataFetcher):
         self.on_fetch_end(batch, data)
 
     def _get_queued_batch(self) -> Tuple[Any, bool]:
-        self.wait()
         batch = self.batches.pop(0)
         is_last = len(self.batches) == 0
-        return batch, is_last
+        self.wait()
+        return self.move_to_device(batch), is_last
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device and self.batch_to_device is not None:
@@ -317,6 +310,8 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
         # move the batch to device and store it
+        # FIXME: will this move twice?
+        batch = self.move_to_device(batch)
         super().on_fetch_end(batch)
 
         # record event and store the event
