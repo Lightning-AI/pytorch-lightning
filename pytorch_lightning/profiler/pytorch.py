@@ -847,7 +847,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             (KinetoProfilerState.NONE, KinetoProfilerState.START): [self.profiler.start],
             (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [self.profiler.start_trace],
             (KinetoProfilerState.START, KinetoProfilerState.NONE): [self.profiler.stop],
-            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [self.profiler.stop, self.profiler.prepare_trace]
+            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [self.profiler.stop, self.profiler.prepare_trace],
         }
 
     def transit_profiler(self, new_state: KinetoProfilerState):
