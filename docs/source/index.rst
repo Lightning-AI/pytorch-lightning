@@ -68,7 +68,6 @@ PyTorch Lightning
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   common/test
    clouds/cloud_training
    clouds/cluster
    common/debugging
