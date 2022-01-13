@@ -3,7 +3,7 @@ Style Guide
 ###########
 
 A main goal of Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a lightning module and knowing exactly where to look to find the things you care about.
+finding a lightning module, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
@@ -31,7 +31,7 @@ A system defines how a collection of models interact with each other with user-d
 * GANs
 * Seq2Seq
 * BERT
-* etc
+* etc...
 
 A LightningModule can define both a system and a model.
 
@@ -160,6 +160,7 @@ We recommend using forward for inference/predictions and keeping ``training_step
 
     def forward(self, x):
         embeddings = self.encoder(x)
+        return embeddings
 
 
     def training_step(self, batch, batch_idx):
@@ -171,6 +172,11 @@ We recommend using forward for inference/predictions and keeping ``training_step
 However, when using DataParallel, you will need to call forward manually:
 
 .. code-block:: python
+
+    def forward(self, x):
+        embeddings = self.encoder(x)
+        return embeddings
+
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -197,7 +203,7 @@ make sure to tune the number of workers for maximum efficiency.
 DataModules
 ===========
 
-Lightning introduced :class:`~pytorch_lightning.core.datamodule.LightningDataModule` in v0.9 release. They are designed as a way of decoupling data-related
+The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
 hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
@@ -226,5 +232,5 @@ Examples
 
 Checkout the live examples to get your hands dirty:
 
-- `Introduction to PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html>`_
-- `Introduction to DataModules <https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/datamodules.html>`_
+- `Introduction to PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
+- `Introduction to DataModules <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/datamodules.html>`_
