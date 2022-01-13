@@ -143,7 +143,7 @@ class DataConnector:
             return InterBatchParallelDataFetcher()
         return DataFetcher()
 
-    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int) -> Iterable:
         stage: str = self.trainer.state.stage.value
         data_fetcher = getattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(

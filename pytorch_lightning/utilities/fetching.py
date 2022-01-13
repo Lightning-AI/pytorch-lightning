@@ -301,11 +301,6 @@ class DataFetcher(AbstractDataFetcher):
                 self.fetched += 1
                 self.on_fetch_end(batch, data)
 
-    def _consume_prefetched_batches(self) -> Generator:
-        self.done = True
-        while self.batches:
-            yield from self._yield_batch()
-
     def _get_queued_batch(self) -> Tuple[Any, bool]:
         self.wait()
         batch = self.batches.pop(0)
@@ -314,7 +309,6 @@ class DataFetcher(AbstractDataFetcher):
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device and self.batch_to_device is not None:
-            # FIXME: what about call_hook?
             with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
                 batch = self.batch_to_device(batch)
         return batch
