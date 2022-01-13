@@ -192,7 +192,8 @@ def test_trainer_num_prefetch_batches(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,

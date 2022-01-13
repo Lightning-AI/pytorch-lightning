@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for LightningCLI."""
+
 import inspect
 import os
 import sys
@@ -113,7 +115,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
