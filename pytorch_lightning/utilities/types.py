@@ -23,7 +23,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import Protocol, runtime_checkable, TypedDict
+from typing_extensions import TypedDict
 
 from pytorch_lightning.core.hooks import Stateful
 
