@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from pytorch_lightning.core.lightning import LightningModule
 
 if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, tensorboard_trace_handler
+    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -319,6 +319,8 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
 
+        activities = profiler_kwargs.get("activities", None)
+        self._profiler_kwargs["activities"] = activities or self._default_activities()
         self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
         self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
@@ -350,6 +352,16 @@ class PyTorchProfiler(BaseProfiler):
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
+
+    def _default_activities(self) -> List["ProfilerActivity"]:
+        activities = []
+        if not _KINETO_AVAILABLE:
+            return activities
+        if self._profiler_kwargs.get("use_cpu", True):
+            activities.append(ProfilerActivity.CPU)
+        if self._profiler_kwargs.get("use_cuda", torch.cuda.is_available()):
+            activities.append(ProfilerActivity.CUDA)
+        return activities
 
     def start(self, action_name: str) -> None:
         if self.profiler is None:
