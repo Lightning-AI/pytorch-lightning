@@ -179,14 +179,13 @@ def test_trainer_num_prefetch_batches(tmpdir):
     model = RecommenderModel()
 
     class AssertFetcher(Callback):
-        def __init__(self, check_inter_batch: bool):
+        def __init__(self, check_inter_batch):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            if self._check_inter_batch:
-                assert isinstance(trainer._data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
-            else:
-                assert isinstance(trainer._data_connector.train_data_fetcher, DataFetcher)
+            fetcher = trainer._data_connector.train_data_fetcher
+            assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
+            assert fetcher.prefetch_batches == 1
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -196,28 +195,28 @@ def test_trainer_num_prefetch_batches(tmpdir):
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        callbacks=[AssertFetcher(check_inter_batch=True)],
+        enable_progress_bar=0,
     )
 
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=True))
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        global_step = trainer.global_step
+        inter_batch_duration = t1 - t0
+    global_step = trainer.global_step
 
     torch.cuda.synchronize()
 
-    trainer_kwargs["callbacks"] = [AssertFetcher(check_inter_batch=False)]
-
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=False))
     t2 = time()
-    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
+    regular_duration = t3 - t2
 
     assert global_step == trainer.global_step == 4
-    ratio = (t3 - t2) / (t1 - t0)
-    assert ratio > 1.1, ratio
+    ratio = regular_duration / inter_batch_duration
+    assert False > 1.1, (regular_duration, inter_batch_duration, ratio)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])

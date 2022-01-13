@@ -300,18 +300,15 @@ class InterBatchParallelDataFetcher(DataFetcher):
         self.cuda_stream = torch.cuda.Stream()
         self.events: List[torch.cuda.Event] = []
 
-    def _fetch_next_batch(self):
+    def move_to_device(self, batch):
         with torch.cuda.stream(self.cuda_stream):
-            super()._fetch_next_batch()
+            return super().move_to_device(batch)
 
     def on_fetch_start(self) -> "torch.cuda.Event":
         # create a cuda event used to record the async stream of data to device.
         return torch.cuda.Event()
 
     def on_fetch_end(self, batch, event: torch.cuda.Event) -> None:
-        # move the batch to device and store it
-        # FIXME: will this move twice?
-        batch = self.move_to_device(batch)
         super().on_fetch_end(batch)
 
         # record event and store the event
