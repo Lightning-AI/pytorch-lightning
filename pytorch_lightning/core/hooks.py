@@ -14,6 +14,7 @@
 """Various hooks to be used in the Lightning code."""
 
 from typing import Any, Dict, List, Optional
+from typing_extensions import Protocol, runtime_checkable
 
 import torch
 from torch.optim.optimizer import Optimizer
