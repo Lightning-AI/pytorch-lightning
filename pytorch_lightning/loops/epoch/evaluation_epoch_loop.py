@@ -111,12 +111,10 @@ class EvaluationEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=(dataloader_idx or 0))
-
         self.batch_progress.increment_ready()
 
         # configure step_kwargs
+        # TODO: each loop should construct its own kwargs, so we avoid the dataloader_idx reference here
         kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         # hook

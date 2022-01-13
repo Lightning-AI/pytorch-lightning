@@ -149,9 +149,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         assert self._dataloader_iter is not None
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch)
-
         self.batch_progress.increment_ready()
 
         self.trainer.logger_connector.on_batch_start(batch, batch_idx)

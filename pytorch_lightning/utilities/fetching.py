@@ -60,15 +60,10 @@ class AbstractDataFetcher(ABC):
     def prefetching(self, prefetch_batches: int) -> None:
         """Override with your own pre-fetching logic."""
 
-    def __init__(
-        self,
-        prefetch_batches: int = 0,
-    ) -> None:
+    def __init__(self, prefetch_batches: int = 0) -> None:
         if prefetch_batches < 0:
             raise MisconfigurationException("`prefetch_batches` should at least be 0.")
-
-        self.store_on_device = False
-        self.prefetch_batches = prefetch_batches + 1
+        self.prefetch_batches = prefetch_batches
 
         self.dataloader: Optional[Union[DataLoader, CombinedLoader]] = None
         self.dataloader_iter: Optional[Iterator] = None
@@ -239,11 +234,7 @@ class DataFetcher(AbstractDataFetcher):
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
-    def __init__(
-        self,
-        prefetch_batches: int = 0,
-        store_on_device: bool = False,
-    ) -> None:
+    def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
 
@@ -257,8 +248,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def on_fetch_end(self, batch, on_fetch_start_output: Optional[Any] = None) -> None:
         """Hook to extend which handles the logic after fetching a batch."""
-        if self.store_on_device:
-            batch = self.move_data_to_device(batch)
+        batch = self.move_to_device(batch)
         self.append_batch(batch)
 
     def wait(self) -> None:
@@ -286,8 +276,6 @@ class DataFetcher(AbstractDataFetcher):
 
                 # yield last and has next
                 return yield_batch, False
-                # FIXME: Why does this count as a python `referrers` ?
-                # return (self.move_data_to_device(yield_batch) if not self.store_on_device else yield_batch, False)
             except StopIteration:
                 self.batches.insert(0, yield_batch)
                 self.done = True
@@ -324,8 +312,9 @@ class DataFetcher(AbstractDataFetcher):
         is_last = len(self.batches) == 0
         return batch, is_last
 
-    def move_data_to_device(self, batch: Any) -> Any:
-        if self.batch_to_device:
+    def move_to_device(self, batch: Any) -> Any:
+        if self.store_on_device and self.batch_to_device is not None:
+            # FIXME: what about call_hook?
             with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
                 batch = self.batch_to_device(batch)
         return batch
@@ -351,12 +340,8 @@ class InterBatchParallelDataFetcher(DataFetcher):
         batch 2:             [HtoD]                          [forward][backward]
     """
 
-    def __init__(
-        self,
-        prefetch_batches: int = 0,
-    ) -> None:
-        super().__init__(prefetch_batches=prefetch_batches, store_on_device=True)
-
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.cuda_stream = torch.cuda.Stream()
         self.events: List[torch.cuda.Event] = []
 
@@ -419,7 +404,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 self.automatic_optimization = False
 
             def training_step(self, dataloader_iter: Iterator, batch_idx: int) -> None:
-                # it is the user responsability to fetch and move the batch to the right device.
+                # it is the user responsibility to fetch and move the batch to the right device.
                 batch = next(dataloader_iter)
                 batch = batch.to(self.device)
                 ...
@@ -427,8 +412,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
 
     def __init__(self):
         super().__init__()
-        # prevent calling ``move_batch_to_device```
-        self.store_on_device = True
+        self.store_on_device = False
 
     def prefetching(self, prefetch_batches: int) -> None:
         self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
