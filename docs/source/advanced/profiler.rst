@@ -220,7 +220,7 @@ workload performance for your models using Cloud TPU performance tools.
     trainer = Trainer(..., profiler="xla")
 
     # or by passing an instance
-    from pytorch_lightning.profiler.xla import XLAProfiler
+    from pytorch_lightning.profiler import XLAProfiler
 
     profiler = XLAProfiler(port=9012)
     trainer = Trainer(..., profiler=profiler)
