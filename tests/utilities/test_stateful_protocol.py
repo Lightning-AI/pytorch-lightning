@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.core.hooks import Stateful
 
+
 def test_stateful_protocol():
     class StatefulClass:
         def state_dict(self):

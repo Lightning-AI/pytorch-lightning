@@ -645,9 +645,7 @@ class _StatefulDataLoaderIter:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict()
-            for k, v in self._loader.__dict__.items()
-            if isinstance(v, Stateful) and k != "dataset"
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if isinstance(v, Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 
