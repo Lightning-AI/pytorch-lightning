@@ -748,6 +748,7 @@ Hooks Call Order
 
 
     .. dropdown:: Fit Loop
+
         .. dropdown:: on_fit_start
 
             - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start`
