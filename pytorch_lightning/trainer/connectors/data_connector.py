@@ -148,9 +148,7 @@ class DataConnector:
         data_fetcher = getattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(
             dataloader,
-            stage=stage,
-            batch_to_device=partial(self.trainer.strategy.batch_to_device, dataloader_idx=dataloader_idx),
-            profiler=self.trainer.profiler,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
         return data_fetcher

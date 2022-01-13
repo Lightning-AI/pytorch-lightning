@@ -14,14 +14,12 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
@@ -68,9 +66,7 @@ class AbstractDataFetcher(ABC):
         self.dataloader: Optional[Union[DataLoader, CombinedLoader]] = None
         self.dataloader_iter: Optional[Iterator] = None
 
-        self.stage: Optional[str]
         self.batch_to_device: Optional[Callable]
-        self.profiler: "Optional[pl.profiler.base.BaseProfiler]"
 
         self.batches: List
         self.fetched: int
@@ -78,22 +74,11 @@ class AbstractDataFetcher(ABC):
 
         self.reset()
 
-    def setup(
-        self,
-        dataloader: Iterable,
-        stage: Optional[str] = None,
-        batch_to_device: Optional[Callable] = None,
-        profiler: "Optional[pl.profiler.base.BaseProfiler]" = None,
-    ) -> None:
+    def setup(self, dataloader: Iterable, batch_to_device: Optional[Callable] = None) -> None:
         self._add_capture_metadata_collate(dataloader)
 
         self.dataloader = dataloader
-        self.stage = stage
         self.batch_to_device = batch_to_device
-        self.profiler = profiler
-
-        if self.profiler is not None and stage is None:
-            raise MisconfigurationException("When providing a profiler, the stage should be provided too.")
 
         self._attach_data_fetcher()
 
@@ -238,11 +223,6 @@ class DataFetcher(AbstractDataFetcher):
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
 
-    @contextmanager
-    def fetching_context(self):
-        """Hook to override to add context logic around batch fetching."""
-        yield
-
     def on_fetch_start(self) -> None:
         """Hook to override to handle the logic before fetching a batch."""
 
@@ -284,22 +264,11 @@ class DataFetcher(AbstractDataFetcher):
             except IndexError:
                 raise StopIteration
 
-    @contextmanager
-    def apply_profiler(self, name: str) -> Generator:
-        if self.profiler:
-            with self.profiler.profile(name):
-                yield
-        else:
-            yield
-
     def _fetch_next_batch(self):
-        with self.apply_profiler(f"get_{self.stage}_batch"):
-            with self.fetching_context():
-                data = self.on_fetch_start()
-                with self.apply_profiler(f"fetch_next_{self.stage}_batch"):
-                    batch = next(self.dataloader_iter)
-                self.fetched += 1
-                self.on_fetch_end(batch, data)
+        data = self.on_fetch_start()
+        batch = next(self.dataloader_iter)
+        self.fetched += 1
+        self.on_fetch_end(batch, data)
 
     def _get_queued_batch(self) -> Tuple[Any, bool]:
         self.wait()
@@ -309,8 +278,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device and self.batch_to_device is not None:
-            with self.apply_profiler(f"move_{self.stage}_batch_to_device"):
-                batch = self.batch_to_device(batch)
+            batch = self.batch_to_device(batch)
         return batch
 
 
@@ -339,11 +307,9 @@ class InterBatchParallelDataFetcher(DataFetcher):
         self.cuda_stream = torch.cuda.Stream()
         self.events: List[torch.cuda.Event] = []
 
-    @contextmanager
-    def fetching_context(self):
-        """Wrap the batch fetching logic under a cuda stream."""
+    def _fetch_next_batch(self):
         with torch.cuda.stream(self.cuda_stream):
-            yield
+            super()._fetch_next_batch()
 
     def on_fetch_start(self) -> "torch.cuda.Event":
         # create a cuda event used to record the async stream of data to device.
