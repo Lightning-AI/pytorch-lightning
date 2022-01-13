@@ -75,7 +75,6 @@ PyTorch Lightning
    common/hyperparameters
    common/production_inference
    common/lightning_cli
-   advanced/lr_finder
    common/loggers
    advanced/advanced_gpu
    advanced/mixed_precision

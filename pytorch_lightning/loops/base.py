@@ -320,7 +320,7 @@ class Loop(ABC, Generic[T]):
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
-                # no state for this object, maybe we are loading an old checkpoint
+                # compatibility with old checkpoints
                 continue
 
             if isinstance(v, BaseProgress):
@@ -348,4 +348,5 @@ class Loop(ABC, Generic[T]):
                 if not self.trainer.is_global_zero:
                     v.reset(metrics=False)
 
-        self.on_load_checkpoint(state_dict[prefix + "state_dict"])
+        if prefix + "state_dict" in state_dict:  # compatibility with old checkpoints
+            self.on_load_checkpoint(state_dict[prefix + "state_dict"])
