@@ -36,7 +36,8 @@ To enable it:
 
 - Import :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback.
 - Log the metric you want to monitor using :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method.
-- Init the callback, and set ``monitor`` and ``mode`` to the logged metric of your choice.
+- Init the callback, and set ``monitor`` to the logged metric of your choice.
+- Set the ``mode`` based on the metric needs to be monitored.
 - Pass the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback to the :class:`~pytorch_lightning.trainer.trainer.Trainer` callbacks flag.
 
 .. code-block:: python
@@ -67,10 +68,10 @@ Additional parameters that stop training at extreme points:
 - ``stopping_threshold``: Stops training immediately once the monitored quantity reaches this threshold.
   It is useful when we know that going beyond a certain optimal value does not further benefit us.
 - ``divergence_threshold``: Stops training as soon as the monitored quantity becomes worse than this threshold.
-  When reaching a value this bad, it believes the model cannot recover anymore and it is better to stop early and run with different initial conditions.
+  When reaching a value this bad, we believes the model cannot recover anymore and it is better to stop early and run with different initial conditions.
 - ``check_finite``: When turned on, it stops training if the monitored metric becomes NaN or infinite.
-- ``check_on_train_epoch_end``: When turned on, it checks the metric at training epoch end. Use this only when you are monitoring any metric logged within
-  train specific hooks on epoch-level.
+- ``check_on_train_epoch_end``: When turned on, it checks the metric at the end of a training epoch. Use this only when you are monitoring any metric logged within
+  training-specific hooks on epoch-level.
 
 
 In case you need early stopping in a different part of training, subclass :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`

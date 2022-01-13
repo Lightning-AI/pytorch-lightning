@@ -54,9 +54,9 @@ Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
 :class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs 3 GPU transfers for EVERY batch:
 
-1. Copy model to the device.
-2. Copy data to the device.
-3. Copy outputs of each device back to the main device.
+1. Copy the model to the device.
+2. Copy the data to the device.
+3. Copy the outputs of each device back to the main device.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/ddp.gif
     :alt: Animation showing DP execution.
@@ -277,7 +277,7 @@ Control Training Epochs
 It can allow you to be more cost efficient and also run more experiments at the same time.
 
 You can use Trainer flags to force training for a minimum number of epochs or limit it to a max number of epochs. Use the ``min_epochs`` and ``max_epochs`` Trainer flags to set the number of epochs to run.
-Setting ``min_epochs=N`` makes sure that the training will run for atleast ``N`` epochs and won't stop until some exception is raised. Setting ``max_epochs=N`` will ensure that training won't happen after
+Setting ``min_epochs=N`` makes sure that the training will run for at least ``N`` epochs. Setting ``max_epochs=N`` will ensure that training won't happen after
 ``N`` epochs.
 
 .. testcode::
@@ -334,8 +334,8 @@ Validation within Training Epoch
 
 **Use when:** You have a large training dataset, and want to run mid-epoch validation checks.
 
-For large datasets, it's often desirable to check validation multiple times within a training loop.
-Pass in a float to check that often within 1 training epoch. Pass in an int ``k`` to check every ``k`` training batches.
+For large datasets, it's often desirable to check validation multiple times within a training epoch.
+Pass in a float to check that often within 1 training epoch. Pass in an int ``K`` to check every ``K`` training batches.
 Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 
 .. testcode::
@@ -352,35 +352,6 @@ Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 Learn more in our :ref:`trainer_flags` guide.
 
 ----------------
-
-******************
-Limit Dataset Size
-******************
-
-Use data subset for training, validation, and test
-==================================================
-
-**Use when:** Debugging or running huge datasets.
-
-If you don't want to check 100% of the training/validation/test set set these flags:
-
-.. testcode::
-
-    # DEFAULT
-    trainer = Trainer(limit_train_batches=1.0, limit_val_batches=1.0, limit_test_batches=1.0)
-
-    # check 10%, 20%, 30% only, respectively for training, validation and test set
-    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.2, limit_test_batches=0.3)
-
-If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
-
-.. note:: ``limit_train_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches > 0`` and will turn off validation.
-
-.. note:: If you set ``limit_val_batches=0``, validation will be disabled.
-
-Learn more in our :ref:`trainer_flags` guide.
-
------
 
 *********************
 Preload Data Into RAM
