@@ -58,7 +58,7 @@ Prefer DDP over DP
 2. Copy the data to the device.
 3. Copy the outputs of each device back to the main device.
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/ddp.gif
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
     :alt: Animation showing DP execution.
     :width: 500
     :align: center
@@ -70,7 +70,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 t
 1. Moving data to the device.
 2. Transfer and sync gradients.
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/ddp.gif
     :alt: Animation showing DDP execution.
     :width: 500
     :align: center
