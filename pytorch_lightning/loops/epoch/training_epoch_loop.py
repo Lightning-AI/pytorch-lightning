@@ -145,9 +145,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
             # skip training and run validation in `on_advance_end`
             return
-        else:
-            # we are going to train first so the val loop does not need to restart
-            self.val_loop.restarting = False
+        # we are going to train first so the val loop does not need to restart
+        self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
