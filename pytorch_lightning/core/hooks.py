@@ -762,6 +762,17 @@ class DataHooks:
         return batch
 
 
+@runtime_checkable
+class Stateful(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, Stateful)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
 class CheckpointHooks:
     """Hooks to be used with Checkpointing."""
 

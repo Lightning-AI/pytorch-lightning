@@ -38,11 +38,11 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.hooks import Stateful
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _SupportsStateDict
 
 
 class FastForwardSampler(Sampler):
@@ -581,17 +581,17 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
     sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
     if sampler_state:
         # `sampler_state` keys contain all the DataLoader attribute names
-        # which matched `_SupportsStateDict` API interface while collecting the `state_dict`.
+        # which matched `Stateful` API interface while collecting the `state_dict`.
         for dataloader_attr_name in sampler_state:
             obj = getattr(dataloader, dataloader_attr_name)
-            if not isinstance(obj, _SupportsStateDict):
+            if not isinstance(obj, Stateful):
                 raise MisconfigurationException(
                     f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
                 )
 
             obj.load_state_dict(sampler_state[dataloader_attr_name])
 
-    if not isinstance(dataloader.dataset, _SupportsStateDict):
+    if not isinstance(dataloader.dataset, Stateful):
         return
 
     dataset_state = {
@@ -647,7 +647,7 @@ class _StatefulDataLoaderIter:
         sampler_state = {
             k: v.state_dict()
             for k, v in self._loader.__dict__.items()
-            if isinstance(v, _SupportsStateDict) and k != "dataset"
+            if isinstance(v, Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 

@@ -21,10 +21,11 @@ from torch import optim
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.hooks import Stateful
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
@@ -336,7 +337,7 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
 def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.LightningModule") -> None:
     for scheduler_config in lr_schedulers:
         scheduler = scheduler_config["scheduler"]
-        if not isinstance(scheduler, _SupportsStateDict):
+        if not isinstance(scheduler, Stateful):
             raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
                 " It should have `state_dict` and `load_state_dict` methods defined."
