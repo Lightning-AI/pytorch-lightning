@@ -17,7 +17,7 @@ Training Strategies with various configs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with the custom DistributedDataParallel strategy on 4 gpus
-    trainer = Trainer(strategy=DDPPlugin(...), accelerator="gpu", devices=4)
+    trainer = Trainer(strategy=DDPStrategy(...), accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using auto accelerator selection
     trainer = Trainer(strategy="ddp_spawn", accelerator="auto", devices=4)
