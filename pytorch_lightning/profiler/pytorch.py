@@ -17,9 +17,10 @@ import logging
 import os
 import time
 from collections import defaultdict
+from enum import IntEnum
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -445,7 +446,6 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Set[str] = None,
         record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
@@ -485,9 +485,6 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: Set of profiled functions which will create a context manager on.
-                Any other will be pass through.
-
             record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
@@ -506,7 +503,6 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             export_to_chrome,
             row_limit,
             sort_by_key,
-            record_functions,
             record_module_names,
             **profiler_kwargs,
         )
@@ -632,6 +628,16 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             self._schedule.reset()
 
 
+class KinetoProfilerState(IntEnum):
+
+    NONE = 0
+    """PyTorch profiler is not created or is stopped."""
+    WARMUP = 1
+    """PyTorch profiler is created but not start."""
+    START = 2
+    """PyTorch profiler is running."""
+
+
 class PyTorchProfilerKineto(BasePyTorchProfiler):
     """Use new lower level PyTorch profiler API torch.profiler._KinetoProfile to simplify the profiler
     implementation by removing the schedule wrapper."""
@@ -645,7 +651,6 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Set[str] = None,
         record_module_names: bool = True,
         wait_step: int = 1,
         warmup_step: int = 1,
@@ -688,9 +693,6 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: Set of profiled functions which will create a context manager on.
-                Any other will be pass through.
-
             record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
@@ -707,7 +709,6 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             export_to_chrome,
             row_limit,
             sort_by_key,
-            record_functions,
             record_module_names,
             **profiler_kwargs,
         )
@@ -719,9 +720,10 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         self._active_step: int = active_step
 
         self._override_steps = False
-        self._saved_action_name: str = None
 
-        self.profiler_disposed: bool = False
+        self._start_action_name: Optional[str] = None
+        self.profiler_state = KinetoProfilerState.NONE
+        self.action_map: Dict[Tuple[KinetoProfilerState, KinetoProfilerState], List[Any]] = None
 
         if _KINETO_AVAILABLE:
             self._init_kineto_params(profiler_kwargs)
@@ -742,7 +744,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             self.profiler.__enter__()
         else:
-            self.profiler.start()
+            self.setup_profiler_action_map()
+            self.transit_profiler(KinetoProfilerState.START)
 
     def _start_action(self, action_name: str) -> None:
         self._action_step_num[action_name] += 1
@@ -770,16 +773,10 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         step_num = self._action_step_num[action_name]
         if step_num == self._wait_step:
             # warm up
-            self.profiler.prepare_trace()
+            self.transit_profiler(KinetoProfilerState.WARMUP)
         elif step_num >= self._wait_step + self._warmup_step and step_num < self.profile_steps:
             # begin profile
-            if not torch.autograd._profiler_enabled():
-                # recreate the profile. Otherwise, the pytorch profiler would crash at
-                # CuptiActivityProfiler::transferCpuTrace
-                # No need call _prepare_trace for warm up step
-                if self.profiler_disposed:
-                    self.profiler.prepare_trace()
-                self.profiler.start_trace()
+            self.transit_profiler(KinetoProfilerState.START)
 
     def _stop_action(self, action_name: str) -> None:
         if self.profiler is not None and (
@@ -788,16 +785,15 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         ):
             # Save the first action name in order to save the profile data
             # when destroying profiler like what the original on_trace_ready did.
-            if self._saved_action_name is None:
-                self._saved_action_name = action_name
+            if self._start_action_name is None:
+                self._start_action_name = action_name
 
             if self._action_step_num[action_name] == self.profile_steps:
-                self.profiler.stop()
+                self.transit_profiler(KinetoProfilerState.NONE)
                 if self.dirpath is not None:
                     self._save_result(action_name)
                 else:
                     rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
-                self.profiler_disposed = True
 
     def _delete_profiler(self) -> None:
         if self.profiler is not None:
@@ -806,8 +802,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             else:
                 # At the moment, the profiler should already be stoped.
                 if torch.autograd._profiler_enabled():
-                    self.profiler.stop()
-                    self._save_result(self._saved_action_name)
+                    self.transit_profiler(KinetoProfilerState.NONE)
+                    self._save_result(self._start_action_name)
             self._cache_functions_events()
             self.profiler = None
 
@@ -844,6 +840,22 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             return sum(trainer.num_test_batches)
         if action_name.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
+
+    def setup_profiler_action_map(self):
+        self.action_map = {
+            (KinetoProfilerState.NONE, KinetoProfilerState.WARMUP): [self.profiler.prepare_trace],
+            (KinetoProfilerState.NONE, KinetoProfilerState.START): [self.profiler.start],
+            (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [self.profiler.start_trace],
+            (KinetoProfilerState.START, KinetoProfilerState.NONE): [self.profiler.stop],
+            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [self.profiler.stop, self.profiler.prepare_trace]
+        }
+
+    def transit_profiler(self, new_state: KinetoProfilerState):
+        action_list = self.action_map.get((self.profiler_state, new_state))
+        if action_list:
+            for action in action_list:
+                action()
+            self.profiler_state = new_state
 
 
 if _TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile"):
