@@ -382,14 +382,15 @@ class PyTorchProfiler(BaseProfiler):
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-            if self._register is not None:
-                self._register.__enter__()
-
         if self._lightning_module is not None:
             # when the model is used in automatic optimization, we use `optimizer_step_with_closure` to step the model.
             # this profiler event is generated in the `LightningOptimizer.step` method
             if self._lightning_module.automatic_optimization and "training_step" in self.STEP_FUNCTIONS:
                 self.STEP_FUNCTIONS.remove("training_step")
+
+            if self._register is None and self._record_module_names:
+                self._register = RegisterRecordFunction(self._lightning_module)
+                self._register.__enter__()
 
         if self.profiler is not None and action_name not in self._recording_map:
 
@@ -475,8 +476,6 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(
                 torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
-        if self._record_module_names and self._lightning_module is not None:
-            self._register = RegisterRecordFunction(self._lightning_module)
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
