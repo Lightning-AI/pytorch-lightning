@@ -233,6 +233,7 @@ def test_fx_validator_integration(tmpdir):
         "configure_callbacks": "You can't",
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
+        "lr_scheduler_step": "You can't",
         "summarize": "not managed by the `Trainer",
     }
     model = HookedModel(not_supported)

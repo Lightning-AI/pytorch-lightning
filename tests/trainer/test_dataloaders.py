@@ -563,7 +563,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count", return_value=4)
+@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 
@@ -593,7 +593,7 @@ def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("stage", ("train", "test", "val"))
-@patch("pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count", return_value=4)
+@patch("pytorch_lightning.trainer.connectors.data_connector.multiprocessing.cpu_count", return_value=4)
 def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     """Test that error is raised if dataloader with only a few workers is used."""
 

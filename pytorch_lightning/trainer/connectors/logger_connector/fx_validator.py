@@ -43,6 +43,7 @@ class _FxValidator:
         "optimizer_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
+        "lr_scheduler_step": None,
         "on_before_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),

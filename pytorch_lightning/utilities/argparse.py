@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for Argument Parsing within Lightning Components."""
+
 import inspect
 import os
 from abc import ABC
@@ -36,7 +38,7 @@ def from_argparse_args(
     cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
 ) -> ParseArgparserDataType:
     """Create an instance from CLI arguments. Eventually use varibles from OS environement which are defined as
-    "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>".
+    ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:
         cls: Lightning class
@@ -45,7 +47,8 @@ def from_argparse_args(
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
             These must be valid Trainer arguments.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parser = ArgumentParser(add_help=False)
         >>> parser = Trainer.add_argparse_args(parser)
@@ -94,7 +97,8 @@ def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, N
 def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parse_env_variables(Trainer)
         Namespace()
@@ -185,14 +189,14 @@ def add_argparse_args(
 
     Examples:
 
-        # Option 1: Default usage.
+        >>> # Option 1: Default usage.
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
 
-        # Option 2: Disable use_argument_group (old behavior).
+        >>> # Option 2: Disable use_argument_group (old behavior).
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
