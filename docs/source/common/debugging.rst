@@ -206,3 +206,26 @@ See Also:
     - :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
     - :func:`~pytorch_lightning.utilities.model_summary.summarize`
     - :class:`~pytorch_lightning.utilities.model_summary.ModelSummary`
+
+
+----------------
+
+
+*************************************
+Debugging with Distributed Strategies
+*************************************
+
+DDP Debugging
+=============
+
+If you are having a hard time debugging DDP on your remote machinem you can debug DDP locally on the CPU:
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="cpu", strategy="ddp", devices=2)
+
+When everything works, switch back to GPU by changing only the accelerator. Note that this will not provide any speed benefits.
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="gpu", strategy="ddp", devices=2)
