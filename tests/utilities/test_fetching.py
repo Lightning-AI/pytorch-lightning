@@ -216,7 +216,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
     assert global_step == trainer.global_step == 4
     ratio = regular_duration / inter_batch_duration
-    assert False > 1.1, (regular_duration, inter_batch_duration, ratio)
+    assert ratio > 1.1, (regular_duration, inter_batch_duration, ratio)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
