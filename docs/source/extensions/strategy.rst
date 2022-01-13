@@ -7,6 +7,20 @@ Strategy
 Strategy depicts the training strategy to be used by the :doc:`Lightning Trainer <../common/trainer>`. It can be controlled by passing different
 training strategies with aliases (``ddp``, ``ddp_spawn``, ``deepspeed``, etc) as well as custom training strategies to the ``strategy`` parameter for Trainer.
 
+Strategy in Lightning handles some of the following responsibilities:
+
+* Launching and teardown of training processes (if applicable)
+
+* Setup communication between processes (NCCL, GLOO, MPI, …)
+
+* Provide a unified communication interface for reduction, broadcast, etc.
+
+* Provide access to the wrapped LightningModule
+
+
+:class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
+
+
 ****************************************
 Training Strategies with various configs
 ****************************************
@@ -33,20 +47,6 @@ Training Strategies with various configs
 
     # Training with the default IPU strategy on 8 ipus
     trainer = Trainer(accelerator="ipu", devices=8)
-
-
-Strategy in Lightning handles some of the following responsibilities:
-
-* Launching and teardown of training processes (if applicable)
-
-* Setup communication between processes (NCCL, GLOO, MPI, …)
-
-* Provide a unified communication interface for reduction, broadcast, etc.
-
-* Provide access to the wrapped LightningModule
-
-
-:class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
 
 
 ************************
