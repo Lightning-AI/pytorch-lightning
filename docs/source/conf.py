@@ -111,6 +111,7 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+    "sphinx_design",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)

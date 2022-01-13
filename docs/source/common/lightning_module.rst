@@ -733,6 +733,108 @@ Child Modules
 
 -----------
 
+****************
+Hooks Call Order
+****************
+
+.. dropdown:: trainer.fit
+
+    - :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data`
+    - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`
+    - :meth:`~pytorch_lightning.core.hooks.DataHooks.setup`
+    - :meth:`~pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint`
+    - :meth:`~pytorch_lightning.core.hooks.ModelHooks.configure_sharded_model`
+    - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
+
+
+    .. dropdown:: Fit Loop
+        .. dropdown:: on_fit_start
+
+            - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
+            - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
+
+            .. dropdown:: Validation Sanity Check
+
+                - :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader`
+                - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval`
+                - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_validation_start`
+                - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_epoch_start`
+
+                .. dropdown:: on_validation_epoch_start
+
+                    - on_before_batch_transfer
+                    - transfer_batch_to_device
+                    - on_after_batch_transfer
+                    - on_validation_batch_start
+                    - validation_step
+                    - validation_step_end
+                    - on_validation_batch_end
+
+                - validation_epoch_end
+                - on_validation_epoch_end
+                - on_epoch_end
+                - on_validation_end
+                - on_validation_model_train
+
+            .. dropdown:: Training Loop
+
+                - :meth:`~pytorch_lightning.core.hooks.DataHooks.train_dataloader`
+
+                .. dropdown:: on_train_start
+
+                    - on_epoch_start
+
+                    .. dropdown:: on_train_epoch_start
+
+                        - on_before_batch_transfer
+                        - transfer_batch_to_device
+                        - on_after_batch_transfer
+                        - on_train_batch_start
+                        - training_step
+                        - on_before_backward
+                        - backward
+                        - on_after_backward
+                        - on_before_optimizer_step
+                        - optimizer_step
+                        - training_step_end
+                        - on_train_batch_end
+
+                        .. dropdown:: Validation Loop
+
+                            - on_validation_model_eval
+                            - on_validation_start
+                            - on_epoch_start
+
+                            .. dropdown:: on_validation_epoch_start
+
+                                - on_before_batch_transfer
+                                - transfer_batch_to_device
+                                - on_after_batch_transfer
+                                - on_validation_batch_start
+                                - validation_step
+                                - validation_step_end
+                                - on_validation_batch_end
+
+                            - validation_epoch_end
+                            - on_validation_epoch_end
+                            - on_epoch_end
+                            - on_validation_end
+                            - on_validation_model_train
+
+                    - training_epoch_end
+                    - on_save_checkpoint
+                    - on_train_epoch_end
+                    - on_epoch_end
+
+                - on_train_end
+
+        - on_fit_end
+
+    - teardown
+
+
+-----------
+
 *******************
 LightningModule API
 *******************
