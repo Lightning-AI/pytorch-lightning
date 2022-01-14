@@ -47,7 +47,7 @@ If you only wish to profile the standard actions, you can set ``profiler="simple
     trainer = Trainer(..., profiler="simple")
 
     # or by passing an instance
-    from pytorch_lightning.profiler.simple import SimpleProfiler
+    from pytorch_lightning.profiler import SimpleProfiler
 
     profiler = SimpleProfiler()
     trainer = Trainer(..., profiler=profiler)
@@ -85,7 +85,7 @@ report. Find below an example of the :class:`~pytorch_lightning.profiler.simple.
 Advanced Profiler
 =================
 
-If you want more information on the functions called during each event, you can use the :class:`~pytorch_lighting.profiler.advanced.AdvancedProfiler`.
+If you want more information on the functions called during each event, you can use the :class:`~pytorch_lightning.profiler.advanced.AdvancedProfiler`.
 This option uses Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_ to provide an in-depth report of time spent within *each* function called in your code.
 
 .. code-block:: python
@@ -94,7 +94,7 @@ This option uses Python's `cProfiler <https://docs.python.org/3/library/profile.
     trainer = Trainer(..., profiler="advanced")
 
     # or by passing an instance
-    from pytorch_lightning.profiler.advanced import AdvancedProfiler
+    from pytorch_lightning.profiler import AdvancedProfiler
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)
@@ -140,7 +140,7 @@ have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
     trainer = Trainer(..., profiler="pytorch")
 
     # or by passing an instance
-    from pytorch_lightning.profiler.pytorch import PyTorchProfiler
+    from pytorch_lightning.profiler import PyTorchProfiler
 
     profiler = PyTorchProfiler()
     trainer = Trainer(..., profiler=profiler)
