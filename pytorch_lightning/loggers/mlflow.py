@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _add_prefix
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -207,7 +207,7 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():

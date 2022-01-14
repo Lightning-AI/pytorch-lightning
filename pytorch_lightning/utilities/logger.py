@@ -116,3 +116,9 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
             params[k] = str(params[k])
     return params
+
+def _add_prefix(metrics: Dict[str, float], prefix: str, logger_join_char: str):
+    if prefix:
+        metrics = {f"{prefix}{logger_join_char}{k}": v for k, v in metrics.items()}
+
+    return metrics

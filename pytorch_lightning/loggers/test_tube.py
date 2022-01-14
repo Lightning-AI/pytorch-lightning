@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _add_prefix
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
@@ -160,7 +160,7 @@ class TestTubeLogger(LightningLoggerBase):
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 
