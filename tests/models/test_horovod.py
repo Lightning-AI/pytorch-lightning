@@ -55,7 +55,9 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_
 
 def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
-    devices = trainer_options.get("devices", 1)
+    num_processes = trainer_options.get("devices", 2)
+    # for Horovod, we interpret `gpus` to be set per worker
+    trainer_options.update(accelerator="gpu" if on_gpu else "cpu")
     tutils.reset_seed()
     # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
@@ -144,22 +146,6 @@ def test_horovod_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        accelerator="gpu",
-        devices=2,
-        strategy="horovod",
-    )
-    _run_horovod(trainer_options)
-
-
-@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=4,
-        limit_val_batches=0,
-        accumulate_grad_batches=2,
         accelerator="gpu",
         devices=2,
         strategy="horovod",

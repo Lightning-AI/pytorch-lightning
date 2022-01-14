@@ -156,7 +156,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model
@@ -203,7 +203,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
 
@@ -437,10 +438,17 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
-        pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
         pytest.param(
-            dict(gpus=1, precision=16, strategy="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1, standalone=True)
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"),
+            marks=RunIf(min_gpus=1)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
+            marks=RunIf(amp_apex=True, min_gpus=1)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
+            marks=RunIf(deepspeed=True, min_gpus=1, standalone=True),
         ),
     ],
 )
