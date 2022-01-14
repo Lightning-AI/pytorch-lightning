@@ -43,6 +43,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _IS_WINDOWS,
     _JSONARGPARSE_AVAILABLE,
     _module_available,
+    _NEURAL_COMPRESSOR_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,

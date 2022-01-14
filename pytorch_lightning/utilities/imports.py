@@ -109,6 +109,7 @@ _JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_versio
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
+_NEURAL_COMPRESSOR_AVAILABLE = _package_available("neural_compressor")
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
 _RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")

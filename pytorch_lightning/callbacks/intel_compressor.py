@@ -18,10 +18,16 @@ Intel Quantization (TODO: pruning)
 """
 from enum import Enum
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.utilities import _NEURAL_COMPRESSOR_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if _NEURAL_COMPRESSOR_AVAILABLE:
+    from neural_compressor.conf.config import Quantization_Conf
+    from neural_compressor.experimental import Quantization
 
 
 class QuantizationMode(Enum):
@@ -56,10 +62,10 @@ class INCQuantization(Callback):
         datamodule: LightningDataModule = None,
         dirpath: str = None,
     ) -> None:
-        try:
-            from neural_compressor.conf.config import Quantization_Conf
-        except ImportError as e:
-            raise RuntimeError("Please install neural-compressor with: pip install neural-compressor") from e
+        if not _NEURAL_COMPRESSOR_AVAILABLE:
+            raise ModuleNotFoundError(
+                "`INCQuantization` requires `neural-compressor`. Install it by running `pip install neural-compressor`."
+            )
 
         self.config = (
             config_path_or_obj
@@ -78,10 +84,6 @@ class INCQuantization(Callback):
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the compressor loop begins."""
-        try:
-            from neural_compressor.experimental import Quantization
-        except ImportError as e:
-            raise RuntimeError("Please install neural-compressor with: pip install neural-compressor") from e
 
         def eval_func(model):
             setattr(pl_module, self.module_name_to_quant, model)
