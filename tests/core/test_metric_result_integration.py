@@ -349,7 +349,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_train_batches=2,
         limit_val_batches=2,
         callbacks=[ckpt],
-        accelerator="auto",
+        accelerator="gpu" if device == "cuda" else "cpu",
         devices=1,
     )
     trainer.fit(model)
