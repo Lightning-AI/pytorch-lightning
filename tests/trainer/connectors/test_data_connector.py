@@ -76,12 +76,10 @@ def test_eval_distributed_sampler_warning(tmpdir):
     trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu")
     trainer._data_connector.attach_data(model)
 
-    # validation
-    with pytest.warns(UserWarning, match="It is recommended to use single device strategy"):
+    with pytest.warns(UserWarning, match="use single device strategy to ensure each sample"):
         trainer.state.fn = TrainerFn.VALIDATING
         trainer.reset_val_dataloader(model)
 
-    # testing
-    with pytest.warns(UserWarning, match="It is recommended to use single device strategy"):
+    with pytest.warns(UserWarning, match="use single device strategy to ensure each sample"):
         trainer.state.fn = TrainerFn.TESTING
         trainer.reset_test_dataloader(model)
