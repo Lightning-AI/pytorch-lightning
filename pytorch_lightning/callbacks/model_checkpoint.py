@@ -668,12 +668,12 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
-        trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
             trainer.strategy.remove_checkpoint(self.best_model_path)
 
         self.best_model_path = filepath
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
     def _is_valid_monitor_key(self, metrics: Dict[str, _METRIC]) -> bool:
         return self.monitor in metrics or len(metrics) == 0
