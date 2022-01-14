@@ -146,3 +146,10 @@ Apart from this ``.validate`` has same API as ``.test``, but would rely respecti
 
 .. automethod:: pytorch_lightning.trainer.Trainer.validate
     :noindex:
+    
+.. warning::
+
+    It is recommended to test on single device since Distributed Training such as DDP internally
+    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
+    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
+    benchmarking for research papers is done the right way.

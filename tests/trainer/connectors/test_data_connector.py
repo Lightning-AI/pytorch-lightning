@@ -14,9 +14,11 @@
 from unittest.mock import Mock
 
 import pytest
+from pytorch_lightning.accelerators import accelerator
+from pytorch_lightning.trainer.states import TrainerFn
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, strategies
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -66,3 +68,22 @@ def test_dataloader_source_request_from_module():
     module.foo.assert_not_called()
     assert isinstance(source.dataloader(), DataLoader)
     module.foo.assert_called_once()
+
+
+def test_eval_distributed_sampler_warning(tmpdir):
+    """Test that a warning is raised with `DistributedSampler` is used with evaluation."""
+
+    model = BoringModel()
+    trainer = Trainer(strategy='ddp', devices=2, accelerator='cpu')
+    trainer._data_connector.attach_data(model)
+
+    # validation
+    with pytest.warns(UserWarning, match = 'It is recommended to use single device strategy'):
+        trainer.state.fn = TrainerFn.VALIDATING
+        trainer.reset_val_dataloader(model)
+
+    # testing
+    with pytest.warns(UserWarning, match = 'It is recommended to use single device strategy'):
+        trainer.state.fn = TrainerFn.TESTING
+        trainer.reset_test_dataloader(model)
+

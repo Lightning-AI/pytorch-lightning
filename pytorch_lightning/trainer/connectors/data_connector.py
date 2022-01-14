@@ -24,7 +24,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -382,13 +382,23 @@ class DataConnector:
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp=False` if you want to use your custom sampler."
                 )
-            return self._get_distributed_sampler(
+            sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
                 mode=mode,
                 overfit_batches=self.trainer.overfit_batches,
                 **self.trainer.distributed_sampler_kwargs,
             )
+
+            # is sampler distributed?
+            # are we running eval mode? (validating or testing)
+            # if yes, raise a warning
+            trainer_fn = self.trainer.state.fn
+            if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
+                rank_zero_warn(
+                    'Using `DistributedSampler` with the dataloaders. It is recommended to'
+                    ' use single device strategy with evaluation.'
+                )
 
         return dataloader.sampler
 
