@@ -31,6 +31,7 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _sanitize_params as _utils_sanitize_params
 
 log = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class TensorBoardLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
 
-        params = self._convert_params(params)
+        params = _convert_params(params)
 
         # store params to output
         if _OMEGACONF_AVAILABLE and isinstance(params, Container):
@@ -195,8 +196,8 @@ class TensorBoardLogger(LightningLoggerBase):
             self.hparams.update(params)
 
         # format params into the suitable for tensorboard
-        params = self._flatten_dict(params)
-        params = self._sanitize_params(params)
+        params = _flatten_dict(params)
+        params = _utils_sanitize_params(params)
 
         if metrics is None:
             if self._default_hp_metric:
@@ -311,7 +312,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        params = LightningLoggerBase._sanitize_params(params)
+        params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 

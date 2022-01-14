@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_callable_params, _flatten_dict
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
@@ -300,9 +301,9 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params.wrapper_something_wo_name = lambda: lambda: "1"
     params.wrapper_something = wrapper_something
 
-    params = WandbLogger._convert_params(params)
-    params = WandbLogger._flatten_dict(params)
-    params = WandbLogger._sanitize_callable_params(params)
+    params = _convert_params(params)
+    params = _flatten_dict(params)
+    params = _sanitize_callable_params(params)
     assert params["gpus"] == "None"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"

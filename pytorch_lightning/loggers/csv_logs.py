@@ -30,6 +30,7 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.logger import _convert_params
 
 log = logging.getLogger(__name__)
 
@@ -193,7 +194,7 @@ class CSVLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
+        params = _convert_params(params)
         self.experiment.log_hparams(params)
 
     @rank_zero_only

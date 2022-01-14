@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
@@ -152,8 +153,8 @@ class TestTubeLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only

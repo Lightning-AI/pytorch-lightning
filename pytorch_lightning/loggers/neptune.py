@@ -35,6 +35,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_callable_params
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -478,8 +479,8 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger.log_hyperparams(PARAMS)
         """
-        params = self._convert_params(params)
-        params = self._sanitize_callable_params(params)
+        params = _convert_params(params)
+        params = _sanitize_callable_params(params)
 
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)

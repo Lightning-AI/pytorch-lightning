@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -191,8 +192,8 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         for k, v in params.items():
             if len(str(v)) > 250:
                 rank_zero_warn(
