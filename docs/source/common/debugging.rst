@@ -20,7 +20,7 @@ The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` is empowered w
 
 The following are flags that make debugging much easier.
 
-`
+
 ----------------
 
 
