@@ -368,21 +368,21 @@ ______________________________________________________________________
 
 ###### Contrastive Learning
 
-- [BYOL](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#byol)
-- [CPC v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#cpc-v2)
-- [Moco v2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#moco-v2-api)
-- [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/self_supervised.html#simclr)
+- [BYOL](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#byol)
+- [CPC v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#cpc-v2)
+- [Moco v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#moco-v2-api)
+- [SIMCLR](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#simclr)
 
 ###### NLP
 
-- [GPT-2](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#gpt-2)
+- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2)
 - [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
 
 ###### Reinforcement Learning
 
-- [DQN](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#dqn-models)
-- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#dueling-dqn)
-- [Reinforce](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#reinforce)
+- [DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dqn-models)
+- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dueling-dqn)
+- [Reinforce](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#reinforce)
 
 ###### Vision
 
@@ -390,8 +390,8 @@ ______________________________________________________________________
 
 ###### Classic ML
 
-- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/classic_ml.html#logistic-regression)
-- [Linear Regression](https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/classic_ml.html#linear-regression)
+- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#logistic-regression)
+- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#linear-regression)
 
 ______________________________________________________________________
 
