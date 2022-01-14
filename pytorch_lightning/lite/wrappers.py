@@ -20,7 +20,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.plugins import PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
@@ -29,7 +30,7 @@ def _do_nothing_closure() -> None:
 
 
 class _LiteOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: TrainingTypePlugin) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
         """LiteOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
         step calls to the strategy plugin.
 

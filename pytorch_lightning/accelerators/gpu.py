@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import torch
 
@@ -23,6 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
 
@@ -30,22 +33,19 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
 
-    def setup_environment(self) -> None:
+    def setup_environment(self, root_device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        super().setup_environment()
-        if "cuda" not in str(self.training_type_plugin.root_device):
-            raise MisconfigurationException(
-                f"Device should be GPU, got {self.training_type_plugin.root_device} instead"
-            )
-        torch.cuda.set_device(self.training_type_plugin.root_device)
+        if root_device.type != "cuda":
+            raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
+        torch.cuda.set_device(root_device)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
+        # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
-        super().setup(trainer)
         # clear cache before training
         torch.cuda.empty_cache()
 
@@ -57,7 +57,7 @@ class GPUAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Gets stats for the given GPU device.
 
         Args:
@@ -74,17 +74,13 @@ class GPUAccelerator(Accelerator):
             return torch.cuda.memory_stats(device)
         return get_nvidia_gpu_stats(device)
 
-    def teardown(self) -> None:
-        super().teardown()
-        self.training_type_plugin._move_optimizer_state(torch.device("cpu"))
-
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return torch.cuda.device_count()
 
 
-def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:
@@ -113,12 +109,12 @@ def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     gpu_stat_keys = [k for k, _ in gpu_stat_metrics]
     gpu_query = ",".join(gpu_stat_keys)
 
-    gpu_id = _get_gpu_id(device.index)
+    index = torch._utils._get_device_index(device)
+    gpu_id = _get_gpu_id(index)
     result = subprocess.run(
         [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
         encoding="utf-8",
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+        capture_output=True,
         check=True,
     )
 
@@ -138,5 +134,5 @@ def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
     default = ",".join(str(i) for i in range(torch.cuda.device_count()))
-    cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
+    cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
     return cuda_visible_devices[device_id].strip()

@@ -11,32 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Union
+from __future__ import annotations
+
+from typing import Any
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup_environment(self, root_device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not CPU.
         """
-        if "cpu" not in str(self.training_type_plugin.root_device):
-            raise MisconfigurationException(
-                f"Device should be CPU, got {self.training_type_plugin.root_device} instead."
-            )
+        if root_device.type != "cpu":
+            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
-        return super().setup(trainer)
-
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """CPU device stats aren't supported yet."""
         return {}
 

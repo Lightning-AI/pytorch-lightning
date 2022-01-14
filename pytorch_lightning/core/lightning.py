@@ -21,7 +21,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -31,6 +31,7 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
@@ -52,7 +53,7 @@ from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -97,7 +98,7 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
-        self._distrib_type = None
+        self._strategy_type = None
         self._device_type = None
 
         # true if using amp
@@ -303,7 +304,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a key, value pair.
 
@@ -351,7 +352,7 @@ class LightningModule(
         results = self.trainer._results
         if results is None:
             raise MisconfigurationException(
-                "You are trying to `self.log()` but the loop `ResultCollection` is not registered"
+                "You are trying to `self.log()` but the loop's result collection is not registered"
                 " yet. This is most likely because you are trying to log in a `predict` hook,"
                 " but it doesn't support logging"
             )
@@ -420,7 +421,7 @@ class LightningModule(
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
             sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp,
+            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -441,7 +442,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        rank_zero_only: Optional[bool] = None,
+        rank_zero_only: bool = False,
     ) -> None:
         """Log a dictionary of values at once.
 
@@ -535,7 +536,7 @@ class LightningModule(
             the output will also be a collection with tensors of this shape.
         """
         group = group if group is not None else torch.distributed.group.WORLD
-        all_gather = self.trainer.training_type_plugin.all_gather
+        all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
@@ -675,7 +676,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -850,7 +851,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1028,7 +1029,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1119,15 +1120,16 @@ class LightningModule(
         """
         return self(batch)
 
-    def configure_callbacks(self):
+    def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
-        gets called, the list returned here will be merged with the list of callbacks passed to the Trainer's
-        ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks already
-        present in the Trainer's callbacks list, it will take priority and replace them. In addition, Lightning
-        will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks run last.
+        gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
+        Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
+        already present in the Trainer's callbacks list, it will take priority and replace them. In addition,
+        Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        run last.
 
         Return:
-            A list of callbacks which will extend the list of callbacks in the Trainer.
+            A callback or a list of callbacks which will extend the list of callbacks in the Trainer.
 
         Example::
 
@@ -1335,7 +1337,7 @@ class LightningModule(
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
         self._verify_is_manual_optimization("manual_backward")
-        self.trainer.training_type_plugin.backward(loss, None, None, *args, **kwargs)
+        self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
@@ -1491,6 +1493,42 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
+    def lr_scheduler_step(
+        self,
+        scheduler: LRSchedulerTypeUnion,
+        optimizer_idx: int,
+        metric: Optional[Any],
+    ) -> None:
+        r"""
+        Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
+        By default, Lightning calls ``step()`` and as shown in the example
+        for each scheduler based on its ``interval``.
+
+        Args:
+            scheduler: Learning rate scheduler.
+            optimizer_idx: Index of the optimizer associated with this scheduler.
+            metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
+
+        Examples::
+
+            # DEFAULT
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                if metric is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(metric)
+
+            # Alternative way to update schedulers if it requires an epoch value
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                scheduler.step(epoch=self.current_epoch)
+
+        """
+        if metric is None:
+            scheduler.step()
+        else:
+            scheduler.step(metric)
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1562,14 +1600,14 @@ class LightningModule(
                 using_native_amp,
                 using_lbfgs,
             ):
-                # warm up lr
+                # update params
+                optimizer.step(closure=optimizer_closure)
+
+                # manually warm up lr without a scheduler
                 if self.trainer.global_step < 500:
                     lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
                         pg["lr"] = lr_scale * self.learning_rate
-
-                # update params
-                optimizer.step(closure=optimizer_closure)
 
         """
         optimizer.step(closure=optimizer_closure)
@@ -1710,7 +1748,7 @@ class LightningModule(
         r"""
         .. deprecated:: v1.5
             This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_standard_metrics` and will be removed in v1.7.
+            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
 
         Implement this to override the default items displayed in the progress bar.
         By default it includes the average loss value, split index of BPTT (if used)
@@ -1807,7 +1845,7 @@ class LightningModule(
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if "example_outputs" not in kwargs:
+        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
             if isinstance(input_sample, Tuple):
                 kwargs["example_outputs"] = self(*input_sample)
@@ -1857,7 +1895,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
             ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
@@ -1916,7 +1954,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1924,11 +1962,11 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.add_to_queue`
+            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.add_to_queue`
             and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1936,7 +1974,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnPlugin.get_from_queue`
+            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.get_from_queue`
             and will be removed in v1.7.
         """
 

@@ -350,7 +350,7 @@ def test_combined_data_loader_validation_test(
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
 
         trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", gpus=2)
-        dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
+        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False
 
@@ -390,7 +390,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
-    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader) == 4 if replace_sampler_ddp else 8
 
     for a_length in [6, 8, 10]:
@@ -404,7 +404,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
 
         length = max(a_length, 8)
         assert len(dataloader) == length
-        dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
         assert len(dataloader) == length // 2 if replace_sampler_ddp else length
         if replace_sampler_ddp:
             last_batch = list(dataloader)[-1]
@@ -429,6 +429,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     )
     assert get_len(dataloader) == float("inf")
     assert len(dataloader.loaders["b"].loader) == 8
-    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
     assert get_len(dataloader) == float("inf")

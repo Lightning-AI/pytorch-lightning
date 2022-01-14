@@ -35,7 +35,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self.accumulated_loss = TensorRunningAccum(window_length=20)
         self.running_loss = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx: Optional[int] = None
+        self.split_idx: int = 0
         self.optimizer_loop = OptimizerLoop()
         self.manual_loop = ManualOptimization()
 
@@ -116,9 +116,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         if tbptt_steps == 0:
             return [batch]
 
-        model_ref = self.trainer.lightning_module
-        with self.trainer.profiler.profile("tbptt_split_batch"):
-            splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
+        splits = self.trainer._call_lightning_module_hook("tbptt_split_batch", batch, tbptt_steps)
         return splits
 
     def _update_running_loss(self, current_loss: Tensor) -> None:
