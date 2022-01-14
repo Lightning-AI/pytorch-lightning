@@ -390,15 +390,14 @@ class DataConnector:
                 **self.trainer.distributed_sampler_kwargs,
             )
 
-            # is sampler distributed?
-            # are we running eval mode? (validating or testing)
-            # if yes, raise a warning
             trainer_fn = self.trainer.state.fn
             if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
                 rank_zero_warn(
-                    'Using `DistributedSampler` with the dataloaders. It is recommended to'
-                    ' use single device strategy with evaluation.'
+                    "Using `DistributedSampler` with the dataloaders. It is recommended to"
+                    " use single device strategy with evaluation."
                 )
+
+            return sampler
 
         return dataloader.sampler
 
