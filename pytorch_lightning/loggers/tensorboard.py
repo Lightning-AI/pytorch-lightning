@@ -31,7 +31,8 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _add_prefix, _sanitize_params as _utils_sanitize_params
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 
 log = logging.getLogger(__name__)
 

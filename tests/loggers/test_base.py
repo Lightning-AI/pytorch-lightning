@@ -26,8 +26,8 @@ from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, Ten
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from tests.helpers.boring_model import BoringDataModule, BoringModel
 
 
 def test_logger_collection():

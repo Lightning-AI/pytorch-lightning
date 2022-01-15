@@ -30,6 +30,7 @@ def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
 
     return params
 
+
 def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
 
@@ -54,6 +55,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         return val
 
     return {key: _sanitize_callable(val) for key, val in params.items()}
+
 
 def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any]:
     """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
@@ -89,6 +91,7 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
 
     return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
+
 def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """Returns params with non-primitvies converted to strings for logging.
 
@@ -116,6 +119,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
             params[k] = str(params[k])
     return params
+
 
 def _add_prefix(metrics: Dict[str, float], prefix: str, logger_join_char: str):
     if prefix:

@@ -28,7 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _add_prefix
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")

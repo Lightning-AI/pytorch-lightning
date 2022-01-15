@@ -34,8 +34,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_callable_params, _add_prefix
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:

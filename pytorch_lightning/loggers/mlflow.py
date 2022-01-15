@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _add_prefix
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
