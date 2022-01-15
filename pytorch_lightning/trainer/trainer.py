@@ -1291,6 +1291,9 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         self._run_sanity_check()
 
         # enable train mode
@@ -1302,6 +1305,9 @@ class Trainer(
             self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
         assert self.evaluating
 
         # reload dataloaders
