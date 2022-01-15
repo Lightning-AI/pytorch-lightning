@@ -151,7 +151,6 @@ def test_model_checkpoint_score_and_ckpt(
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         max_epochs=max_epochs,
-        enable_progress_bar=False,
     )
     calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
