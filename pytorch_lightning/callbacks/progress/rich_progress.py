@@ -247,6 +247,7 @@ class RichProgressBar(ProgressBarBase):
         self.theme = theme
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        super().setup(trainer, pl_module, stage)
         if not trainer.is_global_zero:
             self.disable()
 
