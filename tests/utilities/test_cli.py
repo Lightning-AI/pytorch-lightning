@@ -1387,8 +1387,8 @@ def test_cli_reducelronplateau():
     ):
         cli = LightningCLI(BoringModel, run=False)
     config = cli.model.configure_optimizers()
-    assert isinstance(config["lr_scheduler"].scheduler, ReduceLROnPlateau)
-    assert config["lr_scheduler"].scheduler.monitor == "foo"
+    assert isinstance(config["lr_scheduler"]["scheduler"], ReduceLROnPlateau)
+    assert config["lr_scheduler"]["scheduler"].monitor == "foo"
 
 
 def test_cli_configureoptimizers_can_be_overridden():
