@@ -35,7 +35,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_callable_params
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_callable_params, _add_prefix
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -498,7 +498,7 @@ class NeptuneLogger(LightningLoggerBase):
         if rank_zero_only.rank != 0:
             raise ValueError("run tried to log from global_rank != 0")
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
