@@ -246,6 +246,10 @@ class RichProgressBar(ProgressBarBase):
         self._progress_stopped: bool = False
         self.theme = theme
 
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        if not trainer.is_global_zero:
+            self.disable()
+
     @property
     def refresh_rate(self) -> float:
         return self._refresh_rate
