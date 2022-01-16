@@ -98,8 +98,8 @@ class ModelIO:
             :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
 
         Note:
-            ``load_from_checkpoint`` is a class method. You should use your :class:`LightningModule`
-            class to call it instead of :class:`LightningModule` instance.
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
 
         Example::
 
