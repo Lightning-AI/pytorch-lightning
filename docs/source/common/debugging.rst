@@ -117,7 +117,7 @@ Optimization
 Inspect Gradient Norms
 ======================
 
-Logs (to a logger), the norm of each weight matrix.
+Logs (to a logger), the norm of the gradients.
 
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.track_grad_norm`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
@@ -148,8 +148,8 @@ To enable it within Lightning, use:
 Performance
 ***********
 
-Log Device Stats
-================
+Log Device Statistics
+=====================
 
 Monitor and log device stats during training with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`.
 
@@ -169,9 +169,9 @@ Check out the :ref:`Profiler <profiler>` document.
 ----------------
 
 
-***********
-Model Stats
-***********
+****************
+Model Statistics
+****************
 
 Print a Summary of Your LightningModule
 =======================================
@@ -218,13 +218,13 @@ Debugging with Distributed Strategies
 DDP Debugging
 =============
 
-If you are having a hard time debugging DDP on your remote machinem you can debug DDP locally on the CPU:
+If you are having a hard time debugging DDP on your remote machine you can debug DDP locally on the CPU. Note that this will not provide any speed benifits.
 
 .. code-block:: python
 
     trainer = Trainer(accelerator="cpu", strategy="ddp", devices=2)
 
-When everything works, switch back to GPU by changing only the accelerator. Note that this will not provide any speed benefits.
+When everything works, switch back to GPU by changing only the accelerator.
 
 .. code-block:: python
 
