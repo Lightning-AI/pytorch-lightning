@@ -14,8 +14,10 @@
 import logging
 import os
 import platform
+import random
 import time
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -191,6 +193,66 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
         trainer.test(model)
 
     assert caplog.text.count("Profiler Report") == 2
+
+
+@pytest.mark.parametrize("extended", [True, False])
+@patch("time.monotonic", return_value=70)
+def test_simple_profiler_summary(tmpdir, extended):
+    """Test the summary of `SimpleProfiler`."""
+    profiler = SimpleProfiler(extended=extended)
+    profiler.start_time = 63.0
+    hooks = [
+        "on_train_start",
+        "on_train_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_before_batch_transfer",
+        "on_fit_start",
+    ]
+    max_len_hook = len("on_before_batch_transfer")
+    sometime = random.uniform(0, 1)
+    sep = os.linesep
+
+    for hook in hooks:
+        with profiler.profile(hook):
+            pass
+
+        profiler.recorded_durations[hook] = [sometime]
+
+    def log_row_extended(action, mean, num_calls, total, per):
+        row = f"{sep}|  {action:<{max_len_hook}s}\t|  {mean:<15}\t|"
+        row += f"  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+        return row
+
+    def log_row_not_extended(action, mean, total):
+        return f"{sep}|  {action:<{max_len_hook}s}\t|  {mean:<15}\t|  {total:<15}\t|"
+
+    if extended:
+        header = log_row_extended("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
+    else:
+        header = log_row_not_extended("Action", "Mean duration (s)", "Total time (s)")
+
+    sep_lines = f"{sep}{'-' * len(header.expandtabs())}"
+
+    total_stats = ""
+    if extended:
+        total_stats = log_row_extended("Total", "-", f"{len(hooks)}", f"{7.:.5}", "100 %")
+        total_stats += sep_lines
+
+    profiled_stats = ""
+    for hook in hooks:
+        if extended:
+            profiled_stats += log_row_extended(
+                hook, f"{sometime:.5}", "1", f"{sometime:.5}", f"{100 * sometime / 7.:.5}"
+            )
+        else:
+            profiled_stats += log_row_not_extended(hook, f"{sometime:.5}", f"{sometime:.5}")
+
+    expected_text = f"{sep}Profiler Report{sep}"
+    expected_text += sep_lines + header + sep_lines + total_stats + profiled_stats + sep_lines + f"{sep}"
+
+    summary = profiler.summary()
+    assert expected_text == summary
 
 
 @pytest.fixture
