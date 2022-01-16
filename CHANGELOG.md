@@ -212,7 +212,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Improved the output of `SimpleProfiler` ([#11414](https://github.com/PyTorchLightning/pytorch-lightning/pull/11414))
 
-                          
+
 - Changed `MisconfigurationException` to `ModuleNotFoundError` when `rich` isn't available ([#11360](https://github.com/PyTorchLightning/pytorch-lightning/pull/11360))
 
 
