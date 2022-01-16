@@ -110,11 +110,6 @@ class BatchSizeFinder(Callback):
                 f"Field {self.batch_arg_name} not found in both `model` and `model.hparams`"
             )
 
-        if not lightning_hasattr(pl_module, self.batch_arg_name):
-            raise MisconfigurationException(
-                f"Field {self.batch_arg_name} not found in both `model` and `model.hparams`"
-            )
-
         if (
             hasattr(pl_module, self.batch_arg_name)
             and hasattr(pl_module, "hparams")
@@ -126,6 +121,7 @@ class BatchSizeFinder(Callback):
                 " If this is not the intended behavior, please remove either one."
             )
 
+        # TODO: check if this can be enabled (#4040)
         if not trainer._data_connector._train_dataloader_source.is_module():
             raise MisconfigurationException(
                 "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`."
@@ -329,6 +325,7 @@ class BatchSizeFinder(Callback):
             trainer.limit_predict_batches = self.steps_per_trial
 
     def _restore_params(self, trainer: "pl.Trainer") -> None:
+        # TODO: There are more states that needs to be reset (#4512 and #4870)
         from pytorch_lightning.trainer.states import TrainerFn
 
         trainer.logger = self._dumped_params["logger"]
@@ -350,6 +347,7 @@ class BatchSizeFinder(Callback):
             trainer.limit_predict_batches = self._dumped_params["limit_eval_batches"]
 
         loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
+        loop.restarting = False
         if "loop_verbose" in self._dumped_params:
             loop.verbose = self._dumped_params["loop_verbose"]
 
