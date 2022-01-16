@@ -4,7 +4,8 @@
 Profiling
 #########
 
-Profiling your training/testing/inference run can help you understand if there are any bottlenecks in your code. The reports can be generated with ``trainer.fit()`` ``trainer.test()``, ``trainer.validate()`` and ``trainer.predict()`` with the respective actions called.
+Profiling your training/testing/inference run can help you identify bottlenecks in your code. The reports can be generated with ``trainer.fit()``,
+``trainer.test()``, ``trainer.validate()`` and ``trainer.predict()`` for their respective actions.
 
 
 ------------
@@ -52,8 +53,8 @@ If you only wish to profile the standard actions, you can set ``profiler="simple
     profiler = SimpleProfiler()
     trainer = Trainer(..., profiler=profiler)
 
-The profiler's results will be printed at the completion of a training ``trainer.fit()``. Note that there are a lot more actions that will be present in the finalized
-report. Find below an example of the :class:`~pytorch_lightning.profiler.simple.SimpleProfiler` report containing a few of them:
+The profiler's results will be printed at the completion of a training ``trainer.fit()``. Find an example of the
+:class:`~pytorch_lightning.profiler.simple.SimpleProfiler` report containing a few of the actions:
 
 .. code-block::
 
@@ -80,6 +81,8 @@ report. Find below an example of the :class:`~pytorch_lightning.profiler.simple.
     |  [LightningModule]BoringModel.on_fit_end         |  3.127e-06      	|  3.127e-06      |
     |  [LightningModule]BoringModel.teardown           |  2.581e-06      	|  2.581e-06      |
     -----------------------------------------------------------------------------------------------
+
+.. note:: Note that there are a lot more actions that will be present in the final report along with percentage and call count for each action.
 
 
 Advanced Profiler
@@ -194,7 +197,7 @@ to extend the scope of profiled functions.
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-When running with ``PyTorchProfiler(emit_nvtx=True)``. You should run as following:
+When running with ``PyTorchProfiler(emit_nvtx=True)``, you should run as following:
 
 .. code-block::
 
@@ -220,8 +223,8 @@ Custom Profiling
 Custom Profiler
 ===============
 
-You can also configure a custom profiler and pass it to the Trainer. To configure it by subclassing :class:`~pytorch_lightning.profiler.base.BaseProfiler`.
-The following is a simple example the profilers the first occurance and total calls to each action:
+You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
+and override some of its methods. The following is a simple example that profiles the first occurance and total calls of each action:
 
 .. code-block:: python
 
@@ -269,11 +272,11 @@ The following is a simple example the profilers the first occurance and total ca
     trainer.fit(...)
 
 
-Customize Profiling
-===================
+Profile Logic of Your Interest
+==============================
 
 You can also reference this profiler in your LightningModule to profile specific actions of interest.
-Each profiler has a method ``profile()`` which returns a context handler. Simply pass in the name of
+Each profiler has a method ``profile()``m which returns a context handler. Simply pass in the name of
 your action that you want to track and the profiler will record performance for code executed within this context.
 
 .. code-block:: python
