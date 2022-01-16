@@ -188,7 +188,7 @@ The following are best practices when using/designing callbacks.
 
 -----------
 
-.. _hooks:
+.. _callback_hooks:
 
 Callback API
 ------------

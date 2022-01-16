@@ -19,8 +19,8 @@ PyTorch Lightning
    :caption: Getting started
 
    starter/new-project
+   starter/installation
    starter/converting
-   starter/rapid_prototyping_templates
    starter/lightning_lite
 
 .. toctree::
@@ -75,7 +75,6 @@ PyTorch Lightning
    common/hyperparameters
    common/production_inference
    common/lightning_cli
-   advanced/lr_finder
    common/loggers
    advanced/advanced_gpu
    advanced/mixed_precision

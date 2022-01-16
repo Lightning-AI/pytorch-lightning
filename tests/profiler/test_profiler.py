@@ -170,7 +170,13 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -369,7 +375,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         limit_val_batches=5,
         profiler=pytorch_profiler,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
     expected = {"[Strategy]DDPStrategy.validation_step"}
@@ -491,7 +498,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, gpus=1)
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
     trainer.fit(model)
 
 

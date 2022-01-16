@@ -115,7 +115,8 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         enable_model_summary=False,
         val_check_interval=val_check_interval,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         limit_train_batches=64,
         limit_val_batches=32,
     )

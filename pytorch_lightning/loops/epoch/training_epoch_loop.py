@@ -145,6 +145,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
             # skip training and run validation in `on_advance_end`
             return
+        # we are going to train first so the val loop does not need to restart
+        self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
         batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
@@ -454,11 +456,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 self.scheduler_progress.increment_ready()
 
                 # update LR
-                if lr_scheduler["reduce_on_plateau"]:
-                    lr_scheduler["scheduler"].step(monitor_val)
-                else:
-                    lr_scheduler["scheduler"].step()
-
+                self.trainer._call_lightning_module_hook(
+                    "lr_scheduler_step",
+                    lr_scheduler["scheduler"],
+                    lr_scheduler["opt_idx"],
+                    monitor_val,
+                )
                 self.scheduler_progress.increment_completed()
 
     def _get_monitor_value(self, key: str) -> Any:
