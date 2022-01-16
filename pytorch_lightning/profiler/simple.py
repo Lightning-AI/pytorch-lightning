@@ -98,12 +98,11 @@ class SimpleProfiler(BaseProfiler):
 
                 header_string = log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
                 output_string_len = len(header_string.expandtabs())
-                output_string += f"{sep}{'-' * output_string_len}"
-                output_string += header_string
-                output_string += f"{sep}{'-' * output_string_len}"
+                sep_lines = f"{sep}{'-' * output_string_len}"
+                output_string += sep_lines + header_string + sep_lines
                 report, total_calls, total_duration = self._make_report()
                 output_string += log_row("Total", "-", f"{total_calls:}", f"{total_duration:.5}", "100 %")
-                output_string += f"{sep}{'-' * output_string_len}"
+                output_string += sep_lines
                 for action, durations, duration_per in report:
                     output_string += log_row(
                         action,
@@ -112,7 +111,7 @@ class SimpleProfiler(BaseProfiler):
                         f"{np.sum(durations):.5}",
                         f"{duration_per:.5}",
                     )
-                output_string += f"{sep}{'-' * output_string_len}"
+                output_string += sep_lines
         else:
             max_key = max(len(k) for k in self.recorded_durations.keys())
 
@@ -121,12 +120,11 @@ class SimpleProfiler(BaseProfiler):
 
             header_string = log_row("Action", "Mean duration (s)", "Total time (s)")
             output_string_len = len(header_string.expandtabs())
-            output_string += f"{sep}{'-' * output_string_len}"
-            output_string += header_string
-            output_string += f"{sep}{'-' * output_string_len}"
+            sep_lines = f"{sep}{'-' * output_string_len}"
+            output_string += sep_lines + header_string + sep_lines
 
             for action, durations in self.recorded_durations.items():
                 output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}")
-            output_string += f"{sep}{'-' * output_string_len}"
+            output_string += sep_lines
         output_string += sep
         return output_string
