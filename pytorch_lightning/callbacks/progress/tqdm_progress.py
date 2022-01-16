@@ -111,11 +111,6 @@ class TQDMProgressBar(ProgressBarBase):
         self._test_progress_bar: Optional[_tqdm] = None
         self._predict_progress_bar: Optional[_tqdm] = None
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        super().setup(trainer, pl_module, stage)
-        if not trainer.is_global_zero:
-            self.disable()
-
     def __getstate__(self) -> Dict:
         # can't pickle the tqdm objects
         return {k: v if not isinstance(v, _tqdm) else None for k, v in vars(self).items()}
