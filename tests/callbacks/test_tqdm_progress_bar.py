@@ -620,31 +620,29 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     assert pbar.calls["test"] == []
 
 
-# @mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock)
-# def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero, tmpdir):
-#     """Test that the progress bar is disabled when not in global rank zero."""
-#     progress_bar = TQDMProgressBar()
-#     model = BoringModel()
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         callbacks=[progress_bar],
-#         fast_dev_run=True,
-#     )
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
+def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero, tmpdir):
+    """Test that the progress bar is disabled when not in global rank zero."""
+    progress_bar = TQDMProgressBar()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[progress_bar],
+        fast_dev_run=True,
+    )
 
-#     is_global_zero.return_value = False
+    progress_bar.enable()
+    trainer.fit(model)
+    assert progress_bar.is_disabled
 
-#     progress_bar.enable()
-#     trainer.fit(model)
-#     assert progress_bar.is_disabled
+    progress_bar.enable()
+    trainer.validate(model)
+    assert progress_bar.is_disabled
 
-#     progress_bar.enable()
-#     trainer.validate(model)
-#     assert progress_bar.is_disabled
+    progress_bar.enable()
+    trainer.test(model)
+    assert progress_bar.is_disabled
 
-#     progress_bar.enable()
-#     trainer.test(model)
-#     assert progress_bar.is_disabled
-
-#     progress_bar.enable()
-#     trainer.predict(model)
-#     assert progress_bar.is_disabled
+    progress_bar.enable()
+    trainer.predict(model)
+    assert progress_bar.is_disabled
