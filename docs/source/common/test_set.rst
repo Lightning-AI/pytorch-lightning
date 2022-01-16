@@ -143,7 +143,7 @@ Apart from this ``.validate`` has same API as ``.test``, but would rely respecti
 .. note::
     ``.validate`` method uses the same validation logic being used under validation happening within
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call.
-    
+
 .. warning::
 
     When using `trainer.validate()`, it is recommended to use single device since Distributed Training such as DDP internally
