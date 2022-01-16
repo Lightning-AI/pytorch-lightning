@@ -70,10 +70,10 @@ def test_dataloader_source_request_from_module():
 
 
 def test_eval_distributed_sampler_warning(tmpdir):
-    """Test that a warning is raised with `DistributedSampler` is used with evaluation."""
+    """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
 
     model = BoringModel()
-    trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu")
+    trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu", fast_dev_run=True)
     trainer._data_connector.attach_data(model)
 
     with pytest.warns(UserWarning, match="use single device strategy to ensure each sample"):

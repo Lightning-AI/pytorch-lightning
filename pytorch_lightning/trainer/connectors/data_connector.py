@@ -393,10 +393,10 @@ class DataConnector:
             trainer_fn = self.trainer.state.fn
             if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
                 rank_zero_warn(
-                    f"Using `DistributedSampler` with the dataloaders. With trainer.{trainer_fn}(), it is recommended"
-                    " to use single device strategy to ensure each sample/batch gets evaluated exactly once. Otherwise"
-                    " multi-device setting uses `DistributedSampler` replicates some samples to make sure"
-                    " all devices have same batch size in case of uneven inputs."
+                    f"Using `DistributedSampler` with the dataloaders. During trainer.{trainer_fn.value}(),"
+                    " it is recommended to use single device strategy to ensure each sample/batch gets evaluated"
+                    " exactly once. Otherwise multi-device setting uses `DistributedSampler` replicates some samples"
+                    " to make sure all devices have same batch size in case of uneven inputs."
                 )
 
             return sampler
