@@ -722,8 +722,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         self._override_steps = False
 
         self._start_action_name: Optional[str] = None
-        self.profiler_state = KinetoProfilerState.NONE
-        self.action_map: Dict[Tuple[KinetoProfilerState, KinetoProfilerState], List[Any]] = None
+        self._profiler_state = KinetoProfilerState.NONE
+        self._action_map: Dict[Tuple[KinetoProfilerState, KinetoProfilerState], List[Any]] = None
 
         if _KINETO_AVAILABLE:
             self._init_kineto_params(profiler_kwargs)
@@ -744,8 +744,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             self.profiler.__enter__()
         else:
-            self.setup_profiler_action_map()
-            self.transit_profiler(KinetoProfilerState.START)
+            self._setup_profiler_action_map()
+            self._transit_profiler(KinetoProfilerState.START)
 
     def _start_action(self, action_name: str) -> None:
         self._action_step_num[action_name] += 1
@@ -773,10 +773,10 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         step_num = self._action_step_num[action_name]
         if step_num == self._wait_step:
             # warm up
-            self.transit_profiler(KinetoProfilerState.WARMUP)
+            self._transit_profiler(KinetoProfilerState.WARMUP)
         elif step_num >= self._wait_step + self._warmup_step and step_num < self.profile_steps:
             # begin profile
-            self.transit_profiler(KinetoProfilerState.START)
+            self._transit_profiler(KinetoProfilerState.START)
 
     def _stop_action(self, action_name: str) -> None:
         if self.profiler is not None and (
@@ -789,7 +789,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                 self._start_action_name = action_name
 
             if self._action_step_num[action_name] == self.profile_steps:
-                self.transit_profiler(KinetoProfilerState.NONE)
+                self._transit_profiler(KinetoProfilerState.NONE)
                 if self.dirpath is not None:
                     self._save_result(action_name)
                 else:
@@ -802,7 +802,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             else:
                 # At the moment, the profiler should already be stoped.
                 if torch.autograd._profiler_enabled():
-                    self.transit_profiler(KinetoProfilerState.NONE)
+                    self._transit_profiler(KinetoProfilerState.NONE)
                     self._save_result(self._start_action_name)
             self._cache_functions_events()
             self.profiler = None
@@ -841,8 +841,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if action_name.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
 
-    def setup_profiler_action_map(self):
-        self.action_map = {
+    def _setup_profiler_action_map(self):
+        self._action_map = {
             (KinetoProfilerState.NONE, KinetoProfilerState.WARMUP): [self.profiler.prepare_trace],
             (KinetoProfilerState.NONE, KinetoProfilerState.START): [self.profiler.start],
             (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [self.profiler.start_trace],
@@ -850,12 +850,12 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [self.profiler.stop, self.profiler.prepare_trace],
         }
 
-    def transit_profiler(self, new_state: KinetoProfilerState):
-        action_list = self.action_map.get((self.profiler_state, new_state))
+    def _transit_profiler(self, new_state: KinetoProfilerState):
+        action_list = self._action_map.get((self._profiler_state, new_state))
         if action_list:
             for action in action_list:
                 action()
-            self.profiler_state = new_state
+            self._profiler_state = new_state
 
 
 if _TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile"):
