@@ -116,10 +116,10 @@ class EvaluationLoop(DataLoaderLoop):
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        step_kwargs = OrderedDict()
+        kwargs = OrderedDict()
         if self.num_dataloaders > 1:
-            step_kwargs["dataloader_idx"] = dataloader_idx
-        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, step_kwargs)
+            kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
