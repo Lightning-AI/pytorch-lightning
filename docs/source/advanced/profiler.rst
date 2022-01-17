@@ -276,7 +276,7 @@ Profile Logic of Your Interest
 ==============================
 
 You can also reference this profiler in your LightningModule to profile specific actions of interest.
-Each profiler has a method ``profile()``m which returns a context handler. Simply pass in the name of
+Each profiler has a method ``profile()`` which returns a context handler. Simply pass in the name of
 your action that you want to track and the profiler will record performance for code executed within this context.
 
 .. code-block:: python
