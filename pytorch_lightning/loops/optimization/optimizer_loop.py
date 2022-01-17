@@ -419,8 +419,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
             self.trainer.strategy.post_training_step()
 
-            del step_kwargs
-
             model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
             strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
             training_step_output = strategy_output if model_output is None else model_output
