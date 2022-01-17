@@ -226,9 +226,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
-        """Runs validation and Checkpointing if necessary."""
         # -----------------------------------------
-        # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+        # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
         if should_check_val:
