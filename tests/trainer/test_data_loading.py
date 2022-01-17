@@ -20,11 +20,12 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import BatchSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.enums import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 
@@ -389,3 +390,16 @@ def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     with pytest.warns(UserWarning, match="recommended .* turn this off for val/test/predict"):
         trainer._reset_eval_dataloader(RunningStage.VALIDATING, model)
+
+
+@pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
+def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
+    """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
+    dataset = RandomIterableDataset(7, 100)
+    dataloader = DataLoader(dataset, batch_size=32)
+    dl_kwargs = TrainerDataLoadingMixin._get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
+    assert dl_kwargs["sampler"] is None
+    assert dl_kwargs["batch_sampler"] is None
+    assert dl_kwargs["batch_size"] is dataloader.batch_size
+    assert dl_kwargs["dataset"] is dataloader.dataset
+    assert dl_kwargs["collate_fn"] is dataloader.collate_fn
