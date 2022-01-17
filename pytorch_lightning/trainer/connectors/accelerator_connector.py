@@ -517,6 +517,7 @@ class AcceleratorConnector:
     @property
     def use_ddp(self) -> bool:
         return self._strategy_type in (
+            _StrategyType.BAGUA,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
             _StrategyType.DDP_SHARDED,
@@ -540,7 +541,7 @@ class AcceleratorConnector:
 
     @property
     def use_bagua(self) -> bool:
-        return self._distrib_type == _StrategyType.BAGUA
+        return self._strategy_type == _StrategyType.BAGUA
 
     @property
     def _is_sharded_training_type(self) -> bool:
@@ -709,6 +710,8 @@ class AcceleratorConnector:
             plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
+        elif self.use_ddp and self.use_bagua:
+            plugin = BaguaStrategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.detect()
@@ -756,8 +759,6 @@ class AcceleratorConnector:
             plugin = SingleTPUStrategy(self.tpu_id)
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
-        elif self.use_bagua:
-            plugin = BaguaStrategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDeviceStrategy(device=single_gpu_ordinal if self.use_gpu else "cpu")
