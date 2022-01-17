@@ -1417,3 +1417,21 @@ def test_cli_configureoptimizers_can_be_overridden():
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)
     assert isinstance(scheduler, StepLR)
+
+
+def test_cli_parameter_with_lazy_instance_default():
+    from jsonargparse import lazy_instance
+
+    class TestModel(BoringModel):
+        def __init__(self, activation: torch.nn.Module = lazy_instance(torch.nn.LeakyReLU, negative_slope=0.05)):
+            super().__init__()
+            self.activation = activation
+
+    model = TestModel()
+    assert isinstance(model.activation, torch.nn.LeakyReLU)
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False)
+        assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
+        assert cli.model.activation.negative_slope == 0.05
+        assert cli.model.activation is not model.activation
