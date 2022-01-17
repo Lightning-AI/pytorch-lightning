@@ -243,8 +243,6 @@ class DataFetcher(AbstractDataFetcher):
             try:
                 yield_batch = self.batches.pop(0)
                 self._fetch_next_batch()
-
-                # TODO: move `wait` into `move_to_device`?
                 # wait for batch to be available.
                 self.wait()
                 # yield last and has next
