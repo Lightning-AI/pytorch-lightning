@@ -13,10 +13,9 @@
 # limitations under the License.
 import importlib
 import logging
-import os
-import uuid
+from copy import deepcopy
 from functools import wraps
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
 import torch
@@ -31,7 +30,6 @@ from pytorch_lightning.core.optimizer import (
 )
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
@@ -208,35 +206,22 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
-    save_path = os.path.join(trainer.default_root_dir, f"lr_find_temp_model_{uuid.uuid4()}.ckpt")
+    trainer.fit_loop.current_epoch -= 1
+    trainer.fit_loop.global_step -= 1
+    state_dict = deepcopy(trainer.checkpoint_connector.dump_checkpoint())
+    trainer.fit_loop.current_epoch += 1
+    trainer.fit_loop.global_step += 1
+    params = __lr_finder_dump_params(trainer)
 
-    __lr_finder_dump_params(trainer, model)
-
-    # Prevent going into infinite loop
-    trainer.auto_lr_find = False
+    # Set to values that are required by the algorithm
+    __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
 
     # Initialize lr finder object (stores results)
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
-    # Use special lr logger callback
-    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
-
-    # No logging
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
-
-    # Max step set to number of iterations
-    trainer.fit_loop.max_steps = num_training
-
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
-
-    # Required for saving the model
-    trainer.optimizers, trainer.lr_schedulers = [], []
-    trainer.model = model
-
-    # Dump model checkpoint
-    trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
     trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)
@@ -252,15 +237,11 @@ def lr_find(
     lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    # Reset model state
-    if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path))
-        fs = get_filesystem(str(save_path))
-        if fs.exists(save_path):
-            fs.rm(save_path)
+    # Restore initial state of model
+    trainer.checkpoint_connector._loaded_checkpoint = state_dict
+    trainer.checkpoint_connector.restore(None)
+    __lr_finder_restore_params(trainer, params)
 
-    # Finish by resetting variables so trainer is ready to fit model
-    __lr_finder_restore_params(trainer, model)
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
 
@@ -275,27 +256,33 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer, model):
-    # Prevent going into infinite loop
-    trainer.__dumped_params = {
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+    return {
         "auto_lr_find": trainer.auto_lr_find,
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
-        "global_step": trainer.global_step,
-        "max_steps": trainer.max_steps,
-        "checkpoint_callback": trainer.checkpoint_callback,
-        "current_epoch": trainer.current_epoch,
+        "max_steps": trainer.fit_loop.max_steps,
     }
 
 
-def __lr_finder_restore_params(trainer, model):
-    trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
-    trainer.logger = trainer.__dumped_params["logger"]
-    trainer.callbacks = trainer.__dumped_params["callbacks"]
-    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
-    trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
-    trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
-    del trainer.__dumped_params
+def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+    # avoid lr find being called multiple times
+    trainer.auto_lr_find = False
+    # Use special lr logger callback
+    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
+    # No logging
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    # Max step set to number of iterations
+    trainer.fit_loop.max_steps = num_training
+    # Required for saving the model
+    trainer.optimizers, trainer.lr_schedulers = [], []
+
+
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+    trainer.auto_lr_find = params["auto_lr_find"]
+    trainer.callbacks = params["callbacks"]
+    trainer.logger = params["logger"]
+    trainer.fit_loop.max_steps = params["max_steps"]
 
 
 class _LRCallback(Callback):

@@ -2075,7 +2075,7 @@ class Trainer(
             model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
                 on the backend.
         """
-        self.strategy.model = model
+        self.strategy.connect(model)
 
     """
     General properties

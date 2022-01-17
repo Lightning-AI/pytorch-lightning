@@ -222,8 +222,8 @@ class CheckpointConnector:
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
-            if self.trainer.state.fn == TrainerFn.FITTING:
+        if state_dict is not None:
+            if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
