@@ -57,11 +57,11 @@ def test_prefetch_iterator(use_combined_loader):
 
         def generate():
             generated = []
-            for idx, data in enumerate(iterator, 1):
+            for idx, data in enumerate(iterator, prefetch_batches + 1):
                 if iterator.done:
                     assert iterator.fetched == 3
                 else:
-                    assert iterator.fetched == (idx + prefetch_batches)
+                    assert iterator.fetched == idx
                 generated.append(data)
             return generated
 
