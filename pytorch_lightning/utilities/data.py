@@ -228,7 +228,8 @@ def _get_dataloader_init_kwargs(
 
     # kwargs to re-construct the dataloader
     dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-    dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+    if not isinstance(dl_kwargs["dataset"], IterableDataset):
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
 
     required_args = {
         p.name
