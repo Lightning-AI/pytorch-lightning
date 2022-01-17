@@ -177,8 +177,8 @@ def test_replace_dataloader_init_method():
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
-def test_predict_dataloader_kwargs_with_iterable_dataset(mode):
-    """Test that DataLoader kwargs are untouched when using Iterable Dataset."""
+def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
+    """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
     dataset = RandomIterableDataset(7, 100)
     dataloader = DataLoader(dataset, batch_size=32)
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
