@@ -228,7 +228,10 @@ def _get_dataloader_init_kwargs(
 
     # kwargs to re-construct the dataloader
     dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-    if not isinstance(dl_kwargs["dataset"], IterableDataset):
+    if isinstance(dl_kwargs["dataset"], IterableDataset):
+        dl_kwargs["batch_sampler"] = None
+        dl_kwargs["sampler"] = None
+    else:
         dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
 
     required_args = {
@@ -263,10 +266,6 @@ def _get_dataloader_init_kwargs(
                 "manually add the `DistributedSampler` as: "
                 f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
-
-    if isinstance(dl_kwargs["dataset"], IterableDataset):
-        dl_kwargs["batch_sampler"] = None
-        dl_kwargs["sampler"] = None
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
         dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
