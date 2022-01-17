@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ARG CUDA_VERSION=10.2
+ARG BAGUA_CUDA_VERSION=102
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
@@ -116,7 +117,7 @@ RUN \
 
 RUN \
     # install Bagua
-    pip install bagua-cuda${CUDA_VERSION}==0.9.0
+    pip install bagua-cuda${BAGUA_CUDA_VERSION}==0.9.0
 
 RUN \
     # Show what we have
