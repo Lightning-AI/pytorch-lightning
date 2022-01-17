@@ -619,7 +619,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
 
-
+@RunIf(standalone=True)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
 def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero, tmpdir):
     """Test that the progress bar is disabled when not in global rank zero."""
@@ -646,5 +646,3 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero, tmpdir):
     progress_bar.enable()
     trainer.predict(model)
     assert progress_bar.is_disabled
-
-    is_global_zero.reset_mock()
