@@ -30,6 +30,7 @@ def fetchable_paths(value):
         return MagicMock(fetch=MagicMock(return_value="TEST-1"))
     elif value == "sys/name":
         return MagicMock(fetch=MagicMock(return_value="Run test name"))
+    return MagicMock()
 
 
 def create_neptune_mock():
@@ -42,7 +43,6 @@ def create_neptune_mock():
 
 
 class Run:
-    _short_id = "TEST-42"
     _project_name = "test-project"
 
     def __setitem__(self, key, value):
@@ -58,7 +58,7 @@ class Run:
         if item == "sys/name":
             return MagicMock(fetch=MagicMock(return_value="Test name"))
         elif item == "sys/id":
-            return MagicMock(fetch=MagicMock(return_value=Run._short_id))
+            return MagicMock(fetch=MagicMock(return_value="TEST-42"))
 
         assert False, f"Unexpected call '{item}'"
 
@@ -98,7 +98,7 @@ class TestNeptuneLogger(unittest.TestCase):
 
         assert logger._run_instance == created_run
         self.assertEqual(logger._run_instance, created_run)
-        self.assertEqual(logger.version, created_run._short_id)
+        self.assertEqual(logger.version, "TEST-42")
         self.assertEqual(neptune.init.call_count, 0)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -110,7 +110,7 @@ class TestNeptuneLogger(unittest.TestCase):
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
-        neptune.init.assert_called_once_with(name="Test name", run=unpickleable_run._short_id)
+        neptune.init.assert_called_once_with(name="Test name", run="TEST-42")
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
