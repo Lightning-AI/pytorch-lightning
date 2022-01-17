@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from typing import Any, List, Sequence, Union
 
 import torch
@@ -115,9 +116,10 @@ class EvaluationLoop(DataLoaderLoop):
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader, dataloader_idx if self.num_dataloaders > 1 else None, dl_max_batches
-        )
+        step_kwargs = OrderedDict()
+        if self.num_dataloaders > 1:
+            step_kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, step_kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
