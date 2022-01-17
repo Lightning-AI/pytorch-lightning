@@ -293,9 +293,10 @@ class NeptuneLogger(LightningLoggerBase):
     def _retrieve_run_data(self):
         try:
             self._run_instance.wait()
-            self._run_short_id = self.run._short_id  # skipcq: PYL-W0212
+            self._run_short_id = self._run_instance["sys/id"].fetch()
             self._run_name = self._run_instance["sys/name"].fetch()
         except NeptuneOfflineModeFetchException:
+            self._run_short_id = "123"
             self._run_name = "offline-name"
 
     @property
