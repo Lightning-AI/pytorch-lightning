@@ -31,11 +31,12 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
@@ -271,6 +272,22 @@ def test_v1_8_0_deprecated_training_type_plugin_property():
         trainer.training_type_plugin
 
 
+def test_v1_8_0_deprecate_trainer_data_loading_mixin():
+    trainer = Trainer(max_epochs=1)
+    model = BoringModel()
+    dm = BoringDataModule()
+    trainer.fit(model, datamodule=dm)
+
+    with pytest.deprecated_call(
+        match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
+    ):
+        trainer.prepare_dataloader(dataloader=model.train_dataloader, shuffle=False)
+    with pytest.deprecated_call(
+        match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
+    ):
+        trainer.request_dataloader(stage=RunningStage.TRAINING)
+
+
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 
@@ -309,7 +326,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
             " Use `.*SingleDeviceStrategy` instead."
         )
     ):
-        SingleDevicePlugin(Mock())
+        SingleDevicePlugin("cpu")
 
 
 @RunIf(tpu=True)

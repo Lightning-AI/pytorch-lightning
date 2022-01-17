@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+else:
+    poptorch = None
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
@@ -121,8 +123,8 @@ class IPUStrategy(ParallelStrategy):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
-        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
+        pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
 
@@ -278,7 +280,7 @@ class IPUStrategy(ParallelStrategy):
     def teardown(self) -> None:
         super().teardown()
         # undo dataloader patching
-        pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
+        pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
         for model in self.poptorch_models.values():
             model.destroy()

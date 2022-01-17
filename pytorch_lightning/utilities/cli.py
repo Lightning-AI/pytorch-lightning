@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for LightningCLI."""
+
 import inspect
 import os
 import sys
@@ -113,7 +115,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
@@ -483,7 +485,10 @@ class LightningCLI:
             save_config_multifile: When input is multiple config files, saved config preserves this structure.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
-            trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
+            trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
+                this argument will not be configurable from a configuration file and will always be present for
+                this particular CLI. Alternatively, configurable callbacks can be added as explained in
+                :ref:`the CLI docs <common/lightning_cli:Configurable callbacks>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.

@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -98,7 +98,7 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
-        self._distrib_type = None
+        self._strategy_type = None
         self._device_type = None
 
         # true if using amp
@@ -676,7 +676,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -851,7 +851,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1029,7 +1029,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1493,6 +1493,42 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
+    def lr_scheduler_step(
+        self,
+        scheduler: LRSchedulerTypeUnion,
+        optimizer_idx: int,
+        metric: Optional[Any],
+    ) -> None:
+        r"""
+        Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
+        By default, Lightning calls ``step()`` and as shown in the example
+        for each scheduler based on its ``interval``.
+
+        Args:
+            scheduler: Learning rate scheduler.
+            optimizer_idx: Index of the optimizer associated with this scheduler.
+            metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
+
+        Examples::
+
+            # DEFAULT
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                if metric is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(metric)
+
+            # Alternative way to update schedulers if it requires an epoch value
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                scheduler.step(epoch=self.current_epoch)
+
+        """
+        if metric is None:
+            scheduler.step()
+        else:
+            scheduler.step(metric)
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1859,7 +1895,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
             ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
