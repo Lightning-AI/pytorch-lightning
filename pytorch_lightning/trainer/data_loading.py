@@ -272,9 +272,13 @@ class TrainerDataLoadingMixin(ABC):
 
         # kwargs to re-construct the dataloader
         dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-        dl_kwargs.update(
-            TrainerDataLoadingMixin._dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode)
-        )
+        if isinstance(dl_kwargs["dataset"], IterableDataset):
+            dl_kwargs["batch_sampler"] = None
+            dl_kwargs["sampler"] = None
+        else:
+            dl_kwargs.update(
+                TrainerDataLoadingMixin._dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode)
+            )
 
         required_args = {
             p.name
