@@ -24,14 +24,14 @@ Choosing an Advanced Distributed GPU Strategy
 
 If you would like to stick with PyTorch DDP, see :ref:`ddp-optimizations`.
 
-Unlike :class:`~torch.nn.parallel.DistributedDataParallel` (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory-optimized strategy can accommodate bigger models and larger batches as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
+Unlike :class:`~torch.nn.parallel.DistributedDataParallel` (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory-optimized strategies can accommodate bigger models and larger batches as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
 
 There are many considerations when choosing a strategy as described below. In addition, check out the visualization of various strategy benchmarks using `minGPT <https://github.com/SeanNaren/minGPT>`__ `here <https://share.streamlit.io/seannaren/mingpt/streamlit/app.py>`__.
 
 Pre-training vs Fine-tuning
 """""""""""""""""""""""""""
 
-When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed strategy as usually for pre-training, **where we are compute-bound**.
+When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed strategy as usually for pre-training, **we are compute-bound**.
 This means we cannot sacrifice throughput as much as if we were fine-tuning, because in fine-tuning the data requirement is smaller.
 
 Overall:
@@ -47,7 +47,9 @@ But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models
 When Shouldn't I use an Optimized Distributed Strategy?
 """""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to ordinary distributed training, unless you are using unusually large batch sizes or inputs.
+Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in the following cases, we recommend sticking to ordinary distributed strategies
+* When your model is small (ResNet50 of around 80M Parameters), unless you are using unusually large batch sizes or inputs.
+* Due to high distributed communication between devices, if running on a slow network/interconnect, the training might be much slower than expected and then it's up to you to determince the tradeoff here.
 
 ----------
 
