@@ -28,7 +28,7 @@ from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
 from tests.helpers import BoringModel, ManualOptimBoringModel
 from tests.helpers.runif import RunIf
 
@@ -631,3 +631,14 @@ def test_profile_callbacks(tmpdir):
         e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
+
+
+@pytest.mark.skipif(
+    not (_TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile")),
+    reason="Requires PyTorch lower level profiler API",
+)
+def test_kineto_profile(tmpdir):
+    from pytorch_lightning.profiler.pytorch import PyTorchProfilerKineto
+
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
+    assert isinstance(pytorch_profiler, PyTorchProfilerKineto)
