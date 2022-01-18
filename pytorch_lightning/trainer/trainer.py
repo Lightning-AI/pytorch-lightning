@@ -2006,6 +2006,7 @@ class Trainer(
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
         self.strategy.optimizers = new_optims
 
+    @property
     def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
         rank_zero_deprecation(
             "`Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8", stacklevel=5
