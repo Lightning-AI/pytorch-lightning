@@ -164,7 +164,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[_LRScheduler, List[_LRScheduler]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
