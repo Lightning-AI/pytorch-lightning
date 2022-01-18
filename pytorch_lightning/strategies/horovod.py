@@ -101,9 +101,9 @@ class HorovodStrategy(ParallelStrategy):
                 param_group["lr"] *= self.world_size
 
         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
-        lr_schedulers = self.lightning_module.trainer.lr_schedulers
-        for scheduler in lr_schedulers:
-            scheduler = scheduler["scheduler"]
+        lr_scheduler_configs = self.lr_schedulers
+        for config in lr_scheduler_configs:
+            scheduler = config.scheduler
             scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
 
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
