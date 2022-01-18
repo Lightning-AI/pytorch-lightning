@@ -20,14 +20,14 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
@@ -134,7 +134,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
+        self._dataloader_iter = iter(data_fetcher)
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -149,10 +149,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
-        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
-
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch)
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_idx + 1
+            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+        else:
+            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         self.batch_progress.increment_ready()
 
@@ -227,13 +228,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
-        """Runs validation and Checkpointing if necessary.
-
-        Raises:
-            StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
-        """
         # -----------------------------------------
-        # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+        # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
         if should_check_val:
