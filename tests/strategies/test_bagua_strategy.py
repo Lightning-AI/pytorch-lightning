@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import BaguaStrategy
@@ -44,8 +45,10 @@ def test_bagua_algorithm(tmpdir):
         assert torch.norm(param) < 3
 
 
-@RunIf(bagua=False, min_gpus=1)
-def test_bagua_not_available():
+@mock.patch("torch.cuda.device_count", return_value=1)
+def test_bagua_not_available(monkeypatch):
+    import pytorch_lightning.strategies.bagua as imports
 
+    monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
     with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
         Trainer(strategy="bagua", gpus=1)
