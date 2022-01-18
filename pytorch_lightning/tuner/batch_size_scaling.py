@@ -98,9 +98,9 @@ def scale_batch_size(
 
 def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
+        "max_steps": trainer.fit_loop.max_steps,
         "logger": trainer.logger,
         "callbacks": trainer.callbacks,
-        "max_steps": trainer.fit_loop.max_steps,
         "auto_scale_batch_size": trainer.auto_scale_batch_size,
         "auto_lr_find": trainer.auto_lr_find,
         "limit_train_batches": trainer.limit_train_batches,
