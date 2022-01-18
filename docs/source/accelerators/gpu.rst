@@ -574,7 +574,7 @@ To use *QAdam*, we need to initialize
     )
     trainer.fit(model)
 
-It is recommend to start training through `Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
+It is recommended to start training through `Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
 However, we can also use the same way as Distributed Data Parallel. Below are examples using ``bagua.distributed.launch``,
 whose usage is similar to ``torch.distributed.launch``:
 
