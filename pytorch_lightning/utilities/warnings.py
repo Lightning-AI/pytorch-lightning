@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Warning-related utilities."""
+
 import warnings
 from functools import partial
 from typing import Any, Union
@@ -32,6 +33,7 @@ def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> N
 
 @rank_zero_only
 def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log warn-level messages only on rank 0."""
     _warn(message, stacklevel=stacklevel, **kwargs)
 
 

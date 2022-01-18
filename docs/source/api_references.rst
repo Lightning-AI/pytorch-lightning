@@ -278,6 +278,15 @@ Utilities API
     :toctree: api
     :nosignatures:
 
-    cli
+    apply_func
     argparse
+    cli
+    cloud_io
+    deepspeed
+    distributed
+    finite_checks
+    memory
+    model_summary
+    parsing
     seed
+    warnings

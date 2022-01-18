@@ -354,7 +354,8 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         logger=logger,
         default_root_dir=tmpdir,
         strategy="ddp_spawn",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         max_steps=1,
         callbacks=[RankZeroLoggerCheck()],
     )
