@@ -505,7 +505,7 @@ but Bagua can usually produces a higher training throughput.
     trainer = Trainer(strategy="bagua", gpus=2)
 
 
-By specifying the `algorithm` in a `BaguaStrategy`, we can use different advanced training algorithms featured by Bagua:
+By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different advanced training algorithms featured by Bagua:
 
 
 .. code-block:: python
