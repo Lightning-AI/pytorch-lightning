@@ -699,8 +699,8 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser,
-                self.config,
+                self._parser(self.subcommand),
+                self.config[self.subcommand] if self.subcommand is not None else self.config,
                 self.save_config_filename,
                 overwrite=self.save_config_overwrite,
                 multifile=self.save_config_multifile,

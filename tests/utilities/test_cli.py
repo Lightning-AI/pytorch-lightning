@@ -1251,6 +1251,10 @@ def test_lightning_cli_config_before_subcommand():
     test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
     assert cli.trainer.limit_test_batches == 1
 
+    save_config_callback = cli.trainer.callbacks[0]
+    assert save_config_callback.config.trainer.limit_test_batches == 1
+    assert save_config_callback.parser.subcommand == "test"
+
     with mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]), mock.patch(
         "pytorch_lightning.Trainer.validate", autospec=True
     ) as validate_mock:
@@ -1258,6 +1262,10 @@ def test_lightning_cli_config_before_subcommand():
 
     validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
     assert cli.trainer.limit_val_batches == 1
+
+    save_config_callback = cli.trainer.callbacks[0]
+    assert save_config_callback.config.trainer.limit_val_batches == 1
+    assert save_config_callback.parser.subcommand == "validate"
 
 
 def test_lightning_cli_config_before_subcommand_two_configs():
