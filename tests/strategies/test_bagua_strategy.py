@@ -15,8 +15,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.strategies import BaguaStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
