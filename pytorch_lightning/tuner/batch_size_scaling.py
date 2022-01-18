@@ -57,6 +57,7 @@ def scale_batch_size(
             " Please disable the feature or incorporate the dataloader into the model."
         )
 
+    # Save initial model, that is loaded after batch size is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
     trainer.fit_loop.current_epoch -= 1
     trainer.fit_loop.global_step -= 1
@@ -86,6 +87,9 @@ def scale_batch_size(
     # Restore initial state of model
     trainer.checkpoint_connector.restore(ckpt_path)
     __scale_batch_restore_params(trainer, params)
+
+    if trainer.progress_bar_callback:
+        trainer.progress_bar_callback.enable()
 
     return new_size
 

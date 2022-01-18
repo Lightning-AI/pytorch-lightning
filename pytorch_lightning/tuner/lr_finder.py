@@ -207,6 +207,7 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
+    # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
     trainer.fit_loop.current_epoch -= 1
     trainer.fit_loop.global_step -= 1
