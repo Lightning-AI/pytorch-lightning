@@ -397,7 +397,7 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True, skip_49370=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, num_processes",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices",
     [
         ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
         ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
@@ -429,7 +429,7 @@ def test_multiple_early_stopping_callbacks(
     expected_stop_epoch: int,
     check_on_train_epoch_end: bool,
     strategy: Optional[str],
-    num_processes: int,
+    devices: int,
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
@@ -443,7 +443,7 @@ def test_multiple_early_stopping_callbacks(
         max_epochs=20,
         strategy=strategy,
         accelerator="cpu",
-        num_processes=num_processes,
+        devices=devices,
     )
     trainer.fit(model)
 

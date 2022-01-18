@@ -34,7 +34,7 @@ from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -128,9 +128,6 @@ class Trainer(
     TrainerOptimizersMixin,  # TODO: Remove in v1.8
     TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
-    # Needed because of LightningOptimizer
-    _lightning_optimizers = None
-
     @_defaults_from_env_vars
     def __init__(
         self,
@@ -483,8 +480,6 @@ class Trainer(
 
         # default .predict() loop
         self.predict_loop = PredictionLoop()
-
-        self._lightning_optimizers: Optional[Dict[int, LightningOptimizer]] = None
 
         # .validate() and .test() set this when they load a checkpoint
         self.validated_ckpt_path: Optional[str] = None
@@ -2009,12 +2004,13 @@ class Trainer(
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
-        # Necessary to rewrap optimizers to lightning
-        # They will be re-created when accessing
-        # the `lightning_optimizers` trainer property
-        self._lightning_optimizers = None
-
         self.strategy.optimizers = new_optims
+
+    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
+        rank_zero_deprecation(
+            "`Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8", stacklevel=5
+        )
+        return self.strategy._lightning_optimizers
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
@@ -2109,12 +2105,6 @@ class Trainer(
     def slurm_job_id(self) -> Optional[int]:
         rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
         return SLURMEnvironment.job_id()
-
-    @property
-    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        if self._lightning_optimizers is None:
-            _convert_to_lightning_optimizers(self)
-        return self._lightning_optimizers
 
     @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
@@ -2520,15 +2510,6 @@ class Trainer(
     """
     Other
     """
-
-    # TODO: refactor this so that it can be done in LightningOptimizer
-    def __getstate__(self):
-        # remove lightning_optimizers
-        self._lightning_optimizers = None
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__ = state
 
     @property
     def terminate_on_nan(self) -> bool:

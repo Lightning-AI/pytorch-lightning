@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -51,7 +51,8 @@ class Strategy(ABC):
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
-        self.optimizers: List[Optimizer] = []
+        self._optimizers: List[Optimizer] = []
+        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
@@ -84,6 +85,17 @@ class Strategy(ABC):
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
         self._precision_plugin = precision_plugin
+
+    @property
+    def optimizers(self) -> List[Optimizer]:
+        return self._optimizers
+
+    @optimizers.setter
+    def optimizers(self, optimizers: List[Optimizer]) -> None:
+        self._optimizers = optimizers
+        self._lightning_optimizers = {
+            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
+        }
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
@@ -479,6 +491,16 @@ class Strategy(ABC):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.precision_plugin.dispatch(trainer)
+
+    def __getstate__(self) -> Dict:
+        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
+        state = dict(vars(self))  # copy
+        state["_lightning_optimizers"] = {}
+        return state
+
+    def __setstate__(self, state: Dict) -> None:
+        self.__dict__ = state
+        self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         r"""

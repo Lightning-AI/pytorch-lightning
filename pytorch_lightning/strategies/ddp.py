@@ -31,7 +31,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -351,9 +351,7 @@ class DDPStrategy(ParallelStrategy):
             )
             optimizers[x] = post_localSGD_optimizer
             del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        _convert_to_lightning_optimizers(trainer)
+        self.optimizers = optimizers
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
