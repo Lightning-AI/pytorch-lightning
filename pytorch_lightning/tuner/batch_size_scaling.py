@@ -100,9 +100,9 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
         "logger": trainer.logger,
         "callbacks": trainer.callbacks,
+        "max_steps": trainer.fit_loop.max_steps,
         "auto_scale_batch_size": trainer.auto_scale_batch_size,
         "auto_lr_find": trainer.auto_lr_find,
-        "max_steps": trainer.fit_loop.max_steps,
         "limit_train_batches": trainer.limit_train_batches,
     }
 
@@ -111,9 +111,9 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.fit_loop.current_epoch = 0
+    trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
-    trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.limit_train_batches = 1.0
 
 
