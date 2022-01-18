@@ -491,10 +491,10 @@ Bagua
 `Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
 multiple advanced distributed training algorithms including:
 
-- `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_ for Centralized Synchronous Communication
-- `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_ for Decentralized Synchronous Communication
-- `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_ and `QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ for Low Precision Communication
-- `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for Asynchronous Communication
+- `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_ for centralized synchronous communication, where gradients are averaged among all workers.
+- `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_ for decentralized synchronous communication, where each worker exchange data with one or a few specific workers.
+- `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_ and `QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ for low precision communication, where data is compressed into low precision before communication.
+- `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for asynchronous communication, where workers are not required to be synchronized in the same iteration in a lock-step style.
 
 By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in Distributed Data Parallel and Horovod,
 but Bagua can usually produce a higher training throughput.
