@@ -14,7 +14,7 @@
 """Utilities for loggers."""
 
 from argparse import Namespace
-from typing import Any, Callable, Dict, MutableMapping, Union
+from typing import Any, Dict, Generator, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
@@ -41,12 +41,12 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         dictionary with all callables sanitized
     """
 
-    def _sanitize_callable(val):
+    def _sanitize_callable(val: Any) -> Any:
         # Give them one chance to return a value. Don't go rabbit hole of recursive call
-        if isinstance(val, Callable):
+        if callable(val):
             try:
                 _val = val()
-                if isinstance(_val, Callable):
+                if callable(_val):
                     return val.__name__
                 return _val
             # todo: specify the possible exception
@@ -76,7 +76,9 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
         {'5/a': 123}
     """
 
-    def _dict_generator(input_dict, prefixes=None):
+    def _dict_generator(
+        input_dict: Any, prefixes: List[Optional[str]] = None
+    ) -> Generator[Any, Optional[List[str]], List[Any]]:
         prefixes = prefixes[:] if prefixes else []
         if isinstance(input_dict, MutableMapping):
             for key, value in input_dict.items():
@@ -121,7 +123,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return params
 
 
-def _add_prefix(metrics: Dict[str, float], prefix: str, logger_join_char: str):
+def _add_prefix(metrics: Dict[str, float], prefix: str, logger_join_char: str) -> Dict[str, float]:
     if prefix:
         metrics = {f"{prefix}{logger_join_char}{k}": v for k, v in metrics.items()}
 

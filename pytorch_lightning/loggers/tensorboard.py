@@ -198,7 +198,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         # format params into the suitable for tensorboard
         params = _flatten_dict(params)
-        params = self._sanitize_params(params)
+        params = TensorBoardLogger._sanitize_params(params)
 
         if metrics is None:
             if self._default_hp_metric:
