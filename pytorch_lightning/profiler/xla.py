@@ -40,7 +40,7 @@ class XLAProfiler(BaseProfiler):
         TPU performance tools.
 
         Args:
-            port : the port to start the profiler server on. An exception is
+            port: the port to start the profiler server on. An exception is
                 raised if the provided port is invalid or busy.
         """
         if not _TPU_AVAILABLE:
