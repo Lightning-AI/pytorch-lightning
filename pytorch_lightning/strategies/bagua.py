@@ -76,8 +76,8 @@ class BaguaStrategy(DDPStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
-        """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_
-        library, with advanced distributed training algorithms and system optimizations.
+        """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
+        distributed training algorithms and system optimizations.
 
         Arguments:
             algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms
