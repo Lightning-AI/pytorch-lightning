@@ -303,7 +303,6 @@ class EvaluationLoop(DataLoaderLoop):
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         unique_keys = sorted(set(EvaluationLoop._get_keys(results)))
         headers = [f"DataLoader {i}" for i in range(len(results))]
-        num_headers = len(headers)
 
         max_length = max(len(max(unique_keys + headers, key=len)), 25)
         # fallback is useful for testing of printed output
@@ -311,15 +310,15 @@ class EvaluationLoop(DataLoaderLoop):
 
         rows: List[List[Any]] = [[] for _ in unique_keys]
 
-        for dl in results:
+        for result in results:
             for i, row in enumerate(rows):
-                v = list(EvaluationLoop._find_value(dl, unique_keys[i]))
+                v = list(EvaluationLoop._find_value(result, unique_keys[i]))
                 row.append(f"{v[0]}" if v else " ")
 
         # keep one max length for stage-metric header
         num_cols = int((term_size - max_length) / max_length)
 
-        for i in range(0, num_headers, num_cols):
+        for i in range(0, len(headers), num_cols):
             table_headers = headers[i : (i + num_cols)]
             table_rows = [row[i : (i + num_cols)] for row in rows]
 
