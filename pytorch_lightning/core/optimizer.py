@@ -268,7 +268,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             extra_keys = scheduler.keys() - supported_keys
             if extra_keys:
                 rank_zero_warn(
-                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}. "
+                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}."
                     " HINT: remove them from the output of `configure_optimizers`.",
                     category=RuntimeWarning,
                 )
