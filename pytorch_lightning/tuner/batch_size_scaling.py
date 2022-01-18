@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional, Tuple
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -97,6 +98,8 @@ def scale_batch_size(
 
 def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
+        "logger": trainer.logger,
+        "callbacks": trainer.callbacks,
         "auto_scale_batch_size": trainer.auto_scale_batch_size,
         "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
@@ -108,6 +111,8 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.fit_loop.current_epoch = 0
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    trainer.callbacks = []  # not needed before full run
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.limit_train_batches = 1.0
 
@@ -116,6 +121,8 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     trainer.auto_scale_batch_size = params["auto_scale_batch_size"]
     trainer.auto_lr_find = params["auto_lr_find"]
     trainer.fit_loop.max_steps = params["max_steps"]
+    trainer.logger = params["logger"]
+    trainer.callbacks = params["callbacks"]
     trainer.limit_train_batches = params["limit_train_batches"]
 
 
