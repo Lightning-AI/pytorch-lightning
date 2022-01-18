@@ -574,9 +574,8 @@ To use *QAdam*, we need to initialize
     )
     trainer.fit(model)
 
-It is recommended to start training through `Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
-However, we can also use the same way as Distributed Data Parallel. Below are examples using ``bagua.distributed.launch``,
-whose usage is similar to ``torch.distributed.launch``:
+Bagua provides `built-in utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to launch jobs.
+Below are examples using ``bagua.distributed.launch``, whose usage is similar to ``torch.distributed.launch``:
 
 .. code-block:: bash
 
@@ -599,7 +598,8 @@ single node with a similar syntax as ``mpirun``.
     baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
 
 
-.. note:: System optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
+.. note:: You can also start training the same way as Distributed Data Parallel. However, system optimizations like
+    `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
     built-in launching utilities. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
     better performance without modifying the training script.
