@@ -45,9 +45,9 @@ class LightningDeprecationWarning(DeprecationWarning):
     """Deprecation warnings raised by PyTorch Lightning."""
 
 
- # enable our warnings 
-warnings.simplefilter("default", category=LightningDeprecationWarning) 
- 
+# enable our warnings
+warnings.simplefilter("default", category=LightningDeprecationWarning)
+
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
