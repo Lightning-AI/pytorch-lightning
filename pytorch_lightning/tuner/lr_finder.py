@@ -242,6 +242,7 @@ def lr_find(
 
     # Restore initial state of model
     trainer.checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:

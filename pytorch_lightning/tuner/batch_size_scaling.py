@@ -86,6 +86,7 @@ def scale_batch_size(
 
     # Restore initial state of model
     trainer.checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
     __scale_batch_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
