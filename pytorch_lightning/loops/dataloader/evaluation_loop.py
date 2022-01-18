@@ -320,8 +320,8 @@ class EvaluationLoop(DataLoaderLoop):
         num_cols = int((term_size - max_length) / max_length)
 
         for i in range(0, num_headers, num_cols):
-            table_headers = headers[i:(i + num_cols)]
-            table_rows = [row[i:(i + num_cols)] for row in rows]
+            table_headers = headers[i : (i + num_cols)]
+            table_rows = [row[i : (i + num_cols)] for row in rows]
 
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
