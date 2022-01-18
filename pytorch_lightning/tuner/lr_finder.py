@@ -125,9 +125,9 @@ class _LRFinder:
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
-            trainer.optimizers = [optimizer]
+            trainer.stategy.optimizers = [optimizer]
             trainer.strategy.lr_schedulers = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
-            trainer.optimizer_frequencies = []
+            trainer.strategy.optimizer_frequencies = []
             _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
         return func
@@ -227,7 +227,7 @@ def lr_find(
         trainer.progress_bar_callback.disable()
 
     # Required for saving the model
-    trainer.strategy.optimizers, trainer.strategy.lr_schedulers = [], []
+    trainer.optimizers, trainer.strategy.lr_schedulers = [], []
     trainer.model = model
 
     # Dump model checkpoint
