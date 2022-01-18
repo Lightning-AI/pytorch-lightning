@@ -41,7 +41,19 @@ def run_cli():
                 "-e", "--evaluate", dest="evaluate", action="store_true", help="evaluate model on validation set"
             )
 
-    cli = MyLightningCLI(ImageNetLightningModel, seed_everything_default=42, save_config_overwrite=True, run=False)
+    cli = MyLightningCLI(
+        ImageNetLightningModel,
+        seed_everything_default=42,
+        save_config_overwrite=True,
+        run=False,
+        trainer_defaults={
+            "callbacks": pl.callbacks.INCQuantization(
+                "config/quantization.yaml",
+                monitor="val_acc1",
+                module_name_to_quant="model"
+            ),
+        },
+    )
     if cli.config["evaluate"]:
         from neural_compressor.utils.pytorch import load
 
@@ -50,13 +62,6 @@ def run_cli():
         out = cli.trainer.validate(cli.model, datamodule=cli.datamodule)
         print("val_acc1:{}".format(out[0]["val_acc1"]))
     else:
-        callback = pl.callbacks.INCQuantization(
-            "config/quantization.yaml",
-            monitor="val_acc1",
-            module_name_to_quant="model",
-            dirpath=cli.trainer.default_root_dir,
-        )
-        cli.trainer.callbacks.append(callback)
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
 

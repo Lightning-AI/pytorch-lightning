@@ -33,7 +33,6 @@ if _NEURAL_COMPRESSOR_AVAILABLE:
 class QuantizationMode(Enum):
     PTQ_DYNAMIC = "post_training_dynamic_quant"
     PTQ_STATIC = "post_training_static_quant"
-    QAT = "quant_aware_training"
 
 
 class INCQuantization(Callback):
@@ -83,8 +82,6 @@ class INCQuantization(Callback):
         self.dirpath = dirpath
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the compressor loop begins."""
-
         def eval_func(model):
             setattr(pl_module, self.module_name_to_quant, model)
             out = trainer.validate(pl_module, self.datamodule.val_dataloader() if self.datamodule is not None else None)
