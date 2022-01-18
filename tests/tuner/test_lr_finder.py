@@ -343,7 +343,6 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     trainer.tuner.lr_find(model=model, num_training=num_training)
 
 
-@pytest.mark.xfail
 def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     """Tests that lr_finder gives same results if called multiple times."""
     seed_everything(1)
