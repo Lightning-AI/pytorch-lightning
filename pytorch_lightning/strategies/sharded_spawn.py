@@ -38,12 +38,9 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
 
     def configure_ddp(self) -> None:
-        trainer = self.lightning_module.trainer
-        self.model, optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model),
-            optimizers=trainer.optimizers,
+        self.model, self.optimizers = self._setup_model_and_optimizers(
+            model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
         )
-        trainer.optimizers = optimizers
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
