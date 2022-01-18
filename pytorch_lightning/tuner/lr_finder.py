@@ -13,7 +13,8 @@
 # limitations under the License.
 import importlib
 import logging
-from copy import deepcopy
+import os
+import uuid
 from functools import wraps
 from typing import Any, Dict, Optional, Sequence
 
@@ -206,9 +207,10 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
+    ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
     trainer.fit_loop.current_epoch -= 1
     trainer.fit_loop.global_step -= 1
-    state_dict = deepcopy(trainer.checkpoint_connector.dump_checkpoint())
+    trainer.save_checkpoint(ckpt_path)
     trainer.fit_loop.current_epoch += 1
     trainer.fit_loop.global_step += 1
     params = __lr_finder_dump_params(trainer)
@@ -238,8 +240,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
     # Restore initial state of model
-    trainer.checkpoint_connector._loaded_checkpoint = state_dict
-    trainer.checkpoint_connector.restore(None)
+    trainer.checkpoint_connector.restore(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:

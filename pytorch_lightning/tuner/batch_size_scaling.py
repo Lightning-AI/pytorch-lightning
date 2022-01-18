@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import logging
-from copy import deepcopy
+import os
+import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from torch.utils.data import DataLoader
@@ -56,9 +57,10 @@ def scale_batch_size(
             " Please disable the feature or incorporate the dataloader into the model."
         )
 
+    ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
     trainer.fit_loop.current_epoch -= 1
     trainer.fit_loop.global_step -= 1
-    state_dict = deepcopy(trainer.checkpoint_connector.dump_checkpoint())
+    trainer.save_checkpoint(ckpt_path)
     trainer.fit_loop.current_epoch += 1
     trainer.fit_loop.global_step += 1
     params = __scale_batch_dump_params(trainer)
@@ -82,8 +84,7 @@ def scale_batch_size(
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
     # Restore initial state of model
-    trainer.checkpoint_connector._loaded_checkpoint = state_dict
-    trainer.checkpoint_connector.restore(None)
+    trainer.checkpoint_connector.restore(ckpt_path)
     __scale_batch_restore_params(trainer, params)
 
     return new_size
