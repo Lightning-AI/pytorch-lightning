@@ -42,7 +42,8 @@ For the example let's override ``predict_step`` and try out `Monte Carlo Dropout
             self.dropout.train()
 
             # take average of `self.mc_iteration` iterations
-            pred = torch.vstack([self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]).mean(dim=0)
+            pred = [self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]
+            pred = torch.vstack(pred).mean(dim=0)
             return pred
 
 ------------
@@ -69,7 +70,7 @@ You can also load the saved checkpoint and use it as a regular :class:`torch.nn.
     # train it
     trainer = Trainer(gpus=2)
     trainer.fit(model, train_dataloader, val_dataloader)
-    trainer.save_checkpoint("best_model.ckpt")
+    trainer.save_checkpoint("best_model.ckpt", weights_only=True)
 
     # use model after training or load weights and drop into the production system
     model = SimpleModel.load_from_checkpoint("best_model.ckpt")
@@ -137,6 +138,8 @@ You can also skip passing the input sample if the ``example_input_array`` proper
 Once you have the exported model, you can run it on your ONNX runtime in the following way:
 
 .. code-block:: python
+
+    import onnxruntime
 
     ort_session = onnxruntime.InferenceSession(filepath)
     input_name = ort_session.get_inputs()[0].name
