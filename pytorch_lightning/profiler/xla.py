@@ -41,7 +41,7 @@ class XLAProfiler(BaseProfiler):
 
         Args:
             port : the port to start the profiler server on. An exception is
-                raised if the provided port is invalid or busy. Default: ``9012``.
+                raised if the provided port is invalid or busy.
         """
         if not _TPU_AVAILABLE:
             raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
