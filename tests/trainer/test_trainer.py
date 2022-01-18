@@ -1763,27 +1763,6 @@ def test_train_loop_system(tmpdir):
     ]
 
 
-def test_init_optimizers_resets_lightning_optimizers(tmpdir):
-    """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
-
-    def compare_optimizers():
-        assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
-
-    model = BoringModel()
-    model.lr = 0.2
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
-
-    trainer.tune(model)
-    compare_optimizers()
-
-    trainer.fit(model)
-    compare_optimizers()
-
-    trainer.fit_loop.max_epochs = 2  # simulate multiple fit calls
-    trainer.fit(model)
-    compare_optimizers()
-
-
 def test_check_val_every_n_epoch_exception(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="should be an integer."):

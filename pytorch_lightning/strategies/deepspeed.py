@@ -482,7 +482,7 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
-            self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
+            self.lr_schedulers = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager
