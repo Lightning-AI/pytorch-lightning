@@ -596,8 +596,8 @@ single node with a similar syntax as mpirun.
 
 
 .. warning:: Several optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
-`Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
-built-in launching utilities. It is worth noting that we can even speedup Distributed Data Parallel by `Bagua-Net`.
+    `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
+    built-in launching utilities. It is worth noting that we can even speedup Distributed Data Parallel by `Bagua-Net`.
 
 
 See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details.
