@@ -336,7 +336,6 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
-
         @staticmethod
         def auto_device_count() -> int:
             return 1
