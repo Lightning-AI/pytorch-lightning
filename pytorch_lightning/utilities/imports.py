@@ -25,18 +25,46 @@ from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
-def _module_available(module_path: str) -> bool:
-    """Check if a path is available in your environment.
+def _package_available(package_name: str) -> bool:
+    """Check if a package is available in your environment.
 
-    >>> _module_available('os')
+    >>> _package_available('os')
     True
-    >>> _module_available('bla.bla')
+    >>> _package_available('bla')
     False
     """
     try:
-        return find_spec(module_path) is not None
-    except ModuleNotFoundError:
+        return find_spec(package_name) is not None
+    except AttributeError:
+        # Python 3.6
         return False
+    except (ImportError, ModuleNotFoundError):
+        # Python 3.7+
+        return False
+
+
+def _module_available(module_path: str) -> bool:
+    """Check if a module path is available in your environment.
+
+    >>> _module_available('os')
+    True
+    >>> _module_available('os.bla')
+    False
+    >>> _module_available('bla.bla')
+    False
+    """
+    module_names = module_path.split(".")
+    if not _package_available(module_names[0]):
+        return False
+    try:
+        module = importlib.import_module(module_names[0])
+    except ImportError:
+        return False
+    for name in module_names[1:]:
+        if not hasattr(module, name):
+            return False
+        module = getattr(module, name)
+    return True
 
 
 def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
