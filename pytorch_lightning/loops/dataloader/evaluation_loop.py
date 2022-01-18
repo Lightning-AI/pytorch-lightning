@@ -298,6 +298,7 @@ class EvaluationLoop(DataLoaderLoop):
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: RunningStage) -> None:
         import shutil
+
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         unique_keys = sorted(set(EvaluationLoop._get_keys(results)))
