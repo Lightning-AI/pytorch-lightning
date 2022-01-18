@@ -349,9 +349,7 @@ def test_lightning_cli_args(tmpdir):
     with open(config_path) as f:
         loaded_config = yaml.safe_load(f.read())
 
-    loaded_config = loaded_config["fit"]
     cli_config = cli.config["fit"].as_dict()
-
     assert cli_config["seed_everything"] == 1234
     assert "model" not in loaded_config and "model" not in cli_config  # no arguments to include
     assert loaded_config["data"] == cli_config["data"]
@@ -405,9 +403,7 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
     with open(config_path) as f:
         loaded_config = yaml.safe_load(f.read())
 
-    loaded_config = loaded_config["fit"]
     cli_config = cli.config["fit"].as_dict()
-
     assert loaded_config["model"] == cli_config["model"]
     assert loaded_config["data"] == cli_config["data"]
     assert loaded_config["trainer"] == cli_config["trainer"]
