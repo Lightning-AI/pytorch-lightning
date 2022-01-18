@@ -492,11 +492,12 @@ Bagua
 state-of-the-art system relaxation techniques of distributed training.
 
 Currently, Bagua supports multiple advanced distributed training algorithms by integrating several communication
-primitives in its framework, including:
-* Centralized Synchronous Communication (e.g. `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_)
-* Decentralized Synchronous Communication (e.g. `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_)
-* Low Precision Communication (e.g. `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_)
-* Asynchronous Communication (e.g. `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_)
+primitives including:
+
+- Centralized Synchronous Communication (e.g. `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_)
+- Decentralized Synchronous Communication (e.g. `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_)
+- Low Precision Communication (e.g. `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_)
+- Asynchronous Communication (e.g. `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_)
 
 By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm used in Distributed Data Parallel and Horovod,
 but Bagua can usually brings in a higher training throughput.
@@ -507,7 +508,7 @@ but Bagua can usually brings in a higher training throughput.
     trainer = Trainer(strategy="bagua", gpus=2)
 
 
-By specifying the `algorithm` for `BaguaStrategy`, we can using advanced algorithms in Bagua:
+By specifying the `algorithm` in a `BaguaStrategy`, we can use advanced training algorithms featured by Bagua:
 
 
 .. code-block:: python
@@ -544,8 +545,9 @@ By specifying the `algorithm` for `BaguaStrategy`, we can using advanced algorit
         gpus=4,
     )
 
-`QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ is a distributed training algorithm which needs to work
-along with its optimizer. To use QAdam, we need to initialize `QAdamOptimizer` first.
+`QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ is another training algorithm which needs to work
+along with its specific optimizer. To use *QAdam*, we need to initialize
+`QAdamOptimizer <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/q_adam/index.html#bagua.torch_api.algorithms.q_adam.QAdamOptimizer>`_ first.
 
 .. code-block:: python
 
@@ -571,7 +573,7 @@ along with its optimizer. To use QAdam, we need to initialize `QAdamOptimizer` f
     trainer.fit(model)
 
 
-To launch a Bagua job, we can use the same way as Distributed Data Parallel or use
+In order to launch a Bagua job, we can use the same way as Distributed Data Parallel or use
 `Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
 
 .. code-block:: bash
@@ -597,10 +599,11 @@ single node with a similar syntax as mpirun.
 
 .. warning:: Several optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
-    built-in launching utilities. It is worth noting that we can even speedup Distributed Data Parallel by `Bagua-Net`.
+    built-in launching utilities. It is worth noting that Distributed Data Parallel can also be accelerated
+    by `Bagua-Net` through these utilities.
 
 
-See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details.
+See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
 
 
 DP/DDP2 caveats
