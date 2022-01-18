@@ -48,4 +48,4 @@ def test_bagua_algorithm(tmpdir):
 def test_bagua_not_available():
 
     with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
-        trainer = Trainer(strategy="bagua", gpus=1)
+        Trainer(strategy="bagua", gpus=1)
