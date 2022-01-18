@@ -492,7 +492,7 @@ Bagua
 multiple advanced distributed training algorithms including:
 
 - `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_ for centralized synchronous communication, where gradients are averaged among all workers.
-- `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_ for decentralized synchronous communication, where each worker exchange data with one or a few specific workers.
+- `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_ for decentralized synchronous communication, where each worker exchanges data with one or a few specific workers.
 - `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_ and `QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ for low precision communication, where data is compressed into low precision before communication.
 - `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for asynchronous communication, where workers are not required to be synchronized in the same iteration in a lock-step style.
 
@@ -598,7 +598,7 @@ single node with a similar syntax as ``mpirun``.
     baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
 
 
-.. note:: You can also start training the same way as Distributed Data Parallel. However, system optimizations like
+.. note:: You can also start training in the same way as Distributed Data Parallel. However, system optimizations like
     `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
     built-in launching utilities. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
