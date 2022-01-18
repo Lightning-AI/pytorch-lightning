@@ -498,10 +498,8 @@ primitives in its framework, including:
 * Low Precision Communication (e.g. `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_)
 * Asynchronous Communication (e.g. `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_)
 
-By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm used in
-`Distributed Data Parallel <https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu.html#distributed-data-parallel>`_
-and `Horovod <https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu.html#horovod>`_, but Bagua can
-usually brings in a higher training throughput.
+By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm used in Distributed Data Parallel and Horovod,
+but Bagua can usually brings in a higher training throughput.
 
 .. code-block:: python
 
