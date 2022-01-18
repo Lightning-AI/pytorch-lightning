@@ -232,7 +232,7 @@ def test_simple_profiler_summary(tmpdir, extended):
         output_string_len = len(header_string.expandtabs())
         sep_lines = f"{sep}{'-'* output_string_len}"
         expected_text = (
-            f"{sep}Profiler Report{sep}"
+            f"Profiler Report{sep}"
             f"{sep_lines}"
             f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
             f"{sep_lines}"
@@ -253,7 +253,7 @@ def test_simple_profiler_summary(tmpdir, extended):
         output_string_len = len(header_string.expandtabs())
         sep_lines = f"{sep}{'-'* output_string_len}"
         expected_text = (
-            f"{sep}Profiler Report{sep}"
+            f"Profiler Report{sep}"
             f"{sep_lines}"
             f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
             f"{sep_lines}"

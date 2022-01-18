@@ -81,7 +81,7 @@ class SimpleProfiler(BaseProfiler):
 
     def summary(self) -> str:
         sep = os.linesep
-        output_string = f"{sep}"
+        output_string = ""
         if self._stage is not None:
             output_string += f"{self._stage.upper()} "
         output_string += f"Profiler Report{sep}"
@@ -113,7 +113,7 @@ class SimpleProfiler(BaseProfiler):
                     )
                 output_string += sep_lines
         else:
-            max_key = max(len(k) for k in self.recorded_durations.keys())
+            max_key = max(len(k) for k in self.recorded_durations)
 
             def log_row(action, mean, total):
                 return f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|  {total:<15}\t|"
