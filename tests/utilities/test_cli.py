@@ -33,6 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -1435,3 +1436,17 @@ def test_cli_parameter_with_lazy_instance_default():
         assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
         assert cli.model.activation.negative_slope == 0.05
         assert cli.model.activation is not model.activation
+
+
+def test_cli_logger_shorthand():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
+    assert cli.trainer.logger is None
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.logger=TensorBoardLogger", "--trainer.logger.save_dir=foo"]):
+        cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
+    assert isinstance(cli.trainer.logger, TensorBoardLogger)
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.logger=False"]):
+        cli = LightningCLI(TestModel, run=False)
+    assert cli.trainer.logger is None
