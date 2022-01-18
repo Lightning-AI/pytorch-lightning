@@ -216,6 +216,7 @@ def test_simple_profiler_summary(tmpdir, extended):
     ]
     sometime = 0.773434
     sep = os.linesep
+    max_action_len = len("on_before_batch_transfer")
 
     for hook in hooks:
         with profiler.profile(hook):
@@ -224,34 +225,46 @@ def test_simple_profiler_summary(tmpdir, extended):
         profiler.recorded_durations[hook] = [sometime]
 
     if extended:
-        expected_text = f"""{sep}Profiler Report{sep}\
-{sep}----------------------------------------------------------------------------------------------------------------------------------\
-{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |\
-{sep}----------------------------------------------------------------------------------------------------------------------------------\
-{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |\
-{sep}----------------------------------------------------------------------------------------------------------------------------------\
-{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |\
-{sep}----------------------------------------------------------------------------------------------------------------------------------{sep}\
-"""  # noqa: E501
-
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Num calls':<15}\t|"
+            f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"{sep}Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep_lines}{sep}"
+        )
     else:
-        expected_text = f"""{sep}Profiler Report{sep}\
-{sep}----------------------------------------------------------------------------------\
-{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |\
-{sep}----------------------------------------------------------------------------------\
-{sep}|  on_train_start               |  0.77343              |  0.77343              |\
-{sep}|  on_train_end                 |  0.77343              |  0.77343              |\
-{sep}|  on_train_epoch_start         |  0.77343              |  0.77343              |\
-{sep}|  on_train_epoch_end           |  0.77343              |  0.77343              |\
-{sep}|  on_before_batch_transfer     |  0.77343              |  0.77343              |\
-{sep}|  on_fit_start                 |  0.77343              |  0.77343              |\
-{sep}----------------------------------------------------------------------------------{sep}\
-"""
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"{sep}Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_end                 |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  0.77343              |"
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  0.77343              |"
+            f"{sep}|  on_fit_start                 |  0.77343              |  0.77343              |"
+            f"{sep_lines}{sep}"
+        )
 
     summary = profiler.summary().expandtabs()
     assert expected_text == summary
