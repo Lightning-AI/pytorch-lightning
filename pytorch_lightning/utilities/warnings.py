@@ -41,13 +41,10 @@ class PossibleUserWarning(UserWarning):
     """Warnings that could be false positives."""
 
 
-class LightningDeprecationWarning(DeprecationWarning):
+class LightningDeprecationWarning(FutureWarning):
     """Deprecation warnings raised by PyTorch Lightning."""
 
 
- # enable our warnings 
-warnings.simplefilter("default", category=LightningDeprecationWarning) 
- 
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
