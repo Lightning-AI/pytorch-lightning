@@ -53,6 +53,7 @@ class Strategy(ABC):
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
+        # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):

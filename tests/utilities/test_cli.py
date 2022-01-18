@@ -641,7 +641,7 @@ def test_lightning_cli_optimizer(tmpdir, run):
     else:
         assert len(cli.trainer.optimizers) == 1
         assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-        assert len(cli.trainer.lr_schedulers) == 0
+        assert len(cli.trainer.lr_scheduler_configs) == 0
 
 
 def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
@@ -658,9 +658,9 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     assert cli.model.configure_optimizers is not BoringModel.configure_optimizers
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.lr_schedulers) == 1
-    assert isinstance(cli.trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.ExponentialLR)
-    assert cli.trainer.lr_schedulers[0]["scheduler"].gamma == 0.8
+    assert len(cli.trainer.lr_scheduler_configs) == 1
+    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.ExponentialLR)
+    assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
 
 
 def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
@@ -684,9 +684,9 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
 
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.lr_schedulers) == 1
-    assert isinstance(cli.trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
-    assert cli.trainer.lr_schedulers[0]["scheduler"].step_size == 50
+    assert len(cli.trainer.lr_scheduler_configs) == 1
+    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
+    assert cli.trainer.lr_scheduler_configs[0].scheduler.step_size == 50
 
 
 @pytest.mark.parametrize("use_registries", [False, True])

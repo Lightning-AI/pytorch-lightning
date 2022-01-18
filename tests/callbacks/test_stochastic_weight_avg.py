@@ -78,9 +78,9 @@ class SwaTestCallback(StochasticWeightAveraging):
         super().on_train_epoch_start(trainer, *args)
         assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
-            assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
-            assert trainer.lr_schedulers[0]["interval"] == "epoch"
-            assert trainer.lr_schedulers[0]["frequency"] == 1
+            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, SWALR)
+            assert trainer.lr_scheduler_configs[0].interval == "epoch"
+            assert trainer.lr_scheduler_configs[0].frequency == 1
 
     def on_train_epoch_end(self, trainer, *args):
         super().on_train_epoch_end(trainer, *args)
