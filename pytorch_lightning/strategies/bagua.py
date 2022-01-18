@@ -91,7 +91,7 @@ class BaguaStrategy(DDPStrategy):
             raise MisconfigurationException(
                 "To use the `BaguaStrategy`, you must have `Bagua` installed. Use `pip install bagua` to install it."
             )
-        
+
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

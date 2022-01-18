@@ -33,7 +33,7 @@ def test_bagua_algorithm(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=1,
         strategy=bagua_strategy,
-        accelerator='gpu',
+        accelerator="gpu",
         devices=2,
     )
     trainer.fit(model)
