@@ -76,8 +76,8 @@ class BaguaStrategy(DDPStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
-        """Provides capabilities to run distributed training using the `Bagua <https://github.com/BaguaSys/bagua>`_
-        library.
+        """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_
+        library, with advanced distributed training algorithms and system optimizations.
 
         Arguments:
             algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms
@@ -229,11 +229,11 @@ class BaguaStrategy(DDPStrategy):
             elif reduce_op.lower() == "sum":
                 op = BaguaReduceOp.SUM
             else:
-                raise ValueError(f"Unrecognized `reduce_op`: {reduce_op}")
+                raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
         elif isinstance(reduce_op, ReduceOp):
             op = from_torch_reduce_op(reduce_op)
             if op is None:
-                raise ValueError(f"Unrecognized `reduce_op`: {reduce_op}")
+                raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
 
         allreduce_inplace(tensor, op=op)
         return tensor

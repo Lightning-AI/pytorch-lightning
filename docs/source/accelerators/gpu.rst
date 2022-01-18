@@ -277,7 +277,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
-- [Bagua](https://github.com/BaguaSys/bagua) (``strategy='bagua'``) (multiple-gpus across many machines)
+- Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
@@ -497,7 +497,7 @@ multiple advanced distributed training algorithms including:
 - `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for Asynchronous Communication
 
 By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in Distributed Data Parallel and Horovod,
-but Bagua can usually produces a higher training throughput.
+but Bagua can usually produce a higher training throughput.
 
 .. code-block:: python
 
@@ -548,7 +548,7 @@ By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different adv
     )
 
 To use *QAdam*, we need to initialize
-`QAdamOptimizer <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/q_adam/index.html#bagua.torch_api.algorithms.q_adam.QAdamOptimizer>`_ first.
+`QAdamOptimizer <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/q_adam/index.html#bagua.torch_api.algorithms.q_adam.QAdamOptimizer>`_ first:
 
 .. code-block:: python
 
@@ -575,7 +575,8 @@ To use *QAdam*, we need to initialize
     trainer.fit(model)
 
 It is recommend to start training through `Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
-However, we can also use the same way as Distributed Data Parallel.
+However, we can also use the same way as Distributed Data Parallel. Below are examples using ``bagua.distributed.launch``,
+whose usage is similar to ``torch.distributed.launch``:
 
 .. code-block:: bash
 
@@ -598,10 +599,10 @@ single node with a similar syntax as ``mpirun``.
     baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
 
 
-.. warning:: Several optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
+.. note:: System optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
     built-in launching utilities. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
-    better performance.
+    better performance without modifying the training script.
 
 
 See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
