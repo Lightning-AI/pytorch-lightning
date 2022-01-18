@@ -108,7 +108,13 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+    tmpdir,
+    batchnorm=True,
+    strategy=None,
+    accelerator="cpu",
+    devices=1,
+    interval="epoch",
+    iterable_dataset=False,
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
@@ -126,8 +132,8 @@ def train_with_swa(
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
         strategy=strategy,
-        gpus=gpus,
-        num_processes=num_processes,
+        accelerator=accelerator,
+        devices=devices,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
@@ -139,22 +145,22 @@ def train_with_swa(
 
 @RunIf(min_gpus=2, standalone=True)
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
 @RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @RunIf(min_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
-    train_with_swa(tmpdir, gpus=1)
+    train_with_swa(tmpdir, accelerator="gpu", devices=1)
 
 
 @pytest.mark.parametrize("batchnorm", (True, False))
