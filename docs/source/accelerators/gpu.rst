@@ -278,6 +278,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
+- Bagua (``strategy='bagua'``) (multiple-gpus across many machines (python script based))
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
@@ -483,6 +484,126 @@ number of worker processes:
 
 See the official `Horovod documentation <https://horovod.readthedocs.io/en/stable>`_ for details
 on installation and performance tuning.
+
+
+Bagua
+^^^^^^^
+`Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
+state-of-the-art system relaxation techniques of distributed training.
+
+Currently, Bagua supports multiple advanced distributed training algorithms by integrating several communication
+primitives in its framework, including:
+* Centralized Synchronous Communication (e.g. `Gradient AllReduce <https://tutorials.baguasys.com/algorithms/gradient-allreduce>`_)
+* Decentralized Synchronous Communication (e.g. `Decentralized SGD <https://tutorials.baguasys.com/algorithms/decentralized>`_)
+* Low Precision Communication (e.g. `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_)
+* Asynchronous Communication (e.g. `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_)
+
+By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm used in
+`Distributed Data Parallel <https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu.html#distributed-data-parallel>`_
+and `Horovod <https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu.html#horovod>`_, but Bagua can
+usually brings in a higher training throughput.
+
+.. code-block:: python
+
+    # train on 2 GPUs (using Bagua mode)
+    trainer = Trainer(strategy="bagua", gpus=2)
+
+
+By specifying the `algorithm` for `BaguaStrategy`, we can using advanced algorithms in Bagua:
+
+
+.. code-block:: python
+
+    # train on 4 GPUs, using Bagua Gradient AllReduce algorithm
+    trainer = Trainer(
+        strategy=BaguaStrategy(algorithm="gradient_allreduce"),
+        gpus=4,
+    )
+
+    # train on 4 GPUs, using Bagua ByteGrad algorithm
+    trainer = Trainer(
+        strategy=BaguaStrategy(algorithm="bytegrad"),
+        gpus=4,
+    )
+
+    # train on 4 GPUs, using Bagua Decentralized SGD
+    trainer = Trainer(
+        strategy=BaguaStrategy(algorithm="decentralized"),
+        gpus=4,
+    )
+
+    # train on 4 GPUs, using Bagua Low Precision Decentralized SGD
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=BaguaStrategy(algorithm="low_precision_decentralized"),
+        gpus=4,
+    )
+
+    # train on 4 GPUs, using Asynchronous Model Average algorithm, with a synchronization interval of 100ms
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=BaguaStrategy(algorithm="async", sync_interval_ms=100),
+        gpus=4,
+    )
+
+`QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ is a distributed training algorithm which needs to work
+along with its optimizer. To use QAdam, we need to initialize `QAdamOptimizer` first.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import BaguaStrategy
+    from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
+
+
+    class MyModel(pl.LightningModule):
+        ...
+
+        def configure_optimizers(self):
+            # initialize QAdam Optimizer
+            return QAdamOptimizer(self.parameters(), lr=0.05, warmup_steps=100)
+
+
+    model = MyModel()
+    trainer = Trainer(
+        gpus=4,
+        strategy=BaguaStrategy(algorithm="qadam"),
+    )
+    trainer.fit(model)
+
+
+To launch a Bagua job, we can use the same way as Distributed Data Parallel or use
+`Bagua built-in launch utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_.
+
+.. code-block:: bash
+
+    # start training with 8 GPUs on a single node
+    python -m bagua.distributed.launch --nproc_per_node=8 train.py
+
+    # Run on node1 to start training on two nodes (node1 and node2), 8 GPUs per node
+    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=hostname1 --master_port=port1  train.py
+
+    # Run on node2 to start training on two nodes (node1 and node2), 8 GPUs per node
+    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=hostname1 --master_port=port1  train.py
+
+
+If the ssh service is available with passwordless login on each node, we can launch the distributed job on a
+single node with a similar syntax as mpirun.
+
+.. code-block:: bash
+
+    # start training on two nodes (node1 and node2), 8 GPUs per node
+    baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
+
+
+.. warning:: Several optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
+`Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>` can only be enabled through bagua
+built-in launching utilities. It is worth noting that we can even speedup Distributed Data Parallel by `Bagua-Net`.
+
+
+See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details.
+
 
 DP/DDP2 caveats
 ^^^^^^^^^^^^^^^
