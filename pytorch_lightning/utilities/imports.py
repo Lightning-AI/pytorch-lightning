@@ -35,11 +35,7 @@ def _package_available(package_name: str) -> bool:
     """
     try:
         return find_spec(package_name) is not None
-    except AttributeError:
-        # Python 3.6
-        return False
-    except (ImportError, ModuleNotFoundError):
-        # Python 3.7+
+    except ModuleNotFoundError:
         return False
 
 
@@ -105,7 +101,7 @@ _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
-_HOROVOD_AVAILABLE = _package_available("horovod.torch")
+_HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
