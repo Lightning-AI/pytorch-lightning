@@ -20,7 +20,6 @@ from typing import Any, Dict, Iterator, Optional, Union
 from deprecate import void
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.utilities import _update_dataloader_iter
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -88,7 +87,7 @@ class EvaluationEpochLoop(Loop):
         self._data_fetcher = data_fetcher
 
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_progress.current.ready)
+        self._dataloader_iter = iter(data_fetcher)
 
     def advance(  # type: ignore[override]
         self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: int
@@ -106,18 +105,15 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches)
 
         assert self._dataloader_iter is not None
-        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
-
+        batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
         if batch is None:
             raise StopIteration
 
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=(dataloader_idx or 0))
+        # configure step_kwargs
+        # TODO: each loop should construct its own kwargs, so we avoid the dataloader_idx reference here
+        kwargs = self._build_kwargs(batch, self.batch_progress.current.ready, dataloader_idx)
 
         self.batch_progress.increment_ready()
-
-        # configure step_kwargs
-        kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         # hook
         self._on_evaluation_batch_start(**kwargs)

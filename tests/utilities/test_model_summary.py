@@ -301,7 +301,7 @@ def test_model_size_precision(tmpdir):
     model = PreCalculatedModel()
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, max_steps=1, max_epochs=1, precision=32)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, max_steps=1, max_epochs=1, precision=32)
     trainer.fit(model)
     summary = summarize(model)
     assert model.pre_calculated_model_size == summary.model_size

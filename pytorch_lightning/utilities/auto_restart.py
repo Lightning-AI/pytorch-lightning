@@ -36,13 +36,13 @@ from torch.utils.data.dataloader import (
     DataLoader,
     IterableDataset,
 )
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _SupportsStateDict
 
 
 class FastForwardSampler(Sampler):
@@ -576,7 +576,6 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
 def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
     # therefore, we need to reload the states manually.
-
     latest_worker_id = state_dict["latest_worker_id"]
     num_workers = state_dict["state"][latest_worker_id]["num_workers"]
     sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
@@ -633,17 +632,6 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     next_worker_id = latest_worker_id + 1
     old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
-
-
-@runtime_checkable
-class _SupportsStateDict(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
 
 
 class _StatefulDataLoaderIter:

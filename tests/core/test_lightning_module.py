@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-import torch.distributed as dist
 from torch import nn
 from torch.optim import Adam, SGD
 
@@ -287,7 +286,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 def test_device_placement(tmpdir):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -304,23 +303,18 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
 
 
-class BoringModelWithShardedTensor(BoringModel):
-    def __init__(self, spec):
-        super().__init__()
-        self.sharded_tensor = dist._sharded_tensor.empty(spec, 10, 20)
-        self.sharded_tensor.local_shards()[0].tensor.fill_(0)
-
-
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
-    # PROBLEM 1:
-    #  `dist._sharding_spec.ChunkShardingSpec(...)` below raises
-    #  `AttributeError: module 'torch.distributed' has no attribute '_sharding_spec'`
-    #  without any of the following (1) and (2).
-    import torch.distributed._sharding_spec  # (1)
+    from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._sharding_spec import ChunkShardingSpec
 
-    LightningModule()  # (2) which makes `_sharding_spec` subpackage available in its init.
-    spec = dist._sharding_spec.ChunkShardingSpec(
+    class BoringModelWithShardedTensor(BoringModel):
+        def __init__(self, spec):
+            super().__init__()
+            self.sharded_tensor = sharded_tensor_empty(spec, 10, 20)
+            self.sharded_tensor.local_shards()[0].tensor.fill_(0)
+
+    spec = ChunkShardingSpec(
         dim=0,
         placements=[
             "rank:0/cpu",

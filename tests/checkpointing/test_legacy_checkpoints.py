@@ -75,9 +75,11 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
         model = ClassificationModel()
         es = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
         stop = LimitNbEpochs(1)
+
         trainer = Trainer(
             default_root_dir=str(tmpdir),
-            gpus=int(torch.cuda.is_available()),
+            accelerator="auto",
+            devices=1,
             precision=(16 if torch.cuda.is_available() else 32),
             callbacks=[es, stop],
             max_epochs=21,
