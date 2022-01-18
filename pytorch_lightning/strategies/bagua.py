@@ -87,7 +87,11 @@ class BaguaStrategy(DDPStrategy):
                 pointer of bucket tensors so that they can use faster code paths. Default: ``True``.
             kwargs: Additional arguments that will be passed to initialize the Bagua algorithm.
         """
-
+        if not _BAGUA_AVAILABLE:
+            raise MisconfigurationException(
+                "To use the `BaguaStrategy`, you must have `Bagua` installed. Use `pip install bagua` to install it."
+            )
+        
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -215,7 +219,7 @@ class BaguaStrategy(DDPStrategy):
         if not isinstance(tensor, torch.Tensor):
             return tensor
         if group is not None:
-            raise ValueError("Bagua does not support allreduce using a subcommunicator at this time. Unset `group`.")
+            raise ValueError("`Bagua` does not support allreduce using a subcommunicator at this time. Unset `group`.")
 
         if reduce_op is None:
             op = BaguaReduceOp.AVG
@@ -225,11 +229,11 @@ class BaguaStrategy(DDPStrategy):
             elif reduce_op.lower() == "sum":
                 op = BaguaReduceOp.SUM
             else:
-                raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
+                raise ValueError(f"Unrecognized `reduce_op`: {reduce_op}")
         elif isinstance(reduce_op, ReduceOp):
             op = from_torch_reduce_op(reduce_op)
             if op is None:
-                raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
+                raise ValueError(f"Unrecognized `reduce_op`: {reduce_op}")
 
         allreduce_inplace(tensor, op=op)
         return tensor

@@ -277,8 +277,8 @@ Lightning allows multiple ways of training
 - DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
+- [Bagua](https://github.com/BaguaSys/bagua) (``strategy='bagua'``) (multiple-gpus across many machines)
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
-- Bagua (``strategy='bagua'``) (multiple-gpus across many machines (python script based))
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
@@ -487,7 +487,7 @@ on installation and performance tuning.
 
 
 Bagua
-^^^^^^^
+^^^^^
 `Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
 multiple advanced distributed training algorithms including:
 
@@ -513,33 +513,38 @@ By specifying the `algorithm` in a `BaguaStrategy`, we can use different advance
     # train on 4 GPUs, using Bagua Gradient AllReduce algorithm
     trainer = Trainer(
         strategy=BaguaStrategy(algorithm="gradient_allreduce"),
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
     )
 
     # train on 4 GPUs, using Bagua ByteGrad algorithm
     trainer = Trainer(
         strategy=BaguaStrategy(algorithm="bytegrad"),
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
     )
 
     # train on 4 GPUs, using Bagua Decentralized SGD
     trainer = Trainer(
         strategy=BaguaStrategy(algorithm="decentralized"),
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
     )
 
     # train on 4 GPUs, using Bagua Low Precision Decentralized SGD
     trainer = Trainer(
         max_epochs=1,
         strategy=BaguaStrategy(algorithm="low_precision_decentralized"),
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
     )
 
     # train on 4 GPUs, using Asynchronous Model Average algorithm, with a synchronization interval of 100ms
     trainer = Trainer(
         max_epochs=1,
         strategy=BaguaStrategy(algorithm="async", sync_interval_ms=100),
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
     )
 
 To use *QAdam*, we need to initialize
@@ -563,7 +568,8 @@ To use *QAdam*, we need to initialize
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=BaguaStrategy(algorithm="qadam"),
     )
     trainer.fit(model)
@@ -577,14 +583,14 @@ However, we can also use the same way as Distributed Data Parallel.
     python -m bagua.distributed.launch --nproc_per_node=8 train.py
 
     # Run on node1 to start training on two nodes (node1 and node2), 8 GPUs per node
-    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=hostname1 --master_port=port1  train.py
+    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=hostname1 --master_port=port1 train.py
 
     # Run on node2 to start training on two nodes (node1 and node2), 8 GPUs per node
-    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=hostname1 --master_port=port1  train.py
+    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=hostname1 --master_port=port1 train.py
 
 
 If the ssh service is available with passwordless login on each node, we can launch the distributed job on a
-single node with a similar syntax as `mpirun`.
+single node with a similar syntax as ``mpirun``.
 
 .. code-block:: bash
 
@@ -594,7 +600,7 @@ single node with a similar syntax as `mpirun`.
 
 .. warning:: Several optimizations like `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
-    built-in launching utilities. It is worth noting that with `Bagua-Net`, Distributed Data Parallel can also achieve
+    built-in launching utilities. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
     better performance.
 
 

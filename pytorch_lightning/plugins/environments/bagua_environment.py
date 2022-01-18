@@ -50,13 +50,13 @@ class BaguaEnvironment(ClusterEnvironment):
         return int(os.environ["WORLD_SIZE"])
 
     def set_world_size(self, size: int) -> None:
-        log.debug("BaguaEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
+        log.debug("`BaguaEnvironment.set_world_size` was called, but setting world size is not allowed. Ignored.")
 
     def global_rank(self) -> int:
         return int(os.environ["RANK"])
 
     def set_global_rank(self, rank: int) -> None:
-        log.debug("BaguaEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
+        log.debug("`BaguaEnvironment.set_global_rank` was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self) -> int:
         return int(os.environ.get("LOCAL_RANK", 0))

@@ -26,13 +26,15 @@ class TestModel(BoringModel):
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
-def test_bagua_algorithm():
+def test_bagua_algorithm(tmpdir):
     model = TestModel()
     bagua_strategy = BaguaStrategy(algorithm="gradient_allreduce")
     trainer = Trainer(
-        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
         strategy=bagua_strategy,
-        gpus=2,
+        accelerator='gpu',
+        devices=2,
     )
     trainer.fit(model)
 
