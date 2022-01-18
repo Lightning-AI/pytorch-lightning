@@ -14,7 +14,6 @@
 import logging
 import os
 import platform
-import random
 import time
 from copy import deepcopy
 from unittest.mock import patch
@@ -215,9 +214,7 @@ def test_simple_profiler_summary(tmpdir, extended):
         "on_before_batch_transfer",
         "on_fit_start",
     ]
-    max_len_hook = len("on_before_batch_transfer")
-    sometime = random.uniform(0, 1)
-    sep = os.linesep
+    sometime = 0.773434
 
     for hook in hooks:
         with profiler.profile(hook):
@@ -225,39 +222,41 @@ def test_simple_profiler_summary(tmpdir, extended):
 
         profiler.recorded_durations[hook] = [sometime]
 
-    def log_row_extended(action, mean, num_calls, total, per):
-        row = f"{sep}|  {action:<{max_len_hook}s}\t|  {mean:<15}\t|"
-        row += f"  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
-        return row
-
-    def log_row_not_extended(action, mean, total):
-        return f"{sep}|  {action:<{max_len_hook}s}\t|  {mean:<15}\t|  {total:<15}\t|"
-
     if extended:
-        header = log_row_extended("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
+        expected_text = """
+Profiler Report
+
+----------------------------------------------------------------------------------------------------------------------------------
+|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |
+----------------------------------------------------------------------------------------------------------------------------------
+|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |
+----------------------------------------------------------------------------------------------------------------------------------
+|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |
+|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |
+|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |
+|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |
+|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |
+|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |
+----------------------------------------------------------------------------------------------------------------------------------
+"""  # noqa: E501
+
     else:
-        header = log_row_not_extended("Action", "Mean duration (s)", "Total time (s)")
+        expected_text = """
+Profiler Report
 
-    sep_lines = f"{sep}{'-' * len(header.expandtabs())}"
+----------------------------------------------------------------------------------
+|  Action                       |  Mean duration (s)    |  Total time (s)       |
+----------------------------------------------------------------------------------
+|  on_train_start               |  0.77343              |  0.77343              |
+|  on_train_end                 |  0.77343              |  0.77343              |
+|  on_train_epoch_start         |  0.77343              |  0.77343              |
+|  on_train_epoch_end           |  0.77343              |  0.77343              |
+|  on_before_batch_transfer     |  0.77343              |  0.77343              |
+|  on_fit_start                 |  0.77343              |  0.77343              |
+----------------------------------------------------------------------------------
+"""
 
-    total_stats = ""
-    if extended:
-        total_stats = log_row_extended("Total", "-", f"{len(hooks)}", f"{7.:.5}", "100 %")
-        total_stats += sep_lines
-
-    profiled_stats = ""
-    for hook in hooks:
-        if extended:
-            profiled_stats += log_row_extended(
-                hook, f"{sometime:.5}", "1", f"{sometime:.5}", f"{100 * sometime / 7.:.5}"
-            )
-        else:
-            profiled_stats += log_row_not_extended(hook, f"{sometime:.5}", f"{sometime:.5}")
-
-    expected_text = f"{sep}Profiler Report{sep}"
-    expected_text += sep_lines + header + sep_lines + total_stats + profiled_stats + sep_lines + f"{sep}"
-
-    summary = profiler.summary()
+    summary = profiler.summary().expandtabs()
     assert expected_text == summary
 
 
