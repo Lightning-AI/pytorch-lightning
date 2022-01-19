@@ -74,6 +74,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Implemented a new native and rich format when printing results during `trainer.validate(verbose=True)` (or `test`) ([#11139](https://github.com/PyTorchLightning/pytorch-lightning/issues/11139))
+
 - Raised exception in `init_dist_connection()` when torch distibuted is not available ([#10418](https://github.com/PyTorchLightning/pytorch-lightning/issues/10418))
 
 
