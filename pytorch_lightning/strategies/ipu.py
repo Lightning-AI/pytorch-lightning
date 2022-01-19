@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+else:
+    poptorch = None
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):

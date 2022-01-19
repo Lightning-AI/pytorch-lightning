@@ -17,7 +17,6 @@ from typing import Any, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -102,11 +101,10 @@ class HorovodStrategy(ParallelStrategy):
                 param_group["lr"] *= self.world_size
 
         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
-        lr_schedulers = self.lightning_module.trainer.lr_schedulers
-        for scheduler in lr_schedulers:
-            scheduler = scheduler["scheduler"]
-            if isinstance(scheduler, _LRScheduler):
-                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
+        lr_scheduler_configs = self.lr_schedulers
+        for config in lr_scheduler_configs:
+            scheduler = config.scheduler
+            scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
 
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
         hvd.broadcast_parameters(self.lightning_module.state_dict(), root_rank=0)

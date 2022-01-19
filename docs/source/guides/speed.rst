@@ -4,41 +4,26 @@
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _speed:
+.. _training-speedup:
+
 
 #######################
-Speed up model training
+Speed up Model Training
 #######################
 
-There are multiple ways you can speed up your model's time to convergence:
+When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
+without affecting the model's performance. There are multiple ways you can speed up your model's time to convergence.
 
-* `<GPU/TPU training_>`_
 
-* `<Mixed precision (16-bit) training_>`_
-
-* `<Control Training Epochs_>`_
-
-* `<Control Validation Frequency_>`_
-
-* `<Limit Dataset Size_>`_
-
-* `<Preload Data Into RAM_>`_
-
-* `<Model Toggling_>`_
-
-* `<Set Grads to None_>`_
-
-* `<Things to avoid_>`_
-
-****************
-GPU/TPU training
-****************
+************************
+Training on Accelerators
+************************
 
 **Use when:** Whenever possible!
 
-With Lightning, running on GPUs, TPUs or multiple node is a simple switch of a flag.
+With Lightning, running on GPUs, TPUs, IPUs on multiple nodes is a simple switch of a flag.
 
-GPU training
+GPU Training
 ============
 
 Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
@@ -67,19 +52,37 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/adv
 
 Prefer DDP over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.DataParallelStrategy` performs three GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs 3 GPU transfers for EVERY batch:
 
-1. Copy model to device.
-2. Copy data to device.
-3. Copy outputs of each device back to main device.
+1. Copy the model to the device.
+2. Copy the data to the device.
+3. Copy the outputs of each device back to the main device.
 
-Whereas :class:`~pytorch_lightning.strategies.DDPStrategy` only performs 1 transfer to sync gradients, making DDP MUCH faster than DP.
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/dp.gif
+    :alt: Animation showing DP execution.
+    :width: 500
+    :align: center
+
+|
+
+Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations, making DDP much faster than DP:
+
+1. Moving data to the device.
+2. Transfer and sync gradients.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/distributed_training/ddp.gif
+    :alt: Animation showing DDP execution.
+    :width: 500
+    :align: center
+
+|
 
 
-When using DDP strategies, set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-By default we have set ``find_unused_parameters`` to True for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
-This by default comes with a performance hit, and can be disabled in most cases.
+When using DDP Plugins, set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit, and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
 
 .. tip::
     It applies to all DDP strategies that support ``find_unused_parameters`` as input.
@@ -102,7 +105,7 @@ This by default comes with a performance hit, and can be disabled in most cases.
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
-When using DDP on a multi-node cluster, set NCCL parameters
+When using DDP on a Multi-node Cluster, set NCCL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
@@ -124,22 +127,22 @@ NCCL parameters can be adjusted via environment variables.
 
 Dataloaders
 ^^^^^^^^^^^
-When building your DataLoader set ``num_workers > 0`` and ``pin_memory=True`` (only for GPUs).
+
+When building your DataLoader set ``num_workers>0`` and ``pin_memory=True`` (only for GPUs).
 
 .. code-block:: python
 
     Dataloader(dataset, num_workers=8, pin_memory=True)
 
 num_workers
-"""""""""""
+^^^^^^^^^^^
 
-The question of how many workers to specify in ``num_workers`` is tricky. Here's a summary of
-some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813>`_], and our suggestions:
+The question of how many workers to specify in ``num_workers`` is tricky. Here's a summary of `some references <https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813>`_, and our suggestions:
 
 1. ``num_workers=0`` means ONLY the main process will load batches (that can be a bottleneck).
 2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data but it will still be slow.
-3. The ``num_workers`` depends on the batch size and your machine.
-4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using `os.cpu_count()`, but note that depending on your batch size, you may overflow RAM memory.
+3. The performance of high ``num_workers`` depends on the batch size and your machine.
+4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using ``os.cpu_count()``, but note that depending on your batch size, you may overflow RAM memory.
 
 .. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
 
@@ -159,25 +162,39 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 Spawn
-"""""
-When using ``strategy=ddp_spawn`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling ``.spawn()`` under the hood.
-The problem is that PyTorch has issues with ``num_workers > 0`` when using ``.spawn()``. For this reason we recommend you
-use ``strategy=ddp`` so you can increase the ``num_workers``, however your script has to be callable like so:
+^^^^^
+
+When using ``strategy="ddp_spawn"`` or training on TPUs, the way multiple GPUs/TPU cores are used is by calling :obj:`torch.multiprocessing`
+``.spawn()`` under the hood. The problem is that PyTorch has issues with ``num_workers>0`` when using ``.spawn()``. For this reason, we recommend you
+use ``strategy="ddp"`` so you can increase the ``num_workers``, however since DDP doesn't work in an interactive environment like IPython/Jupyter notebooks
+your script has to be callable like so:
 
 .. code-block:: bash
 
     python my_program.py
 
+However, using ``strategy="ddp_spawn"`` enables to reduce memory usage with In-Memory Dataset and shared memory tensors. For more info, checkout
+:ref:`Sharing Datasets Across Process Boundaries <ddp_spawn_shared_memory>` section.
 
-TPU training
+Persistent Workers
+^^^^^^^^^^^^^^^^^^
+
+When using ``strategy="ddp_spawn"`` and ``num_workers>0``, consider setting ``persistent_workers=True`` inside your DataLoader since it can result in data-loading bottlenecks and slowdowns.
+This is a limitation of Python ``.spawn()`` and PyTorch.
+
+
+TPU Training
 ============
 
-You can set the ``tpu_cores`` trainer flag to 1 or 8 cores.
+You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or 8 cores.
 
 .. code-block:: python
 
     # train on 1 TPU core
     trainer = Trainer(tpu_cores=1)
+
+    # train on 7th TPU core
+    trainer = Trainer(tpu_cores=[7])
 
     # train on 8 TPU cores
     trainer = Trainer(tpu_cores=8)
@@ -199,11 +216,25 @@ Read more in our :ref:`accelerators` and :ref:`plugins` guides.
 
 -----------
 
+**************
+Early Stopping
+**************
+
+Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence.
+Here :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
+
+You can read more about it :ref:`here <early_stopping>`.
+
+----------
+
 .. _speed_amp:
 
 *********************************
-Mixed precision (16-bit) training
+Mixed Precision (16-bit) Training
 *********************************
+
+Lower precision, such as the 16-bit floating-point, enables the training and deployment of large neural networks since they require less memory, enhance data transfer operations since they required
+less memory bandwidth and run match operations much faster on GPUs that support Tensor Core.
 
 **Use when:**
 
@@ -220,7 +251,6 @@ Mixed precision (16-bit) training
 
 |
 
-
 Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
 Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
@@ -233,6 +263,9 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     trainer = Trainer(precision=16, gpus=4)
 
 
+Read more about :ref:`mixed-precision training <amp>`.
+
+
 ----------------
 
 
@@ -243,7 +276,9 @@ Control Training Epochs
 **Use when:** You run a hyperparameter search to find good initial parameters and want to save time, cost (money), or power (environment).
 It can allow you to be more cost efficient and also run more experiments at the same time.
 
-You can use Trainer flags to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
+You can use Trainer flags to force training for a minimum number of epochs or limit it to a max number of epochs. Use the ``min_epochs`` and ``max_epochs`` Trainer flags to set the number of epochs to run.
+Setting ``min_epochs=N`` makes sure that the training will run for at least ``N`` epochs. Setting ``max_epochs=N`` will ensure that training won't happen after
+``N`` epochs.
 
 .. testcode::
 
@@ -251,7 +286,7 @@ You can use Trainer flags to force training for a minimum number of epochs or li
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
 
-If running iteration based training, i.e. infinite / iterable dataloader, you can also control the number of steps with the `min_steps` and  `max_steps` flags:
+If running iteration based training, i.e. infinite / iterable dataloader, you can also control the number of steps with the ``min_steps`` and  ``max_steps`` flags:
 
 .. testcode::
 
@@ -283,66 +318,40 @@ Check validation every n epochs
 
 **Use when:** You have a small dataset, and want to run less validation checks.
 
-You can limit validation check to only run every n epochs using the `check_val_every_n_epoch` Trainer flag.
+You can limit validation check to only run every n epochs using the ``check_val_every_n_epoch`` Trainer flag.
 
 .. testcode::
 
-    # DEFAULT
+    # default
     trainer = Trainer(check_val_every_n_epoch=1)
 
+    # runs validation after every 7th Epoch
+    trainer = Trainer(check_val_every_n_epoch=7)
 
-Set validation check frequency within 1 training epoch
-======================================================
+
+Validation within Training Epoch
+================================
 
 **Use when:** You have a large training dataset, and want to run mid-epoch validation checks.
 
-For large datasets, it's often desirable to check validation multiple times within a training loop.
-Pass in a float to check that often within 1 training epoch. Pass in an int `k` to check every `k` training batches.
-Must use an `int` if using an `IterableDataset`.
+For large datasets, it's often desirable to check validation multiple times within a training epoch.
+Pass in a float to check that often within 1 training epoch. Pass in an int ``K`` to check every ``K`` training batches.
+Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 
 .. testcode::
 
-    # DEFAULT
-    trainer = Trainer(val_check_interval=0.95)
+    # default
+    trainer = Trainer(val_check_interval=1.0)
 
-    # check every .25 of an epoch
+    # check every 1/4 th of an epoch
     trainer = Trainer(val_check_interval=0.25)
 
-    # check every 100 train batches (ie: for `IterableDatasets` or fixed frequency)
+    # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
     trainer = Trainer(val_check_interval=100)
 
 Learn more in our :ref:`trainer_flags` guide.
 
 ----------------
-
-******************
-Limit Dataset Size
-******************
-
-Use data subset for training, validation, and test
-==================================================
-
-**Use when:** Debugging or running huge datasets.
-
-If you don't want to check 100% of the training/validation/test set set these flags:
-
-.. testcode::
-
-    # DEFAULT
-    trainer = Trainer(limit_train_batches=1.0, limit_val_batches=1.0, limit_test_batches=1.0)
-
-    # check 10%, 20%, 30% only, respectively for training, validation and test set
-    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.2, limit_test_batches=0.3)
-
-If you also pass ``shuffle=True`` to the dataloader, a different random subset of your dataset will be used for each epoch; otherwise the same subset will be used for all epochs.
-
-.. note:: ``limit_train_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches > 0`` and will turn off validation.
-
-.. note:: If you set ``limit_val_batches=0``, validation will be disabled.
-
-Learn more in our :ref:`trainer_flags` guide.
-
------
 
 *********************
 Preload Data Into RAM
@@ -480,19 +489,18 @@ Things to avoid
 
 .item(), .numpy(), .cpu()
 =========================
+
 Don't call ``.item()`` anywhere in your code. Use ``.detach()`` instead to remove the connected graph calls. Lightning
 takes a great deal of care to be optimized for this.
 
-----------
+Clear Cache
+===========
 
-empty_cache()
-=============
-Don't call this unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
+Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
 
-----------
+Transferring tensors to device
+==============================
 
-Tranfering tensors to device
-============================
 LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
 
 .. code-block:: python

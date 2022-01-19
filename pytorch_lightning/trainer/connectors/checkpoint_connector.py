@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import re
 from typing import Any, Dict, Optional
@@ -33,6 +34,9 @@ from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRE
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
+
+
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class CheckpointConnector:
@@ -74,6 +78,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
+            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
@@ -300,8 +305,8 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler["scheduler"].load_state_dict(lrs_state)
+        for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
+            config.scheduler.load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -363,8 +368,8 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            for scheduler in self.trainer.lr_schedulers:
-                lr_schedulers.append(scheduler["scheduler"].state_dict())
+            for config in self.trainer.lr_scheduler_configs:
+                lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities that can be used with distributed training."""
 
 import logging
 import os
@@ -44,6 +45,8 @@ log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn: Callable) -> Callable:
+    """Function that can be used as a decorator to enable a function/method being called only on rank 0."""
+
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
         if rank_zero_only.rank == 0:
@@ -81,11 +84,13 @@ def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
 
 @rank_zero_only
 def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log debug-level messages only on rank 0."""
     _debug(*args, stacklevel=stacklevel, **kwargs)
 
 
 @rank_zero_only
 def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log info-level messages only on rank 0."""
     _info(*args, stacklevel=stacklevel, **kwargs)
 
 
@@ -124,8 +129,8 @@ def distributed_available() -> bool:
 def sync_ddp_if_available(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """
-    Function to reduce a tensor across worker processes during distributed training
+    """Function to reduce a tensor across worker processes during distributed training.
+
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
@@ -265,54 +270,58 @@ def register_ddp_comm_hook(
         DDP communication wrapper needs pytorch version at least 1.9.0
         Post-localSGD hook needs pytorch version at least 1.9.0
 
-    Example:
+    Examples:
 
-        from torch.distributed.algorithms.ddp_comm_hooks import (
-            default_hooks as default,
-            powerSGD_hook as powerSGD,
-            post_localSGD_hook as post_localSGD,
-        )
-
-        # fp16_compress_hook for compress gradients
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_hook=default.fp16_compress_hook,
-        )
-
-        # powerSGD_hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-        )
-
-        # post_localSGD_hook
-        subgroup, _ = torch.distributed.new_subgroups()
-        register_comm_hook(
-            model=ddp_model,
-            state=post_localSGD.PostLocalSGDState(
-                process_group=None,
-                subgroup=subgroup,
-                start_localSGD_iter=1_000,
-            ),
-            ddp_comm_hook=post_localSGD.post_localSGD_hook,
-        )
-
-        # fp16_compress_wrapper combined with other communication hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-            ddp_comm_wrapper=default.fp16_compress_wrapper,
-        )
+        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
+        ...     default_hooks as default,
+        ...     powerSGD_hook as powerSGD,
+        ...     post_localSGD_hook as post_localSGD,
+        ... )
+        >>>
+        >>> # fp16_compress_hook for compress gradients
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_hook=default.fp16_compress_hook,
+        ... )
+        >>>
+        >>> # powerSGD_hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ... )
+        >>>
+        >>> # post_localSGD_hook
+        >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     state=post_localSGD.PostLocalSGDState(
+        ...         process_group=None,
+        ...         subgroup=subgroup,
+        ...         start_localSGD_iter=1_000,
+        ...     ),
+        ...     ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        ... )
+        >>>
+        >>> # fp16_compress_wrapper combined with other communication hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ... )
     """
     from pytorch_lightning.utilities import rank_zero_warn
 

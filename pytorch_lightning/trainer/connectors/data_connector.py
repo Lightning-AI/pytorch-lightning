@@ -23,6 +23,7 @@ from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -130,33 +131,28 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if self.trainer.sanity_checking:
+        if not self.trainer.training:
             return DataFetcher()
 
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        if self.trainer.training and is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
             rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
                 "this signature is experimental and the behavior is subject to change."
             )
             return DataLoaderIterDataFetcher()
-
-        elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-            # note: this is an experimental feature
-            if not self.trainer.strategy.on_gpu:
+        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            if not isinstance(self.trainer.accelerator, GPUAccelerator):
                 raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
-
         return DataFetcher()
 
-    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int) -> Iterable:
         stage: str = self.trainer.state.stage.value
         data_fetcher = getattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(
             dataloader,
-            stage=stage,
-            batch_to_device=partial(self.trainer.strategy.batch_to_device, dataloader_idx=dataloader_idx),
-            profiler=self.trainer.profiler,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
         return data_fetcher
