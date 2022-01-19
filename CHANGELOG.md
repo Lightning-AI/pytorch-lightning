@@ -74,7 +74,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Implemented a new native and rich format when printing results during `trainer.validate(verbose=True)` (or `test`) ([#11139](https://github.com/PyTorchLightning/pytorch-lightning/issues/11139))
+- Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11139](https://github.com/PyTorchLightning/pytorch-lightning/issues/11139))
 
 
 - Set the `prog_bar` flag to False in `LightningModule.log_grad_norm` ([#11472](https://github.com/PyTorchLightning/pytorch-lightning/pull/11472))
