@@ -42,25 +42,6 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     assert eval_epoch_end_mock.call_count == 4
 
 
-@mock.patch(
-    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
-)
-def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
-    """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
-    order = []
-    update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
-
-    class LessBoringModel(BoringModel):
-        def on_validation_end(self):
-            order.append("on_validation_end")
-            super().on_validation_end()
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0)
-    trainer.fit(LessBoringModel())
-
-    assert order == ["log_epoch_metrics", "on_validation_end"]
-
-
 @RunIf(min_gpus=1)
 def test_memory_consumption_validation(tmpdir):
     """Test that the training batch is no longer in GPU memory when running validation."""
