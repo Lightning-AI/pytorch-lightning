@@ -23,10 +23,9 @@ from tests.helpers.runif import RunIf
 
 
 def test_single_cpu():
-    """Tests if on_gpu and on_tpu is set correctly for single CPU strategy."""
+    """Tests if on_tpu is set correctly for single CPU strategy."""
     trainer = Trainer()
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
-    assert not trainer.strategy.on_gpu
     assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cpu")
 

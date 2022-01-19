@@ -50,10 +50,6 @@ class ParallelStrategy(Strategy, ABC):
         """Return the root device."""
 
     @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
-    @property
     def on_tpu(self) -> bool:
         return self.root_device.type == "xla" and _XLA_AVAILABLE
 
@@ -103,7 +99,7 @@ class ParallelStrategy(Strategy, ABC):
     def torch_distributed_backend(self):
         torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
         if torch_backend is None:
-            torch_backend = "nccl" if self.on_gpu else "gloo"
+            torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
         return torch_backend
 
     @staticmethod
