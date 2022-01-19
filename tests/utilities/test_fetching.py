@@ -222,7 +222,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
 @RunIf(min_torch="1.8.0")
-def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
+def test_fetching_dataloader_iter_opt(automatic_optimization, fn, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
             super().__init__(*args, **kwargs)
@@ -261,6 +261,54 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("fn", ("validate", "test"))
+@RunIf(min_torch="1.8.0")
+def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
+    class TestModel(BoringModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.automatic_optimization = False
+            self.count = 0
+            self.batches = []
+
+        def training_step(self, dataloader_iter, batch_idx):
+            assert self.count == batch_idx
+            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            # fetch 2 batches
+            self.batches.append(next(dataloader_iter))
+            self.batches.append(next(dataloader_iter))
+
+            batch = self.batches.pop(0)
+            assert isinstance(batch, torch.Tensor) or batch is None
+            self.count += 2
+            opt = self.optimizers()
+            output = self(batch)
+            loss = self.loss(batch, output)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+
+        def training_epoch_end(self, *_):
+            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
+            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
+            assert self.count == 64
+
+        def validation_step(self, dataloader_iter, batch_idx):
+            batch = next(dataloader_iter)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, dataloader_iter, batch_idx):
+            batch = next(dataloader_iter)
+            return super().test_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    if fn == "validate":
+        trainer.validate(model)
+    elif fn == "test":
+        trainer.test(model)
 
 
 class DummyWaitable:

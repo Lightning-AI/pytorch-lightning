@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -109,9 +109,13 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches)
 
         assert self._dataloader_iter is not None
-        batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        if batch is None:
-            raise StopIteration
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_idx + 1
+            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            if batch is None:
+                raise StopIteration
+        else:
+            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch)

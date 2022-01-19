@@ -15,7 +15,7 @@ import os
 import shutil
 from collections import OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Union
+from typing import Any, IO, Iterable, List, Optional, Sequence, Union, Type
 
 import torch
 from deprecate.utils import void
@@ -110,7 +110,8 @@ class EvaluationLoop(DataLoaderLoop):
         hooks."""
         void(*args, **kwargs)
 
-        self._data_fetcher = DataFetcher()
+        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
+        self._data_fetcher = data_fetcher_cls()
 
         # hook
         self._on_evaluation_model_eval()
@@ -366,3 +367,19 @@ class EvaluationLoop(DataLoaderLoop):
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
                 print(os.linesep.join(lines), file=file)
+
+
+def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    lightning_module = trainer.lightning_module
+    step_fx = getattr(lightning_module, "test_step") if trainer.testing else getattr(lightning_module, "validation_step")
+    if is_param_in_hook_signature(step_x, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using NVidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher
