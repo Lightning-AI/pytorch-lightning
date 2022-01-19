@@ -230,11 +230,6 @@ class Strategy(ABC):
 
     @property
     @abstractmethod
-    def on_tpu(self) -> bool:
-        """Returns whether the current process is done on TPU."""
-
-    @property
-    @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device."""
 
