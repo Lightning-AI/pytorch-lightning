@@ -641,7 +641,7 @@ def test_lightning_cli_optimizer(tmpdir, run):
     else:
         assert len(cli.trainer.optimizers) == 1
         assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-        assert len(cli.trainer.lr_schedulers) == 0
+        assert len(cli.trainer.lr_scheduler_configs) == 0
 
 
 def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
@@ -658,9 +658,9 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     assert cli.model.configure_optimizers is not BoringModel.configure_optimizers
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.lr_schedulers) == 1
-    assert isinstance(cli.trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.ExponentialLR)
-    assert cli.trainer.lr_schedulers[0]["scheduler"].gamma == 0.8
+    assert len(cli.trainer.lr_scheduler_configs) == 1
+    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.ExponentialLR)
+    assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
 
 
 def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
@@ -684,9 +684,9 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
 
     assert len(cli.trainer.optimizers) == 1
     assert isinstance(cli.trainer.optimizers[0], torch.optim.Adam)
-    assert len(cli.trainer.lr_schedulers) == 1
-    assert isinstance(cli.trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
-    assert cli.trainer.lr_schedulers[0]["scheduler"].step_size == 50
+    assert len(cli.trainer.lr_scheduler_configs) == 1
+    assert isinstance(cli.trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
+    assert cli.trainer.lr_scheduler_configs[0].scheduler.step_size == 50
 
 
 @pytest.mark.parametrize("use_registries", [False, True])
@@ -1417,3 +1417,21 @@ def test_cli_configureoptimizers_can_be_overridden():
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)
     assert isinstance(scheduler, StepLR)
+
+
+def test_cli_parameter_with_lazy_instance_default():
+    from jsonargparse import lazy_instance
+
+    class TestModel(BoringModel):
+        def __init__(self, activation: torch.nn.Module = lazy_instance(torch.nn.LeakyReLU, negative_slope=0.05)):
+            super().__init__()
+            self.activation = activation
+
+    model = TestModel()
+    assert isinstance(model.activation, torch.nn.LeakyReLU)
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False)
+        assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
+        assert cli.model.activation.negative_slope == 0.05
+        assert cli.model.activation is not model.activation

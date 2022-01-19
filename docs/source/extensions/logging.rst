@@ -298,6 +298,7 @@ which is the default logger in Lightning.
 ************
 Progress Bar
 ************
+
 You can add any metric to the progress bar using :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method, setting ``prog_bar=True``.
 
