@@ -272,8 +272,6 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
-    # Required for saving the model
-    trainer.optimizers, trainer.strategy.lr_schedulers = [], []
 
 
 def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
