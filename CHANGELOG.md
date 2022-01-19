@@ -413,7 +413,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `Strategy.on_gpu` ([#11537](https://github.com/PyTorchLightning/pytorch-lightning/pull/11537))
 
 
-- Removed `Strategy.on_tpu` property ([]())
+- Removed `Strategy.on_tpu` property ([#11536](https://github.com/PyTorchLightning/pytorch-lightning/pull/11536))
 
 
 ### Fixed
