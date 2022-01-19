@@ -700,7 +700,7 @@ class LightningCLI:
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
                 self._parser(self.subcommand),
-                self.config[self.subcommand] if self.subcommand is not None else self.config,
+                self.config.get(str(self.subcommand), self.config),
                 self.save_config_filename,
                 overwrite=self.save_config_overwrite,
                 multifile=self.save_config_multifile,
@@ -798,9 +798,7 @@ class LightningCLI:
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
-        if self.subcommand is not None:
-            return config[self.subcommand].get(key, default)
-        return config.get(key, default)
+        return config.get(str(self.subcommand), config).get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
         """Run the chosen subcommand."""
