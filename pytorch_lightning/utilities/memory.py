@@ -17,7 +17,7 @@ import gc
 import os
 import shutil
 import subprocess
-from typing import Any, Dict
+from typing import Any, cast, Dict, IO
 
 import torch
 from torch.nn import Module
@@ -184,6 +184,6 @@ def get_model_size_mb(model: Module) -> float:
         Number of megabytes in the parameters of the input module.
     """
     model_size = _ByteCounter()
-    torch.save(model.state_dict(), model_size)
+    torch.save(model.state_dict(), cast(IO[bytes], model_size))
     size_mb = model_size.nbytes / 1e6
     return size_mb
