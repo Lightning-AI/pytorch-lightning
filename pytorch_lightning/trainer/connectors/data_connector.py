@@ -652,6 +652,10 @@ class _DataHookSource:
                 )
             return getattr(self.datamodule, hook_name)
 
+        warning_cache.warn(
+            f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
+            " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
+        )
         return getattr(self.model, hook_name)
 
     def __post_init__(self):
