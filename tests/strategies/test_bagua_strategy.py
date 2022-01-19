@@ -35,7 +35,6 @@ class BoringModel4QAdam(BoringModel):
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=1)
 def test_bagua_default(tmpdir):
-    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=1,
@@ -82,10 +81,8 @@ def test_configuration(algorithm, tmpdir):
     trainer.lightning_module.trainer = trainer
 
     with mock.patch(
-        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__"
-    ) as bagua_ddp_init, mock.patch("bagua.torch_api.communication.is_initialized") as is_initialized:
-        is_initialized.return_value = True
-        bagua_ddp_init.return_value = None
+        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__", return_value=None
+    ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         if algorithm == "qadam":
             with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
                 trainer.strategy.configure_ddp()
@@ -110,10 +107,8 @@ def test_qadam_configuration(tmpdir):
     trainer.strategy.setup_optimizers(trainer)
 
     with mock.patch(
-        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__"
-    ) as bagua_ddp_init, mock.patch("bagua.torch_api.communication.is_initialized") as is_initialized:
-        is_initialized.return_value = True
-        bagua_ddp_init.return_value = None
+        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__", return_value=None
+    ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         trainer.strategy.configure_ddp()
 
 
@@ -121,7 +116,6 @@ def test_bagua_not_available(monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count") as device_count:
-        device_count.return_value = 1
+    with mock.patch("torch.cuda.device_count", return_value=1):
         with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
             Trainer(strategy="bagua", gpus=1)
