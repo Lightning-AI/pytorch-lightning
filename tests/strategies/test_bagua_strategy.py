@@ -19,20 +19,37 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import BaguaStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class TestModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.layer = torch.nn.Linear(32, 2)
+class BoringModel4QAdam(BoringModel):
+    def configure_optimizers(self):
+        from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
+
+        optimizer = QAdamOptimizer(self.layer.parameters(), lr=0.05, warmup_steps=20)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+        return [optimizer], [lr_scheduler]
+
+
+@RunIf(skip_windows=True, bagua=True, min_gpus=1)
+def test_bagua_default(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        strategy="bagua",
+        accelerator="gpu",
+        devices=1,
+    )
+    assert isinstance(trainer.strategy, BaguaStrategy)
 
 
 @RunIf(skip_windows=True, bagua=True, min_gpus=2, standalone=True)
-def test_bagua_algorithm(tmpdir):
-    model = TestModel()
-    bagua_strategy = BaguaStrategy(algorithm="gradient_allreduce")
+def test_async_algorithm(tmpdir):
+    model = BoringModel()
+    bagua_strategy = BaguaStrategy(algorithm="async")
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=1,
@@ -46,10 +63,65 @@ def test_bagua_algorithm(tmpdir):
         assert torch.norm(param) < 3
 
 
-@mock.patch("torch.cuda.device_count", return_value=1)
+@RunIf(skip_windows=True, bagua=True, min_gpus=1)
+@pytest.mark.parametrize(
+    "algorithm", ["gradient_allreduce", "bytegrad", "qadam", "decentralized", "low_precision_decentralized"]
+)
+def test_configuration(algorithm, tmpdir):
+    model = BoringModel()
+    bagua_strategy = BaguaStrategy(algorithm=algorithm)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        strategy=bagua_strategy,
+        accelerator="gpu",
+        devices=1,
+    )
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+
+    with mock.patch(
+        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__"
+    ) as bagua_ddp_init, mock.patch("bagua.torch_api.communication.is_initialized") as is_initialized:
+        is_initialized.return_value = True
+        bagua_ddp_init.return_value = None
+        if algorithm == "qadam":
+            with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
+                trainer.strategy.configure_ddp()
+        else:
+            trainer.strategy.configure_ddp()
+
+
+@RunIf(skip_windows=True, bagua=True, min_gpus=1)
+def test_qadam_configuration(tmpdir):
+    model = BoringModel4QAdam()
+    bagua_strategy = BaguaStrategy(algorithm="qadam")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        strategy=bagua_strategy,
+        accelerator="gpu",
+        devices=1,
+    )
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_optimizers(trainer)
+
+    with mock.patch(
+        "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__"
+    ) as bagua_ddp_init, mock.patch("bagua.torch_api.communication.is_initialized") as is_initialized:
+        is_initialized.return_value = True
+        bagua_ddp_init.return_value = None
+        trainer.strategy.configure_ddp()
+
+
 def test_bagua_not_available(monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
-        Trainer(strategy="bagua", gpus=1)
+    with mock.patch("torch.cuda.device_count") as device_count:
+        device_count.return_value = 1
+        with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
+            Trainer(strategy="bagua", gpus=1)
