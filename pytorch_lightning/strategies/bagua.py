@@ -42,7 +42,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
 _bagua_reduce_ops: Dict[ReduceOp, BaguaReduceOp] = {}
 
 
-def from_torch_reduce_op(op: ReduceOp) -> Optional[BaguaReduceOp]:
+def _from_torch_reduce_op(op: ReduceOp) -> Optional[BaguaReduceOp]:
     """Convert a `torch.distributed.ReduceOp` to its equivalent `bagua.torch_api.ReduceOp`."""
     global _bagua_reduce_ops
 
@@ -84,7 +84,7 @@ class BaguaStrategy(DDPStrategy):
                 include "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and
                 "async".
             do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
-                pointer of bucket tensors so that they can use faster code paths. Default: ``True``.
+                pointer of bucket tensors so that they can use faster code paths.
             kwargs: Additional arguments that will be passed to initialize the Bagua algorithm.
         """
         if not _BAGUA_AVAILABLE:
@@ -209,7 +209,7 @@ class BaguaStrategy(DDPStrategy):
         Args:
             tensor: The tensor to sync and reduce.
             group: The process group to gather results from. Defaults to all processes (world).
-            reduce_op: The reduction operation. Defaults to 'mean'.
+            reduce_op: The reduction operation.
                 Can also be a string 'sum' or ReduceOp.
 
         Return:
@@ -230,7 +230,7 @@ class BaguaStrategy(DDPStrategy):
             else:
                 raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
         elif isinstance(reduce_op, ReduceOp):
-            op = from_torch_reduce_op(reduce_op)
+            op = _from_torch_reduce_op(reduce_op)
             if op is None:
                 raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
 
