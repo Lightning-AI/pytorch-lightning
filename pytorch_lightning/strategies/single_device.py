@@ -45,10 +45,6 @@ class SingleDeviceStrategy(Strategy):
     def on_tpu(self) -> bool:
         return self.root_device.type == "xla" and _XLA_AVAILABLE
 
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
@@ -90,7 +86,7 @@ class SingleDeviceStrategy(Strategy):
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
