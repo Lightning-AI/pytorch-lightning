@@ -63,11 +63,15 @@ class _FxValidator:
         "on_validation_start": _LogOptions(
             allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
         ),
-        "on_validation_end": None,
+        "on_validation_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_test_start": _LogOptions(
             allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
         ),
-        "on_test_end": None,
+        "on_test_end": _LogOptions(
+            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
+        ),
         "on_predict_start": None,
         "on_predict_end": None,
         "on_pretrain_routine_start": None,

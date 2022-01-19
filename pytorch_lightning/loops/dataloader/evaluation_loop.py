@@ -145,6 +145,9 @@ class EvaluationLoop(DataLoaderLoop):
         # hook
         self._on_evaluation_epoch_end()
 
+        # hook
+        self._on_evaluation_end()
+
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
         epoch_end_logged_outputs = self.trainer.logger_connector.update_eval_epoch_metrics()
@@ -154,8 +157,8 @@ class EvaluationLoop(DataLoaderLoop):
         # log metrics
         self.trainer.logger_connector.log_eval_end_metrics()
 
-        # hook
-        self._on_evaluation_end()
+        # reset the logger connector state
+        self.trainer.logger_connector.reset_results()
 
         # enable train mode again
         self._on_evaluation_model_train()
@@ -229,9 +232,6 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
             self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
-
-        # reset the logger connector state
-        self.trainer.logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""

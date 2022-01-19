@@ -105,9 +105,7 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_start",
         "on_predict_start",
         "on_save_checkpoint",
-        "on_test_end",
         "on_train_end",
-        "on_validation_end",
         "setup",
         "teardown",
     }
@@ -121,7 +119,7 @@ def test_fx_validator(tmpdir):
         # This summarizes where and what is currently possible to log using `self.log`
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
-        is_epoch = "epoch" in func_name
+        is_epoch = "epoch" in func_name or ("end" in func_name and "batch" not in func_name)
         on_step = is_stage and not is_start and not is_epoch
         on_epoch = True
         # creating allowed condition
@@ -133,12 +131,7 @@ def test_fx_validator(tmpdir):
             or "backward" in func_name
             or "optimizer_step" in func_name
         )
-        allowed = (
-            allowed
-            and "pretrain" not in func_name
-            and "predict" not in func_name
-            and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
-        )
+        allowed = allowed and "pretrain" not in func_name and "predict" not in func_name and func_name != "on_train_end"
         if allowed:
             validator.check_logging_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
@@ -223,7 +216,6 @@ def test_fx_validator_integration(tmpdir):
         "train_dataloader": "You can't",
         "on_val_dataloader": "You can't",
         "val_dataloader": "You can't",
-        "on_validation_end": "You can't",
         "on_train_end": "You can't",
         "on_fit_end": "You can't",
         "teardown": "You can't",
@@ -262,7 +254,6 @@ def test_fx_validator_integration(tmpdir):
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
             "on_test_model_train": "You can't",
-            "on_test_end": "You can't",
         }
     )
     with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):

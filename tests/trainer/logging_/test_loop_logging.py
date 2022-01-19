@@ -88,6 +88,7 @@ def test_default_level_for_hooks_that_support_logging():
             "validation_step",
             "validation_step_end",
             "validation_epoch_end",
+            "on_validation_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
@@ -103,6 +104,7 @@ def test_default_level_for_hooks_that_support_logging():
             "test_step",
             "test_step_end",
             "test_epoch_end",
+            "on_test_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)
         _make_assertion(model, hooks, result_mock, on_step=False, on_epoch=True, extra_kwargs=extra_kwargs)
