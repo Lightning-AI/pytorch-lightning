@@ -502,7 +502,7 @@ but Bagua can usually produce a higher training throughput.
 .. code-block:: python
 
     # train on 2 GPUs (using Bagua mode)
-    trainer = Trainer(strategy="bagua", gpus=2)
+    trainer = Trainer(strategy="bagua", accelerator="gpu", devices=4)
 
 
 By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different advanced training algorithms featured by Bagua:
@@ -533,7 +533,6 @@ By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different adv
 
     # train on 4 GPUs, using Bagua Low Precision Decentralized SGD
     trainer = Trainer(
-        max_epochs=1,
         strategy=BaguaStrategy(algorithm="low_precision_decentralized"),
         accelerator="gpu",
         devices=4,
@@ -541,7 +540,6 @@ By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different adv
 
     # train on 4 GPUs, using Asynchronous Model Average algorithm, with a synchronization interval of 100ms
     trainer = Trainer(
-        max_epochs=1,
         strategy=BaguaStrategy(algorithm="async", sync_interval_ms=100),
         accelerator="gpu",
         devices=4,
@@ -552,8 +550,6 @@ To use *QAdam*, we need to initialize
 
 .. code-block:: python
 
-    import pytorch_lightning as pl
-    from pytorch_lightning import Trainer
     from pytorch_lightning.strategies import BaguaStrategy
     from bagua.torch_api.algorithms.q_adam import QAdamOptimizer
 
