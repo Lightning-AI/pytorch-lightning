@@ -79,7 +79,7 @@ def test_pytorch_parity(
 def _hook_memory():
     if torch.cuda.is_available():
         torch.cuda.synchronize()
-        used_memory = torch.cuda.max_memory_allocated()
+        used_memory = torch.cuda.reset_peak_memory_stats()
     else:
         used_memory = np.nan
     return used_memory
@@ -97,7 +97,6 @@ def measure_loops(cls_model, kind, num_runs=10, num_epochs=10):
         gc.collect()
         if device_type == "cuda":
             torch.cuda.empty_cache()
-            torch.cuda.reset_max_memory_allocated()
             torch.cuda.reset_accumulated_memory_stats()
             torch.cuda.reset_peak_memory_stats()
         time.sleep(1)
