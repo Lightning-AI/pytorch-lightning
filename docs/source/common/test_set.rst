@@ -50,7 +50,7 @@ To run the test set after training completes, use this method.
 
 .. warning::
 
-    It is recommended to test on single device since distributed strategies such as DDP
+    It is recommended to test with ``Trainer(devices=1)`` since distributed strategies such as DDP
     uses :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
     make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
     benchmarking for research papers is done the right way.
@@ -146,7 +146,7 @@ Apart from this ``.validate`` has same API as ``.test``, but would rely respecti
 
 .. warning::
 
-    When using ``trainer.validate()``, it is recommended to use a single device since distributed strategies such as DDP
+    When using ``trainer.validate()``, it is recommended to use ``Trainer(devices=1)`` since distributed strategies such as DDP
     uses :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
     make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
     benchmarking for research papers is done the right way.

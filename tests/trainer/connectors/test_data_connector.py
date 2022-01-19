@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringDataModule, BoringModel
 
 
@@ -76,10 +77,10 @@ def test_eval_distributed_sampler_warning(tmpdir):
     trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu", fast_dev_run=True)
     trainer._data_connector.attach_data(model)
 
-    with pytest.warns(UserWarning, match="use single device strategy to ensure each sample"):
-        trainer.state.fn = TrainerFn.VALIDATING
+    trainer.state.fn = TrainerFn.VALIDATING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_val_dataloader(model)
 
-    with pytest.warns(UserWarning, match="use single device strategy to ensure each sample"):
-        trainer.state.fn = TrainerFn.TESTING
+    trainer.state.fn = TrainerFn.TESTING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_test_dataloader(model)
