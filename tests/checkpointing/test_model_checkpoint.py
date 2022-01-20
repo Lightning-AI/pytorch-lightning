@@ -1120,7 +1120,7 @@ def test_hparams_type(tmpdir, use_omegaconf):
     hp = OmegaConf.create(hp) if use_omegaconf else Namespace(**hp)
     model = TestModel(hp)
     trainer.fit(model)
-    ckpt = trainer.checkpoint_connector.dump_checkpoint()
+    ckpt = trainer._checkpoint_connector.dump_checkpoint()
     if use_omegaconf:
         assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], Container)
     else:
