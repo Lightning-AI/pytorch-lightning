@@ -28,6 +28,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from tests.deprecated_api import no_warning_call
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -707,3 +708,46 @@ def test_model_pickle(tmpdir):
     model = BoringModel()
     pickle.dumps(model)
     cloudpickle.dumps(model)
+
+
+@pytest.mark.parametrize("stop_batch_idx", [4, 7])
+def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
+    """Test that an error is raised if training is restarted from mid-epoch."""
+
+    class CustomModel(BoringModel):
+        def __init__(self, stop_batch_idx):
+            super().__init__()
+            self.stop_batch_idx = stop_batch_idx
+
+        def training_step(self, batch, batch_idx):
+            if (batch_idx + 1) == self.stop_batch_idx:
+                self.trainer.should_stop = True
+
+            return super().training_step(batch, batch_idx)
+
+    limit_train_batches = 7
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=limit_train_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    model = CustomModel(stop_batch_idx)
+    trainer.fit(model)
+
+    ckpt_path = tmpdir / "resume.ckpt"
+    trainer.save_checkpoint(ckpt_path)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+
+    context_manager = no_warning_call if limit_train_batches == stop_batch_idx else pytest.warns
+    with context_manager(UserWarning, match="checkpoint"):
+        trainer.fit(model, ckpt_path=str(ckpt_path))

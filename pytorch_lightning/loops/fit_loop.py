@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 from typing import Optional
 
 from pytorch_lightning.loops import Loop
@@ -24,6 +25,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -195,6 +197,27 @@ class FitLoop(Loop[None]):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+
+        # Division deals with global step stepping once per accumulated batch
+        # Inequality deals with different global step for odd vs even num_training_batches
+        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+            self.trainer.current_epoch
+        )
+        expected_steps = math.ceil(self.trainer.num_training_batches / self.trainer.accumulate_grad_batches)
+
+        # global_step is incremented during checkpointing (#11555)
+        if (
+            self.restarting
+            and self.trainer.num_training_batches != 0
+            and (self.trainer.global_step - 1) % expected_steps != 0
+        ):
+            rank_zero_warn(
+                "You're resuming from a checkpoint that ended mid-epoch."
+                " Training will start from the beginning of the next epoch."
+                " This can cause unreliable results if further training is done,"
+                " consider using an end of epoch checkpoint."
+            )
+
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer._call_callback_hooks("on_train_start")

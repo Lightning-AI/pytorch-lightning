@@ -21,9 +21,11 @@ import fsspec
 import torch
 from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
 
+from pytorch_lightning.utilities.types import _PATH
+
 
 def load(
-    path_or_url: Union[str, IO, Path],
+    path_or_url: Union[IO, _PATH],
     map_location: Optional[
         Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
     ] = None,
