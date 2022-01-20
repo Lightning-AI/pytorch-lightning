@@ -57,8 +57,6 @@ def test_ddp_cpu():
     # assert training type plugin attributes for device setting
 
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
-    assert not trainer.strategy.on_gpu
-    assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cpu")
 
     model = BoringModelDDPCPU()
@@ -73,7 +71,6 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
 
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
-    assert trainer.strategy.on_gpu
     assert trainer.strategy.root_device == torch.device("cuda:0")
 
     val: float = 1.0
