@@ -228,44 +228,33 @@ class DataFetcher(AbstractDataFetcher):
         """Hook to override to indicate the `DataFetcher` to wait for an event."""
 
     def prefetching(self) -> None:
+        iterator = self.dataloader_iter
         for _ in range(self.prefetch_batches):
             try:
-                self._fetch_next_batch()
+                self._fetch_next_batch(iterator)
             except StopIteration:
                 break
 
-    def fetching_function(self) -> Optional[Tuple[Any, bool]]:
-        if self.done:
-            while self.batches:
-                return self._get_queued_batch()
-            raise StopIteration
+    def fetching_function(self) -> Tuple[Any, bool]:
+        if self.batches:
+            batch = self.batches.pop(0)
         else:
+            # empty iterator, no prefetching done
+            raise StopIteration
+        if not self.done:
+            assert self.dataloader_iter is not None
             try:
-                yield_batch = self.batches.pop(0)
-                self._fetch_next_batch()
-                # wait for batch to be available.
-                self.wait()
-                # yield last and has next
-                return self.move_to_device(yield_batch), False
+                self._fetch_next_batch(self.dataloader_iter)
             except StopIteration:
-                self.batches.insert(0, yield_batch)
                 self.done = True
-                return self._get_queued_batch()
-
-            except IndexError:
-                raise StopIteration
-
-    def _fetch_next_batch(self):
-        data = self.on_fetch_start()
-        batch = next(self.dataloader_iter)
-        self.fetched += 1
-        self.on_fetch_end(batch, data)
-
-    def _get_queued_batch(self) -> Tuple[Any, bool]:
-        batch = self.batches.pop(0)
-        is_last = len(self.batches) == 0
         self.wait()
-        return self.move_to_device(batch), is_last
+        return self.move_to_device(batch), len(self.batches) == 0
+
+    def _fetch_next_batch(self, iterator: Iterator) -> None:
+        start_output = self.on_fetch_start()
+        batch = next(iterator)
+        self.fetched += 1
+        self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device and self.batch_to_device is not None:
@@ -367,7 +356,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     def prefetching(self) -> None:
         self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
 
-    def fetching_function(self):
-        while not self.done:
+    def fetching_function(self) -> Tuple[int, Tuple[Iterator, bool]]:
+        if not self.done:
             return self.fetched, (self.iterator, self.done)
         raise StopIteration
