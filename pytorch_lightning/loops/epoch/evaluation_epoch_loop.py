@@ -113,9 +113,7 @@ class EvaluationEpochLoop(Loop):
             raise StopIteration
 
         # configure step_kwargs
-        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
-        kwargs.move_to_end("batch_idx", last=False)
-        kwargs.move_to_end("batch", last=False)
+        kwargs = self._build_kwargs(batch, kwargs)
 
         self.batch_progress.increment_ready()
 
@@ -125,7 +123,6 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_started()
 
         # lightning module methods
-
         output = self._evaluation_step(**kwargs)
         output = self._evaluation_step_end(output)
 
@@ -272,6 +269,21 @@ class EvaluationEpochLoop(Loop):
         self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
 
         self.trainer.logger_connector.on_batch_end()
+
+    def _build_kwargs(self, batch: Any, kwargs: OrderedDict) -> OrderedDict:
+        """Helper function to build the arguments for the current step.
+
+        Args:
+            batch: The current batch to run through the step.
+            kwargs: The kwargs passed down to the hooks.
+
+        Returns:
+            The kwargs passed down to the hooks.
+        """
+        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
+        kwargs.move_to_end("batch_idx", last=False)
+        kwargs.move_to_end("batch", last=False)
+        return kwargs
 
     @lru_cache(1)
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
