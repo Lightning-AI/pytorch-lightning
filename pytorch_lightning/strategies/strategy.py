@@ -116,7 +116,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
 
@@ -133,10 +133,12 @@ class Strategy(ABC):
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_scheduler_configs
+        )
         self.model = model
         self.optimizers = optimizers
-        self.lr_schedulers = schedulers
+        self.lr_scheduler_configs = lr_scheduler_configs
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the appropriate device if needed."""
