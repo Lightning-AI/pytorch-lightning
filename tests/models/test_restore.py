@@ -527,7 +527,7 @@ def test_dp_resume(tmpdir):
     # save logger to make sure we get all the metrics
     if logger:
         logger.finalize("finished")
-    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(tmpdir)
     trainer.save_checkpoint(hpc_save_path)
 
     # init new trainer
