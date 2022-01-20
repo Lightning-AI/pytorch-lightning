@@ -14,6 +14,8 @@
 import pytest
 
 from pytorch_lightning.loops import TrainingEpochLoop
+from pytorch_lightning.trainer.trainer import Trainer
+from tests.helpers.boring_model import BoringModel
 
 _out00 = {"loss": 0.0}
 _out01 = {"loss": 0.1}
@@ -141,3 +143,17 @@ def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
         num_optimizers=-1,  # does not matter for manual optimization
     )
     assert prepared == expected
+
+
+def test_no_val_on_train_epoch_loop_restart(tmpdir):
+    """Test that training validation loop doesn't get triggered at the beginning of a restart."""
+    trainer = Trainer()
+    model = BoringModel()
+    trainer.strategy.connect(model)
+    trainer._data_connector.attach_data(model)
+    trainer.reset_train_dataloader()
+    training_epoch_loop = trainer.fit_loop.epoch_loop
+    training_epoch_loop.restarting = True
+    assert not training_epoch_loop._should_check_val_fx(
+        training_epoch_loop.batch_idx, training_epoch_loop.batch_progress.is_last_batch
+    )
