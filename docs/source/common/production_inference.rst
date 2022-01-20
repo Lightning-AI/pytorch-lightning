@@ -202,23 +202,6 @@ from your LightningModule ``init`` and ``forward`` method.
         ...
 
 
-    class AutoEncoder(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.encoder = Encoder()
-            self.decoder = Decoder()
-
-        def forward(self, x):
-            return self.encoder(x)
-
-        def training_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self.encoder(x)
-            y_hat = self.decoder(y_hat)
-            loss = ...
-            return loss
-
-
     class AutoEncoderProd(nn.Module):
         def __init__(self):
             super().__init__()
@@ -229,8 +212,25 @@ from your LightningModule ``init`` and ``forward`` method.
             return self.encoder(x)
 
 
+    class AutoEncoderSystem(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.auto_encoder = AutoEncoderProd()
+
+        def forward(self, x):
+            return self.auto_encoder.encoder(x)
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.auto_encoder.encoder(x)
+            y_hat = self.auto_encoder.decoder(y_hat)
+            loss = ...
+            return loss
+
+
     # train it
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(devices=2, accelerator="gpu", strategy="ddp")
+    model = AutoEncoderSystem()
     trainer.fit(model, train_dataloader, val_dataloader)
     trainer.save_checkpoint("best_model.ckpt")
 
@@ -238,7 +238,13 @@ from your LightningModule ``init`` and ``forward`` method.
     # create the PyTorch model and load the checkpoint weights
     model = AutoEncoderProd()
     checkpoint_weights = torch.load("best_model.ckpt")
-    model.load_state_dict(checkpoint_weights["state_dict"])
+    model_weights = checkpoint_weights["state_dict"]
+
+    # update keys by dropping `auto_encoder.`
+    for key in list(model_weights):
+        model_weights[key.replace("auto_encoder.", "")] = model_weights.pop(key)
+
+    model.load_state_dict(model_weights)
     model.eval()
     x = torch.randn(1, 64)
 
