@@ -58,7 +58,7 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
         trainer.fit(model)
 
     # simulate snapshot on slurm
-    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(tmpdir)
     trainer.save_checkpoint(hpc_save_path)
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 0
@@ -80,7 +80,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
     trainer.fit(model)
 
-    connector = trainer.checkpoint_connector
+    connector = trainer._checkpoint_connector
 
     assert not connector.resume_checkpoint_path
     assert not connector._loaded_checkpoint
@@ -94,7 +94,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
-    connector = trainer.checkpoint_connector
+    connector = trainer._checkpoint_connector
     connector.resume_start(ckpt_path)
     assert connector.resume_checkpoint_path == ckpt_path
     assert connector._loaded_checkpoint
@@ -145,10 +145,10 @@ def test_hpc_max_ckpt_version(tmpdir):
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
 
-    assert trainer.checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
-    assert trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
+    assert trainer._checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
+    assert trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
     assert (
-        trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
         is None
     )
 
@@ -181,8 +181,8 @@ def test_loops_restore(tmpdir):
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer.state.fn = fn
-            trainer.checkpoint_connector.resume_start(ckpt_path)
-            trainer.checkpoint_connector.restore_loops()
+            trainer._checkpoint_connector.resume_start(ckpt_path)
+            trainer._checkpoint_connector.restore_loops()
 
             trainer_loop = getattr(trainer, f"{fn}_loop")
             trainer_loop.load_state_dict.assert_called()
