@@ -113,7 +113,7 @@ class EvaluationEpochLoop(Loop):
             raise StopIteration
 
         # configure step_kwargs
-        kwargs = self._build_kwargs(batch, kwargs)
+        kwargs = self._build_kwargs(kwargs, batch)
 
         self.batch_progress.increment_ready()
 
@@ -270,12 +270,12 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-    def _build_kwargs(self, batch: Any, kwargs: OrderedDict) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any) -> OrderedDict:
         """Helper function to build the arguments for the current step.
 
         Args:
-            batch: The current batch to run through the step.
             kwargs: The kwargs passed down to the hooks.
+            batch: The current batch to run through the step.
 
         Returns:
             The kwargs passed down to the hooks.
