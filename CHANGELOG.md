@@ -1,4 +1,3 @@
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -416,7 +415,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `Strategy.on_tpu` property ([#11536](https://github.com/PyTorchLightning/pytorch-lightning/pull/11536))
 
- 
+
  - Removed access to `_short_id` in `NeptuneLogger` ([#11517](https://github.com/PyTorchLightning/pytorch-lightning/pull/11517))
 
 
