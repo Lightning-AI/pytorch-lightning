@@ -497,7 +497,7 @@ multiple advanced distributed training algorithms including:
 - `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for asynchronous communication, where workers are not required to be synchronized in the same iteration in a lock-step style.
 
 By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in Distributed Data Parallel and Horovod,
-but Bagua can usually produce a higher training throughput.
+but Bagua can usually produce a higher training throughput due to its backend written in Rust.
 
 .. code-block:: python
 
@@ -505,7 +505,7 @@ but Bagua can usually produce a higher training throughput.
     trainer = Trainer(strategy="bagua", accelerator="gpu", devices=4)
 
 
-By specifying the ``algorithm`` in a ``BaguaStrategy``, we can use different advanced training algorithms featured by Bagua:
+By specifying the ``algorithm`` in the ``BaguaStrategy``, you can select more advanced training algorithms featured by Bagua:
 
 
 .. code-block:: python
@@ -570,8 +570,8 @@ To use *QAdam*, we need to initialize
     )
     trainer.fit(model)
 
-Bagua provides `built-in utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to launch jobs.
-Below are examples using ``bagua.distributed.launch``, whose usage is similar to ``torch.distributed.launch``:
+Bagua relies on its own launcher `built-in utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to schedule jobs.
+Below, find  examples using ``bagua.distributed.launch`` which follows ``torch.distributed.launch`` API:
 
 .. code-block:: bash
 

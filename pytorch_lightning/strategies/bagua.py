@@ -74,7 +74,7 @@ class BaguaStrategy(DDPStrategy):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        **kwargs: Union[Any, Dict[str, Any]],
+        **bagua_kwargs: Union[Any, Dict[str, Any]],
     ):
         """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
         distributed training algorithms and system optimizations.
@@ -85,7 +85,7 @@ class BaguaStrategy(DDPStrategy):
                 "async".
             do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
                 pointer of bucket tensors so that they can use faster code paths.
-            kwargs: Additional arguments that will be passed to initialize the Bagua algorithm.
+            bagua_kwargs: Additional keyword arguments that will be passed to initialize the Bagua algorithm.
         """
         if not _BAGUA_AVAILABLE:
             raise MisconfigurationException(
@@ -123,7 +123,7 @@ class BaguaStrategy(DDPStrategy):
 
         self._set_node_environment_variables()
         log.info(
-            "initializing Bagua distributed: "
+            "Initializing Bagua Distributed: "
             f"GLOBAL_RANK: {self.global_rank}, "
             f"MEMBER: {self.global_rank + 1}/{self.world_size}"
         )
