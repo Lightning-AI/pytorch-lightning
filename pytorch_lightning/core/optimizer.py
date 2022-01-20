@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
+from dataclasses import fields
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 from weakref import proxy
 
@@ -23,7 +24,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _SupportsStateDict, LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import (
+    _SupportsStateDict,
+    LRSchedulerConfig,
+    LRSchedulerTypeTuple,
+    ReduceLROnPlateau,
+)
 
 
 def do_nothing_closure() -> None:
@@ -167,7 +173,7 @@ class LightningOptimizer:
 
 def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
-) -> Tuple[List[Optimizer], List[Dict[str, Any]], List[int]]:
+) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
@@ -178,10 +184,11 @@ def _init_optimizers_and_lr_schedulers(
         optim_conf = _MockOptimizer()
 
     optimizers, lr_schedulers, optimizer_frequencies, monitor = _configure_optimizers(optim_conf)
-    _configure_schedulers = (
-        _configure_schedulers_automatic_opt if model.automatic_optimization else _configure_schedulers_manual_opt
+    lr_schedulers = (
+        _configure_schedulers_automatic_opt(lr_schedulers, monitor)
+        if model.automatic_optimization
+        else _configure_schedulers_manual_opt(lr_schedulers)
     )
-    lr_schedulers = _configure_schedulers(lr_schedulers, monitor)
     _set_scheduler_opt_idx(optimizers, lr_schedulers)
     _validate_scheduler_api(lr_schedulers, model)
     return optimizers, lr_schedulers, optimizer_frequencies
@@ -251,18 +258,21 @@ def _configure_optimizers(
     return optimizers, lr_schedulers, optimizer_frequencies, monitor
 
 
-def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using automatic optimization."""
     lr_schedulers = []
-    default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
             # check provided keys
-            extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
+            supported_keys = {field.name for field in fields(LRSchedulerConfig)}
+            extra_keys = scheduler.keys() - supported_keys
             if extra_keys:
                 rank_zero_warn(
-                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}", category=RuntimeWarning
+                    f"Found unsupported keys in the lr scheduler dict: {extra_keys}."
+                    " HINT: remove them from the output of `configure_optimizers`.",
+                    category=RuntimeWarning,
                 )
+                scheduler = {k: v for k, v in scheduler.items() if k in supported_keys}
             if "scheduler" not in scheduler:
                 raise MisconfigurationException(
                     'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
@@ -286,27 +296,24 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     " Are you sure you didn't mean 'interval': 'step'?",
                     category=RuntimeWarning,
                 )
-            lr_schedulers.append({**default_config, **scheduler})
-        elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler = LRSchedulerConfig(**scheduler)
+        elif isinstance(scheduler, ReduceLROnPlateau):
             if monitor is None:
                 raise MisconfigurationException(
                     "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
                     " scheduler is used. For example:"
                     ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
                 )
-            lr_schedulers.append(
-                {**default_config, "scheduler": scheduler, "reduce_on_plateau": True, "monitor": monitor}
-            )
+            scheduler = LRSchedulerConfig(scheduler, reduce_on_plateau=True, monitor=monitor)
         else:
-            lr_schedulers.append({**default_config, "scheduler": scheduler})
-
+            scheduler = LRSchedulerConfig(scheduler)
+        lr_schedulers.append(scheduler)
     return lr_schedulers
 
 
-def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -> List[Dict[str, Any]]:
+def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig]:
     """Convert each scheduler into dict structure with relevant information, when using manual optimization."""
     lr_schedulers = []
-    default_config = _get_default_scheduler_config()
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
             invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
@@ -319,17 +326,16 @@ def _configure_schedulers_manual_opt(schedulers: list, monitor: Optional[str]) -
                     category=RuntimeWarning,
                 )
 
-            scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
-            lr_schedulers.append({**default_config, **scheduler})
+            scheduler = LRSchedulerConfig(**{key: scheduler[key] for key in scheduler if key not in invalid_keys})
         else:
-            lr_schedulers.append({**default_config, "scheduler": scheduler})
-
+            scheduler = LRSchedulerConfig(scheduler)
+        lr_schedulers.append(scheduler)
     return lr_schedulers
 
 
-def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.LightningModule") -> None:
-    for scheduler_config in lr_schedulers:
-        scheduler = scheduler_config["scheduler"]
+def _validate_scheduler_api(lr_schedulers: List[LRSchedulerConfig], model: "pl.LightningModule") -> None:
+    for config in lr_schedulers:
+        scheduler = config.scheduler
         if not isinstance(scheduler, _SupportsStateDict):
             raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
@@ -344,31 +350,18 @@ def _validate_scheduler_api(lr_schedulers: List[Dict[str, Any]], model: "pl.Ligh
             )
 
 
-def _get_default_scheduler_config() -> Dict[str, Any]:
-    return {
-        "scheduler": None,
-        "name": None,  # no custom name
-        "interval": "epoch",  # after epoch is over
-        "frequency": 1,  # every epoch/batch
-        "reduce_on_plateau": False,  # most often not ReduceLROnPlateau scheduler
-        "monitor": None,  # value to monitor for ReduceLROnPlateau
-        "strict": True,  # enforce that the monitor exists for ReduceLROnPlateau
-        "opt_idx": None,  # opt_idx assigned internally if not assigned by user
-    }
-
-
-def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_schedulers: List[Dict[str, Any]]) -> None:
-    for sch in lr_schedulers:
+def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
+    for config in lr_scheduler_configs:
 
         for opt_idx, opt in enumerate(optimizers):
-            if sch["scheduler"].optimizer is opt:
-                if sch["opt_idx"] is not None and sch["opt_idx"] != opt_idx:
+            if config.scheduler.optimizer is opt:
+                if config.opt_idx is not None and config.opt_idx != opt_idx:
                     raise MisconfigurationException(
                         "`opt_idx` set inside scheduler config does not match with the index"
                         " of the respective optimizer returned from `configure_optimizers`."
                     )
 
-                sch["opt_idx"] = opt_idx
+                config.opt_idx = opt_idx
                 break
         else:
             raise MisconfigurationException(

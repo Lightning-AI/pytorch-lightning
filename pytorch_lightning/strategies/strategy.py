@@ -53,6 +53,7 @@ class Strategy(ABC):
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
+        # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
         self.lr_schedulers: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
@@ -226,16 +227,6 @@ class Strategy(ABC):
         if model is not None:
             return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
         return move_data_to_device(batch, device)
-
-    @property
-    @abstractmethod
-    def on_gpu(self) -> bool:
-        """Returns whether the current process is done on GPU."""
-
-    @property
-    @abstractmethod
-    def on_tpu(self) -> bool:
-        """Returns whether the current process is done on TPU."""
 
     @property
     @abstractmethod
