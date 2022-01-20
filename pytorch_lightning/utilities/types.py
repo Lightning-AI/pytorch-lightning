@@ -16,6 +16,7 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
@@ -23,7 +24,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import Protocol, runtime_checkable, TypedDict
+from typing_extensions import Protocol, runtime_checkable
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -60,7 +61,8 @@ class _SupportsStateDict(Protocol):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class _LRScheduler(_SupportsStateDict):
+@runtime_checkable
+class _LRScheduler(_SupportsStateDict, Protocol):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
@@ -69,7 +71,8 @@ class _LRScheduler(_SupportsStateDict):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau(_SupportsStateDict):
+@runtime_checkable
+class ReduceLROnPlateau(_SupportsStateDict, Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 
@@ -95,12 +98,20 @@ LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
 
 
-class LRSchedulerConfig(TypedDict):
+@dataclass
+class LRSchedulerConfig:
     scheduler: Union[_LRScheduler, ReduceLROnPlateau]
-    name: Optional[str]
-    interval: str
-    frequency: int
-    reduce_on_plateau: bool
-    monitor: Optional[str]
-    strict: bool
-    opt_idx: Optional[int]
+    # no custom name
+    name: Optional[str] = None
+    # after epoch is over
+    interval: str = "epoch"
+    # every epoch/batch
+    frequency: int = 1
+    # most often not ReduceLROnPlateau scheduler
+    reduce_on_plateau: bool = False
+    # value to monitor for ReduceLROnPlateau
+    monitor: Optional[str] = None
+    # enforce that the monitor exists for ReduceLROnPlateau
+    strict: bool = True
+    # opt_idx assigned internally if not assigned by user
+    opt_idx: Optional[int] = None

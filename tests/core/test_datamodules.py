@@ -301,7 +301,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
     if is_overridden("transfer_batch_to_device", dm):

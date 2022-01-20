@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -245,7 +245,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # calculate loss (train step + train step end)
             # -------------------
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
-            with _block_parallel_sync_behavior(self.trainer, block=True):
+            with _block_parallel_sync_behavior(self.trainer.strategy, block=True):
                 closure()
 
         # ------------------------------
@@ -336,7 +336,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
     def _optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Union[Optimizer, LightningOptimizer],
         opt_idx: int,
         batch_idx: int,
         train_step_and_backward_closure: Callable[[], Optional[Tensor]],
@@ -351,8 +351,13 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 gradients. By default called by the optimizer (if possible)
         """
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+
         # wraps into LightningOptimizer only for running step
-        optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, opt_idx)
+        if self.trainer.amp_backend == AMPType.APEX:
+            # apex overrides .step function and need to be wrapped on each step
+            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
+        else:
+            optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
         self.optim_progress.optimizer.step.increment_ready()
 
@@ -365,7 +370,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=(self.trainer._device_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
-            using_native_amp=(self.trainer.amp_backend is not None and self.trainer.amp_backend == AMPType.NATIVE),
+            using_native_amp=(self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
 
@@ -418,8 +423,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # manually capture logged metrics
             training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
             self.trainer.strategy.post_training_step()
-
-            del step_kwargs
 
             model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
             strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)

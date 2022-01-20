@@ -153,7 +153,7 @@ class DataParallelStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
