@@ -102,7 +102,7 @@ class BaguaStrategy(DDPStrategy):
 
         self._bagua_algorithm = algorithm
         self._bagua_do_flatten = do_flatten
-        self._bagua_kwargs = kwargs
+        self._bagua_kwargs = bagua_kwargs
 
     def setup_environment(self) -> None:
         # start the other scripts

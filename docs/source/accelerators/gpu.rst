@@ -570,8 +570,8 @@ To use *QAdam*, we need to initialize
     )
     trainer.fit(model)
 
-Bagua relies on its own launcher `built-in utilities <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to schedule jobs.
-Below, find  examples using ``bagua.distributed.launch`` which follows ``torch.distributed.launch`` API:
+Bagua relies on its own `launcher <https://tutorials.baguasys.com/getting-started/#launch-job>`_ to schedule jobs.
+Below, find examples using ``bagua.distributed.launch`` which follows ``torch.distributed.launch`` API:
 
 .. code-block:: bash
 
@@ -585,19 +585,21 @@ Below, find  examples using ``bagua.distributed.launch`` which follows ``torch.d
     python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=hostname1 --master_port=port1 train.py
 
 
-If the ssh service is available with passwordless login on each node, we can launch the distributed job on a
-single node with a similar syntax as ``mpirun``.
+If the ssh service is available with passwordless login on each node, you can launch the distributed job on a
+single node with ``baguarun`` which has a similar syntax as ``mpirun``. When staring the job, ``baguarun`` will
+automatically spawn new processes on each of your training node provided by ``--host_list`` option and each node in it
+is described as an ip address followed by a ssh port.
 
 .. code-block:: bash
 
-    # start training on two nodes (node1 and node2), 8 GPUs per node
+    # Run on node1 (or node2) to start training on two nodes (node1 and node2), 8 GPUs per node
     baguarun --host_list hostname1:ssh_port1,hostname2:ssh_port2 --nproc_per_node=8 --master_port=port1 train.py
 
 
 .. note:: You can also start training in the same way as Distributed Data Parallel. However, system optimizations like
     `Bagua-Net <https://tutorials.baguasys.com/more-optimizations/bagua-net>`_ and
     `Performance autotuning <https://tutorials.baguasys.com/performance-autotuning/>`_ can only be enabled through bagua
-    built-in launching utilities. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
+    launcher. It is worth noting that with ``Bagua-Net``, Distributed Data Parallel can also achieve
     better performance without modifying the training script.
 
 
