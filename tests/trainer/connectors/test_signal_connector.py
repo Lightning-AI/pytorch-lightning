@@ -100,7 +100,7 @@ def test_auto_requeue_flag(auto_requeue):
 
 def _registering_signals():
     trainer = Trainer()
-    trainer.signal_connector.register_signal_handlers()
+    trainer._signal_connector.register_signal_handlers()
 
 
 @RunIf(skip_windows=True)
