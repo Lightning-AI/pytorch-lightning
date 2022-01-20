@@ -25,7 +25,6 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -48,10 +47,6 @@ class ParallelStrategy(Strategy, ABC):
     @abstractmethod
     def root_device(self) -> torch.device:
         """Return the root device."""
-
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:

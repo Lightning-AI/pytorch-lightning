@@ -23,10 +23,9 @@ from tests.helpers.runif import RunIf
 
 
 def test_single_cpu():
-    """Tests if on_tpu is set correctly for single CPU strategy."""
+    """Tests if device is set correctly for single CPU strategy."""
     trainer = Trainer()
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
-    assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cpu")
 
 
@@ -43,7 +42,6 @@ def test_single_gpu():
     trainer = Trainer(gpus=1, fast_dev_run=True)
     # assert training strategy attributes for device setting
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
-    assert not trainer.strategy.on_tpu
     assert trainer.strategy.root_device == torch.device("cuda:0")
 
     model = BoringModelGPU()
