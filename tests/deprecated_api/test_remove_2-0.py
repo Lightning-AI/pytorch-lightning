@@ -32,23 +32,23 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
     with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
         _ = trainer.resume_from_checkpoint
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    assert trainer._checkpoint_connector.resume_checkpoint_path is None
+    assert trainer._checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     trainer.validate(model=model, ckpt_path=ckpt_path)
     assert callback.state == 222
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
+    assert trainer._checkpoint_connector.resume_checkpoint_path is None
+    assert trainer._checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
         trainer.fit(model)
     assert callback.state == 111
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    assert trainer._checkpoint_connector.resume_checkpoint_path is None
+    assert trainer._checkpoint_connector.resume_from_checkpoint_fit_path is None
     trainer.predict(model=model, ckpt_path=ckpt_path)
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    assert trainer._checkpoint_connector.resume_checkpoint_path is None
+    assert trainer._checkpoint_connector.resume_from_checkpoint_fit_path is None
     trainer.fit(model)
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
+    assert trainer._checkpoint_connector.resume_checkpoint_path is None
+    assert trainer._checkpoint_connector.resume_from_checkpoint_fit_path is None
 
     # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
     model = BoringModel()
