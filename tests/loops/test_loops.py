@@ -86,6 +86,23 @@ def test_connect_loops_recursive():
     assert child1.trainer is trainer
 
 
+def test_restarting_loops_recursive():
+    class MyLoop(NestedLoop):
+        def __init__(self, loop=None):
+            super().__init__()
+            self.child = loop
+
+    loop = MyLoop(MyLoop(MyLoop()))
+
+    assert not loop.restarting
+    assert not loop.child.restarting
+    assert not loop.child.child.restarting
+    loop.restarting = True
+    assert loop.restarting
+    assert loop.child.restarting
+    assert loop.child.child.restarting
+
+
 def test_connect_subloops(tmpdir):
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
@@ -325,7 +342,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
-        num_sanity_val_steps=0,
     )
 
     # simulate a failure
@@ -345,7 +361,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
-    nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
+    # the fit-validation total batch progress is reset per epoch so it's not counted for the total value.
+    nbe_total_val_batch = 0  # stop_epoch * n_dataloaders * n_batches
     be_total_val_batch = stop_dataloader * n_batches + stop_batch
     total_val_batch = nbe_total_val_batch + be_total_val_batch
     expected = {
@@ -718,7 +735,6 @@ def test_fit_loop_reset(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=4,
-        num_sanity_val_steps=0,
         max_epochs=2,
         callbacks=[checkpoint_callback],
         logger=False,
@@ -923,7 +939,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
-        num_sanity_val_steps=0,
         enable_progress_bar=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)

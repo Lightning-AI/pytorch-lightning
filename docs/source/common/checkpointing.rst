@@ -348,7 +348,8 @@ Custom Checkpoint IO Plugin
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import ModelCheckpoint
-    from pytorch_lightning.plugins import CheckpointIO, SingleDeviceStrategy
+    from pytorch_lightning.plugins import CheckpointIO
+    from pytorch_lightning.strategies import SingleDeviceStrategy
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -384,3 +385,13 @@ Custom Checkpoint IO Plugin
 .. note::
 
     Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers.
+
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.

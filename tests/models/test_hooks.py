@@ -113,7 +113,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch(
-    "pytorch_lightning.plugins.training_type.training_type_plugin.Strategy.lightning_module",
+    "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_apply_batch_transfer_handler(model_getter_mock):
@@ -326,6 +326,11 @@ class HookedModel(BoringModel):
                         args=(current_epoch, i, ANY, 0, ANY),
                         kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
                     ),
+                    *(
+                        [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
+                        if i == (trainer.num_training_batches - 1)
+                        else []
+                    ),
                     dict(name="Callback.on_train_batch_end", args=(trainer, model, dict(loss=ANY), ANY, i)),
                     dict(name="on_train_batch_end", args=(dict(loss=ANY), ANY, i)),
                     dict(name="Callback.on_batch_end", args=(trainer, model)),
@@ -429,14 +434,6 @@ class HookedModel(BoringModel):
         return out
 
 
-@RunIf(deepspeed=True, min_gpus=1, standalone=True)
-@pytest.mark.parametrize("automatic_optimization", (True, False))
-def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization):
-    _run_trainer_model_hook_system_fit(
-        dict(gpus=1, precision=16, strategy="deepspeed"), tmpdir, automatic_optimization=automatic_optimization
-    )
-
-
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -444,14 +441,13 @@ def test_trainer_model_hook_system_fit_deepspeed(tmpdir, automatic_optimization)
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
+        pytest.param(
+            dict(gpus=1, precision=16, strategy="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1, standalone=True)
+        ),
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", (True, False))
 def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
-    _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization)
-
-
-def _run_trainer_model_hook_system_fit(kwargs, tmpdir, automatic_optimization):
     called = []
 
     class TestModel(HookedModel):
@@ -870,7 +866,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="val_dataloader"),
         dict(name="train_dataloader"),
-        dict(name="val_dataloader"),
         dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]

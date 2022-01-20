@@ -2,8 +2,8 @@ requirement_fnames = (
     "requirements.txt",
     "requirements/extra.txt",
     "requirements/loggers.txt",
-    "requirements/test.txt",
     "requirements/examples.txt",
+    # "requirements/test.txt",  # Don't use old testing packages
 )
 
 

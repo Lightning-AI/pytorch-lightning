@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -98,7 +98,7 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
-        self._distrib_type = None
+        self._strategy_type = None
         self._device_type = None
 
         # true if using amp
@@ -148,7 +148,7 @@ class LightningModule(
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
         if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers.values())
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -158,7 +158,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -166,11 +166,11 @@ class LightningModule(
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
             schedulers were returned in :meth:`configure_optimizers`.
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_scheduler_configs:
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+        lr_schedulers = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -514,9 +514,9 @@ class LightningModule(
 
             # DEFAULT
             def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
         """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -676,7 +676,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -851,7 +851,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1029,7 +1029,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
+            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1493,6 +1493,42 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
+    def lr_scheduler_step(
+        self,
+        scheduler: LRSchedulerTypeUnion,
+        optimizer_idx: int,
+        metric: Optional[Any],
+    ) -> None:
+        r"""
+        Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
+        By default, Lightning calls ``step()`` and as shown in the example
+        for each scheduler based on its ``interval``.
+
+        Args:
+            scheduler: Learning rate scheduler.
+            optimizer_idx: Index of the optimizer associated with this scheduler.
+            metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
+
+        Examples::
+
+            # DEFAULT
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                if metric is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(metric)
+
+            # Alternative way to update schedulers if it requires an epoch value
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                scheduler.step(epoch=self.current_epoch)
+
+        """
+        if metric is None:
+            scheduler.step()
+        else:
+            scheduler.step(metric)
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1859,7 +1895,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
             ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
@@ -1918,7 +1954,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1930,7 +1966,7 @@ class LightningModule(
             and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.plugins.training_type.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 

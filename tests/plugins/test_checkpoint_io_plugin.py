@@ -19,7 +19,8 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import CheckpointIO, SingleDeviceStrategy
+from pytorch_lightning.plugins import CheckpointIO
+from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
 from tests.helpers.boring_model import BoringModel
 
@@ -43,10 +44,9 @@ def test_checkpoint_plugin_called(tmpdir):
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = BoringModel()
-    device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDeviceStrategy(device, checkpoint_io=checkpoint_plugin),
+        strategy=SingleDeviceStrategy("cpu", checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
     )
@@ -62,10 +62,9 @@ def test_checkpoint_plugin_called(tmpdir):
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = BoringModel()
-    device = torch.device("cpu")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDeviceStrategy(device),
+        strategy=SingleDeviceStrategy("cpu"),
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,

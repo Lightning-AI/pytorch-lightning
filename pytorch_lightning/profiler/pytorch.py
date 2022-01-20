@@ -195,7 +195,6 @@ class ScheduleWrapper:
 class PyTorchProfiler(BaseProfiler):
 
     RECORD_FUNCTIONS = {
-        "training_step_and_backward",
         "training_step",
         "backward",
         "validation_step",

@@ -18,7 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPStrategy, SingleDeviceStrategy
+from pytorch_lightning.strategies import DDPStrategy, SingleDeviceStrategy
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -34,20 +34,20 @@ class CustomParallelStrategy(DDPStrategy):
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
-    plugin = CustomParallelStrategy()
-    assert plugin.sync_batchnorm is None
-    trainer = Trainer(max_epochs=1, strategy=plugin, default_root_dir=tmpdir, sync_batchnorm=True)
+    strategy = CustomParallelStrategy()
+    assert strategy.sync_batchnorm is None
+    trainer = Trainer(max_epochs=1, strategy=strategy, default_root_dir=tmpdir, sync_batchnorm=True)
     trainer.fit(model)
-    assert plugin.sync_batchnorm is True
+    assert strategy.sync_batchnorm is True
 
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])
-def test_plugin_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers):
-    class TestPlugin(SingleDeviceStrategy):
+def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers):
+    class TestStrategy(SingleDeviceStrategy):
         load_optimizer_state_dict_called = False
 
         @property
-        def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        def lightning_restore_optimizer(self) -> bool:
             return restore_optimizer_and_schedulers
 
         def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
@@ -61,7 +61,7 @@ def test_plugin_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optim
     trainer.save_checkpoint(checkpoint_path)
 
     model = BoringModel()
-    plugin = TestPlugin(torch.device("cpu"))
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
+    strategy = TestStrategy(torch.device("cpu"))
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy)
     trainer.fit(model, ckpt_path=checkpoint_path)
-    assert plugin.load_optimizer_state_dict_called == restore_optimizer_and_schedulers
+    assert strategy.load_optimizer_state_dict_called == restore_optimizer_and_schedulers

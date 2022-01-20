@@ -1,6 +1,7 @@
 # Contributing
 
-Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices that the amazing PyTorch team rolls out!
+Welcome to the PyTorch Lightning community! We're building the most advanced research platform on the planet to implement the latest, best practices
+and integrations that the amazing PyTorch team and other research organization rolls out!
 
 If you are new to open source, check out [this blog to get started with your first Open Source contribution](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a).
 
@@ -9,12 +10,12 @@ If you are new to open source, check out [this blog to get started with your fir
 Simplify the API as much as possible from the user perspective.
 Any additions or improvements should minimize the things the user needs to remember.
 
-For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval().
+For example: One benefit of the `validation_step` is that the user doesn't have to remember to set the model to .eval().
 This helps users avoid all sorts of subtle errors.
 
 ## Lightning Design Principles
 
-We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.
+We encourage all sorts of contributions you're interested in adding! When coding for Lightning, please follow these principles.
 
 ### No PyTorch Interference
 
@@ -102,7 +103,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a trial MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
+Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
 
 ______________________________________________________________________
 
@@ -125,7 +126,7 @@ In case you adding new dependencies, make sure that they are compatible with the
 ### Coding Style
 
 1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
-1. You can use `pre-commit` to make sure your code style is correct.
+1. You can use [pre-commit](https://pre-commit.com/) to make sure your code style is correct.
 
 ### Documentation
 
@@ -134,7 +135,7 @@ Moreover, we set Google style to follow with type convention.
 
 - [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
 - [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
-- [Paragraph-level markup](https://www.sphinx-doc.org/en/1.5/markup/para.html)
+- [Paragraph-level markup](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#paragraphs)
 
 See following short example of a sample function taking one position string and optional
 
@@ -152,12 +153,14 @@ def my_func(param_a: int, param_b: Optional[float] = None) -> str:
     Return:
         sum of both numbers
 
-    Example:
+    Example::
+
         Sample doctest example...
         >>> my_func(1, 2)
         3
 
-    .. note:: If you want to add something.
+    Note:
+        If you want to add something.
     """
     p = param_b if param_b else 0
     return str(param_a + p)
@@ -170,6 +173,7 @@ Run these commands
 ```bash
 git submodule update --init --recursive
 pip install -r requirements/docs.txt
+make clean
 cd docs
 make html
 ```
@@ -194,6 +198,7 @@ To setup a local development environment, install both local and test dependenci
 ```bash
 python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
+pre-commit install
 ```
 
 Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
@@ -232,21 +237,42 @@ python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
 
 We welcome any useful contribution! For your convenience here's a recommended workflow:
 
-0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one, start by opening a GitHub issue to explain the feature and the motivation. Members from core-contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it. Once an agreement was reached - start coding.
-1. Start your work locally (usually until you need our CI testing).
+1. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one.
+
+   - Start by opening a GitHub issue to explain the feature and the motivation.
+     In the case of features, ask yourself first - Is this NECESSARY for Lightning? There are some PRs that are just
+     purely about adding engineering complexity which has no place in Lightning.
+   - Core contributors will take a look (it might take some time - we are often overloaded with issues!) and discuss it.
+   - Once an agreement was reached - start coding.
+
+1. Start your work locally.
+
    - Create a branch and prepare your changes.
-   - Tip: do not work with your master directly, it may become complicated when you need to rebase.
+   - Tip: do not work on your master branch directly, it may become complicated when you need to rebase.
    - Tip: give your PR a good name! It will be useful later when you may work on multiple tasks/PRs.
+
 1. Test your code!
+
    - It is always good practice to start coding by creating a test case, verifying it breaks with current behaviour, and passes with your new changes.
    - Make sure your new tests cover all different edge cases.
-   - Make sure all exceptions are handled.
-1. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
+   - Make sure all exceptions raised are tested.
+   - Make sure all warnings raised are tested.
+
+1. If your PR is not ready for reviews, but you want to run it on our CI, open a "Draft PR" to let us know you don't need feedback yet.
+
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
+
    - Your code should be readable and follow the project's design principles.
-   - Make sure all tests are passing.
-   - Make sure you add a GitHub issue to your PR.
-1. Use tags in PR name for following cases:
+   - Make sure all tests are passing and any new code is tested for (coverage!).
+   - Make sure you link the GitHub issue to your PR.
+   - Make sure any docs for that piece of code are updated, or added.
+   - The code should be elegant and simple. No over-engineering or hard-to-read code.
+
+   Do your best but don't sweat about perfection! We do code-review to find any missed items.
+   If you need help, don't hesitate to ping the core team on the PR.
+
+1. Use tags in PR name for the following cases:
+
    - **\[blocked by #<number>\]** if your work is dependent on other PRs.
    - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
@@ -303,7 +329,7 @@ Here is the process to create a new test
 - 0. Optional: Follow tutorials !
 - 1. Find a file in tests/ which match what you want to test. If none, create one.
 - 2. Use this template to get started !
-- 3. Use `BoringModel and derivates to test out your code`.
+- 3. Use **BoringModel and derivates to test out your code**.
 
 ```python
 # TEST SHOULD BE IN YOUR FILE: tests/..../...py
@@ -335,7 +361,7 @@ def test_explain_what_is_being_tested(tmpdir):
 run our/your test with
 
 ```bash
-python -m pytest tests/..../...py::test_explain_what_is_being_tested --verbose --capture=no
+python -m pytest tests/..../...py::test_explain_what_is_being_tested -v --capture=no
 ```
 
 #### How to fix PR with mixed base and target branches?

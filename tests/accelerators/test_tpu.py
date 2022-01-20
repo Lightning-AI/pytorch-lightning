@@ -23,7 +23,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import DDPStrategy, TPUPrecisionPlugin, TPUSpawnStrategy, XLACheckpointIO
+from pytorch_lightning.plugins import TPUPrecisionPlugin, XLACheckpointIO
+from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -318,7 +319,7 @@ def test_xla_checkpoint_plugin_being_default():
 
 
 @RunIf(tpu=True)
-@patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+@patch("pytorch_lightning.strategies.tpu_spawn.xm")
 def test_mp_device_dataloader_attribute(_):
     dataset = RandomDataset(32, 64)
     dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))

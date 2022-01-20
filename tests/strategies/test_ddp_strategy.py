@@ -19,8 +19,8 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins import DDPStrategy
 from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -39,8 +39,6 @@ def test_ddp_with_2_gpus():
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer.strategy.on_gpu
-    assert not trainer.strategy.on_tpu
     local_rank = trainer.strategy.local_rank
     assert trainer.strategy.root_device == torch.device(f"cuda:{local_rank}")
 
