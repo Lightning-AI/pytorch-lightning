@@ -110,7 +110,6 @@ class EvaluationEpochLoop(Loop):
 
         assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
             batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
             if batch is None:
                 raise StopIteration
