@@ -224,6 +224,25 @@ If you are having a hard time debugging DDP on your remote machine you can debug
 
     trainer = Trainer(accelerator="cpu", strategy="ddp", devices=2)
 
+To inspect your code, you can use `pdb <https://docs.python.org/3/library/pdb.html>`_ or `breakpoint() <https://docs.python.org/3/library/functions.html#breakpoint>`_
+or use regular print statements.
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def training_step(self, batch, batch_idx):
+
+            debugging_message = ...
+            print(f"RANK - {self.trainer.local_rank}: {debugging_message}")
+
+            if self.trainer.local_rank == 0:
+                import pdb
+
+                pdb.set_trace()
+
+            # to prevent other processes from moving forward until all processes are in sync
+            self.trainer.strategy.barrier()
+
 When everything works, switch back to GPU by changing only the accelerator.
 
 .. code-block:: python
