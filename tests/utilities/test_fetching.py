@@ -222,7 +222,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
 @RunIf(min_torch="1.8.0")
-def test_fetching_dataloader_iter_opt(automatic_optimization, fn, tmpdir):
+def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
             super().__init__(*args, **kwargs)
