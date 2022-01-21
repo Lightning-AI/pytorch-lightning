@@ -583,8 +583,8 @@ def test_dp_resume(tmpdir):
     trainer = Trainer(**trainer_options)
     trainer.fit(model, datamodule=dm)
 
-    # track epoch before saving
-    real_global_epoch = trainer.current_epoch
+    # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
+    real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
