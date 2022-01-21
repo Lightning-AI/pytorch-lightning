@@ -35,7 +35,6 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -398,7 +397,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Run:
         r"""
 
         Actual Neptune run object. Allows you to use neptune logging features in your

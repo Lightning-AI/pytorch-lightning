@@ -30,7 +30,6 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +193,7 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> ExperimentWriter:
         r"""
 
         Actual ExperimentWriter object. To use ExperimentWriter features in your

@@ -150,7 +150,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Experiment:
         r"""
 
         Actual TestTube object. To use TestTube features in your

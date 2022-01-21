@@ -19,7 +19,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers.base import LoggerCollection, DummyLogger
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -40,6 +40,7 @@ from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
+
 
 def test_v1_8_0_deprecated_distributed_type_enum():
 
@@ -352,6 +353,7 @@ def test_v1_8_0_deprecated_lightning_optimizers():
     ):
         assert trainer.lightning_optimizers == {}
 
+
 def test_v1_8_0_deprecated_logger_collection_experiment():
     with pytest.deprecated_call(
         match=(
@@ -361,6 +363,6 @@ def test_v1_8_0_deprecated_logger_collection_experiment():
         )
     ):
         logger1 = DummyLogger()
-        logger2 = DummyLogger
+        logger2 = DummyLogger()
         logger_collection = LoggerCollection([logger1, logger2])
         _ = logger_collection.experiment
