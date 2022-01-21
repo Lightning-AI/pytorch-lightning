@@ -26,7 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -444,15 +444,15 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[List[LRSchedulerConfig]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
-        if len(optimizers) > 1 or len(schedulers) > 1:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+        optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else _get_default_scheduler_config(),
+            lr_schedulers[0] if lr_schedulers else None,
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -461,27 +461,32 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
 
     def _initialize_deepspeed_train(self, model):
+        optimizer, scheduler = None, None
         if "optimizer" in self.config:
             rank_zero_info(
                 "You have specified an optimizer and/or scheduler within the DeepSpeed config."
                 " It is recommended to define it in `LightningModule.configure_optimizers`."
             )
-            optimizer, lr_scheduler = None, _get_default_scheduler_config()
+            lr_scheduler = None
         else:
             optimizer, lr_scheduler, _ = self._init_optimizers()
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
 
-        scheduler = lr_scheduler["scheduler"]
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
-        self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+        self.optimizers = [deepspeed_optimizer]
 
         deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
-            lr_scheduler["scheduler"] = deepspeed_scheduler
+            if lr_scheduler is None:
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler)
+            else:
+                lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_schedulers = [lr_scheduler]
         self.model = model
 
@@ -523,11 +528,10 @@ class DeepSpeedStrategy(DDPStrategy):
                 " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
-            scheduler = lr_scheduler["scheduler"]
-        inference_config = {
-            # todo: this is required for DeepSpeed throughput timers
-            "train_micro_batch_size_per_gpu": 1
-        }
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
+        # todo: this is required for DeepSpeed throughput timers
+        inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
         if self.zero_stage_3:

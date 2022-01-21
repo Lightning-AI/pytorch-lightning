@@ -123,7 +123,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", model: "pl.LightningModule
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
-    trainer.optimizers, trainer.lr_schedulers = [], []  # required for saving
+    trainer.optimizers, trainer.strategy.lr_schedulers = [], []  # required for saving
     trainer.model = model  # required for saving
 
 

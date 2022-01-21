@@ -459,7 +459,7 @@ class Trainer(
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
-        self.signal_connector = SignalConnector(self)
+        self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
         min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
@@ -1242,7 +1242,7 @@ class Trainer(
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
-        self.signal_connector.teardown()
+        self._signal_connector.teardown()
 
     def run_stage(self) -> None:
         rank_zero_deprecation(
@@ -1267,7 +1267,7 @@ class Trainer(
         self.strategy.barrier("setup_training")
 
         # register signals
-        self.signal_connector.register_signal_handlers()
+        self._signal_connector.register_signal_handlers()
 
         # --------------------------
         # Pre-train
@@ -2014,19 +2014,26 @@ class Trainer(
         return self.strategy._lightning_optimizers
 
     @property
-    def lr_schedulers(self) -> List[LRSchedulerConfig]:
+    def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_schedulers
 
-    @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: List[LRSchedulerConfig]) -> None:
-        self.strategy.lr_schedulers = new_schedulers
+    @property
+    def lr_schedulers(self) -> List[Dict[str, Any]]:
+        rank_zero_deprecation(
+            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
+            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
+            stacklevel=5,
+        )
+        from dataclasses import asdict
+
+        return [asdict(config) for config in self.strategy.lr_schedulers]
 
     @property
-    def optimizer_frequencies(self) -> list:
+    def optimizer_frequencies(self) -> List[int]:
         return self.strategy.optimizer_frequencies
 
     @optimizer_frequencies.setter
-    def optimizer_frequencies(self, new_freqs: list) -> None:
+    def optimizer_frequencies(self, new_freqs: List[int]) -> None:
         self.strategy.optimizer_frequencies = new_freqs
 
     @property
