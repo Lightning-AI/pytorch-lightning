@@ -71,16 +71,21 @@ class AbstractDataFetcher(ABC):
         if prefetch_batches < 0:
             raise MisconfigurationException("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
-        self.dataloader: Optional[Iterable] = None
+        self._dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
-        self.batch_to_device: Optional[Callable] = None
         self.reset()
 
-    def setup(self, dataloader: Iterable, batch_to_device: Optional[Callable] = None) -> None:
+    def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
-        self.dataloader = dataloader
-        self.batch_to_device = batch_to_device
-        self._attach_data_fetcher()
+        self._dataloader = dataloader
+
+    @property
+    def dataloader(self) -> Iterable:
+        if self._dataloader is None:
+            raise MisconfigurationException(
+                f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable."
+            )
+        return self._dataloader
 
     @staticmethod
     def _add_capture_metadata_collate(dataloader: Iterable) -> None:
@@ -130,10 +135,6 @@ class AbstractDataFetcher(ABC):
 
     @property
     def loaders(self) -> List[DataLoader]:
-        if self.dataloader is None:
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
         if isinstance(self.dataloader, CombinedLoader):
             loaders = self.dataloader.loaders
         else:
@@ -142,11 +143,6 @@ class AbstractDataFetcher(ABC):
 
     @property
     def loader_iters(self) -> List[Iterator]:
-        if self.dataloader is None:
-            raise MisconfigurationException(
-                "The `DataFetcher` should be setup with an instance of a PyTorch ``DataLoader``."
-            )
-
         if self.dataloader_iter is None:
             raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
 
@@ -174,8 +170,6 @@ class AbstractDataFetcher(ABC):
         apply_to_collection(self.loaders, (DataLoader, CycleIterator), _attach_data_fetcher_fn)
 
     def __iter__(self) -> "AbstractDataFetcher":
-        if self.dataloader is None:
-            raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
         self._attach_data_fetcher()
         _patch_dataloader_get_iterators()
@@ -188,7 +182,6 @@ class AbstractDataFetcher(ABC):
         return self.fetching_function()
 
     def reset(self) -> None:
-        self.batches: List[Any] = []
         self.fetched: int = 0
         self.done: bool = False
 
@@ -200,6 +193,10 @@ class AbstractDataFetcher(ABC):
             CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
         self.dataloader_iter = None
         _teardown_dataloader_get_iterators()
+
+
+def _no_op_batch_to_device(batch: Any) -> Any:
+    return batch
 
 
 class DataFetcher(AbstractDataFetcher):
@@ -216,6 +213,13 @@ class DataFetcher(AbstractDataFetcher):
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
+        self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
+        self.batches: List[Any] = []
+
+    def setup(self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None) -> None:
+        super().setup(dataloader)
+        if batch_to_device is not None:
+            self.batch_to_device = batch_to_device
 
     def on_fetch_end(self, batch: Any, start_output: Any) -> None:
         """Hook to extend which handles the logic after fetching a batch."""
@@ -252,9 +256,13 @@ class DataFetcher(AbstractDataFetcher):
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
-        if self.store_on_device and self.batch_to_device is not None:
+        if self.store_on_device:
             batch = self.batch_to_device(batch)
         return batch
+
+    def reset(self) -> None:
+        self.batches = []
+        super().reset()
 
 
 class InterBatchParallelDataFetcher(DataFetcher):
@@ -306,7 +314,7 @@ class StepFuncDataLoaderIter(Iterator):
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
     control."""
 
-    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
+    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher") -> None:
         self.iterator = iterator
         self.data_fetcher = data_fetcher
 
@@ -317,7 +325,7 @@ class StepFuncDataLoaderIter(Iterator):
             return data
         except StopIteration:
             self.data_fetcher.done = True
-            raise StopIteration
+            raise
 
 
 class DataLoaderIterDataFetcher(AbstractDataFetcher):
