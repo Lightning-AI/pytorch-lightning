@@ -111,7 +111,7 @@ class TestNeptuneLogger(unittest.TestCase):
         unpickled = pickle.loads(pickled_logger)
 
         neptune.init.assert_called_once_with(name="Test name", run="TEST-42")
-        self.assertIsNotNone(unpickled.experiment)
+        self.assertIsNotNone(unpickled.run)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_wrong_kwargs(self, neptune):
@@ -151,7 +151,7 @@ class TestNeptuneLogger(unittest.TestCase):
     def test_neptune_additional_methods(self, neptune):
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
-        logger.experiment["key1"].log(torch.ones(1))
+        logger.run["key1"].log(torch.ones(1))
         run_instance_mock.__getitem__.assert_called_once_with("key1")
         run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 

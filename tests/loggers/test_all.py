@@ -119,16 +119,16 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
     if logger_class == WandbLogger:
         # required mocks for Trainer
-        logger.experiment.id = "foo"
-        logger.experiment.project_name.return_value = "bar"
+        logger.run.id = "foo"
+        logger.run.project_name.return_value = "bar"
 
     if logger_class == CometLogger:
-        logger.experiment.id = "foo"
-        logger.experiment.project_name = "bar"
+        logger.comet_experiment.id = "foo"
+        logger.comet_experiment.project_name = "bar"
 
     if logger_class == TestTubeLogger:
-        logger.experiment.version = "foo"
-        logger.experiment.name = "bar"
+        logger.test_tube_experiment.version = "foo"
+        logger.test_tube_experiment.name = "bar"
 
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
@@ -269,7 +269,16 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     # this can cause pickle error if the experiment object is not picklable
     # the logger needs to remove it from the state before pickle
-    _ = logger.experiment
+    if logger_class == CometLogger:
+        _ = logger.comet_experiment
+    elif logger_class == CSVLogger:
+        _ = logger.experiment_writer
+    elif logger_class == MLFlowLogger:
+        _ = logger.mlflow_client
+    elif logger_class == TensorBoardLogger:
+        _ = logger.summary_writer
+    elif logger_class == TestTubeLogger:
+        _ = logger.test_tube_experiment
 
     # logger also has to avoid adding un-picklable attributes to self in .save
     logger.log_metrics({"a": 1})
@@ -374,7 +383,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         _patch_comet_atexit(monkeypatch)
         logger = _instantiate_logger(CometLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
+        logger.comet_experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
     # MLflow
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
@@ -382,22 +391,22 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     ):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
+        logger.mlflow_client.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 2
+        assert logger.run.__getitem__.call_count == 2
         logger.log_metrics({"test": 1.0}, step=0)
-        assert logger.experiment.__getitem__.call_count == 3
-        logger.experiment.__getitem__.assert_called_with("tmp/test")
-        logger.experiment.__getitem__().log.assert_called_once_with(1.0)
+        assert logger.run.__getitem__.call_count == 3
+        logger.run.__getitem__.assert_called_with("tmp/test")
+        logger.run.__getitem__().log.assert_called_once_with(1.0)
 
     # TensorBoard
     with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
         logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
+        logger.summary_writer.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # TestTube
     with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
@@ -405,7 +414,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     ):
         logger = _instantiate_logger(TestTubeLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
+        logger.test_tube_experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
     # WandB
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
@@ -413,4 +422,4 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+        logger.run.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})

@@ -55,10 +55,10 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     logger = MLFlowLogger("test", save_dir=tmpdir)
     assert logger._experiment_id is None
     assert logger._run_id is None
-    _ = logger.experiment
+    _ = logger.mlflow_client
     assert logger.experiment_id == "exp-id-1"
     assert logger.run_id == "run-id-1"
-    assert logger.experiment.create_experiment.asset_called_once()
+    assert logger.mlflow_client.create_experiment.asset_called_once()
     client.reset_mock(return_value=True)
 
     # simulate existing experiment returns experiment id
@@ -71,8 +71,8 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     logger2 = MLFlowLogger("test", save_dir=tmpdir)
     assert logger2.experiment_id == logger.experiment_id
     assert logger2.run_id == "run-id-2"
-    assert logger2.experiment.create_experiment.call_count == 0
-    assert logger2.experiment.create_run.asset_called_once()
+    assert logger2.mlflow_client.create_experiment.call_count == 0
+    assert logger2.mlflow_client.create_run.asset_called_once()
     client.reset_mock(return_value=True)
 
     # simulate a 3rd experiment with new name
@@ -96,19 +96,19 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
     # run_name is appended to tags
     logger = MLFlowLogger("test", run_name="run-name-1", save_dir=tmpdir)
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
-    _ = logger.experiment
+    _ = logger.mlflow_client
     client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
 
     # run_name overrides tags[MLFLOW_RUN_NAME]
     logger = MLFlowLogger("test", run_name="run-name-1", tags={MLFLOW_RUN_NAME: "run-name-2"}, save_dir=tmpdir)
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
-    _ = logger.experiment
+    _ = logger.mlflow_client
     client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=tags)
 
     # default run_name (= None) does not append new tag
     logger = MLFlowLogger("test", save_dir=tmpdir)
     logger = mock_mlflow_run_creation(logger, experiment_id="exp-id")
-    _ = logger.experiment
+    _ = logger.mlflow_client
     default_tags = resolve_tags(None)
     client.return_value.create_run.assert_called_with(experiment_id="exp-id", tags=default_tags)
 
@@ -152,9 +152,9 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     run_id = logger.run_id
     exp_id = logger.experiment_id
 
-    # multiple experiment calls should not lead to new experiment folders
+    # multiple mlflow_client calls should not lead to new experiment folders
     for i in range(2):
-        _ = logger.experiment
+        _ = logger.mlflow_client
         assert set(os.listdir(tmpdir)) == {".trash", exp_id}
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
 
@@ -185,10 +185,10 @@ def test_mlflow_logger_dirs_creation(tmpdir):
 def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
     """Test that the logger experiment_id retrieved only once."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
-    _ = logger.experiment
-    _ = logger.experiment
-    _ = logger.experiment
-    assert logger.experiment.get_experiment_by_name.call_count == 1
+    _ = logger.mlflow_client
+    _ = logger.mlflow_client
+    _ = logger.mlflow_client
+    assert logger.mlflow_client.get_experiment_by_name.call_count == 1
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
@@ -228,12 +228,12 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     params = {"test": "test_param"}
     logger.log_hyperparams(params)
 
-    logger.experiment.log_param.assert_called_once_with(logger.run_id, "test", "test_param")
+    logger.mlflow_client.log_param.assert_called_once_with(logger.run_id, "test", "test_param")
 
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
 
-    logger.experiment.log_metric.assert_called_once_with(logger.run_id, "some_metric", 10, 1000, None)
+    logger.mlflow_client.log_metric.assert_called_once_with(logger.run_id, "some_metric", 10, 1000, None)
 
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"

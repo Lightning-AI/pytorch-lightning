@@ -46,7 +46,7 @@ def test_wandb_logger_init(wandb):
     wandb.run = None
     run = wandb.init()
     logger = WandbLogger(experiment=run)
-    assert logger.experiment
+    assert logger.run
 
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
@@ -58,7 +58,7 @@ def test_wandb_logger_init(wandb):
     assert logger._wandb_init["resume"] == "allow"
 
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
-        _ = logger.experiment
+        _ = logger.run
 
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
@@ -103,15 +103,15 @@ def test_wandb_pickle(wandb, tmpdir):
     logger = WandbLogger(id="the_id", offline=True)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
-    # Access the experiment to ensure it's created
-    assert trainer.logger.experiment, "missing experiment"
+    # Access run to ensure it's created
+    assert trainer.logger.run, "missing run"
     assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ["WANDB_MODE"] == "dryrun"
     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-    assert trainer2.logger.experiment, "missing experiment"
+    assert trainer2.logger.run, "missing run"
 
     wandb.init.assert_called()
     assert "id" in wandb.init.call_args[1]
@@ -127,13 +127,13 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert logger.version is None
     assert logger.name is None
 
-    # mock return values of experiment
+    # mock return values of run
     wandb.run = None
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.run.id = "1"
+    logger.run.project_name.return_value = "project"
 
     for _ in range(2):
-        _ = logger.experiment
+        _ = logger.run
 
     assert logger.version == "1"
     assert logger.name == "project"
@@ -160,8 +160,8 @@ def test_wandb_log_model(wandb, tmpdir):
 
     # test log_model=True
     logger = WandbLogger(log_model=True)
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.run.id = "1"
+    logger.run.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
@@ -170,8 +170,8 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     logger = WandbLogger(log_model="all")
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.run.id = "1"
+    logger.run.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
@@ -180,8 +180,8 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     logger = WandbLogger(log_model=False)
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.run.id = "1"
+    logger.run.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     assert not wandb.init().log_artifact.called
@@ -194,8 +194,8 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
     logger = pl_wandb.WandbLogger(log_model=True)
-    logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.run.id = "1"
+    logger.run.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.Artifact.assert_called_once_with(

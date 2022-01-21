@@ -37,7 +37,7 @@ def test_comet_logger_online(comet):
     with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
         logger = CometLogger(api_key="key", workspace="dummy-test", project_name="general")
 
-        _ = logger.experiment
+        _ = logger.comet_experiment
 
         comet_experiment.assert_called_once_with(api_key="key", workspace="dummy-test", project_name="general")
 
@@ -45,7 +45,7 @@ def test_comet_logger_online(comet):
     with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
         logger = CometLogger(save_dir="test", api_key="key", workspace="dummy-test", project_name="general")
 
-        _ = logger.experiment
+        _ = logger.comet_experiment
 
         comet_experiment.assert_called_once_with(api_key="key", workspace="dummy-test", project_name="general")
 
@@ -59,7 +59,7 @@ def test_comet_logger_online(comet):
             project_name="general",
         )
 
-        _ = logger.experiment
+        _ = logger.comet_experiment
 
         comet_existing.assert_called_once_with(
             api_key="key", workspace="dummy-test", project_name="general", previous_experiment="test"
@@ -93,7 +93,7 @@ def test_comet_logger_experiment_name(comet):
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
         assert logger._experiment is None
 
-        _ = logger.experiment
+        _ = logger.comet_experiment
         comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
         comet_experiment().set_name.assert_called_once_with(experiment_name)
 
@@ -120,7 +120,7 @@ def test_comet_logger_manual_experiment_key(comet):
             assert logger.version == experiment_key
             assert logger._experiment is None
 
-            _ = logger.experiment
+            _ = logger.comet_experiment
             comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
 
     assert instantation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
@@ -142,13 +142,13 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     assert logger.name == "test"
     assert logger.version == "4321"
 
-    _ = logger.experiment
+    _ = logger.comet_experiment
 
     comet_experiment.assert_called_once_with(offline_directory=tmpdir, project_name="test")
 
     # mock return values of experiment
-    logger.experiment.id = "1"
-    logger.experiment.project_name = "test"
+    logger.comet_experiment.id = "1"
+    logger.comet_experiment.project_name = "test"
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
@@ -204,7 +204,7 @@ def test_comet_version_without_experiment(comet):
         assert logger.version == first_version
         assert logger._experiment is None
 
-        _ = logger.experiment
+        _ = logger.comet_experiment
 
         logger.reset_experiment()
 
@@ -220,7 +220,7 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     _patch_comet_atexit(monkeypatch)
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
-    logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
+    logger.comet_experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
 
 
 @patch("pytorch_lightning.loggers.comet.CometExperiment")

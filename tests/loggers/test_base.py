@@ -38,9 +38,6 @@ def test_logger_collection():
     assert logger[0] == mock1
     assert logger[1] == mock2
 
-    assert logger.experiment[0] == mock1.experiment
-    assert logger.experiment[1] == mock2.experiment
-
     assert logger.save_dir is None
 
     logger.update_agg_funcs({"test": np.mean}, np.sum)
