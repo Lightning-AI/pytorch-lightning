@@ -400,9 +400,6 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `NeptuneLogger.run` instead.
 
         Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule`.
@@ -429,12 +426,6 @@ class NeptuneLogger(LightningLoggerBase):
         with NeptuneLogger as these are also supported.
 
         """
-        rank_zero_deprecation(
-            """
-            The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `NeptuneLogger.run` instead.
-            """
-        )
         return self.run
 
     @property

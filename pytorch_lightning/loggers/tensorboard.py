@@ -178,9 +178,6 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `TensorBoardLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `TensorBoardLogger.summary_writer` instead.
 
         Actual tensorboard object. To use TensorBoard features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -190,12 +187,6 @@ class TensorBoardLogger(LightningLoggerBase):
             self.logger.experiment.some_tensorboard_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `TensorBoardLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `TensorBoardLogger.summary_writer` instead.
-            """
-        )
         return self.summary_writer
 
     @rank_zero_only

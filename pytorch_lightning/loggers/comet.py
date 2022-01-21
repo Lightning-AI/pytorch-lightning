@@ -235,9 +235,6 @@ class CometLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `CometLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `CometLogger.comet_experiment` instead.
 
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -247,12 +244,6 @@ class CometLogger(LightningLoggerBase):
             self.logger.experiment.some_comet_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `CometLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `CometLogger.comet_experiment` instead.
-            """
-        )
         return self.comet_experiment
 
     @rank_zero_only

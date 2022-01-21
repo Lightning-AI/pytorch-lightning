@@ -196,9 +196,6 @@ class CSVLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `CSVLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `CSVLogger.experiment_writer` instead.
 
         Actual ExperimentWriter object. To use ExperimentWriter features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -208,12 +205,6 @@ class CSVLogger(LightningLoggerBase):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `CSVLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `CSVLogger.experiment_writer` instead.
-            """
-        )
         return self.experiment_writer
 
     @rank_zero_only

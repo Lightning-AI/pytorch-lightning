@@ -152,9 +152,6 @@ class TestTubeLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `TestTubeLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `TestTubeLogger.test_tube_experiment` instead.
 
         Actual TestTube object. To use TestTube features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -164,12 +161,6 @@ class TestTubeLogger(LightningLoggerBase):
             self.logger.experiment.some_test_tube_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `TestTubeLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `TestTubeLogger.test_tube_experiment` instead.
-            """
-        )
         return self.test_tube_experiment
 
     @rank_zero_only

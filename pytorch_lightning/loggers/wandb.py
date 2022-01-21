@@ -355,9 +355,6 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `WandbLogger.run` instead.
 
         Actual wandb object. To use wandb features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -369,12 +366,6 @@ class WandbLogger(LightningLoggerBase):
             self.logger.experiment.some_wandb_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `WandbLogger.run` instead.
-            """
-        )
         return self.run
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):

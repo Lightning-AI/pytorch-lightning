@@ -174,9 +174,6 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_experiment
     def experiment(self):
         r"""
-        .. deprecated:: v1.6
-            The `MLFlowLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `MLFlowLogger.mlflow_client` instead.
 
         Actual MLflow object. To use MLflow features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -186,12 +183,6 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
-        rank_zero_deprecation(
-            """
-            The `MLFlowLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `MLFlowLogger.mlflow_client` instead.
-            """
-        )
         return self.mlflow_client
 
     @property

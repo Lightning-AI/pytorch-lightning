@@ -405,6 +405,11 @@ class LoggerCollection(LightningLoggerBase):
 
         Returns a list of experiment objects for all the loggers in the logger collection.
         """
+        rank_zero_deprecation(
+            """
+            The `LoggerCollection.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            """
+        )
         return [logger.experiment for logger in self._logger_iterable]
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -498,6 +503,11 @@ class DummyLogger(LightningLoggerBase):
     def __init__(self):
         super().__init__()
         self._experiment = DummyExperiment()
+
+    @property
+    def experiment(self) -> DummyExperiment:
+        """Return the experiment object associated with this logger."""
+        return self._experiment
 
     def log_metrics(self, *args, **kwargs) -> None:
         pass
