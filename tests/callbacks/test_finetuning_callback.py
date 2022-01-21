@@ -268,7 +268,7 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     configure_optimizers function call."""
 
     class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer, pl_module):
+        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             pl_module.on_before_accelerator_backend_setup_called = True
 
     class TestModel(BoringModel):
