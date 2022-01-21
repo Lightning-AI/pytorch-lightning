@@ -188,8 +188,9 @@ class BaguaStrategy(DDPStrategy):
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
 
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
