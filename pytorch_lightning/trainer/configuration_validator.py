@@ -55,6 +55,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_dl_idx_in_on_train_batch_hooks(trainer, model)
     # TODO: Remove this in v1.8
     _check_on_init_start_end(trainer)
+    # TODO: Remove this in v1.8
+    _check_on_before_accelerator_backend_setup(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
 
@@ -307,6 +309,16 @@ def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
             )
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
+
+
+# TODO: Delete _check_on_before_accelerator_backend_setup in v1.8
+def _check_on_before_accelerator_backend_setup(trainer: "pl.Trainer") -> None:
+    """Checks if _check_on_before_accelerator_backend_setup are overridden and sends a deprecation warning."""
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
+            rank_zero_deprecation(
+                "The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6 and will be removed in v1.8."
+            )
 
 
 # TODO: Delete _check_on_hpc_hooks in v1.8
