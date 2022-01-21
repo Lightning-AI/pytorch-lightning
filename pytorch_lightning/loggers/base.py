@@ -499,11 +499,6 @@ class DummyLogger(LightningLoggerBase):
         super().__init__()
         self._experiment = DummyExperiment()
 
-    @property
-    def experiment(self) -> DummyExperiment:
-        """Return the experiment object associated with this logger."""
-        return self._experiment
-
     def log_metrics(self, *args, **kwargs) -> None:
         pass
 
