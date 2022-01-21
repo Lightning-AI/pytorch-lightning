@@ -73,7 +73,8 @@ class AbstractDataFetcher(ABC):
         self.prefetch_batches = prefetch_batches
         self._dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
-        self.reset()
+        self.fetched: int = 0
+        self.done: bool = False
 
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
@@ -182,8 +183,8 @@ class AbstractDataFetcher(ABC):
         return self.fetching_function()
 
     def reset(self) -> None:
-        self.fetched: int = 0
-        self.done: bool = False
+        self.fetched = 0
+        self.done = False
 
     def teardown(self) -> None:
         self.reset()
@@ -216,6 +217,7 @@ class DataFetcher(AbstractDataFetcher):
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
+        self.batches: List[Any] = []
 
     def setup(  # type: ignore[override]
         self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
@@ -265,7 +267,7 @@ class DataFetcher(AbstractDataFetcher):
 
     def reset(self) -> None:
         super().reset()
-        self.batches: List[Any] = []
+        self.batches = []
 
 
 class InterBatchParallelDataFetcher(DataFetcher):
@@ -317,7 +319,7 @@ class StepFuncDataLoaderIter(Iterator):
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
     control."""
 
-    def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher") -> None:
+    def __init__(self, iterator: Iterator, data_fetcher: AbstractDataFetcher) -> None:
         self.iterator = iterator
         self.data_fetcher = data_fetcher
 
@@ -326,9 +328,9 @@ class StepFuncDataLoaderIter(Iterator):
             data = next(self.iterator)
             self.data_fetcher.fetched += 1
             return data
-        except StopIteration:
+        except StopIteration as e:
             self.data_fetcher.done = True
-            raise
+            raise e
 
 
 class DataLoaderIterDataFetcher(AbstractDataFetcher):
