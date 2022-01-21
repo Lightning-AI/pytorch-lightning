@@ -21,7 +21,7 @@ from torchmetrics import MeanSquaredError
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import INCQuantization
+from pytorch_lightning.callbacks.intel_compressor import INCQuantization
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf

@@ -28,10 +28,10 @@ or show all options you can change:
 
     python imagenet.py --help
 """
-import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.imagenet import ImageNetLightningModel
 from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.callbacks.intel_compressor import INCQuantization
 
 
 def run_cli():
@@ -47,7 +47,7 @@ def run_cli():
         save_config_overwrite=True,
         run=False,
         trainer_defaults={
-            "callbacks": pl.callbacks.INCQuantization(
+            "callbacks": INCQuantization(
                 "config/quantization.yaml",
                 monitor="val_acc1",
                 module_name_to_quant="model"

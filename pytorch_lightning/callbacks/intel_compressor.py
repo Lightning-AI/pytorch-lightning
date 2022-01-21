@@ -48,6 +48,8 @@ class INCQuantization(Callback):
 
         module_name_to_quant: the model name which you want to quantize, it should be torch.nn.Module.
 
+        datamodule: the datamodule
+
         dirpath: save path where the quantization config and weights be saved to.
 
     .. Intel Neural Compressor: https://github.com/intel/neural-compressor
