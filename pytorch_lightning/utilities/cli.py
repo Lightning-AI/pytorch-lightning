@@ -111,6 +111,9 @@ MODEL_REGISTRY = _Registry()
 
 DATAMODULE_REGISTRY = _Registry()
 
+LOGGER_REGISTRY = _Registry()
+LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
@@ -586,7 +589,7 @@ class LightningCLI:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
-        parser.set_choices("trainer.logger", tuple(_Registry.get_members(pl.loggers, pl.loggers.LightningLoggerBase)))
+        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 

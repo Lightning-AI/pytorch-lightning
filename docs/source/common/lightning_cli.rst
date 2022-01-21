@@ -429,6 +429,11 @@ as described above:
                 ...
 
 
+.. tip::
+
+    ``--trainer.logger`` also supports shorthand notation and a ``LOGGER_REGISTRY`` is available to register custom
+    Loggers.
+
 Multiple models and/or datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

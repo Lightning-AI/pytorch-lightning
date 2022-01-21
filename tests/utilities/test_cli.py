@@ -33,7 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -43,6 +43,7 @@ from pytorch_lightning.utilities.cli import (
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
+    LOGGER_REGISTRY,
     LR_SCHEDULER_REGISTRY,
     MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
@@ -870,6 +871,11 @@ class CustomCallback(Callback):
     pass
 
 
+@LOGGER_REGISTRY
+class CustomLogger(LightningLoggerBase):
+    pass
+
+
 def test_registries():
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
@@ -889,6 +895,9 @@ def test_registries():
 
     # test `_Registry.__call__` returns the class
     assert isinstance(CustomCallback(), CustomCallback)
+
+    assert "WandbLogger" in LOGGER_REGISTRY
+    assert "CustomLogger" in LOGGER_REGISTRY
 
 
 @MODEL_REGISTRY
