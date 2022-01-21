@@ -29,7 +29,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
@@ -319,7 +319,7 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def wandb_run(self) -> Run:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -329,7 +329,7 @@ class WandbLogger(LightningLoggerBase):
 
         .. code-block:: python
 
-            self.logger.experiment.some_wandb_function()
+            self.logger.wandb_run.some_wandb_function()
 
         """
         if self._experiment is None:
@@ -350,6 +350,32 @@ class WandbLogger(LightningLoggerBase):
             self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `WandbLogger.wandb_run` instead.
+
+        Actual wandb object. To use wandb features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+        .. code-block:: python
+
+            self.logger.experiment.some_wandb_function()
+
+        """
+        rank_zero_deprecation(
+            """
+            The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `WandbLogger.wandb_run` instead.
+            """
+        )
+        return self.wandb_run
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)

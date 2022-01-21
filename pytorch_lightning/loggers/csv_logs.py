@@ -30,6 +30,7 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -173,8 +174,31 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> ExperimentWriter:
+    def experiment_writer(self) -> ExperimentWriter:
         r"""
+
+        Actual ExperimentWriter object. To use ExperimentWriter features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment_writer.some_experiment_writer_function()
+
+        """
+        if self._experiment:
+            return self._experiment
+
+        os.makedirs(self.root_dir, exist_ok=True)
+        self._experiment = ExperimentWriter(log_dir=self.log_dir)
+        return self._experiment
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `CSVLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `CSVLogger.experiment_writer` instead.
 
         Actual ExperimentWriter object. To use ExperimentWriter features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -184,12 +208,13 @@ class CSVLogger(LightningLoggerBase):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        if self._experiment:
-            return self._experiment
-
-        os.makedirs(self.root_dir, exist_ok=True)
-        self._experiment = ExperimentWriter(log_dir=self.log_dir)
-        return self._experiment
+        rank_zero_deprecation(
+            """
+            The `CSVLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `CSVLogger.experiment_writer` instead.
+            """
+        )
+        return self.experiment_writer
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

@@ -28,6 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
@@ -186,14 +187,14 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def comet_experiment(self):
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
-            self.logger.experiment.some_comet_function()
+            self.logger.comet_experiment.some_comet_function()
 
         """
         if self._experiment is not None:
@@ -229,6 +230,30 @@ class CometLogger(LightningLoggerBase):
             self._experiment.set_name(self._experiment_name)
 
         return self._experiment
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `CometLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `CometLogger.comet_experiment` instead.
+
+        Actual Comet object. To use Comet features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment.some_comet_function()
+
+        """
+        rank_zero_deprecation(
+            """
+            The `CometLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `CometLogger.comet_experiment` instead.
+            """
+        )
+        return self.comet_experiment
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

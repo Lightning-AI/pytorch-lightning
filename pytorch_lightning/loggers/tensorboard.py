@@ -31,6 +31,7 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -154,14 +155,14 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> SummaryWriter:
+    def summary_writer(self) -> SummaryWriter:
         r"""
         Actual tensorboard object. To use TensorBoard features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
-            self.logger.experiment.some_tensorboard_function()
+            self.logger.summary_writer.some_tensorboard_function()
 
         """
         if self._experiment is not None:
@@ -172,6 +173,30 @@ class TensorBoardLogger(LightningLoggerBase):
             self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `TensorBoardLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `TensorBoardLogger.summary_writer` instead.
+
+        Actual tensorboard object. To use TensorBoard features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment.some_tensorboard_function()
+
+        """
+        rank_zero_deprecation(
+            """
+            The `TensorBoardLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `TensorBoardLogger.summary_writer` instead.
+            """
+        )
+        return self.summary_writer
 
     @rank_zero_only
     def log_hyperparams(

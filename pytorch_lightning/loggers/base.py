@@ -102,9 +102,13 @@ class LightningLoggerBase(ABC):
             self._agg_default_func = agg_default_func
 
     @property
-    @abstractmethod
     def experiment(self) -> Any:
-        """Return the experiment object associated with this logger."""
+        r"""
+        .. deprecated:: v1.6
+            The `LightningLoggerBase.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+
+        Return the experiment object associated with this logger.
+        """
 
     def _aggregate_metrics(
         self, metrics: Dict[str, float], step: Optional[int] = None
@@ -395,7 +399,12 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def experiment(self) -> List[Any]:
-        """Returns a list of experiment objects for all the loggers in the logger collection."""
+        r"""
+        .. deprecated:: v1.6
+            The `LoggerCollection.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+
+        Returns a list of experiment objects for all the loggers in the logger collection.
+        """
         return [logger.experiment for logger in self._logger_iterable]
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):

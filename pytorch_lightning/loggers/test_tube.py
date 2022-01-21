@@ -123,7 +123,7 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Experiment:
+    def test_tube_experiment(self) -> Experiment:
         r"""
 
         Actual TestTube object. To use TestTube features in your
@@ -131,7 +131,7 @@ class TestTubeLogger(LightningLoggerBase):
 
         Example::
 
-            self.logger.experiment.some_test_tube_function()
+            self.logger.test_tube_experiment.some_test_tube_function()
 
         """
         if self._experiment is not None:
@@ -147,6 +147,30 @@ class TestTubeLogger(LightningLoggerBase):
             rank=rank_zero_only.rank,
         )
         return self._experiment
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `TestTubeLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `TestTubeLogger.test_tube_experiment` instead.
+
+        Actual TestTube object. To use TestTube features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment.some_test_tube_function()
+
+        """
+        rank_zero_deprecation(
+            """
+            The `TestTubeLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `TestTubeLogger.test_tube_experiment` instead.
+            """
+        )
+        return self.test_tube_experiment
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:

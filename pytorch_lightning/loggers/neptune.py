@@ -35,6 +35,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -397,8 +398,42 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def neptune_run(self) -> Run:
         r"""
+        Actual Neptune run object. Allows you to use neptune logging features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+        Example::
+
+            class LitModel(LightningModule):
+                def training_step(self, batch, batch_idx):
+                    # log metrics
+                    acc = ...
+                    self.logger.neptune_run["train/acc"].log(acc)
+
+                    # log images
+                    img = ...
+                    self.logger.neptune_run["train/misclassified_images"].log(File.as_image(img))
+
+        Note that syntax: ``self.logger.neptune_run["your/metadata/structure"].log(metadata)``
+        is specific to Neptune and it extends logger capabilities.
+        Specifically, it allows you to log various types of metadata like scores, files,
+        images, interactive visuals, CSVs, etc. Refer to the
+        `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+        for more detailed explanations.
+        You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
+        with NeptuneLogger as these are also supported.
+        """
+        return self.run
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `NeptuneLogger.neptune_run` instead.
+
         Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
@@ -422,8 +457,15 @@ class NeptuneLogger(LightningLoggerBase):
         for more detailed explanations.
         You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
         with NeptuneLogger as these are also supported.
+
         """
-        return self.run
+        rank_zero_deprecation(
+            """
+            The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `NeptuneLogger.neptune_run` instead.
+            """
+        )
+        return self.neptune_run
 
     @property
     @rank_zero_experiment

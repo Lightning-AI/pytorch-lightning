@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -137,14 +138,14 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> MlflowClient:
+    def mlflow_client(self) -> MlflowClient:
         r"""
         Actual MLflow object. To use MLflow features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
-            self.logger.experiment.some_mlflow_function()
+            self.logger.mlflow_client.some_mlflow_function()
 
         """
         if self._experiment_id is None:
@@ -168,6 +169,30 @@ class MLFlowLogger(LightningLoggerBase):
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
         return self._mlflow_client
+
+    @property
+    @rank_zero_experiment
+    def experiment(self):
+        r"""
+        .. deprecated:: v1.6
+            The `MLFlowLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `MLFlowLogger.mlflow_client` instead.
+
+        Actual MLflow object. To use MLflow features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment.some_mlflow_function()
+
+        """
+        rank_zero_deprecation(
+            """
+            The `MLFlowLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
+            Please use `MLFlowLogger.mlflow_client` instead.
+            """
+        )
+        return self.mlflow_client
 
     @property
     def run_id(self) -> str:
