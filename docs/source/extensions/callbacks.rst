@@ -216,6 +216,12 @@ on_configure_sharded_model
 .. automethod:: pytorch_lightning.callbacks.Callback.on_configure_sharded_model
     :noindex:
 
+on_before_accelerator_backend_setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_accelerator_backend_setup
+    :noindex:
+
 setup
 ~~~~~
 

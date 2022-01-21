@@ -36,7 +36,7 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: "pl.LightningModule"
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def on_before_accelerator_backend_setup(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_before_accelerator_backend_setup` was deprecated in v1.6
