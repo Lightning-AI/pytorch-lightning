@@ -48,7 +48,6 @@ from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
-
 from tests.loggers.test_all import _get_logger_args, _instantiate_logger
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
@@ -366,6 +365,7 @@ def test_v1_8_0_deprecated_lightning_optimizers():
     ):
         assert trainer.lightning_optimizers == {}
 
+
 def test_v1_8_0_deprecated_comet_logger_experiment():
     with pytest.deprecated_call(
         match=(
@@ -377,6 +377,7 @@ def test_v1_8_0_deprecated_comet_logger_experiment():
     ):
         logger = _instantiate_logger(CometLogger, save_dir="test", prefix="tmp")
         _ = logger.experiment
+
 
 def test_v1_8_0_deprecated_csv_logger_experiment():
     with pytest.deprecated_call(
@@ -390,6 +391,7 @@ def test_v1_8_0_deprecated_csv_logger_experiment():
         logger = _instantiate_logger(CSVLogger, save_dir="test", prefix="tmp")
         _ = logger.experiment
 
+
 def test_v1_8_0_deprecated_mlflow_logger_experiment():
     with pytest.deprecated_call(
         match=(
@@ -401,6 +403,7 @@ def test_v1_8_0_deprecated_mlflow_logger_experiment():
     ):
         logger = _instantiate_logger(MLFlowLogger, save_dir="test", prefix="tmp")
         _ = logger.experiment
+
 
 def test_v1_8_0_deprecated_neptune_logger_experiment():
     with pytest.deprecated_call(
@@ -414,6 +417,7 @@ def test_v1_8_0_deprecated_neptune_logger_experiment():
         logger = _instantiate_logger(NeptuneLogger, save_dir="test", prefix="tmp")
         _ = logger.experiment
 
+
 def test_v1_8_0_deprecated_tensorboard_logger_experiment():
     with pytest.deprecated_call(
         match=(
@@ -425,6 +429,7 @@ def test_v1_8_0_deprecated_tensorboard_logger_experiment():
     ):
         logger = _instantiate_logger(TensorBoardLogger, save_dir="test", prefix="tmp")
         _ = logger.experiment
+
 
 def test_v1_8_0_deprecated_test_tube_logger_experiment():
     with pytest.deprecated_call(
