@@ -108,7 +108,7 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale==0.4.0
+    pip install fairscale==0.4.5
 
 RUN \
     # install DeepSpeed
