@@ -123,8 +123,8 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return params
 
 
-def _add_prefix(metrics: Dict[str, float], prefix: str, logger_join_char: str) -> Dict[str, float]:
+def _add_prefix(metrics: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
     if prefix:
-        metrics = {f"{prefix}{logger_join_char}{k}": v for k, v in metrics.items()}
+        metrics = {f"{prefix}{separator}{k}": v for k, v in metrics.items()}
 
     return metrics
