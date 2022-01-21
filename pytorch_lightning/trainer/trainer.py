@@ -429,10 +429,12 @@ class Trainer(
         """
         super().__init__()
         Trainer._log_api_event("init")
-        
+
         # warning for infinite epochs
         if max_steps == -1 and max_epochs == -1:
-            warnings.warn("This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely.")
+            warnings.warn(
+                "This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely."
+            )
 
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
