@@ -211,12 +211,15 @@ class DataFetcher(AbstractDataFetcher):
     """
 
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
+        if prefetch_batches < 1:
+            raise MisconfigurationException("`prefetch_batches` should at least be 1.")
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
-        self.batches: List[Any] = []
 
-    def setup(self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None) -> None:
+    def setup(  # type: ignore[override]
+        self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
+    ) -> None:
         super().setup(dataloader)
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
@@ -261,8 +264,8 @@ class DataFetcher(AbstractDataFetcher):
         return batch
 
     def reset(self) -> None:
-        self.batches = []
         super().reset()
+        self.batches: List[Any] = []
 
 
 class InterBatchParallelDataFetcher(DataFetcher):
