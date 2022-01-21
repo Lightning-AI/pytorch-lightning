@@ -43,7 +43,8 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
     seed_everything(42)
     dm = RegressDataModule()
-    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, gpus=int(torch.cuda.is_available()))
+    accelerator = "gpu" if torch.cuda.is_available() else "cpu"
+    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, accelerator=accelerator, devices=1)
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
 

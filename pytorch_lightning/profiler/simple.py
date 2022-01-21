@@ -45,6 +45,9 @@ class SimpleProfiler(BaseProfiler):
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.
                 The ``.txt`` extension will be used automatically.
 
+            extended: If ``True``, adds extra columns representing number of calls and percentage of total time spent on
+                respective action.
+
         Raises:
             ValueError:
                 If you attempt to start an action which has already started, or
@@ -73,7 +76,8 @@ class SimpleProfiler(BaseProfiler):
         total_duration = time.monotonic() - self.start_time
         report = [[a, d, 100.0 * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[2], reverse=True)
-        return report, total_duration
+        total_calls = sum(len(x[1]) for x in report)
+        return report, total_calls, total_duration
 
     def summary(self) -> str:
         sep = os.linesep
@@ -88,16 +92,17 @@ class SimpleProfiler(BaseProfiler):
                 max_key = max(len(k) for k in self.recorded_durations.keys())
 
                 def log_row(action, mean, num_calls, total, per):
-                    row = f"{sep}{action:<{max_key}s}\t|  {mean:<15}\t|"
-                    row += f"{num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+                    row = f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|"
+                    row += f"  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
                     return row
 
-                output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
-                output_string_len = len(output_string)
-                output_string += f"{sep}{'-' * output_string_len}"
-                report, total_duration = self._make_report()
-                output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
-                output_string += f"{sep}{'-' * output_string_len}"
+                header_string = log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
+                output_string_len = len(header_string.expandtabs())
+                sep_lines = f"{sep}{'-' * output_string_len}"
+                output_string += sep_lines + header_string + sep_lines
+                report, total_calls, total_duration = self._make_report()
+                output_string += log_row("Total", "-", f"{total_calls:}", f"{total_duration:.5}", "100 %")
+                output_string += sep_lines
                 for action, durations, duration_per in report:
                     output_string += log_row(
                         action,
@@ -106,15 +111,20 @@ class SimpleProfiler(BaseProfiler):
                         f"{np.sum(durations):.5}",
                         f"{duration_per:.5}",
                     )
+                output_string += sep_lines
         else:
+            max_key = max(len(k) for k in self.recorded_durations)
 
             def log_row(action, mean, total):
-                return f"{sep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
+                return f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|  {total:<15}\t|"
 
-            output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
-            output_string += f"{sep}{'-' * 65}"
+            header_string = log_row("Action", "Mean duration (s)", "Total time (s)")
+            output_string_len = len(header_string.expandtabs())
+            sep_lines = f"{sep}{'-' * output_string_len}"
+            output_string += sep_lines + header_string + sep_lines
 
             for action, durations in self.recorded_durations.items():
                 output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}")
+            output_string += sep_lines
         output_string += sep
         return output_string

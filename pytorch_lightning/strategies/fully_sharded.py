@@ -126,7 +126,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         return self._process_group
 
     def setup_distributed(self) -> None:
-        if not self.on_gpu:
+        if not self.root_device.type == "cuda":
             raise MisconfigurationException(
                 "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
