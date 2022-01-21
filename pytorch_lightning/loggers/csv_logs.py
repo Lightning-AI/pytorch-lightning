@@ -219,19 +219,19 @@ class CSVLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
-        self.experiment.log_hparams(params)
+        self.experiment_writer.log_hparams(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         metrics = self._add_prefix(metrics)
-        self.experiment.log_metrics(metrics, step)
+        self.experiment_writer.log_metrics(metrics, step)
         if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
     def save(self) -> None:
         super().save()
-        self.experiment.save()
+        self.experiment_writer.save()
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

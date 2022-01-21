@@ -137,13 +137,13 @@ class NeptuneLogger(LightningLoggerBase):
             def any_lightning_module_function_or_hook(self):
                 # log images
                 img = ...
-                self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
+                self.logger.run["train/misclassified_images"].log(File.as_image(img))
 
                 # generic recipe
                 metadata = ...
-                self.logger.experiment["your/metadata/structure"].log(metadata)
+                self.logger.run["your/metadata/structure"].log(metadata)
 
-    Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)`` is specific to Neptune
+    Note that syntax: ``self.logger.run["your/metadata/structure"].log(metadata)`` is specific to Neptune
     and it extends logger capabilities. Specifically, it allows you to log various types of metadata
     like scores, files, images, interactive visuals, CSVs, etc.
     Refer to the `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
@@ -171,7 +171,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         # generic recipe
         metadata = ...
-        neptune_logger.experiment["your/metadata/structure"].log(metadata)
+        neptune_logger.run["your/metadata/structure"].log(metadata)
 
     **Log model checkpoints**
 
@@ -398,41 +398,11 @@ class NeptuneLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def neptune_run(self) -> Run:
-        r"""
-        Actual Neptune run object. Allows you to use neptune logging features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-        Example::
-
-            class LitModel(LightningModule):
-                def training_step(self, batch, batch_idx):
-                    # log metrics
-                    acc = ...
-                    self.logger.neptune_run["train/acc"].log(acc)
-
-                    # log images
-                    img = ...
-                    self.logger.neptune_run["train/misclassified_images"].log(File.as_image(img))
-
-        Note that syntax: ``self.logger.neptune_run["your/metadata/structure"].log(metadata)``
-        is specific to Neptune and it extends logger capabilities.
-        Specifically, it allows you to log various types of metadata like scores, files,
-        images, interactive visuals, CSVs, etc. Refer to the
-        `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
-        for more detailed explanations.
-        You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
-        with NeptuneLogger as these are also supported.
-        """
-        return self.run
-
-    @property
-    @rank_zero_experiment
     def experiment(self):
         r"""
         .. deprecated:: v1.6
             The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `NeptuneLogger.neptune_run` instead.
+            Please use `NeptuneLogger.run` instead.
 
         Actual Neptune run object. Allows you to use neptune logging features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule`.
@@ -462,14 +432,41 @@ class NeptuneLogger(LightningLoggerBase):
         rank_zero_deprecation(
             """
             The `NeptuneLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `NeptuneLogger.neptune_run` instead.
+            Please use `NeptuneLogger.run` instead.
             """
         )
-        return self.neptune_run
+        return self.run
 
     @property
     @rank_zero_experiment
     def run(self) -> Run:
+        r"""
+
+        Actual Neptune run object. Allows you to use neptune logging features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+        Example::
+
+            class LitModel(LightningModule):
+                def training_step(self, batch, batch_idx):
+                    # log metrics
+                    acc = ...
+                    self.logger.run["train/acc"].log(acc)
+
+                    # log images
+                    img = ...
+                    self.logger.run["train/misclassified_images"].log(File.as_image(img))
+
+        Note that syntax: ``self.logger.run["your/metadata/structure"].log(metadata)``
+        is specific to Neptune and it extends logger capabilities.
+        Specifically, it allows you to log various types of metadata like scores, files,
+        images, interactive visuals, CSVs, etc. Refer to the
+        `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+        for more detailed explanations.
+        You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()``
+        with NeptuneLogger as these are also supported.
+
+        """
         try:
             if not self._run_instance:
                 self._run_instance = neptune.init(**self._neptune_init_args)
@@ -496,7 +493,7 @@ class NeptuneLogger(LightningLoggerBase):
         Note:
 
             You can also log parameters by directly using the logger instance:
-            ``neptune_logger.experiment["model/hyper-parameters"] = params_dict``.
+            ``neptune_logger.run["model/hyper-parameters"] = params_dict``.
 
             In this way you can keep hierarchical structure of the parameters.
 

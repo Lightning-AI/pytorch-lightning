@@ -101,10 +101,10 @@ class WandbLogger(LightningLoggerBase):
     .. code-block:: python
 
         # add one parameter
-        wandb_logger.experiment.config["key"] = value
+        wandb_logger.run.config["key"] = value
 
         # add multiple parameters
-        wandb_logger.experiment.config.update({key1: val1, key2: val2})
+        wandb_logger.run.config.update({key1: val1, key2: val2})
 
         # use directly wandb module
         wandb.config["key"] = value
@@ -319,7 +319,7 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def wandb_run(self) -> Run:
+    def run(self) -> Run:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -329,7 +329,7 @@ class WandbLogger(LightningLoggerBase):
 
         .. code-block:: python
 
-            self.logger.wandb_run.some_wandb_function()
+            self.logger.run.some_wandb_function()
 
         """
         if self._experiment is None:
@@ -357,7 +357,7 @@ class WandbLogger(LightningLoggerBase):
         r"""
         .. deprecated:: v1.6
             The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `WandbLogger.wandb_run` instead.
+            Please use `WandbLogger.run` instead.
 
         Actual wandb object. To use wandb features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -372,20 +372,20 @@ class WandbLogger(LightningLoggerBase):
         rank_zero_deprecation(
             """
             The `WandbLogger.experiment` property was deprecated in v1.6 and will be removed in v1.8.
-            Please use `WandbLogger.wandb_run` instead.
+            Please use `WandbLogger.run` instead.
             """
         )
-        return self.wandb_run
+        return self.run
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
-        self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
+        self.run.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
         params = self._flatten_dict(params)
         params = self._sanitize_callable_params(params)
-        self.experiment.config.update(params, allow_val_change=True)
+        self.run.config.update(params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -393,9 +393,9 @@ class WandbLogger(LightningLoggerBase):
 
         metrics = self._add_prefix(metrics)
         if step is not None:
-            self.experiment.log({**metrics, "trainer/global_step": step})
+            self.run.log({**metrics, "trainer/global_step": step})
         else:
-            self.experiment.log(metrics)
+            self.run.log(metrics)
 
     @rank_zero_only
     def log_table(
@@ -524,9 +524,9 @@ class WandbLogger(LightningLoggerBase):
                 if _WANDB_GREATER_EQUAL_0_10_22
                 else None
             )
-            artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
+            artifact = wandb.Artifact(name=f"model-{self.run.id}", type="model", metadata=metadata)
             artifact.add_file(p, name="model.ckpt")
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
-            self.experiment.log_artifact(artifact, aliases=aliases)
+            self.run.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t

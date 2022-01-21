@@ -175,17 +175,17 @@ class TestTubeLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         # TODO: HACK figure out where this is being set to true
-        self.experiment.debug = self.debug
+        self.test_tube_experiment.debug = self.debug
         params = self._convert_params(params)
         params = self._flatten_dict(params)
-        self.experiment.argparse(Namespace(**params))
+        self.test_tube_experiment.argparse(Namespace(**params))
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
         metrics = self._add_prefix(metrics)
-        self.experiment.debug = self.debug
-        self.experiment.log(metrics, global_step=step)
+        self.test_tube_experiment.debug = self.debug
+        self.test_tube_experiment.log(metrics, global_step=step)
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array=None):
@@ -194,7 +194,7 @@ class TestTubeLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
+                self.test_tube_experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
             else:
                 rank_zero_warn(
                     "Could not log computational graph since neither the"
@@ -206,14 +206,14 @@ class TestTubeLogger(LightningLoggerBase):
     def save(self) -> None:
         super().save()
         # TODO: HACK figure out where this is being set to true
-        self.experiment.debug = self.debug
-        self.experiment.save()
+        self.test_tube_experiment.debug = self.debug
+        self.test_tube_experiment.save()
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
         super().finalize(status)
         # TODO: HACK figure out where this is being set to true
-        self.experiment.debug = self.debug
+        self.test_tube_experiment.debug = self.debug
         self.save()
         self.close()
 
@@ -221,9 +221,9 @@ class TestTubeLogger(LightningLoggerBase):
     def close(self) -> None:
         super().save()
         # TODO: HACK figure out where this is being set to true
-        self.experiment.debug = self.debug
+        self.test_tube_experiment.debug = self.debug
         if not self.debug:
-            exp = self.experiment
+            exp = self.test_tube_experiment
             exp.close()
 
     @property
@@ -245,7 +245,7 @@ class TestTubeLogger(LightningLoggerBase):
         if self._experiment is None:
             return self._name
 
-        return self.experiment.name
+        return self.test_tube_experiment.name
 
     @property
     def version(self) -> int:
@@ -257,7 +257,7 @@ class TestTubeLogger(LightningLoggerBase):
         if self._experiment is None:
             return self._version
 
-        return self.experiment.version
+        return self.test_tube_experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See
@@ -265,7 +265,7 @@ class TestTubeLogger(LightningLoggerBase):
     # for more info.
     def __getstate__(self) -> Dict[Any, Any]:
         state = self.__dict__.copy()
-        state["_experiment"] = self.experiment.get_meta_copy()
+        state["_experiment"] = self.test_tube_experiment.get_meta_copy()
         return state
 
     def __setstate__(self, state: Dict[Any, Any]):

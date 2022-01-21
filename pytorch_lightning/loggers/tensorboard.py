@@ -232,7 +232,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if metrics:
             self.log_metrics(metrics, 0)
             exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
+            writer = self.summary_writer._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
@@ -248,10 +248,10 @@ class TensorBoardLogger(LightningLoggerBase):
                 v = v.item()
 
             if isinstance(v, dict):
-                self.experiment.add_scalars(k, v, step)
+                self.summary_writer.add_scalars(k, v, step)
             else:
                 try:
-                    self.experiment.add_scalar(k, v, step)
+                    self.summary_writer.add_scalar(k, v, step)
                 # todo: specify the possible exception
                 except Exception as ex:
                     m = f"\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor."
@@ -266,7 +266,7 @@ class TensorBoardLogger(LightningLoggerBase):
             if input_array is not None:
                 input_array = model._apply_batch_transfer_handler(input_array)
                 model._running_torchscript = True
-                self.experiment.add_graph(model, input_array)
+                self.summary_writer.add_graph(model, input_array)
                 model._running_torchscript = False
             else:
                 rank_zero_warn(
@@ -289,8 +289,8 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        self.experiment.flush()
-        self.experiment.close()
+        self.summary_writer.flush()
+        self.summary_writer.close()
         self.save()
 
     @property

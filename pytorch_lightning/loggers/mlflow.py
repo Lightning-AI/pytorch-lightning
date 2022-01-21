@@ -80,10 +80,10 @@ class MLFlowLogger(LightningLoggerBase):
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example
-                self.logger.experiment.whatever_ml_flow_supports(...)
+                self.logger.mlflow_client.whatever_ml_flow_supports(...)
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.whatever_ml_flow_supports(...)
+                self.logger.mlflow_client.whatever_ml_flow_supports(...)
 
     Args:
         experiment_name: The name of the experiment
@@ -201,7 +201,7 @@ class MLFlowLogger(LightningLoggerBase):
         Returns:
             The run id.
         """
-        _ = self.experiment
+        _ = self.mlflow_client
         return self._run_id
 
     @property
@@ -211,7 +211,7 @@ class MLFlowLogger(LightningLoggerBase):
         Returns:
             The experiment id.
         """
-        _ = self.experiment
+        _ = self.mlflow_client
         return self._experiment_id
 
     @rank_zero_only
@@ -225,7 +225,7 @@ class MLFlowLogger(LightningLoggerBase):
                 )
                 continue
 
-            self.experiment.log_param(self.run_id, k, v)
+            self.mlflow_client.log_param(self.run_id, k, v)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -248,14 +248,14 @@ class MLFlowLogger(LightningLoggerBase):
                 )
                 k = new_k
 
-            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+            self.mlflow_client.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
     def finalize(self, status: str = "FINISHED") -> None:
         super().finalize(status)
         status = "FINISHED" if status == "success" else status
-        if self.experiment.get_run(self.run_id):
-            self.experiment.set_terminated(self.run_id, status)
+        if self.mlflow_client.get_run(self.run_id):
+            self.mlflow_client.set_terminated(self.run_id, status)
 
     @property
     def save_dir(self) -> Optional[str]:
