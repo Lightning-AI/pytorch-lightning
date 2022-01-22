@@ -336,13 +336,13 @@ def _check_on_epoch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule"
     for hook, alternative_hook in hooks:
         if is_overridden(hook, model):
             rank_zero_deprecation(
-                f"Method `LightningModule.{hook}` is deprecated in v1.6 and"
+                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
                 f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
             )
 
         for callback in trainer.callbacks:
             if is_overridden(method_name=hook, instance=callback):
                 rank_zero_deprecation(
-                    f"Method `Callback.{hook}` is deprecated in v1.6 and"
+                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )

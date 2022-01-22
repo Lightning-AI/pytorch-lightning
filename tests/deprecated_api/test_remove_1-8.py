@@ -351,3 +351,66 @@ def test_v1_8_0_deprecated_lightning_optimizers():
         match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
     ):
         assert trainer.lightning_optimizers == {}
+
+
+def test_v1_8_0_remove_on_epoch_start_end_callback(tmpdir):
+    class TestCallback(Callback):
+        def on_epoch_start(self, *args, **kwargs):
+            print("on_epoch_start")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_epoch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_epoch_end(self, *args, **kwargs):
+            print("on_epoch_end")
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    with pytest.deprecated_call(
+        match="The `Callback.on_epoch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_remove_on_epoch_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_epoch_start(self, *args, **kwargs):
+            print("on_epoch_start")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_epoch_end(self, *args, **kwargs):
+            print("on_epoch_end")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
