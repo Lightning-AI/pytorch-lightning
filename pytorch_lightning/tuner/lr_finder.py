@@ -314,7 +314,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module):
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
