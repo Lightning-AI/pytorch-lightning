@@ -712,7 +712,7 @@ def test_model_pickle(tmpdir):
 
 @pytest.mark.parametrize("stop_batch_idx", [4, 7])
 def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
-    """Test that an error is raised if training is restarted from mid-epoch."""
+    """Test that a warning is raised if training is restarted from mid-epoch."""
 
     class CustomModel(BoringModel):
         def __init__(self, stop_batch_idx):
@@ -749,5 +749,5 @@ def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
     )
 
     context_manager = no_warning_call if limit_train_batches == stop_batch_idx else pytest.warns
-    with context_manager(UserWarning, match="checkpoint"):
+    with context_manager(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
         trainer.fit(model, ckpt_path=str(ckpt_path))

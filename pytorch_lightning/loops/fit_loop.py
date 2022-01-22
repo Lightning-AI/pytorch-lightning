@@ -198,25 +198,20 @@ class FitLoop(Loop[None]):
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
 
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-            self.trainer.current_epoch
-        )
-        expected_steps = math.ceil(self.trainer.num_training_batches / self.trainer.accumulate_grad_batches)
-
         # global_step is incremented during checkpointing (#11555)
-        if (
-            self.restarting
-            and self.trainer.num_training_batches != 0
-            and (self.trainer.global_step - 1) % expected_steps != 0
-        ):
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch."
-                " Training will start from the beginning of the next epoch."
-                " This can cause unreliable results if further training is done,"
-                " consider using an end of epoch checkpoint."
+        if self.restarting and self.trainer.num_training_batches not in (0, float("inf")):
+            self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+                self.trainer.current_epoch
             )
+            expected_steps = math.ceil(self.trainer.num_training_batches / self.trainer.accumulate_grad_batches)
+
+            if (self.trainer.global_step - 1) % expected_steps != 0:
+                rank_zero_warn(
+                    "You're resuming from a checkpoint that ended mid-epoch."
+                    " Training will start from the beginning of the next epoch."
+                    " This can cause unreliable results if further training is done,"
+                    " consider using an end of epoch checkpoint."
+                )
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
