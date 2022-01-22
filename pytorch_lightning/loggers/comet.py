@@ -186,14 +186,14 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def comet_experiment(self):
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
 
-            self.logger.experiment.some_comet_function()
+            self.logger.comet_experiment.some_comet_function()
 
         """
         if self._experiment is not None:
@@ -230,11 +230,26 @@ class CometLogger(LightningLoggerBase):
 
         return self._experiment
 
+    @property
+    @rank_zero_experiment
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
+        r"""
+
+        Actual Comet object. To use Comet features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment.some_comet_function()
+
+        """
+        return self.comet_experiment
+
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
         params = self._flatten_dict(params)
-        self.experiment.log_parameters(params)
+        self.comet_experiment.log_parameters(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
@@ -247,7 +262,7 @@ class CometLogger(LightningLoggerBase):
 
         epoch = metrics_without_epoch.pop("epoch", None)
         metrics_without_epoch = self._add_prefix(metrics_without_epoch)
-        self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
+        self.comet_experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):
         self._experiment = None
@@ -255,15 +270,15 @@ class CometLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         r"""
-        When calling ``self.experiment.end()``, that experiment won't log any more data to Comet.
+        When calling ``self.comet_experiment.end()``, that experiment won't log any more data to Comet.
         That's why, if you need to log any more data, you need to create an ExistingCometExperiment.
         For example, to log data when testing your model after training, because when training is
         finalized :meth:`CometLogger.finalize` is called.
 
-        This happens automatically in the :meth:`~CometLogger.experiment` property, when
+        This happens automatically in the :meth:`~CometLogger.comet_experiment` property, when
         ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
         """
-        self.experiment.end()
+        self.comet_experiment.end()
         self.reset_experiment()
 
     @property
