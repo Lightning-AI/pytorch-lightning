@@ -70,9 +70,3 @@ jobs:
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
-
-    - name: Setup tmate session
-      if: always()
-      uses: mxschmitt/action-tmate@v3
-      with:
-        sudo: false
