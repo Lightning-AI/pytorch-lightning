@@ -358,9 +358,6 @@ def test_v1_8_0_remove_on_batch_start_end(tmpdir):
         def on_batch_start(self, *args, **kwargs):
             print("on_batch_start")
 
-        def on_batch_end(self, *args, **kwargs):
-            print("on_batch_end")
-
     model = BoringModel()
     trainer = Trainer(
         callbacks=[TestCallback()],
@@ -371,6 +368,10 @@ def test_v1_8_0_remove_on_batch_start_end(tmpdir):
         match="The `Callback.on_batch_start` hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_batch_end(self, *args, **kwargs):
+            print("on_batch_end")
 
     trainer = Trainer(
         callbacks=[TestCallback()],
