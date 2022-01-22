@@ -176,7 +176,8 @@ class Callback(abc.ABC):
         pass
 
     def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """.. deprecated:: v1.6 This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+        r"""
+        .. deprecated:: v1.6 This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
         ``on_train_batch_start`` instead.
 
         Called when the training batch begins.
@@ -184,7 +185,8 @@ class Callback(abc.ABC):
         pass
 
     def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """.. deprecated:: v1.6 This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+        r"""
+        .. deprecated:: v1.6 This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
         ``on_train_batch_end`` instead.
 
         Called when the training batch ends.
