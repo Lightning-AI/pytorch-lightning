@@ -62,9 +62,12 @@ def test_fit_val_loop_config(tmpdir):
         model = BoringModel()
         model.val_dataloader = None
         trainer.fit(model)
-    
+
     # causes infinite epochs
-    with pytest.warns(UserWarning, match=r"This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely."):
+    with pytest.warns(
+        UserWarning,
+        match=r"This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely.",
+    ):
         model = BoringModel()
         trainer.fit(model)
 
