@@ -73,6 +73,14 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
+    def parallel_devices(self):
+        return self._parallel_devices
+
+    @parallel_devices.setter
+    def parallel_devices(self, parallel_devices):
+        self._parallel_devices = parallel_devices
+
+    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
