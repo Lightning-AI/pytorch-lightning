@@ -16,8 +16,8 @@ Built-in Actions
 
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
 
-- on_epoch_start
-- on_epoch_end
+- on_train_epoch_start
+- on_train_epoch_end
 - on_batch_start
 - model_forward
 - model_backward
@@ -66,7 +66,6 @@ The profiler's results will be printed at the completion of a training ``trainer
     |  [LightningModule]BoringModel.prepare_data       |  2.112e-06      	|  2.112e-06      |
     |  [LightningModule]BoringModel.setup              |  1.513e-06      	|  1.513e-06      |
     |  [LightningModule]BoringModel.on_fit_start       |  1.542e-06      	|  1.542e-06      |
-    |  [LightningModule]BoringModel.on_epoch_start     |  1.051e-06      	|  1.051e-06      |
     |  fetch_next_train_batch                          |  0.0003097      	|  0.00061939     |
     |  get_train_batch                                 |  0.0003287      	|  0.00065739     |
     |  on_train_batch_start                            |  7.578e-05      	|  7.578e-05      |
@@ -76,7 +75,6 @@ The profiler's results will be printed at the completion of a training ``trainer
     |  run_training_batch                              |  0.0016311      	|  0.0016311      |
     |  on_train_batch_end                              |  7.6117e-05     	|  7.6117e-05     |
     |  run_training_epoch                              |  0.0036915      	|  0.0036915      |
-    |  [LightningModule]BoringModel.on_epoch_end       |  1.079e-06      	|  1.079e-06      |
     |  [LightningModule]BoringModel.on_train_end       |  1.509e-06      	|  1.509e-06      |
     |  [LightningModule]BoringModel.on_fit_end         |  3.127e-06      	|  3.127e-06      |
     |  [LightningModule]BoringModel.teardown           |  2.581e-06      	|  2.581e-06      |
