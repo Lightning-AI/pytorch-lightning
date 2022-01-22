@@ -46,7 +46,7 @@ from pytorch_lightning.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
 )
-from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
@@ -2246,3 +2246,22 @@ def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
     assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"
+
+
+@pytest.mark.parametrize(
+    "running_stage", [RunningStage.TRAINING, RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING]
+)
+def test_dataloaders_are_not_loaded_if_limit_batches_is_disabled(running_stage):
+    dl_prefix = running_stage.dataloader_prefix
+    trainer_kwargs = {f"limit_{dl_prefix}_batches": 0}
+    trainer = Trainer(**trainer_kwargs)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    reset_dataloader = getattr(trainer, f"reset_{dl_prefix}_dataloader")
+    reset_dataloader(model)
+    dl = (
+        trainer.train_dataloader
+        if running_stage == RunningStage.TRAINING
+        else getattr(trainer, f"{dl_prefix}_dataloaders")
+    )
+    assert dl is None
