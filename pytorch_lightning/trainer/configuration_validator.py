@@ -134,6 +134,15 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
             " Please use `val_dataloader()` directly."
         )
+    
+    # ----------------------------------------------
+    # verify if model leads to infinite epochs
+    # ----------------------------------------------
+    causes_infinite_epochs = is_overridden("training_epoch_end") or (is_overridden("validation_epoch_end") and model.val_check_interval==float)
+    if causes_infinite_epochs:
+        rank_zero_warn(
+            "This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely."
+            )
 
 
 def _check_progress_bar(model: "pl.LightningModule") -> None:
