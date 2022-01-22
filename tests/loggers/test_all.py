@@ -269,16 +269,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     # this can cause pickle error if the experiment object is not picklable
     # the logger needs to remove it from the state before pickle
-    if logger_class == CometLogger:
-        _ = logger.comet_experiment
-    elif logger_class == CSVLogger:
-        _ = logger.experiment_writer
-    elif logger_class == MLFlowLogger:
-        _ = logger.mlflow_client
-    elif logger_class == TensorBoardLogger:
-        _ = logger.summary_writer
-    elif logger_class == TestTubeLogger:
-        _ = logger.test_tube_experiment
+    _ = logger.experiment
 
     # logger also has to avoid adding un-picklable attributes to self in .save
     logger.log_metrics({"a": 1})
