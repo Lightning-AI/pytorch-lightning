@@ -435,7 +435,13 @@ class DataConnector:
             )
 
         # add samplers
-        dataloaders = [self._prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
+        dataloaders = [
+            self._prepare_dataloader(
+                dl, shuffle=hasattr(dl, "sampler") and isinstance(dl.sampler, RandomSampler), mode=mode
+            )
+            for dl in dataloaders
+            if dl is not None
+        ]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(
