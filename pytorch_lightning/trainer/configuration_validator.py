@@ -334,6 +334,6 @@ def _check_on_batch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule"
         for callback in trainer.callbacks:
             if is_overridden(method_name=hook, instance=callback):
                 rank_zero_deprecation(
-                    f"Method `Callback.{hook}` is deprecated in v1.6 and"
+                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
