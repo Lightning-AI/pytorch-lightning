@@ -173,6 +173,26 @@ class CSVLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
+    def experiment_writer(self) -> ExperimentWriter:
+        r"""
+
+        Actual ExperimentWriter object. To use ExperimentWriter features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+
+        Example::
+
+            self.logger.experiment_writer.some_experiment_writer_function()
+
+        """
+        if self._experiment:
+            return self._experiment
+
+        os.makedirs(self.root_dir, exist_ok=True)
+        self._experiment = ExperimentWriter(log_dir=self.log_dir)
+        return self._experiment
+
+    @property
+    @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
 
@@ -184,29 +204,24 @@ class CSVLogger(LightningLoggerBase):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        if self._experiment:
-            return self._experiment
-
-        os.makedirs(self.root_dir, exist_ok=True)
-        self._experiment = ExperimentWriter(log_dir=self.log_dir)
-        return self._experiment
+        return self.experiment_writer
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
-        self.experiment.log_hparams(params)
+        self.experiment_writer.log_hparams(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         metrics = self._add_prefix(metrics)
-        self.experiment.log_metrics(metrics, step)
+        self.experiment_writer.log_metrics(metrics, step)
         if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
     def save(self) -> None:
         super().save()
-        self.experiment.save()
+        self.experiment_writer.save()
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
