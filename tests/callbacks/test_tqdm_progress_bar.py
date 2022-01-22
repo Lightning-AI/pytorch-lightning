@@ -630,8 +630,8 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
         fast_dev_run=True,
     )
 
-    # progress_bar.enable()
-    # trainer.fit(model)
+    progress_bar.enable()
+    trainer.fit(model)
     # assert progress_bar.is_disabled
 
     # progress_bar.enable()
