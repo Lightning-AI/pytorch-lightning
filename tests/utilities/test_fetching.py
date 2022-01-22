@@ -74,7 +74,7 @@ def test_prefetch_iterator(use_combined_loader):
     dataloader = DataLoader(EmptyIterDataset())
     iterator = DataFetcher()
     iterator.setup(dataloader)
-    assert list(iterator) == []
+    assert not list(iterator)
 
 
 def test_misconfiguration_error():
