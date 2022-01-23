@@ -627,6 +627,10 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     model = BoringModel()
     trainer = Trainer(
         callbacks=[progress_bar],
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
         fast_dev_run=True,
     )
 
@@ -642,6 +646,6 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     trainer.test(model)
     assert progress_bar.is_disabled
 
-    # progress_bar.enable()
-    # trainer.predict(model)
-    # assert progress_bar.is_disabled
+    progress_bar.enable()
+    trainer.predict(model)
+    assert progress_bar.is_disabled
