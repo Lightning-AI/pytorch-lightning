@@ -20,6 +20,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
+
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
     Checks that the model is configured correctly before the run is started.
