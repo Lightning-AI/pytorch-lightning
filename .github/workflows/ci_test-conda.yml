@@ -43,6 +43,7 @@ jobs:
 
     - name: Tests
       run: |
+        pip install pytest-random-order
         coverage run --source pytorch_lightning -m pytest --random-order --random-order-seed=1 --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
