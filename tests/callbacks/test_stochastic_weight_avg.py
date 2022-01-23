@@ -13,6 +13,8 @@
 # limitations under the License.
 import logging
 from unittest import mock
+from typing import Optional
+
 
 import pytest
 import torch
@@ -233,7 +235,7 @@ def test_swa_deepcopy(tmpdir):
             super().__init__(*args, **kwargs)
             self.on_before_accelerator_backend_setup_called = False
 
-        def on_before_accelerator_backend_setup(self, trainer: "Trainer", pl_module: "LightningModule"):
+        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
             super().on_before_accelerator_backend_setup(trainer, pl_module)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
