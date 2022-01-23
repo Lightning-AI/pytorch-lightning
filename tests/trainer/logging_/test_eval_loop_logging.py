@@ -821,3 +821,79 @@ def test_print_results_native_nested_dicts(monkeypatch):
         "───────────────────────────────────────────\n"
     )
     assert out.getvalue() == expected
+
+
+def test_print_results_native_long_names(monkeypatch):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = StringIO()
+    with redirect_stdout(out):
+        loop = EvaluationLoop()
+        loop._print_results(
+            [
+                {"a really really really really really really really really really really really long metric name": 5},
+                {"a really really really really really really really really really really really long metric name": 6},
+            ],
+            "Testing",
+        )
+
+    expected = (
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "                       Testing metric                                               DataLoader 0           "
+        "             \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "a really really really really really really really really re                             5                 "
+        "             \n"
+        "            ally really really long metric name                                                            "
+        "             \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "                       Testing metric                                               DataLoader 1           "
+        "             \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "a really really really really really really really really re                             6                 "
+        "             \n"
+        "            ally really really long metric name                                                            "
+        "             \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+    )
+    assert out.getvalue() == expected
+
+
+def test_print_results_native_long_table(monkeypatch):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = StringIO()
+    with redirect_stdout(out):
+        loop = EvaluationLoop()
+        loop._print_results([{"log": 5}] * 5, "Testing")
+
+    expected = (
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "     Testing metric            DataLoader 0             DataLoader 1             DataLoader 2       \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "           log                       5                        5                        5            \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "     Testing metric            DataLoader 3             DataLoader 4       \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+        "           log                       5                        5            \n"
+        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
+        "─────────────\n"
+    )
+    assert out.getvalue() == expected
