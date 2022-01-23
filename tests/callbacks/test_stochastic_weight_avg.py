@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -234,7 +233,7 @@ def test_swa_deepcopy(tmpdir):
             super().__init__(*args, **kwargs)
             self.setup_called = False
 
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model

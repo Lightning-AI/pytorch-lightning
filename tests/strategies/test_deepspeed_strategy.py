@@ -406,7 +406,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 
