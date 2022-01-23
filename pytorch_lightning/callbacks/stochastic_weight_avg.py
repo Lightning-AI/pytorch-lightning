@@ -24,10 +24,10 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.optimizer import _get_default_scheduler_config
 from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
 
@@ -149,17 +149,14 @@ class StochasticWeightAveraging(Callback):
             self._average_model = deepcopy(pl_module)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        optimizers = trainer.optimizers
-        lr_schedulers = trainer.lr_schedulers
+        if len(trainer.optimizers) != 1:
+            raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
+
+        if len(trainer.lr_scheduler_configs) > 1:
+            raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
         if isinstance(trainer.strategy, (DDPFullyShardedStrategy, DeepSpeedStrategy)):
             raise MisconfigurationException("SWA does not currently support sharded models.")
-
-        if len(optimizers) != 1:
-            raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
-
-        if len(lr_schedulers) > 1:
-            raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
@@ -205,22 +202,20 @@ class StochasticWeightAveraging(Callback):
                     "This may be caused by loading a checkpoint from an older version of PyTorch Lightning."
                 )
 
-            default_scheduler_cfg = _get_default_scheduler_config()
-            assert default_scheduler_cfg["interval"] == "epoch" and default_scheduler_cfg["frequency"] == 1
-            default_scheduler_cfg["scheduler"] = self._swa_scheduler
-            default_scheduler_cfg["opt_idx"] = 0
+            default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
+            assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
-            if trainer.lr_schedulers:
-                scheduler_cfg = trainer.lr_schedulers[0]
-                if scheduler_cfg["interval"] != "epoch" or scheduler_cfg["frequency"] != 1:
+            if trainer.lr_scheduler_configs:
+                scheduler_cfg = trainer.lr_scheduler_configs[0]
+                if scheduler_cfg.interval != "epoch" or scheduler_cfg.frequency != 1:
                     rank_zero_warn(f"SWA is currently only supported every epoch. Found {scheduler_cfg}")
                 rank_zero_info(
-                    f"Swapping scheduler `{scheduler_cfg['scheduler'].__class__.__name__}`"
+                    f"Swapping scheduler `{scheduler_cfg.scheduler.__class__.__name__}`"
                     f" for `{self._swa_scheduler.__class__.__name__}`"
                 )
-                trainer.lr_schedulers[0] = default_scheduler_cfg
+                trainer.lr_scheduler_configs[0] = default_scheduler_cfg
             else:
-                trainer.lr_schedulers.append(default_scheduler_cfg)
+                trainer.lr_scheduler_configs.append(default_scheduler_cfg)
 
             if self.n_averaged is None:
                 self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
