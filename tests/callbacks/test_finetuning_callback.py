@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Optional
 
 import pytest
 import torch
@@ -269,7 +268,7 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     configure_optimizers function call."""
 
     class TestCallback(Callback):
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             pl_module.setup_called = True
 
     class TestModel(BoringModel):
