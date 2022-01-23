@@ -628,6 +628,7 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     trainer = Trainer(
         callbacks=[progress_bar],
         fast_dev_run=True,
+        enable_checkpointing=False,
     )
 
     progress_bar.enable()
@@ -644,4 +645,4 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
 
     progress_bar.enable()
     trainer.predict(model)
-    # assert progress_bar.is_disabled
+    assert progress_bar.is_disabled
