@@ -207,7 +207,7 @@ The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed 
 hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
-Checkout :ref:`data` document to understand data management within Lightning and its best practices.
+Check out :ref:`data` document to understand data management within Lightning and its best practices.
 
 ------------
 
