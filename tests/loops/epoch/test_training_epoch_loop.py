@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import patch
+
 import pytest
 
 from pytorch_lightning.loops import TrainingEpochLoop
@@ -147,13 +149,19 @@ def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
 
 def test_no_val_on_train_epoch_loop_restart(tmpdir):
     """Test that training validation loop doesn't get triggered at the beginning of a restart."""
-    trainer = Trainer()
+    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 1, "limit_val_batches": 1, "enable_checkpointing": False}
+    trainer = Trainer(**trainer_kwargs)
     model = BoringModel()
-    trainer.strategy.connect(model)
-    trainer._data_connector.attach_data(model)
-    trainer.reset_train_dataloader()
-    training_epoch_loop = trainer.fit_loop.epoch_loop
-    training_epoch_loop.restarting = True
-    assert not training_epoch_loop._should_check_val_fx(
-        training_epoch_loop.batch_idx, training_epoch_loop.batch_progress.is_last_batch
-    )
+    trainer.fit(model)
+    ckpt_path = tmpdir / "last.ckpt"
+    trainer.save_checkpoint(str(ckpt_path))
+
+    trainer_kwargs["max_epochs"] = 2
+    trainer = Trainer(**trainer_kwargs)
+
+    with patch.object(
+        trainer.fit_loop.epoch_loop.val_loop,
+        "run",
+    ) as mocked:
+        trainer.fit(model, ckpt_path=str(ckpt_path))
+        assert mocked.call_count == 1
