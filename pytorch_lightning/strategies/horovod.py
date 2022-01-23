@@ -125,13 +125,13 @@ class HorovodStrategy(ParallelStrategy):
         return obj
 
     def model_to_device(self):
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def join(self):
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             hvd.join(self.local_rank)
         else:
             hvd.join()
@@ -201,7 +201,7 @@ class HorovodStrategy(ParallelStrategy):
         self._exit_stack = None
         # Make sure all workers have finished training before returning to the user
         self.join()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

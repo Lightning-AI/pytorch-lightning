@@ -13,6 +13,7 @@
 # limitations under the License.
 import shutil
 from typing import Any, Iterable, List, Sequence, Union
+from collections import OrderedDict
 
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
@@ -120,9 +121,10 @@ class EvaluationLoop(DataLoaderLoop):
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader, dataloader_idx if self.num_dataloaders > 1 else None, dl_max_batches
-        )
+        kwargs = OrderedDict()
+        if self.num_dataloaders > 1:
+            kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
