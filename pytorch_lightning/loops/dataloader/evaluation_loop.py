@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
-import torch
 from collections import OrderedDict
 from typing import Any, Iterable, List, Sequence, Union
 
+import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
