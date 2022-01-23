@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
+import torch
 from collections import OrderedDict
 from typing import Any, Iterable, List, Sequence, Union
 
@@ -314,7 +315,12 @@ class EvaluationLoop(DataLoaderLoop):
         for result in results:
             for metric, row in zip(metrics, rows):
                 v = list(EvaluationLoop._find_value(result, metric))
-                row.append(f"{v[0]}" if v else " ")
+                if v:
+                    val = v[0]
+                    val = (val.item() if val.numel() == 1 else val.tolist()) if isinstance(val, torch.Tensor) else val
+                    row.append(f"{val}" if v else " ")
+                else:
+                    row.append(" ")
 
         # keep one column with max length for metrics
         num_cols = int((term_size - max_length) / max_length)
