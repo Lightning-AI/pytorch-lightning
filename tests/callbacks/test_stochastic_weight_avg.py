@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest import mock
 from typing import Optional
+<<<<<<< HEAD
+=======
+from unittest import mock
+>>>>>>> ab34e321629f014ed98f962c3e0324ec04a56808
 
 import pytest
 import torch
@@ -231,21 +234,21 @@ def test_swa_deepcopy(tmpdir):
 
     class TestSWA(StochasticWeightAveraging):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.on_before_accelerator_backend_setup_called = False
+            super().setup(trainer, pl_module, stage)
+            self.setup_called = False
 
         def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
             super().__init__(*args, **kwargs)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert self._average_model.trainer is None
-            self.on_before_accelerator_backend_setup_called = True
+            self.setup_called = True
 
     model = BoringModel()
     swa = TestSWA()
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
-    assert swa.on_before_accelerator_backend_setup_called
+    assert swa.setup_called
 
 
 def test_swa_multiple_lrs(tmpdir):
