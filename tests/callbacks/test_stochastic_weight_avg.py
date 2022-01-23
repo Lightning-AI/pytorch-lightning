@@ -231,11 +231,11 @@ def test_swa_deepcopy(tmpdir):
 
     class TestSWA(StochasticWeightAveraging):
         def __init__(self, *args, **kwargs):
-            super().setup(trainer, pl_module, stage)
+            super().__init__(*args, **kwargs)
             self.setup_called = False
 
         def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-            super().__init__(*args, **kwargs)
+            super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert self._average_model.trainer is None
