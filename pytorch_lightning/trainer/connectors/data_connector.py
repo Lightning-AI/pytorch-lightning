@@ -458,21 +458,21 @@ class DataConnector:
                 limit_eval_batches = getattr(self.trainer, f"limit_{mode.dataloader_prefix}_batches")
 
                 # limit num batches either as a percent or num steps
-                if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
+                if isinstance(limit_eval_batches, int):
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float("inf"):
                     num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `0.0`, `1.0` or an int. An int k"
+                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
                         f" specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
-                        f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
+                        f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"

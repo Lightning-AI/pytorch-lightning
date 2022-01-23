@@ -1804,14 +1804,14 @@ class Trainer(
             else float("inf")
         )
 
-        if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
+        if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float("inf"):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies"
+                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
                 " `num_training_batches` to use."
             )
 
