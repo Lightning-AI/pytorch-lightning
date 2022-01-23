@@ -13,10 +13,7 @@
 # limitations under the License.
 import logging
 from typing import Optional
-<<<<<<< HEAD
-=======
 from unittest import mock
->>>>>>> ab34e321629f014ed98f962c3e0324ec04a56808
 
 import pytest
 import torch
