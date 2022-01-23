@@ -298,12 +298,6 @@ def test_log_works_in_val_callback(tmpdir):
                 pl_module, "on_validation_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_epoch_start(self, trainer, pl_module):
-            if trainer.validating:
-                self.make_logging(
-                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
-
         def on_validation_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_validation_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -317,10 +311,6 @@ def test_log_works_in_val_callback(tmpdir):
                 on_epochs=self.choices,
                 prob_bars=self.choices,
             )
-
-        def on_epoch_end(self, trainer, pl_module):
-            if trainer.validating:
-                self.make_logging(pl_module, "on_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_validation_epoch_end(self, _, pl_module):
             self.make_logging(
@@ -348,10 +338,8 @@ def test_log_works_in_val_callback(tmpdir):
     assert cb.call_counter == {
         "on_validation_batch_end": 4,
         "on_validation_start": 1,
-        "on_epoch_start": 1,
         "on_validation_epoch_start": 1,
         "on_validation_epoch_end": 1,
-        "on_epoch_end": 1,
     }
 
     def get_expected(on_epoch, values):
@@ -432,12 +420,6 @@ def test_log_works_in_test_callback(tmpdir):
 
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
-        def on_epoch_start(self, trainer, pl_module):
-            if trainer.testing:
-                self.make_logging(
-                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
 
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(

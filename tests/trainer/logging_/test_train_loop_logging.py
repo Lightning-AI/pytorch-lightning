@@ -280,9 +280,6 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_start(self, _, pl_module):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
-        def on_epoch_start(self, _, pl_module):
-            self.make_logging(pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -313,9 +310,6 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_epoch_end(self, _, pl_module):
-            self.make_logging(pl_module, "on_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
     class TestModel(BoringModel):
         seen_losses = []
 
@@ -343,14 +337,12 @@ def test_log_works_in_train_callback(tmpdir):
 
     assert cb.call_counter == {
         "on_train_start": 1,
-        "on_epoch_start": 1,
         "on_train_epoch_start": 1,
         "on_train_batch_start": 2,
         "on_train_batch_end": 2,
         "on_batch_start": 2,
         "on_batch_end": 2,
         "on_train_epoch_end": 1,
-        "on_epoch_end": 1,
     }
 
     def get_expected(on_epoch, values):
@@ -494,11 +486,11 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
             items.pop("v_num", None)
             return items
 
-        def on_epoch_end(self, trainer: Trainer, model: LightningModule):
+        def on_train_end(self, trainer: Trainer, model: LightningModule):
             metrics = self.get_metrics(trainer, model)
             assert metrics["foo"] == self.trainer.current_epoch
             assert metrics["foo_2"] == self.trainer.current_epoch
-            model.on_epoch_end_called = True
+            model.callback_on_train_end_called = True
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
@@ -514,7 +506,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     model = TestModel()
     trainer.fit(model)
     assert model.on_train_epoch_end_called
-    assert model.on_epoch_end_called
+    assert model.callback_on_train_end_called
 
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
@@ -533,11 +525,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_batch_end(self, trainer, pl_module):
             self.log("on_batch_end", 4)
 
-        def on_epoch_end(self, trainer, pl_module):
-            self.log("on_epoch_end", 5)
-
         def on_train_epoch_end(self, trainer, pl_module):
-            self.log("on_train_epoch_end", 6)
+            self.log("on_train_epoch_end", 5)
 
     model = BoringModel()
     trainer = Trainer(
@@ -555,8 +544,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         "on_train_epoch_start": 2,
         "on_train_batch_end": 3,
         "on_batch_end": 4,
-        "on_epoch_end": 5,
-        "on_train_epoch_end": 6,
+        "on_train_epoch_end": 5,
     }
     assert trainer.callback_metrics == expected
 

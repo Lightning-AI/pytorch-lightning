@@ -182,15 +182,17 @@ class ModelHooks:
         self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
-        """.. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
-        ``on_<train/validation/test>_epoch_start`` instead.
+        r"""
+        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_start`` instead.
 
         Called when either of train/val/test epoch begins.
         """
 
     def on_epoch_end(self) -> None:
-        """.. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
-        ``on_<train/validation/test>_epoch_end`` instead.
+        r"""
+        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_end`` instead.
 
         Called when either of train/val/test epoch ends.
         """

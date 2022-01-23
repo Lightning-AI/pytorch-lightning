@@ -48,9 +48,6 @@ class ModelTrainerPropertyParity(Callback):
     def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
         self._check_properties(trainer, pl_module)
 
-    def on_epoch_end(self, trainer, pl_module):
-        self._check_properties(trainer, pl_module)
-
     def on_train_end(self, trainer, pl_module):
         self._check_properties(trainer, pl_module)
 
