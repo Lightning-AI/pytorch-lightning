@@ -233,9 +233,9 @@ or use regular print statements.
         def training_step(self, batch, batch_idx):
 
             debugging_message = ...
-            print(f"RANK - {self.trainer.local_rank}: {debugging_message}")
+            print(f"RANK - {self.trainer.global_rank}: {debugging_message}")
 
-            if self.trainer.local_rank == 0:
+            if self.trainer.global_rank == 0:
                 import pdb
 
                 pdb.set_trace()
