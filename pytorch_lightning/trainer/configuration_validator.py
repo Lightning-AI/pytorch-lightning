@@ -17,8 +17,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
-import warnings
-
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     r"""
@@ -143,7 +141,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         is_overridden("validation_epoch_end") and type(model.val_check_interval) == float
     )
     if causes_infinite_epochs:
-        warnings.warn(
+        rank_zero_warn(
             "This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely."
         )
 
