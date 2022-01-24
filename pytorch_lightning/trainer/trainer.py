@@ -14,6 +14,7 @@
 """Trainer to automate the training."""
 import inspect
 import logging
+import math
 import os
 import traceback
 import warnings
@@ -2507,6 +2508,41 @@ class Trainer(
     def weights_summary(self, val: Optional[str]) -> None:
         rank_zero_deprecation("Setting `Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
         self._weights_summary = val
+
+    """
+    Estimator Properties
+    """
+
+    @property
+    def estimated_num_training_steps(self) -> int:
+        """Total training steps inferred from dataloaders and distributed setup."""
+        # infinite training
+        if self.max_epochs == -1 and self.max_steps == -1:
+            return float("inf")
+
+        if self.train_dataloader is None:
+            rank_zero_warn("Loading `train_dataloader` to estimate number of training steps.")
+            self.reset_train_dataloader()
+
+        dataset_size = self.num_training_batches
+
+        # iterable dataset
+        if dataset_size == float("inf"):
+            return self.max_steps
+
+        effective_processes = self.num_processes
+
+        if not self._accelerator_connector.use_ddp2:
+            effective_processes = effective_processes * self.num_nodes
+
+        self.accumulate_grad_batches = self.accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
+        effective_batch_size = self.accumulate_grad_batches * effective_processes
+        max_estimated_steps = math.ceil(dataset_size / effective_batch_size) * (
+            self.max_epochs if self.max_epochs != -1 else 1
+        )
+
+        max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+        return max_estimated_steps
 
     """
     Other
