@@ -149,12 +149,12 @@ def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
 
 def test_no_val_on_train_epoch_loop_restart(tmpdir):
     """Test that training validation loop doesn't get triggered at the beginning of a restart."""
-    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 1, "limit_val_batches": 1, "enable_checkpointing": False}
+    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 1, "limit_val_batches": 1, "num_sanity_val_steps": 0, "enable_checkpointing": False}
     trainer = Trainer(**trainer_kwargs)
     model = BoringModel()
     trainer.fit(model)
-    ckpt_path = tmpdir / "last.ckpt"
-    trainer.save_checkpoint(str(ckpt_path))
+    ckpt_path = str(tmpdir / "last.ckpt")
+    trainer.save_checkpoint(ckpt_path)
 
     trainer_kwargs["max_epochs"] = 2
     trainer = Trainer(**trainer_kwargs)
@@ -163,5 +163,5 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
         trainer.fit_loop.epoch_loop.val_loop,
         "run",
     ) as mocked:
-        trainer.fit(model, ckpt_path=str(ckpt_path))
+        trainer.fit(model, ckpt_path=ckpt_path)
         assert mocked.call_count == 1
