@@ -104,6 +104,13 @@ class BaguaStrategy(DDPStrategy):
         self._bagua_do_flatten = do_flatten
         self._bagua_kwargs = bagua_kwargs
 
+    @property
+    def lightning_module(self) -> "pl.LightningModule":
+        model = self._model
+        if isinstance(model, BaguaDistributedDataParallel):
+            model = model.module
+        return unwrap_lightning_module(model)  # type: ignore[arg-type]
+
     def setup_environment(self) -> None:
         # start the other scripts
         if not self.cluster_environment.creates_processes_externally:  # type: ignore[union-attr]
@@ -171,13 +178,6 @@ class BaguaStrategy(DDPStrategy):
             algorithm=algorithm,
             gradient_as_bucket_view=self._bagua_do_flatten,
         )
-
-    @property
-    def lightning_module(self) -> "pl.LightningModule":
-        model = self._model
-        if isinstance(model, BaguaDistributedDataParallel):
-            model = model.module
-        return unwrap_lightning_module(model)  # type: ignore[arg-type]
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
