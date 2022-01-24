@@ -169,20 +169,6 @@ We recommend using forward for inference/predictions and keeping ``training_step
         pred = self.decoder(z)
         ...
 
-However, when using DataParallel, you will need to call forward manually:
-
-.. code-block:: python
-
-    def forward(self, x):
-        embeddings = self.encoder(x)
-        return embeddings
-
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        z = self(x)  # < ---------- instead of self.encoder(x)
-        pred = self.decoder(z)
-        ...
 
 --------------
 
