@@ -11,18 +11,42 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import pickle
-from argparse import ArgumentParser
-from unittest import mock
+from argparse import ArgumentParser, Namespace
 
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _sanitize_callable_params, _add_prefix
-from tests.helpers import BoringModel
+
+def test_convert_params():
+    """Test conversion of params to a dict"""
+
+    # Test normal dict, make sure it is unchanged
+    params = {"foo": "bar", 1: 23}
+    assert(type(params) == dict)
+    params = _convert_params(params)
+    assert(type(params) == dict)
+    assert(params["foo"] == "bar")
+    assert(params[1] == 23)
+
+    # Test None conversion
+    params = None
+    assert(type(params) != dict)
+    params = _convert_params(params)
+    assert(type(params) == dict)
+    assert(params == {})
+
+    # Test conversion of argparse Namespace
+    opt = "--max_epochs 1".split(" ")
+    parser = ArgumentParser()
+    parser = Trainer.add_argparse_args(parent_parser=parser)
+    params = parser.parse_args(opt)
+
+    assert(type(params) == Namespace)
+    params = _convert_params(params)
+    assert(type(params) == dict)
+    assert(params["gpus"] == None)
+
 
 def test_flatten_dict():
     """Validate flatten_dict can handle nested dictionaries and argparse Namespace"""
