@@ -101,11 +101,6 @@ class LightningLoggerBase(ABC):
         if agg_default_func:
             self._agg_default_func = agg_default_func
 
-    @property
-    @abstractmethod
-    def experiment(self) -> Any:
-        """Return the experiment object associated with this logger."""
-
     def _aggregate_metrics(
         self, metrics: Dict[str, float], step: Optional[int] = None
     ) -> Tuple[int, Optional[Dict[str, float]]]:
