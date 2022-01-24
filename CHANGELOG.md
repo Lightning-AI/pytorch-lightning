@@ -221,6 +221,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed `MisconfigurationException` to `ModuleNotFoundError` when `rich` isn't available ([#11360](https://github.com/PyTorchLightning/pytorch-lightning/pull/11360))
 
+- Inherit from `ABC` for `Accelerator`: Users need to implement `auto_device_count`([#11521](https://github.com/PyTorchLightning/pytorch-lightning/pull/11521))
+
 
 ### Deprecated
 
