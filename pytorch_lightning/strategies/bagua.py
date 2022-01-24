@@ -80,7 +80,7 @@ class BaguaStrategy(DDPStrategy):
         distributed training algorithms and system optimizations.
 
         Arguments:
-            algorithm:  Distributed algorithm used to do the actual communication and update. Built-in algorithms
+            algorithm: Distributed algorithm used to do the actual communication and update. Built-in algorithms
                 include "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and
                 "async".
             do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
