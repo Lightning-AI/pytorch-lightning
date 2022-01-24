@@ -280,36 +280,6 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
 
 
-def test_wandb_sanitize_callable_params(tmpdir):
-    """Callback function are not serializiable.
-
-    Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
-    """
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
-
-    def return_something():
-        return "something"
-
-    params.something = return_something
-
-    def wrapper_something():
-        return return_something
-
-    params.wrapper_something_wo_name = lambda: lambda: "1"
-    params.wrapper_something = wrapper_something
-
-    params = _convert_params(params)
-    params = _flatten_dict(params)
-    params = _sanitize_callable_params(params)
-    assert params["gpus"] == "None"
-    assert params["something"] == "something"
-    assert params["wrapper_something"] == "wrapper_something"
-    assert params["wrapper_something_wo_name"] == "<lambda>"
-
-
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
