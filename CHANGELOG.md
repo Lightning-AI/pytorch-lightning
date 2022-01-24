@@ -281,7 +281,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated function `pytorch_lightning.callbacks.device_stats_monitor.prefix_metric_keys` ([#11254](https://github.com/PyTorchLightning/pytorch-lightning/pull/11254))
 
 
-- Deprecated the abstract property `pytorch_lightning.loggers.LightningLoggerBase.experiment` ([#11234](https://github.com/PyTorchLightning/pytorch-lightning/pull/11603))
+- Removed the abstract property `LightningLoggerBase.experiment` ([#11603](https://github.com/PyTorchLightning/pytorch-lightning/pull/11603))
 
 
 ### Removed
