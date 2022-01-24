@@ -222,7 +222,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `MisconfigurationException` to `ModuleNotFoundError` when `rich` isn't available ([#11360](https://github.com/PyTorchLightning/pytorch-lightning/pull/11360))
 
 
-- Enable reducing only loss when using DP ([#11594](https://github.com/PyTorchLightning/pytorch-lightning/pull/11594))
+- Disabled reducing training_step output other than loss when using DP ([#11594](https://github.com/PyTorchLightning/pytorch-lightning/pull/11594))
 
 
 ### Deprecated
