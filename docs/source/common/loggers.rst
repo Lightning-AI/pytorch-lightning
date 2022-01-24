@@ -212,7 +212,10 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 1
+            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 2 for specifically logging images
+            self.logger.log_image(key="generated_images", images=[some_img])
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
