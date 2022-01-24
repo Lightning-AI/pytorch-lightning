@@ -13,6 +13,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
+import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin

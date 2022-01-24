@@ -20,6 +20,7 @@ from torch import nn
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
