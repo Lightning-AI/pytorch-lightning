@@ -446,6 +446,7 @@ class PyTorchProfiler(BaseProfiler):
             if self._schedule is not None:
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
+            self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
