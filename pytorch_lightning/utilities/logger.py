@@ -124,6 +124,16 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _add_prefix(metrics: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+    """Insert prefix before each key in a dict, separated by the separator
+
+    Args:
+        metrics: Dictionary with metric names as keys and measured quantities as values
+        prefix: Prefix to insert before each key
+        separator: Separates prefix and original key name
+
+    Returns:
+        Dictionary with prefix and separator inserted before each key
+    """
     if prefix:
         metrics = {f"{prefix}{separator}{k}": v for k, v in metrics.items()}
 

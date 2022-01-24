@@ -21,11 +21,11 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _sanitize_callable_params
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _sanitize_callable_params, _add_prefix
 from tests.helpers import BoringModel
 
 
-def test_sanitize_callable_params(tmpdir):
+def test_sanitize_callable_params():
     """Callback function are not serializiable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
@@ -53,3 +53,23 @@ def test_sanitize_callable_params(tmpdir):
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
+
+def test_add_prefix():
+    """ Make sure add_prefix modifies the dict keys correctly."""
+
+    metrics = {"metric1" : 1, "metric2" : 2}
+    metrics = _add_prefix(metrics, "prefix", "-")
+
+    assert("prefix-metric1" in metrics)
+    assert("prefix-metric2" in metrics)
+    assert("metric1" not in metrics)
+    assert("metric2" not in metrics)
+
+    metrics = _add_prefix(metrics, "prefix2", "_")
+
+    assert("prefix2_prefix-metric1" in metrics)
+    assert("prefix2_prefix-metric2" in metrics)
+    assert("prefix-metric1" not in metrics)
+    assert("prefix-metric2" not in metrics)
+    assert(metrics["prefix2_prefix-metric1"] == 1)
+    assert(metrics["prefix2_prefix-metric2"] == 2)
