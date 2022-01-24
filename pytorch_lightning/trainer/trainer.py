@@ -2524,20 +2524,15 @@ class Trainer(
             rank_zero_warn("Loading `train_dataloader` to estimate number of training steps.")
             self.reset_train_dataloader()
 
-        dataset_size = self.num_training_batches
+        total_batches = self.num_training_batches
 
         # iterable dataset
-        if dataset_size == float("inf"):
+        if total_batches == float("inf"):
             return self.max_steps
 
-        effective_processes = self.num_processes
-
-        if not self._accelerator_connector.use_ddp2:
-            effective_processes = effective_processes * self.num_nodes
-
         self.accumulate_grad_batches = self.accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
-        effective_batch_size = self.accumulate_grad_batches * effective_processes
-        max_estimated_steps = math.ceil(dataset_size / effective_batch_size) * (
+        effective_batch_size = self.accumulate_grad_batches
+        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * (
             self.max_epochs if self.max_epochs != -1 else 1
         )
 
