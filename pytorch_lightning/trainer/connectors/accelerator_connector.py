@@ -906,10 +906,6 @@ class AcceleratorConnector:
         if self.distributed_backend == _StrategyType.HOROVOD:
             self._set_horovod_backend()
 
-        # TPUs
-        if self._strategy_type == _StrategyType.TPU_SPAWN:
-            self.num_processes = self.tpu_cores if isinstance(self.tpu_cores, int) else 1
-
         using_valid_distributed = self.use_ddp or self.use_ddp2
         if self.num_nodes > 1 and not using_valid_distributed:
             # throw error to force user to choose a supported strategy type such as ddp or ddp2
