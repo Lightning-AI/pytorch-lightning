@@ -222,7 +222,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `MisconfigurationException` to `ModuleNotFoundError` when `rich` isn't available ([#11360](https://github.com/PyTorchLightning/pytorch-lightning/pull/11360))
 
 
-- Changed `parallel_devices` property in `ParallelStrategy` to be lazy initialized ([#](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
+- Changed `parallel_devices` property in `ParallelStrategy` to be lazy initialized ([#11572](https://github.com/PyTorchLightning/pytorch-lightning/pull/11572))
 
 
 ### Deprecated
