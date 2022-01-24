@@ -1773,7 +1773,6 @@ class Trainer(
             self.train_dataloader,
             DataLoader,
             self._data_connector._prepare_dataloader,
-            shuffle=True,
             mode=RunningStage.TRAINING,
         )
 
