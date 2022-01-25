@@ -346,16 +346,16 @@ class EvaluationLoop(DataLoaderLoop):
                 half_term_size = int(term_size / 2)
 
                 bar = "─" * term_size
-                table = [bar, row_format.format(*table_headers).rstrip(), bar]
+                lines = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:
                             row_metric = metric[:half_term_size]
                             metric = metric[half_term_size:]
-                            table.append(row_format.format(row_metric, *row).rstrip())
-                        table.append(row_format.format(metric, " ").rstrip())
+                            lines.append(row_format.format(row_metric, *row).rstrip())
+                        lines.append(row_format.format(metric, " ").rstrip())
                     else:
-                        table.append(row_format.format(metric, *row).rstrip())
-                table.append(bar)
-                print(os.linesep.join(table), file=file)
+                        lines.append(row_format.format(metric, *row).rstrip())
+                lines.append(bar)
+                print(os.linesep.join(lines), file=file)
