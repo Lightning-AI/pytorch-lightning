@@ -19,6 +19,7 @@ Quantization
 import copy
 import functools
 from typing import Any, Callable, Dict, Optional, Sequence, Union
+import os
 
 import torch
 from torch import Tensor
@@ -35,6 +36,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core import LightningDataModule
+from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.ao.quantization.qconfig import QConfig
@@ -318,3 +321,68 @@ class QuantizationAwareTraining(Callback):
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
+
+class StaticQuantization(Callback):
+    OBSERVER_TYPES = ("histogram", "average")
+    def __init__(
+        self,
+        qconfig: Union[str, QConfig] = "fbgemm",
+        observer_type: str = "average",
+        module_name_to_quant: str = "encoder",
+        datamodule: LightningDataModule = None,
+        dirpath: str = None,
+    ) -> None:
+
+        self._qconfig = qconfig
+        if observer_type not in self.OBSERVER_TYPES:
+            raise MisconfigurationException(
+                f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
+            )
+        self._observer_type = observer_type
+
+        assert (
+            module_name_to_quant is not None
+        ), "Please set module_name_to_quant with module name which you want to quantize"
+        self.module_name_to_quant = module_name_to_quant
+        self.datamodule = datamodule
+        self.dirpath = dirpath
+
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self.dirpath is None:
+            self.dirpath = trainer.default_root_dir
+
+    def on_train_end(self, trainer, pl_module):
+
+        calib_dataloader = (
+            pl_module.train_dataloader() if self.datamodule is None else self.datamodule.train_dataloader()
+        )
+
+        # QuantStub converts tensors from floating point to quantized
+        pl_module.quant = torch.quantization.QuantStub()
+        # DeQuantStub converts tensors from quantized to floating point
+        pl_module.dequant = torch.quantization.DeQuantStub()
+
+        pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=pl_module.forward)
+
+        # attach a global qconfig, which contains information about what kind
+        # of observers to attach. Use 'fbgemm' for server inference
+        if isinstance(self._qconfig, str):
+            pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
+
+        elif isinstance(self._qconfig, QConfig):
+            pl_module.qconfig = self._qconfig
+
+        pl_module.eval()
+        pl_module_prepared = torch.quantization.prepare(pl_module)
+        q_model = torch.quantization.convert(pl_module_prepared, inplace=True)
+        # calibration
+        trainer.validate(pl_module, dataloaders=calib_dataloader)
+
+        if self.dirpath is not None:
+            torch.save(q_model.state_dict(), os.path.join(self.dirpath, 'model_q.pth'))
+
+        trainer.limit_train_batches = 0
+        trainer.limit_val_batches = 0
+        trainer.state.fn = TrainerFn.FITTING
+        trainer.state.status = TrainerStatus.RUNNING
+        trainer.training = True

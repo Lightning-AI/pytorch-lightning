@@ -24,7 +24,7 @@ from pytorch_lightning.callbacks.model_summary import ModelSummary
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase, RichProgressBar, TQDMProgressBar
 from pytorch_lightning.callbacks.pruning import ModelPruning
-from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
+from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining, StaticQuantization
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
@@ -48,6 +48,7 @@ __all__ = [
     "ProgressBar",
     "ProgressBarBase",
     "QuantizationAwareTraining",
+    "StaticQuantization",
     "RichModelSummary",
     "RichProgressBar",
     "StochasticWeightAveraging",
