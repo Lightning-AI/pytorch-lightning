@@ -318,8 +318,9 @@ class EvaluationLoop(DataLoaderLoop):
                 v = list(EvaluationLoop._find_value(result, metric))
                 if v:
                     val = v[0]
-                    val = (val.item() if val.numel() == 1 else val.tolist()) if isinstance(val, torch.Tensor) else val
-                    row.append(f"{val}" if v else " ")
+                    if isinstance(val, torch.Tensor):
+                        val = val.item() if val.numel() == 1 else val.tolist()
+                    row.append(f"{val}")
                 else:
                     row.append(" ")
 
