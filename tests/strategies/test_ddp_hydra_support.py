@@ -10,6 +10,9 @@ import pytest
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
 from tests.helpers.runif import RunIf
 
+if _HYDRA_AVAILABLE:
+    from omegaconf import OmegaConf
+
 
 # fixture to run in a clean temporary directory
 @pytest.fixture()
@@ -97,13 +100,33 @@ if __name__ == "__main__":
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("gpus", [1, 2])
-def test_ddp_with_hydra_runjob(gpus):
+@pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
+def test_ddp_with_hydra_runjob(gpus, subdir):
+    # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
 
-    run_process([sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"'])
+    # Run CLI
+    cmd = [sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"']
+    if subdir is not None:
+        cmd += [f"hydra.output_subdir={subdir}"]
+    run_process(cmd)
+
+    # Make sure config.yaml was created
     logs = sorted(Path.cwd().glob("**/config.yaml"))
     assert len(logs) == 1
+
+    # Make sure subdir was set
+    actual_subdir = ".hydra" if subdir is None else subdir
+    assert logs[0].parent.name == actual_subdir
+
+    # Make sure the parameter was set and used
+    cfg = OmegaConf.load(logs[0])
+    assert cfg.gpus == gpus
+
+    # Make sure PL spawned a job that is logged by Hydra
+    logs = sorted(Path.cwd().glob("**/train_ddp_process_1.log"))
+    assert len(logs) == gpus - 1
 
 
 @RunIf(skip_windows=True, min_gpus=2)
@@ -122,5 +145,13 @@ def test_ddp_with_hydra_multirunjob(gpus, num_jobs):
             fake_param += ","
     run_process([sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"', fake_param, "--multirun"])
 
-    jobs = sorted(Path.cwd().glob("**/config.yaml"))
-    assert len(jobs) == num_jobs
+    configs = sorted(Path.cwd().glob("**/config.yaml"))
+    assert len(configs) == num_jobs
+
+    for i, config in enumerate(configs):
+        cfg = OmegaConf.load(config)
+        assert cfg.gpus == gpus
+        assert cfg.foo == i
+
+    logs = sorted(Path.cwd().glob("**/train_ddp_process_1.log"))
+    assert len(logs) == num_jobs * (gpus - 1)
