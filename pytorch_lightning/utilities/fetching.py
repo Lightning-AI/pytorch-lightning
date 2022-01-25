@@ -234,6 +234,7 @@ class DataFetcher(AbstractDataFetcher):
                 break
 
     def fetching_function(self) -> Tuple[Any, bool]:
+        assert self.dataloader_iter is not None
         if self.batches:
             # we pre-fetched, consume one
             batch = self.batches.pop(0)
@@ -242,7 +243,6 @@ class DataFetcher(AbstractDataFetcher):
                 self._fetch_next_batch(self.dataloader_iter)
             except StopIteration:
                 self.done = not self.batches
-
         elif not self.done:
             # we did not prefetch at all
             try:
@@ -251,10 +251,8 @@ class DataFetcher(AbstractDataFetcher):
             except StopIteration as e:
                 self.done = True
                 raise e
-
         else:
             raise StopIteration
-
         self.wait()
         return self.move_to_device(batch), self.done
 
