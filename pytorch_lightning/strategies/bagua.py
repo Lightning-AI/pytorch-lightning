@@ -36,7 +36,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__(pl_module)
         # Bagua use `bagua_module_name` to distinguish different modules
-        self._bagua_module_name = pl_module._get_name() + str(id(pl_module))
+        self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
 
 
 if _BAGUA_AVAILABLE:
