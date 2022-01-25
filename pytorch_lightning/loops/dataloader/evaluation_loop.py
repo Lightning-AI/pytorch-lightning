@@ -24,6 +24,7 @@ from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -281,16 +282,12 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer.logger_connector.on_epoch_end()
 
     @staticmethod
-    def _get_keys(iterable: Union[List, dict]) -> Iterable[str]:
-        if isinstance(iterable, list):
-            for i in iterable:
-                yield from EvaluationLoop._get_keys(i)
-        elif isinstance(iterable, dict):
-            for k, v in iterable.items():
-                if isinstance(v, dict):
-                    yield from EvaluationLoop._get_keys(v)
-                else:
-                    yield k
+    def _get_keys(data: dict) -> Iterable[str]:
+        if any(isinstance(v, dict) for v in data.values()):
+            for v in data.values():
+                yield from apply_to_collection(v, dict, dict.keys)
+        else:
+            yield from data.keys()
 
     @staticmethod
     def _find_value(data: dict, target: str) -> Iterable[Any]:
@@ -304,7 +301,7 @@ class EvaluationLoop(DataLoaderLoop):
     def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics = sorted(set(EvaluationLoop._get_keys(results)))
+        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output
