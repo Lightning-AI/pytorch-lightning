@@ -18,8 +18,8 @@ Quantization
 """
 import copy
 import functools
-from typing import Any, Callable, Dict, Optional, Sequence, Union
 import os
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -34,10 +34,10 @@ else:
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.ao.quantization.qconfig import QConfig
@@ -322,8 +322,10 @@ class QuantizationAwareTraining(Callback):
         if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
 
+
 class StaticQuantization(Callback):
     OBSERVER_TYPES = ("histogram", "average")
+
     def __init__(
         self,
         qconfig: Union[str, QConfig] = "fbgemm",
@@ -379,7 +381,7 @@ class StaticQuantization(Callback):
         trainer.validate(pl_module, dataloaders=calib_dataloader)
 
         if self.dirpath is not None:
-            torch.save(q_model.state_dict(), os.path.join(self.dirpath, 'model_q.pth'))
+            torch.save(q_model.state_dict(), os.path.join(self.dirpath, "model_q.pth"))
 
         trainer.limit_train_batches = 0
         trainer.limit_val_batches = 0
