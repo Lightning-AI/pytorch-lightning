@@ -319,8 +319,10 @@ class LightningModule(
             value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
-            on_step: if ``True`` logs at this step.
-            on_epoch: if True logs epoch accumulated metrics.
+            on_step: if ``True`` logs at this step. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if ``True``, will not auto detach the graph.
             sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
