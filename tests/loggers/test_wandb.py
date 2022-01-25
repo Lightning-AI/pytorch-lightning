@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
@@ -21,7 +20,6 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict, _sanitize_callable_params
 from tests.helpers import BoringModel
 
 
