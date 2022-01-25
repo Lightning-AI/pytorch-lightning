@@ -14,7 +14,6 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
-from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
 from unittest.mock import call
@@ -849,8 +848,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
     out = StringIO()
-    with redirect_stdout(out):
-        EvaluationLoop._print_results(*inputs)
+    EvaluationLoop._print_results(*inputs, file=out)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue() == expected.lstrip()
 
@@ -911,18 +909,7 @@ expected3 = """
 )
 @RunIf(rich=True)
 def test_rich_print_results(inputs, expected):
-    from rich.console import Console
-    from rich.table import Table
-
-    with mock.patch("rich.console.Console.print") as print_mock:
-        EvaluationLoop._print_results(*inputs)
-
     out = StringIO()
-    for call_ in print_mock.call_args_list:
-        table = call_.args[0]
-        assert isinstance(table, Table)
-        console = Console(file=out)
-        console.print(table)
-
+    EvaluationLoop._print_results(*inputs, file=out)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue() == expected.lstrip()

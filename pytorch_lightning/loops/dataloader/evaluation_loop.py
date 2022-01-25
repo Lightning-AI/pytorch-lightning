@@ -14,7 +14,7 @@
 import os
 import shutil
 from collections import OrderedDict
-from typing import Any, Iterable, List, Sequence, Union
+from typing import Any, IO, Iterable, List, Optional, Sequence, Union
 
 import torch
 from deprecate.utils import void
@@ -298,7 +298,7 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from EvaluationLoop._find_value(v, target)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
+    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -331,7 +331,7 @@ class EvaluationLoop(DataLoaderLoop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
-                console = Console()
+                console = Console(file=file)
 
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
@@ -358,4 +358,4 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         table.append(row_format.format(metric, *row).rstrip())
                 table.append(bar)
-                print(os.linesep.join(table))
+                print(os.linesep.join(table), file=file)
