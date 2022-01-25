@@ -26,6 +26,7 @@ import torch
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -782,13 +783,12 @@ def test_print_results_native(monkeypatch):
 
     out = StringIO()
     with redirect_stdout(out):
-        loop = EvaluationLoop()
-        loop._print_results([{"log": 5}, {"no_log": 6}], "Testing")
+        EvaluationLoop._print_results([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
 
     expected = (
         "─────────────────────────────────────────────────────────────────────────────"
         "───────────────────────────────────────────\n"
-        "     Testing metric            DataLoader 0             DataLoader 1       \n"
+        "       Test metric             DataLoader 0             DataLoader 1       \n"
         "─────────────────────────────────────────────────────────────────────────────"
         "───────────────────────────────────────────\n"
         "           log                       5                                     \n"
@@ -806,13 +806,14 @@ def test_print_results_native_nested_dicts(monkeypatch):
 
     out = StringIO()
     with redirect_stdout(out):
-        loop = EvaluationLoop()
-        loop._print_results([{"performance": {"log": 5}}, {"test": {"no_log": 6}}], "Testing")
+        EvaluationLoop._print_results(
+            [{"performance": {"log": torch.tensor(5)}}, {"test": {"no_log": torch.tensor(6)}}], RunningStage.TESTING
+        )
 
     expected = (
         "─────────────────────────────────────────────────────────────────────────────"
         "───────────────────────────────────────────\n"
-        "     Testing metric            DataLoader 0             DataLoader 1       \n"
+        "       Test metric             DataLoader 0             DataLoader 1       \n"
         "─────────────────────────────────────────────────────────────────────────────"
         "───────────────────────────────────────────\n"
         "           log                       5                                     \n"
@@ -830,19 +831,26 @@ def test_print_results_native_long_names(monkeypatch):
 
     out = StringIO()
     with redirect_stdout(out):
-        loop = EvaluationLoop()
-        loop._print_results(
+        EvaluationLoop._print_results(
             [
-                {"a really really really really really really really really really really really long metric name": 5},
-                {"a really really really really really really really really really really really long metric name": 6},
+                {
+                    "a really really really really really really really really really really really long metric name": torch.tensor(
+                        5
+                    )
+                },
+                {
+                    "a really really really really really really really really really really really long metric name": torch.tensor(
+                        [[6]]
+                    )
+                },
             ],
-            "Testing",
+            RunningStage.VALIDATING,
         )
 
     expected = (
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
-        "                       Testing metric                                               DataLoader 0           "
+        "                      Validate metric                                               DataLoader 0           "
         "             \n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
@@ -854,7 +862,7 @@ def test_print_results_native_long_names(monkeypatch):
         "─────────────\n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
-        "                       Testing metric                                               DataLoader 1           "
+        "                      Validate metric                                               DataLoader 1           "
         "             \n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
@@ -875,13 +883,12 @@ def test_print_results_native_long_table(monkeypatch):
 
     out = StringIO()
     with redirect_stdout(out):
-        loop = EvaluationLoop()
-        loop._print_results([{"log": 5}] * 5, "Testing")
+        EvaluationLoop._print_results([{"log": torch.tensor(5)}] * 5, "foobar")
 
     expected = (
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
-        "     Testing metric            DataLoader 0             DataLoader 1             DataLoader 2       \n"
+        "      Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2       \n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
         "           log                       5                        5                        5            \n"
@@ -889,7 +896,7 @@ def test_print_results_native_long_table(monkeypatch):
         "─────────────\n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
-        "     Testing metric            DataLoader 3             DataLoader 4       \n"
+        "      Foobar metric            DataLoader 3             DataLoader 4       \n"
         "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
         "─────────────\n"
         "           log                       5                        5            \n"

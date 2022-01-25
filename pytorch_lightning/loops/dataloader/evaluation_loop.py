@@ -22,7 +22,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
@@ -300,7 +300,7 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from EvaluationLoop._find_value(v, target)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: RunningStage) -> None:
+    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted(set(EvaluationLoop._get_keys(results)))
