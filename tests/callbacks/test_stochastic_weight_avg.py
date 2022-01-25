@@ -20,7 +20,6 @@ from torch import nn
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
@@ -234,8 +233,8 @@ def test_swa_deepcopy(tmpdir):
             super().__init__(*args, **kwargs)
             self.setup_called = False
 
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            super().setup(trainer, pl_module)
+        def setup(self, trainer, pl_module, stage) -> None:
+            super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert self._average_model.trainer is None

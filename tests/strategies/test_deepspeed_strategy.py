@@ -13,7 +13,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
@@ -407,7 +406,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        def setup(self, trainer, pl_module, stage=None) -> None:
             assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 

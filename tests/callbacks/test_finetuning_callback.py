@@ -19,7 +19,6 @@ from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
@@ -269,7 +268,7 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     configure_optimizers function call."""
 
     class TestCallback(Callback):
-        def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        def setup(self, trainer, pl_module, stage=None) -> None:
             pl_module.setup_called = True
 
     class TestModel(BoringModel):
