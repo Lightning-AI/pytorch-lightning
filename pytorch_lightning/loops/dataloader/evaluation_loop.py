@@ -350,7 +350,7 @@ class EvaluationLoop(DataLoaderLoop):
                 half_term_size = int(term_size / 2)
 
                 print("─" * term_size)
-                print(row_format.format(*table_headers, max_length=max_length))
+                print(row_format.format(*table_headers, max_length=max_length).rstrip())
                 print("─" * term_size)
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
@@ -358,8 +358,8 @@ class EvaluationLoop(DataLoaderLoop):
                         while len(metric) > half_term_size:
                             row_metric = metric[:half_term_size]
                             metric = metric[half_term_size:]
-                            print(row_format.format(row_metric, *row, max_length=max_length))
-                        print(row_format.format(metric, " ", max_length=max_length))
+                            print(row_format.format(row_metric, *row, max_length=max_length).rstrip())
+                        print(row_format.format(metric, " ", max_length=max_length).rstrip())
                     else:
-                        print(row_format.format(metric, *row, max_length=max_length))
+                        print(row_format.format(metric, *row, max_length=max_length).rstrip())
                 print("─" * term_size)

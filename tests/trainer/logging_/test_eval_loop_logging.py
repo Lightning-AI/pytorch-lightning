@@ -776,131 +776,65 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
 
 
-def test_print_results_native(monkeypatch):
+inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+expected0 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0             DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5
+         no_log                                               6
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs1 = ([{"performance": {"log": torch.tensor(5)}}, {"test": {"no_log": torch.tensor(6)}}], RunningStage.TESTING)
+expected1 = expected0
+
+inputs2 = (
+    [
+        {f"a {'really ' * 11}long metric name": torch.tensor(5)},
+        {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
+    ],
+    RunningStage.VALIDATING,
+)
+expected2 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             5
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             6
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs3 = ([{"log": torch.tensor(5)}] * 5, "foobar")
+expected3 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 3             DataLoader 4
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"], [(inputs0, expected0), (inputs1, expected1), (inputs2, expected2), (inputs3, expected3)]
+)
+def test_print_results(monkeypatch, inputs, expected):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-
     out = StringIO()
     with redirect_stdout(out):
-        EvaluationLoop._print_results([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
-
-    expected = (
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-        "       Test metric             DataLoader 0             DataLoader 1       \n"
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-        "           log                       5                                     \n"
-        "         no_log                                               6            \n"
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-    )
-    assert out.getvalue() == expected
-
-
-def test_print_results_native_nested_dicts(monkeypatch):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
-
-    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-
-    out = StringIO()
-    with redirect_stdout(out):
-        EvaluationLoop._print_results(
-            [{"performance": {"log": torch.tensor(5)}}, {"test": {"no_log": torch.tensor(6)}}], RunningStage.TESTING
-        )
-
-    expected = (
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-        "       Test metric             DataLoader 0             DataLoader 1       \n"
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-        "           log                       5                                     \n"
-        "         no_log                                               6            \n"
-        "─────────────────────────────────────────────────────────────────────────────"
-        "───────────────────────────────────────────\n"
-    )
-    assert out.getvalue() == expected
-
-
-def test_print_results_native_long_names(monkeypatch):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
-
-    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-
-    out = StringIO()
-    with redirect_stdout(out):
-        EvaluationLoop._print_results(
-            [
-                {
-                    "a really really really really really really really really really really really long metric name": torch.tensor(
-                        5
-                    )
-                },
-                {
-                    "a really really really really really really really really really really really long metric name": torch.tensor(
-                        [[6]]
-                    )
-                },
-            ],
-            RunningStage.VALIDATING,
-        )
-
-    expected = (
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "                      Validate metric                                               DataLoader 0           "
-        "             \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "a really really really really really really really really re                             5                 "
-        "             \n"
-        "            ally really really long metric name                                                            "
-        "             \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "                      Validate metric                                               DataLoader 1           "
-        "             \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "a really really really really really really really really re                             6                 "
-        "             \n"
-        "            ally really really long metric name                                                            "
-        "             \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-    )
-    assert out.getvalue() == expected
-
-
-def test_print_results_native_long_table(monkeypatch):
-    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
-
-    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-
-    out = StringIO()
-    with redirect_stdout(out):
-        EvaluationLoop._print_results([{"log": torch.tensor(5)}] * 5, "foobar")
-
-    expected = (
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "      Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2       \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "           log                       5                        5                        5            \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "      Foobar metric            DataLoader 3             DataLoader 4       \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-        "           log                       5                        5            \n"
-        "───────────────────────────────────────────────────────────────────────────────────────────────────────────"
-        "─────────────\n"
-    )
-    assert out.getvalue() == expected
+        EvaluationLoop._print_results(*inputs)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert out.getvalue() == expected.lstrip()
