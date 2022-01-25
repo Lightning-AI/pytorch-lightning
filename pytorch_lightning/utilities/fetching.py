@@ -203,13 +203,11 @@ class AbstractDataFetcher(ABC):
 
 
 class DataFetcher(AbstractDataFetcher):
-
-    """This class is used to control batch fetching flow. By default, the ``fetching_function`` will pre-fetch a
-    batch in advance to detect the end of the iteration.
+    """This class is used to control batch fetching flow.
 
     Args:
-        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
-            at least 1 batch for tracking the latest batch.
+        prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessasry to properly track
+            whether a batch is the last one (available with :attr:`self.done`).
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
