@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import shutil
 from collections import OrderedDict
 from typing import Any, Iterable, List, Sequence, Union
@@ -349,17 +350,17 @@ class EvaluationLoop(DataLoaderLoop):
                 row_format = "{:^{max_length}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                print("─" * term_size)
-                print(row_format.format(*table_headers, max_length=max_length).rstrip())
-                print("─" * term_size)
+                bar = "─" * term_size
+                table = [bar, row_format.format(*table_headers, max_length=max_length).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:
                             row_metric = metric[:half_term_size]
                             metric = metric[half_term_size:]
-                            print(row_format.format(row_metric, *row, max_length=max_length).rstrip())
-                        print(row_format.format(metric, " ", max_length=max_length).rstrip())
+                            table.append(row_format.format(row_metric, *row, max_length=max_length).rstrip())
+                        table.append(row_format.format(metric, " ", max_length=max_length).rstrip())
                     else:
-                        print(row_format.format(metric, *row, max_length=max_length).rstrip())
-                print("─" * term_size)
+                        table.append(row_format.format(metric, *row, max_length=max_length).rstrip())
+                table.append(bar)
+                print(os.linesep.join(table))
