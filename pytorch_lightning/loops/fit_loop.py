@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional
+import os
+from functools import partial
+from typing import Optional, Type
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
@@ -21,9 +25,16 @@ from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +66,7 @@ class FitLoop(Loop[None]):
 
         self._is_fresh_start_epoch: bool = True
         self._outputs: _EPOCH_OUTPUTS_TYPE = []
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def current_epoch(self) -> int:
@@ -195,8 +207,12 @@ class FitLoop(Loop[None]):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        data_fetcher_cls = _select_data_fetcher(self.trainer)
+        self._data_fetcher = data_fetcher_cls()
+
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
+
         self.trainer._call_callback_hooks("on_train_start")
         self.trainer._call_lightning_module_hook("on_train_start")
         self.trainer._call_strategy_hook("on_train_start")
@@ -244,10 +260,11 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
-        data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader, 0)
-
+        self._data_fetcher.setup(
+            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
+        )
         with self.trainer.profiler.profile("run_training_epoch"):
-            self._outputs = self.epoch_loop.run(data_fetcher)
+            self._outputs = self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
         # inform logger the batch loop has finished
@@ -318,8 +335,26 @@ class FitLoop(Loop[None]):
         self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         self.epoch_loop.teardown()
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
+
+
+def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    training_step_fx = getattr(trainer.lightning_module, "training_step")
+    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

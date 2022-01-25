@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, List, Sequence, Union
+from functools import partial
+from typing import Any, List, Optional, Sequence, Union
 
 import torch
 from deprecate.utils import void
@@ -22,6 +23,7 @@ from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 
@@ -38,6 +40,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[int] = []
         self._has_run: bool = False
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -99,6 +102,8 @@ class EvaluationLoop(DataLoaderLoop):
         hooks."""
         void(*args, **kwargs)
 
+        self._data_fetcher = DataFetcher()
+
         # hook
         self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
@@ -111,15 +116,16 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
-        self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
-            dataloader, dataloader_idx=dataloader_idx
+        self._data_fetcher.setup(
+            dataloader,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
         kwargs = OrderedDict()
         if self.num_dataloaders > 1:
             kwargs["dataloader_idx"] = dataloader_idx
-        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, kwargs)
+        dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
@@ -169,6 +175,9 @@ class EvaluationLoop(DataLoaderLoop):
         return logged_outputs
 
     def teardown(self) -> None:
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         self._results.cpu()
         self.epoch_loop.teardown()
 
