@@ -39,27 +39,27 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         self._bagua_module_name = pl_module._get_name() + str(id(pl_module))
 
 
-_bagua_reduce_ops: Dict[ReduceOp, BaguaReduceOp] = {}
+if _BAGUA_AVAILABLE:
+    _bagua_reduce_ops = {
+        ReduceOp.SUM: BaguaReduceOp.SUM,
+        ReduceOp.PRODUCT: BaguaReduceOp.PRODUCT,
+        ReduceOp.MIN: BaguaReduceOp.MIN,
+        ReduceOp.MAX: BaguaReduceOp.MAX,
+        ReduceOp.BAND: BaguaReduceOp.BAND,
+        ReduceOp.BOR: BaguaReduceOp.BOR,
+        ReduceOp.BXOR: BaguaReduceOp.BXOR,
+        "avg": BaguaReduceOp.AVG,
+        "mean": BaguaReduceOp.AVG,
+        "sum": BaguaReduceOp.SUM,
+    }
+else:
+    _bagua_reduce_ops = {}
 
 
-def _from_torch_reduce_op(op: ReduceOp) -> Optional[BaguaReduceOp]:
-    """Convert a `torch.distributed.ReduceOp` to its equivalent `bagua.torch_api.ReduceOp`."""
+def _from_reduce_op(reduce_op: Union[ReduceOp, str]) -> Optional[BaguaReduceOp]:
+    """Convert a reduce op to its equivalent `bagua.torch_api.ReduceOp`."""
     global _bagua_reduce_ops
-
-    if len(_bagua_reduce_ops) == 0:
-        _bagua_reduce_ops.update(
-            {
-                ReduceOp.SUM: BaguaReduceOp.SUM,
-                ReduceOp.PRODUCT: BaguaReduceOp.PRODUCT,
-                ReduceOp.MIN: BaguaReduceOp.MIN,
-                ReduceOp.MAX: BaguaReduceOp.MAX,
-                ReduceOp.BAND: BaguaReduceOp.BAND,
-                ReduceOp.BOR: BaguaReduceOp.BOR,
-                ReduceOp.BXOR: BaguaReduceOp.BXOR,
-            }
-        )
-
-    return _bagua_reduce_ops.get(op, None)
+    return _bagua_reduce_ops.get(reduce_op, None)
 
 
 class BaguaStrategy(DDPStrategy):
@@ -68,7 +68,7 @@ class BaguaStrategy(DDPStrategy):
     def __init__(
         self,
         algorithm: str = "gradient_allreduce",
-        do_flatten: bool = True,
+        flatten: bool = True,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
@@ -83,9 +83,11 @@ class BaguaStrategy(DDPStrategy):
             algorithm: Distributed algorithm used to do the actual communication and update. Built-in algorithms
                 include "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and
                 "async".
-            do_flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
+            flatten: Whether to flatten the Bagua communication buckets. The flatten operation will reset data
                 pointer of bucket tensors so that they can use faster code paths.
-            bagua_kwargs: Additional keyword arguments that will be passed to initialize the Bagua algorithm.
+            bagua_kwargs: Additional keyword arguments that will be passed to initialize the Bagua algorithm. More
+                details on keyword arguments accepted for each algorithm can be found in the
+                `documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
         """
         if not _BAGUA_AVAILABLE:
             raise MisconfigurationException(
@@ -101,7 +103,7 @@ class BaguaStrategy(DDPStrategy):
         )
 
         self._bagua_algorithm = algorithm
-        self._bagua_do_flatten = do_flatten
+        self._bagua_flatten = flatten
         self._bagua_kwargs = bagua_kwargs
 
     @property
@@ -156,6 +158,8 @@ class BaguaStrategy(DDPStrategy):
         if not has_qadam_optimizer or len(self.optimizers) > 1 or len(self.lr_schedulers) > 1:
             raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
 
+        self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
+
     def configure_ddp(self) -> None:
         model = LightningBaguaModule(self.model)  # type: ignore[arg-type]
         self._model = self._setup_model(model)
@@ -169,14 +173,13 @@ class BaguaStrategy(DDPStrategy):
 
         if self._bagua_algorithm == "qadam":
             self._check_qadam_optimizer()
-            self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
 
         algorithm = Algorithm.init(self._bagua_algorithm, **self._bagua_kwargs)
         return BaguaDistributedDataParallel(
             module=model,
             optimizers=self.optimizers,
             algorithm=algorithm,
-            gradient_as_bucket_view=self._bagua_do_flatten,
+            gradient_as_bucket_view=self._bagua_flatten,
         )
 
     @classmethod
@@ -187,6 +190,9 @@ class BaguaStrategy(DDPStrategy):
         # abort the background communication for async algorithm
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
+
+        if isinstance(self.model, BaguaDistributedDataParallel):
+            self.model = self.lightning_module
 
         if self.root_device.type == "cuda":
             # GPU teardown
@@ -223,15 +229,8 @@ class BaguaStrategy(DDPStrategy):
 
         if reduce_op is None:
             op = BaguaReduceOp.AVG
-        elif isinstance(reduce_op, str):
-            if reduce_op.lower() in ("avg", "mean"):
-                op = BaguaReduceOp.AVG
-            elif reduce_op.lower() == "sum":
-                op = BaguaReduceOp.SUM
-            else:
-                raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
-        elif isinstance(reduce_op, ReduceOp):
-            op = _from_torch_reduce_op(reduce_op)
+        else:
+            op = _from_reduce_op(reduce_op)
             if op is None:
                 raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
 
