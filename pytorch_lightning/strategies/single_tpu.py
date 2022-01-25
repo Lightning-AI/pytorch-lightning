@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
@@ -27,6 +27,7 @@ if _TPU_AVAILABLE:
 
 class SingleTPUStrategy(SingleDeviceStrategy):
     """Strategy for training on a single TPU device."""
+
     distributed_backend = "single_tpu"
 
     def __init__(

@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.types import _DEVICE
 
 class SingleDeviceStrategy(Strategy):
     """Strategy that handles communication on a single device."""
+
     distributed_backend = "single_device"
 
     def __init__(
@@ -81,7 +82,7 @@ class SingleDeviceStrategy(Strategy):
         return obj
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: dict) -> None:
         strategy_registry.register(
             cls.distributed_backend,
             cls,
