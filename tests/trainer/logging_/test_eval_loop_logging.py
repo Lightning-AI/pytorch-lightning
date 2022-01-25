@@ -844,12 +844,85 @@ expected3 = """
 @pytest.mark.parametrize(
     ["inputs", "expected"], [(inputs0, expected0), (inputs1, expected1), (inputs2, expected2), (inputs3, expected3)]
 )
-def test_print_results(monkeypatch, inputs, expected):
+def test_native_print_results(monkeypatch, inputs, expected):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
     out = StringIO()
     with redirect_stdout(out):
         EvaluationLoop._print_results(*inputs)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert out.getvalue() == expected.lstrip()
+
+
+expected0 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │                          │
+│         no_log          │                         │            6             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected1 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│          log1           │            5            │                          │
+│          log2           │            3            │                          │
+│         no_log1         │                         │            6             │
+│         no_log2         │                         │            1             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected2 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 0              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   5                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 1              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   6                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+"""
+
+expected3 = """
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃   Foobar metric   ┃   DataLoader 0    ┃   DataLoader 1    ┃   DataLoader 2   ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        log        │         5         │         5         │        5         │
+└───────────────────┴───────────────────┴───────────────────┴──────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Foobar metric      ┃      DataLoader 3       ┃       DataLoader 4       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │            5             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"], [(inputs0, expected0), (inputs1, expected1), (inputs2, expected2), (inputs3, expected3)]
+)
+@RunIf(rich=True)
+def test_rich_print_results(inputs, expected):
+    from rich.console import Console
+    from rich.table import Table
+
+    with mock.patch("rich.console.Console.print") as print_mock:
+        EvaluationLoop._print_results(*inputs)
+
+    out = StringIO()
+    for call_ in print_mock.call_args_list:
+        table = call_.args[0]
+        assert isinstance(table, Table)
+        console = Console(file=out)
+        console.print(table)
+
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue() == expected.lstrip()
