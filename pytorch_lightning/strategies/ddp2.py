@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Dict
+
+import torch
 
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection

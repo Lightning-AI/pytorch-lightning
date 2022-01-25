@@ -133,7 +133,7 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
-_GPU_AVAILABLE = torch.cuda.is_available() and torch.cuda.device_count()>0
+_GPU_AVAILABLE = torch.cuda.is_available() and torch.cuda.device_count() > 0
 
 
 # experimental feature within PyTorch Lightning.
