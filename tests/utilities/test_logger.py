@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.logger import (
 
 
 def test_convert_params():
-    """Test conversion of params to a dict"""
+    """Test conversion of params to a dict."""
 
     # Test normal dict, make sure it is unchanged
     params = {"foo": "bar", 1: 23}
@@ -57,7 +57,7 @@ def test_convert_params():
 
 
 def test_flatten_dict():
-    """Validate flatten_dict can handle nested dictionaries and argparse Namespace"""
+    """Validate flatten_dict can handle nested dictionaries and argparse Namespace."""
 
     # Test basic dict flattening with custom delimiter
     params = {"a": {"b": "c"}}
@@ -123,7 +123,7 @@ def test_sanitize_callable_params():
 
 
 def test_sanitize_params():
-    """Verify sanitize params converts various types to loggable strings"""
+    """Verify sanitize params converts various types to loggable strings."""
 
     params = {
         "float": 0.3,
