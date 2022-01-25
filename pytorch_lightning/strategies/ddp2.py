@@ -80,5 +80,5 @@ class DDP2Strategy(DDPStrategy):
         strategy_registry.register(
             cls.distributed_backend,
             cls,
-            description="Strategy",
+            description=f"{cls.__class__.__name__} Strategy",
         )

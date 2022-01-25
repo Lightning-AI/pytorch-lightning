@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
+    distributed_backend = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -211,4 +211,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
+        )
+
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description=f"{cls.__class__.__name__} Strategy",
         )
