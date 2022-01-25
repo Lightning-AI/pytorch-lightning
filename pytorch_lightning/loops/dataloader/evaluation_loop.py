@@ -339,28 +339,25 @@ class EvaluationLoop(DataLoaderLoop):
                 columns[0].style = "cyan"
 
                 table = Table(*columns)
-
                 for metric, row in zip(metrics, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
-
                 console.print(table)
-
             else:
-                row_format = "{:^{max_length}}" * len(table_headers)
+                row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
                 bar = "─" * term_size
-                table = [bar, row_format.format(*table_headers, max_length=max_length).rstrip(), bar]
+                table = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:
                             row_metric = metric[:half_term_size]
                             metric = metric[half_term_size:]
-                            table.append(row_format.format(row_metric, *row, max_length=max_length).rstrip())
-                        table.append(row_format.format(metric, " ", max_length=max_length).rstrip())
+                            table.append(row_format.format(row_metric, *row).rstrip())
+                        table.append(row_format.format(metric, " ").rstrip())
                     else:
-                        table.append(row_format.format(metric, *row, max_length=max_length).rstrip())
+                        table.append(row_format.format(metric, *row).rstrip())
                 table.append(bar)
                 print(os.linesep.join(table))
