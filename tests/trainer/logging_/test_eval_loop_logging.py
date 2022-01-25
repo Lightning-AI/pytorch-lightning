@@ -811,7 +811,7 @@ a really really really really really really really really re                    
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
-inputs3 = ([{"log": torch.tensor(5)}] * 5, "foobar")
+inputs3 = ([{f"log/dataloader_idx_{i}": torch.tensor(5)} for i in range(5)], "foobar")
 expected3 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
       Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2
