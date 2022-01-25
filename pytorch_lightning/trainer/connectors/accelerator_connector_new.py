@@ -109,19 +109,19 @@ class AcceleratorConnector:
         gpu_ids,
     ):
         """
-            A. accelerator could be:
+            A. accelerator flag could be:
                 1. strategy class (deprecated in 1.5 will be removed in 1.7)
                 2. strategy str (deprecated in 1.5 will be removed in 1.7)
                 3. accelerator class
                 4. accelerator str
                 5. accelerator auto
 
-            B. strategy could be :
+            B. strategy flag could be :
                 1. strategy class
                 2. strategy str registered with strategyRegister
                 3. strategy str in _strategy_type enum which listed in each strategy as backend (registed these too, and _strategy_type could be deprecated)
 
-            C. plugins could be:
+            C. plugins flag could be:
                 1. List of str, which could contains:
                     i. strategy str
                     ii. precision str (Not supported in the old accelerator_connector version)
@@ -141,6 +141,7 @@ class AcceleratorConnector:
 
         """
 
+        # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
         print(self._existing_strategies_str)
@@ -154,25 +155,39 @@ class AcceleratorConnector:
         self._config_check_and_set_final_flags(strategy, accelerator, precision, plugins, amp_type, amp_level)
         self._device_config_check_and_set_final_flags(devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores)
 
-        # handle auto and choose flag when user hasn't set it up.
+
+        # --Accelerator-------------------------------------------------------------
+        # handle `auto` and `None`
         if self._accelerator_flag == 'auto' or self._accelerator_flag is None:
             self._choose_accelerator()
-        else:
-            # [RFC] move to XAccelerator class init?
-            self._check_device_availibility()
-
-        # Accelerator initialization
-        # TODO devices logic handling still in process, not ready for reviews
+        # else:
+        #     # [RFC] move to XAccelerator class init?
+        #     self._check_device_availibility()
         self._set_parallel_devices_and_init_accelerator()
 
-        # handle strategy flag is not set, choose for user
+
+        # --Cluster_environment-----------------------------------------------------
+        self._choose_and_init_cluster_environment()
+
+
+        # --Strategy Part 1 : choose strategy ---------------------------------------
         if self._strategy_flag is None:
             self._choose_strategy()
+        # Reset strategy even user has specificed one
+        self._strategy_fallbacks()
 
-        self._choose_and_init_cluster_environment()
+
+        # --Precision----------------------------------------------------------------
         self._check_capatibility_and_init_precision()
+
+
+        # --Strategy Part 2 : init Strategy and set Strategy properties -------------
         self._init_strategy()
 
+
+        # set properties not used in accelerator_connector. TODO move out of this file
+        # self.gpus = gpus or devices
+        self.replace_sampler_ddp = replace_sampler_ddp
 
     def _config_check_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level):
         """
@@ -206,6 +221,11 @@ class AcceleratorConnector:
                 f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
                 f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
             )
+            self._strategy_flag = accelerator
+        elif accelerator == "ddp_cpu":
+            rank_zero_warn(
+                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
+                )
             self._strategy_flag = accelerator
 
 
@@ -243,6 +263,7 @@ class AcceleratorConnector:
                 # if self._precision_flag:
                 #     raise MisconfigurationException("precision set through both strategy class and flags, choose one place to set")
                 # else:
+                print("here")
                 self._precision_flag = self._strategy_flag.precision_plugin
             if self._strategy_flag.checkpoint_io:
                 if self.checkpoint_io:
@@ -273,9 +294,11 @@ class AcceleratorConnector:
         else :
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
 
+        self._device_flag = devices
         ##### to be deleted v1.7
-        deprecated_devices_specific_nums = num_processes or gpus or ipus or tpu_cores
-        self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(devices, deprecated_devices_specific_nums, num_processes, gpus, ipus, tpu_cores)
+        deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
+        if deprecated_devices_specific_flag:
+            self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores)
         ##### deleted end
         if devices == "auto":
             if self._accelerator_flag is None:
@@ -283,19 +306,16 @@ class AcceleratorConnector:
                     f"You passed `devices={devices}` but haven't specified"
                     " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
                 )
-        if not self._device_flag:
-            self._device_flag = devices
 
 
-
-    def _mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(self, devices, deprecated_devices_specific_nums, num_processes, gpus, ipus, tpu_cores):
+    def _mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(self, devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores):
         ##### to be deleted v1.7vbg
         # set devices base on num_processes, gpus, ipus, tpu_cores
         if devices:
-            rank_zero_warn(f"will be ignored, instand the device specific number {deprecated_devices_specific_nums} will be used")
+            rank_zero_warn(f"will be ignored, instand the device specific number {deprecated_devices_specific_flag} will be used")
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(True) > 1:
             rank_zero_warn(f"more than one device specifc flag has been set")
-        self._device_flag = deprecated_devices_specific_nums
+        self._device_flag = deprecated_devices_specific_flag
 
         if not self._accelerator_flag:
         # set accelerator type base on num_processes, gpus, ipus, tpu_cores
@@ -319,6 +339,8 @@ class AcceleratorConnector:
                 self._accelerator_flag = "gpu"
             else:
                 self._accelerator_flag = "cpu"
+                if self._device_flag == "auto":
+                    self._device_flag = 1
         # [RFC] this is current logic, if accelerator not set, default cpu?
         else:
             self._accelerator_flag = "cpu"
@@ -335,7 +357,7 @@ class AcceleratorConnector:
         self._parallel_devices = []
 
         if isinstance(self._accelerator_flag, Accelerator):
-            self.accelerator = self._accelerator_flag()
+            self.accelerator = self._accelerator_flag
         elif self._accelerator_flag == "tpu":
             self.accelerator = TPUAccelerator()
             if self._device_flag == "auto" or not self._device_flag:
@@ -354,8 +376,12 @@ class AcceleratorConnector:
             self.accelerator = GPUAccelerator()
             if self._device_flag == "auto" or not self._device_flag:
                 self._device_flag =  GPUAccelerator.auto_device_count()
-            if isinstance(self._device_flag, int):
+            if isinstance(self._device_flag, int) or isinstance(self._device_flag, str):
+                self._device_flag = int(self._device_flag)
                 self._parallel_devices = [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)]
+            elif isinstance(self._device_flag, list):
+                self._parallel_devices = [torch.device("cuda", i) for i in self._device_flag]
+
 
         elif self._accelerator_flag == "cpu":
             self.accelerator = CPUAccelerator()
@@ -363,6 +389,8 @@ class AcceleratorConnector:
                 self._device_flag =  CPUAccelerator.auto_device_count()
             if isinstance(self._device_flag, int):
                 self._parallel_devices = [torch.device("cpu")] * self._device_flag
+
+        self._gpus = self._device_flag
 
 
     def _choose_and_init_cluster_environment(self):
@@ -383,8 +411,10 @@ class AcceleratorConnector:
             used by choosing cluster enviroment
         """
         if (
-            (not self._strategy_flag=="ddp" and not self._strategy_flag=="ddp2")
-            or not SLURMEnvironment.detect()
+            #(not self._strategy_flag=="ddp" and not self._strategy_flag=="ddp2")
+            # the above logic moved to _select_strategy(), only check _is_slurm_managing_tasks()
+            # when strategy flag is ddp or ddp2
+            not SLURMEnvironment.detect()
             or SLURMEnvironment.job_name() == "bash"  # in interactive mode we don't manage tasks
         ):
             return False
@@ -398,39 +428,70 @@ class AcceleratorConnector:
             self._strategy_flag = HorovodStrategy()
 
         if self._accelerator_flag == "ipu":
-            self._strategy_flag = IPUStrategy()
+            self._strategy_flag = "ipu"
         elif self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices)>1:
-                self._strategy_flag = TPUSpawnStrategy()
+                self._strategy_flag = "tpu_spawn"
             else:
                 self._srategy_flag = SingleTPUStrategy()
 
         # [RFC] in existing logic SingleDevice strategy choice diverge between cpu and gpu, should we merge?
-        elif self._accelerator_flag == "gpu":
-            if self._num_nodes_flag > 1:
-                self._strategy_flag = DDPStrategy()
-            elif len(self._parallel_devices) == 1:
-                self._strategy_flag = DDPStrategy()
-            elif len(self._parallel_devices) > 1:
-                self._strategy_flag = DDPSpawnStrategy()
-            else:
-                self._strategy_flag = DDPStrategy()
+        # elif self._accelerator_flag == "gpu":
+        #     if self._num_nodes_flag > 1:
+        #         self._strategy_flag = "ddp"
+        #     elif TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks():
+        #         self._strategy_flag = "ddp"
+        #     elif len(self._parallel_devices) == 1:
+        #         self._strategy_flag = "ddp"
+        #     elif len(self._parallel_devices) > 1:
+        #         self._strategy_flag = "ddp_spawn"
+        #     else:
+        #         self._strategy_flag = "ddp"
         else:
             if self._num_nodes_flag > 1:
-                self._strategy_flag = DDPStrategy()
+                self._strategy_flag = "ddp"
+            elif TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks():
+                self._strategy_flag = "ddp"
             elif len(self._parallel_devices) <= 1:
                 device = torch.device("cuda") if self._accelerator_flag == "gpu" else "cpu"
                 self._strategy_flag = SingleDeviceStrategy(device = device)
             elif len(self._parallel_devices) > 1:
-                self._strategy_flag = DDPSpawnStrategy()
+                self._strategy_flag = "ddp_spawn"
             else:
-                self._strategy_flag = DDPStrategy()
+                self._strategy_flag = "ddp"
+
+    def _strategy_fallbacks(self):
+        _strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
+        if _strategy_flag == "ddp_cpu":
+            if _TPU_AVAILABLE:
+                raise MisconfigurationException(
+                    "`accelerator='ddp_cpu'` is not supported on TPU machines. "
+                    "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
+                )
+            if self._device_flag ==1 and self._num_nodes_flag > 1:
+                _strategy_flag = "ddp"
+            else:
+                _strategy_flag = "ddp_spawn"
+            if self._accelerator_flag == "gpu":
+                rank_zero_warn(
+                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
+                )
+            # if self._accelerator_flag == "cpu":
+            #     self._parallel_devices = os.cpu_count()
+
+        if "ddp_spawn" in _strategy_flag and (TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()):
+            _strategy_flag = "ddp"
+
+        if _strategy_flag:
+            self._strategy_flag = _strategy_flag
 
 
     def _check_capatibility_and_init_precision(self):
+        print(self._precision_flag)
         self._precision_misconfig_check()
         if isinstance(self._precision_flag, PrecisionPlugin):
             self.precision_plugin = self._precision_flag
+            return
 
         if self._accelerator_flag =="ipu":
             self.precision_plugin = IPUPrecisionPlugin(self._precision_flag)
@@ -485,6 +546,7 @@ class AcceleratorConnector:
         self.precision_plugin = PrecisionPlugin()
 
     def _precision_misconfig_check(self):
+
         if self._accelerator_flag == "ipu":
             if self._precision_flag not in (16, 32):
                 raise MisconfigurationException(
@@ -516,6 +578,7 @@ class AcceleratorConnector:
 
 
     def _init_strategy(self):
+        print(self._strategy_flag)
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:
@@ -526,44 +589,92 @@ class AcceleratorConnector:
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         self.strategy.cluster_environment = self.cluster_environment
+        if hasattr(self.strategy, "parallel_devices"):
+            self.strategy.parallel_devices = self._parallel_devices
 
 
 
 
 
     ##############################################################################
-    # the following logic should be deprecated/removed
+    # the following logic should be deprecated/removed, and these information should be
+    # retrive from strategies and accelerators
     # Added here to keep backward compabilities
 
-    # @property
-    # def parallel_devices(self) -> List[Union[torch.device, int]]:
-    #     return self._parallel_device
-
-    # @property
-    # def replace_sampler_ddp():
-    #     return self.replace_sampler_ddp
+    @property
+    def parallel_devices(self) -> List[Union[torch.device, int]]:
+        return self._parallel_devices
 
     # def _distrib_type():
+    @property
+    def device_type(self):
+        if isinstance(self.accelerator, CPUAccelerator):
+            return "cpu"
+        if isinstance(self.accelerator, GPUAccelerator):
+            return "gpu"
+        if isinstance(self.accelerator, TPUAccelerator):
+            return "tpu"
+        if isinstance(self.accelerator, IPUAccelerator):
+            return "ipu"
 
-    # def _device_type():
+    @property
+    def num_nodes(self):
+        return self._num_nodes
 
-    # def num_nodes():
+    @property
+    def num_processes(self):
+        return self.devices
 
-    # def num_processes():
+    @property
+    def root_gpu(self) -> Optional[int]:
+        return (
+            self.strategy.root_device.index
+            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
+            else None
+        )
 
-    # def root_gpu():
-
+    @property
     def devices(self):
         return len(self._parallel_devices)
 
+    @property
+    def tpu_cores(self) -> int:
+        return self.devices
+
+    @property
+    def ipus(self) -> int:
+        return self.devices
+
+    @property
+    def num_gpus(self) -> int:
+        return self.devices
+
     # def parallel_device_ids():
+    @property
+    def gpus(self):
+        return self._gpus if isinstance(self.accelerator, GPUAccelerator) else None
 
-    # def gpus():
 
-    # def is_distributed():
+    def is_distributed(self):
+        # Used for custom plugins.
+        # Custom plugins should implement is_distributed property.
+        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
+            return self.strategy.is_distributed
+        distributed_strategy = (DDP2Strategy, DDPStrategy, DDPSpawnShardedStrategy, DDPShardedStrategy, DDPFullyShardedStrategy, DDPSpawnStrategy, DeepSpeedStrategy, TPUSpawnStrategy, HorovodStrategy)
+        is_distributed = isinstance(self.strategy, distributed_strategy)
+        if isinstance(self.accelerator, TPUAccelerator):
+            is_distributed |= self.strategy.is_distributed
+        return is_distributed
 
     def has_ipu(self):
-        return self._accelerator_flag == "ipu"
+        return isinstance(self.accelerator, IPUAccelerator)
 
     def has_tpu(self):
-        return self._accelerator_flag == "tpu"
+        return isinstance(self.accelerator, TPUAccelerator)
+
+    def use_dp(self):
+        return isinstance(self.strategy, DataParallelStrategy)
+
+    @property
+    def _strategy_type(self) -> _StrategyType:
+        return self.strategy.distributed_backend

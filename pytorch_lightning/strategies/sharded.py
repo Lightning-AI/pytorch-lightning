@@ -37,7 +37,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED
+    distributed_backend = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
     def configure_ddp(self) -> None:
@@ -134,4 +134,9 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description="DDP Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description=f"{cls.__class__.__name__} Strategy",
         )

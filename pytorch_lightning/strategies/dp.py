@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 import torch
 from torch.nn import DataParallel, Module
@@ -31,7 +31,7 @@ class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
-    distributed_backend = _StrategyType.DP
+    distributed_backend = "dp"
 
     def __init__(
         self,
@@ -148,6 +148,15 @@ class DataParallelStrategy(ParallelStrategy):
             output = self.reduce(output)
 
         return output
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description=f"{cls.__class__.__name__} Strategy",
+        )
+
 
     def teardown(self) -> None:
         super().teardown()

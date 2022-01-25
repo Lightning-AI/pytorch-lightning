@@ -87,6 +87,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def num_nodes(self) -> int:
         return self._num_nodes
 
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
     @num_nodes.setter
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks

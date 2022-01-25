@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict
 
 import torch
 
@@ -26,10 +26,11 @@ from pytorch_lightning.utilities.types import _DEVICE
 
 class SingleDeviceStrategy(Strategy):
     """Strategy that handles communication on a single device."""
+    distributed_backend = "single_device"
 
     def __init__(
         self,
-        device: _DEVICE,
+        device: _DEVICE = "cpu",
         accelerator: pl.accelerators.accelerator.Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
         precision_plugin: PrecisionPlugin | None = None,
@@ -78,6 +79,14 @@ class SingleDeviceStrategy(Strategy):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description=f"{cls.__class__.__name__} Strategy",
+        )
 
     def teardown(self) -> None:
         super().teardown()

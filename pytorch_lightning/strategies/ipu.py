@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union, Dict
 
 import torch
 from torch.utils.data import DataLoader
@@ -61,6 +61,8 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
+
+    distributed_backend = "ipu"
 
     def __init__(
         self,
@@ -360,3 +362,11 @@ class IPUStrategy(ParallelStrategy):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.distributed_backend,
+            cls,
+            description=f"{cls.__class__.__name__} Strategy",
+        )
