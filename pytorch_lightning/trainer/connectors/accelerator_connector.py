@@ -135,7 +135,7 @@ class AcceleratorConnector:
         # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
-        print(self._existing_strategies_str)
+        # print(self._existing_strategies_str)
         self._existing_accelerator_type = ["tpu", "ipu", "gpu", "cpu"]
         self._supported_precision = PrecisionType.supported_types()
 
@@ -264,7 +264,6 @@ class AcceleratorConnector:
         if plugins:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
             for plugin in plugins:
-                print(plugin)
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._existing_strategies_str:
                     self._strategy_flag = plugin
                     rank_zero_deprecation(
@@ -321,7 +320,6 @@ class AcceleratorConnector:
 
         amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self._amp_type_flag = AMPType.from_str(amp_type)
-        print(f"a:{amp_type}, b{self._amp_type_flag}")
 
         if amp_level is not None and self._amp_type_flag != AMPType.APEX:
             raise MisconfigurationException(
@@ -535,14 +533,12 @@ class AcceleratorConnector:
             self._strategy_flag = _strategy_flag
 
     def _init_strategy(self):
-        print(self._strategy_flag)
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:
             self.strategy = self._strategy_flag
 
     def _check_capatibility_and_init_precision(self):
-        print(self._precision_flag)
         self._precision_misconfig_check()
         if isinstance(self._precision_flag, PrecisionPlugin):
             self.precision_plugin = self._precision_flag
