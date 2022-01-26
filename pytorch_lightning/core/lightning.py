@@ -458,7 +458,7 @@ class LightningModule(
                 The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.
-            on_step: if ``True`` logs at this step. 
+            on_step: if ``True`` logs at this step.
                 ``None`` auto-logs for training_step but not validation/test_step.
                 The default value is determined by the hook.
                 See :ref:`extensions/logging:Automatic Logging` for details.
