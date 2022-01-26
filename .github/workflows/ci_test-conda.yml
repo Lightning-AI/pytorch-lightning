@@ -46,6 +46,10 @@ jobs:
         coverage run --source pytorch_lightning -m pytest -x --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
+    - name: Setup tmate
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
