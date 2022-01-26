@@ -841,7 +841,13 @@ expected3 = """
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"], [(inputs0, expected0), (inputs1, expected1), (inputs2, expected2), (inputs3, expected3)]
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+    ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
@@ -905,7 +911,13 @@ expected3 = """
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"], [(inputs0, expected0), (inputs1, expected1), (inputs2, expected2), (inputs3, expected3)]
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+    ],
 )
 @RunIf(rich=True)
 def test_rich_print_results(inputs, expected):
