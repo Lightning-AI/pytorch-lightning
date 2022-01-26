@@ -154,6 +154,8 @@ class CheckpointConnector:
         datamodule = self.trainer.datamodule
         if datamodule is not None:
             datamodule.on_load_checkpoint(self._loaded_checkpoint)
+            if datamodule.__class__.__name__ in self._loaded_checkpoint:
+                datamodule.load_state_dict(self._loaded_checkpoint[datamodule.__class__.__name__])
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -385,10 +387,15 @@ class CheckpointConnector:
             else:
                 checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
-        # give the model a chance to dump a few things
+        # dump stateful datamodule
+        datamodule = self.trainer.datamodule
+        if datamodule is not None:
+            checkpoint[datamodule.__class__.__name__] = datamodule.state_dict()
+
+        # on_save_checkpoint hooks
         model.on_save_checkpoint(checkpoint)
-        if self.trainer.datamodule is not None:
-            self.trainer.datamodule.on_save_checkpoint(checkpoint)
+        if datamodule is not None:
+            datamodule.on_save_checkpoint(checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment
