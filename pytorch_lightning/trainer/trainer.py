@@ -690,7 +690,7 @@ class Trainer(
             self._on_exception()
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
-            # reset bookkeeping
+            # teardown might access the stage so we reset it after
             self.state.stage = None
             raise
 
