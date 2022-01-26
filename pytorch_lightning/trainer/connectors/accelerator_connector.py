@@ -14,8 +14,7 @@
 
 import logging
 import os
-from typing import List, Optional, Sequence, Union
-from weakref import proxy
+from typing import List, Optional, Union
 
 import torch
 
@@ -57,31 +56,23 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
-    IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
     TPUSpawnStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, AMPType, device_parser
+from pytorch_lightning.utilities import (
+    _StrategyType,
+    AMPType,
+    device_parser,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import (
-    DeviceNotAvailibleException,
-    ImpactableConfigurationException,
-    MisconfigurationException,
-)
-from pytorch_lightning.utilities.imports import (
-    _GPU_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_8,
-    _TPU_AVAILABLE,
-)
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _GPU_AVAILABLE, _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -118,7 +109,8 @@ class AcceleratorConnector:
             B. strategy flag could be :
                 1. strategy class
                 2. strategy str registered with strategyRegister
-                3. strategy str in _strategy_type enum which listed in each strategy as backend (registed these too, and _strategy_type could be deprecated)
+                3. strategy str in _strategy_type enum which listed in each strategy as
+                   backend (registed these too, and _strategy_type could be deprecated)
 
             C. plugins flag could be:
                 1. List of str, which could contains:
@@ -168,7 +160,7 @@ class AcceleratorConnector:
         # --Cluster_environment-----------------------------------------------------
         self._choose_and_init_cluster_environment()
 
-        # --Strategy Part 1 : choose strategy ---------------------------------------
+        # --Strategy Part 1 : choose strategy and init strategy ---------------------------------------
         if self._strategy_flag is None:
             self._choose_strategy()
         # Reset strategy even user has specificed one
@@ -192,7 +184,8 @@ class AcceleratorConnector:
         2. accelerator: if accelerator flag is Accelerator related flag or class, set self._acceelrator_flag;
             If accelerator is strategy related, logic handled in 1 above
         3. precision could be set by precision and plugins flag
-        4. plugins could be duplicated in strategy (handled by 1), precision (handled by 3), set checkpoint_io and cluster_environment
+        4. plugins could be duplicated in strategy (handled by 1), precision (handled by 3),
+            set checkpoint_io and cluster_environment
         """
         (
             self._strategy_flag,
@@ -256,6 +249,11 @@ class AcceleratorConnector:
             self._strategy_flag = accelerator
 
         if precision:
+            if not PrecisionType.supported_type(precision):
+                raise MisconfigurationException(
+                    f"Precision {repr(precision)} is invalid. "
+                    f"Allowed precision values: {PrecisionType.supported_types()}"
+                )
             self._precision_flag = precision
             # handle duplications and conflict
             if plugins:
@@ -285,7 +283,9 @@ class AcceleratorConnector:
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment = plugin
                 else:
-                    raise MisconfigurationException(f"Does not recognize flag {plugin}")
+                    raise MisconfigurationException(
+                        f"Found invalid type for plugin {plugin}. Expected a precision or training type plugin."
+                    )
 
         # if user pass in a strategy class which has accelerator, precision, checkpoint or cluster env set up
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
@@ -297,9 +297,11 @@ class AcceleratorConnector:
                 else:
                     self._accelerator_flag = self._strategy_flag.accelerator
             if self._strategy_flag.precision_plugin:
-                # precision has default value 32, we can not tell whether user set it or not [RFC] remove default from trainer?
+                # precision has default value 32, we can not tell whether user set it or not
+                # [RFC] remove default from trainer?
                 # if self._precision_flag:
-                #     raise MisconfigurationException("precision set through both strategy class and flags, choose one place to set")
+                #     raise MisconfigurationException("precision set through both strategy class and flags,
+                #     choose one place to set")
                 # else:
                 self._precision_flag = self._strategy_flag.precision_plugin
             if self._strategy_flag.checkpoint_io:
@@ -318,13 +320,13 @@ class AcceleratorConnector:
                     self._cluster_environment = getattr(self._strategy_flag, "cluster_environment")
 
         amp_type = amp_type.lower() if isinstance(amp_type, str) else None
-        self._amp_type_flag = AMPType.from_str(amp_type) if amp_type is not None else None
+        self._amp_type_flag = AMPType.from_str(amp_type)
+        print(f"a:{amp_type}, b{self._amp_type_flag}")
 
-        # TODO still working on these flags
-        # if amp_level is not None and self._amp_type_flag != AMPType.APEX:
-        #     raise MisconfigurationException(
-        #         f"You have asked for `amp_level={self._amp_level_flag!r}` but it's only supported with `amp_backend='apex'`."
-        #     )
+        if amp_level is not None and self._amp_type_flag != AMPType.APEX:
+            raise MisconfigurationException(
+                f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
+            )
         self._amp_level_flag = amp_level
 
     def _device_config_check_and_set_final_flags(self, devices, num_nodes, num_processes, gpus, ipus, tpu_cores):
@@ -334,13 +336,13 @@ class AcceleratorConnector:
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
 
         self._device_flag = devices
-        ##### to be deleted v1.7
+        # --- to be deleted v1.7
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag:
             self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
                 devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
             )
-        ##### deleted end
+        # --- deleted end
         if devices == "auto":
             if self._accelerator_flag is None:
                 raise MisconfigurationException(
@@ -351,16 +353,17 @@ class AcceleratorConnector:
     def _mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
         self, devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
     ):
-        ##### to be deleted v1.7vbg
+        # ---- to be deleted v1.7vbg
         # set devices base on num_processes, gpus, ipus, tpu_cores
         if devices:
             rank_zero_warn(
-                f"The flag `devices={devices}` will be ignored, instand the device specific number {deprecated_devices_specific_flag} will be used"
+                f"The flag `devices={devices}` will be ignored, "
+                f"instand the device specific number {deprecated_devices_specific_flag} will be used"
             )
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
             True
         ) > 1:
-            rank_zero_warn(f"more than one device specifc flag has been set")
+            rank_zero_warn("more than one device specifc flag has been set")
         self._device_flag = deprecated_devices_specific_flag
 
         if not self._accelerator_flag:
@@ -373,7 +376,7 @@ class AcceleratorConnector:
                 self._accelerator_flag = "tpu"
             if ipus:
                 self._accelerator_flag = "ipu"
-        #### delete end
+        # --- delete end
 
     def _choose_accelerator(self):
         if self._accelerator_flag == "auto":
@@ -391,13 +394,13 @@ class AcceleratorConnector:
         else:
             self._accelerator_flag = "cpu"
 
-    def _check_device_availibility(self):
-        for accelerator_flag, available in zip(
-            self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, _GPU_AVAILABLE, True]
-        ):
-            if self._accelerator_flag == accelerator_flag:
-                if not available:
-                    raise DeviceNotAvailibleException(f"{accelerator_flag} not avalible")
+    # def _check_device_availibility(self):
+    #     for accelerator_flag, available in zip(
+    #         self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, _GPU_AVAILABLE, True]
+    #     ):
+    #         if self._accelerator_flag == accelerator_flag:
+    #             if not available:
+    #                 raise DeviceNotAvailibleException(f"{accelerator_flag} not avalible")
 
     # TODO in progress for setting up devices
     def _set_parallel_devices_and_init_accelerator(self):
@@ -493,7 +496,12 @@ class AcceleratorConnector:
             elif TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks():
                 self._strategy_flag = "ddp"
             elif len(self._parallel_devices) <= 1:
-                device = torch.device("cuda") if self._accelerator_flag == "gpu" else "cpu"
+                # device = torch.device("cuda", 1) if self._accelerator_flag == "gpu" else "cpu"
+                device = (
+                    device_parser.determine_root_gpu_device(self._parallel_devices)
+                    if self._accelerator_flag == "gpu"
+                    else "cpu"
+                )
                 self._strategy_flag = SingleDeviceStrategy(device=device)
             elif len(self._parallel_devices) > 1:
                 self._strategy_flag = "ddp_spawn"
@@ -583,14 +591,17 @@ class AcceleratorConnector:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                    return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+                    self.precision_plugin = ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
-                    return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                return NativeMixedPrecisionPlugin(self._precision_flag, device)
+                    self.precision_plugin = FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+                self.precision_plugin = NativeMixedPrecisionPlugin(self._precision_flag, device)
 
+            if self._amp_type_flag == AMPType.APEX:
                 self._amp_level_flag = self._amp_level_flag or "O2"
                 self.precision_plugin = ApexMixedPrecisionPlugin(self._amp_level_flag)
-        self.precision_plugin = PrecisionPlugin()
+
+        if not self.precision_plugin:
+            self.precision_plugin = PrecisionPlugin()
 
     def _precision_misconfig_check(self):
 
@@ -613,10 +624,9 @@ class AcceleratorConnector:
             )
         if self._precision_flag == "bf16" and self._amp_type_flag != AMPType.NATIVE:
             raise MisconfigurationException(
-                f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but it's not supported."
-                " Try using `amp_type='native'` instead."
+                f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "
+                "it's not supported. Try using `amp_type='native'` instead."
             )
-
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == AMPType.APEX:
             if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy)):
                 raise MisconfigurationException(
@@ -676,7 +686,7 @@ class AcceleratorConnector:
 
     @property
     def num_processes(self):
-        return self.devices
+        return self.devices if self.devices is not None else 1
 
     @property
     def root_gpu(self) -> Optional[int]:
@@ -707,6 +717,7 @@ class AcceleratorConnector:
     def gpus(self):
         return self._gpus if isinstance(self.accelerator, GPUAccelerator) else None
 
+    @property
     def is_distributed(self):
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
@@ -728,12 +739,19 @@ class AcceleratorConnector:
             is_distributed |= self.strategy.is_distributed
         return is_distributed
 
+    @property
     def has_ipu(self):
         return isinstance(self.accelerator, IPUAccelerator)
 
+    @property
+    def use_ipu(self):
+        return self.has_ipu
+
+    @property
     def has_tpu(self):
         return isinstance(self.accelerator, TPUAccelerator)
 
+    @property
     def use_dp(self):
         return isinstance(self.strategy, DataParallelStrategy)
 
