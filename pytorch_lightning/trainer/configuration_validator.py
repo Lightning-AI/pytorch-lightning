@@ -325,9 +325,10 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
             " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
         )
 
+
 def _check_on_configure_sharded_model(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
                 "The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
-                )
+            )

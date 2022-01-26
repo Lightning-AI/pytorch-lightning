@@ -352,6 +352,7 @@ def test_v1_8_0_deprecated_lightning_optimizers():
     ):
         assert trainer.lightning_optimizers == {}
 
+
 def test_v1_8_0_on_configure_sharded_model(tmpdir):
     class TestCallback(Callback):
         def on_configure_sharded_model(self, trainer, model):
@@ -365,7 +366,7 @@ def test_v1_8_0_on_configure_sharded_model(tmpdir):
         fast_dev_run=True,
         enable_progress_bar=False,
         logger=False,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
         match="The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
