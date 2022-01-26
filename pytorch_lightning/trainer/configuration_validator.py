@@ -57,6 +57,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_init_start_end(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
+    # TODO: Remove this in v1.8
+    _check_on_configure_sharded_model(trainer, model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -322,3 +324,10 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
             "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
             " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
         )
+
+def _check_on_configure_sharded_model(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
+            rank_zero_deprecation(
+                "The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
+                )
