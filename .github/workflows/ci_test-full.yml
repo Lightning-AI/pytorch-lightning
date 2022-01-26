@@ -136,11 +136,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest -x pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Setup tmate
-      if: failure()
-      uses: mxschmitt/action-tmate@v3
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Examples
       run: |
