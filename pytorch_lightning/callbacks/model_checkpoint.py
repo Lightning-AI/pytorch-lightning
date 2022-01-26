@@ -643,12 +643,12 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if self.last_model_path and self.last_model_path != filepath:
             trainer.strategy.remove_checkpoint(self.last_model_path)
 
         self.last_model_path = filepath
-        trainer.save_checkpoint(filepath, self.save_weights_only)
 
     def _save_top_k_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.monitor is None or self.save_top_k == 0:
