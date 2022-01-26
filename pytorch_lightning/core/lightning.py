@@ -456,19 +456,25 @@ class LightningModule(
         Args:
             dictionary: key value pairs.
                 The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            prog_bar: if ``True`` logs to the progress base.
+            logger: if ``True`` logs to the logger.
+            on_step: if ``True`` logs at this step. 
+                ``None`` auto-logs for training_step but not validation/test_step.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics.
+                ``None`` auto-logs for val/test step but not ``training_step``.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+            enable_graph: if ``True``, will not auto-detach the graph
+            sync_dist: if ``True``, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
                 communication overhead.
-            sync_dist_group: the ddp group sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
-            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+            sync_dist_group: the ddp group to sync across.
+            add_dataloader_idx: if ``True``, appends the index of the current dataloader to
+                the name (when using multiple). If ``False``, user needs to give unique names for
+                each dataloader to not mix values.
+            batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
