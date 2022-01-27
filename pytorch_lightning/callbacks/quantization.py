@@ -241,6 +241,8 @@ class QuantizationAwareTraining(Callback):
             fake_quant.observer_enabled.copy_(observer_enabled)
 
     def _prepare_model(self, pl_module: "pl.LightningModule") -> None:
+        if self.__module_prepared:
+            return
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -278,10 +280,9 @@ class QuantizationAwareTraining(Callback):
         self._fake_quant_to_initial_state_dict = {
             fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
         }
+        self.__module_prepared = True
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        if self.__module_prepared:
-            return
         self._prepare_model(pl_module)
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
