@@ -158,33 +158,61 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
     return local_args
 
 
+def _extract_self_from_frame(frame: types.FrameType) -> Any:
+    """Extracts the first function call argument from a call stack frame
+
+    If the argument frame describes a method call, then the extracted argument
+    will be the object on which the method was called (typically called self).
+
+    Args:
+        frame: the stack frame whose argument will be extracted
+
+    Return:
+        The first argument passed into the function call described by frame, or
+        None if the call had no arguments.
+    """
+    args, _, _, local_vars = inspect.getargvalues(frame)
+    return local_vars[args[0]] if len(args) > 0 else None
+
+
 def collect_init_args(
-    frame: types.FrameType, path_args: List[Dict[str, Any]], inside: bool = False
+    frame: types.FrameType, path_args: List[Dict[str, Any]] = []
 ) -> List[Dict[str, Any]]:
-    """Recursively collects the arguments passed to the child constructors in the inheritance tree.
+    """Collects the arguments passed to the child constructors in the inheritance tree.
 
     Args:
         frame: the current stack frame
         path_args: a list of dictionaries containing the constructor args in all parent classes
-        inside: track if we are inside inheritance path, avoid terminating too soon
 
     Return:
           A list of dictionaries where each dictionary contains the arguments passed to the
           constructor at that level. The last entry corresponds to the constructor call of the
           most specific class in the hierarchy.
     """
-    _, _, _, local_vars = inspect.getargvalues(frame)
-    # frame.f_back must be of a type types.FrameType for get_init_args/collect_init_args due to mypy
+
+    # find innermost constructor call
+    while isinstance(frame, types.FrameType) and frame.f_code.co_name != '__init__':
+        frame = frame.f_back
+
+    # frame.f_back can be None, if there's no stretch of constructor calls on
+    # the call stack. In that case, just return what we're given (typically an
+    # empty list)
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    if "__class__" in local_vars:
+    # extract self object from innermost constructor call.
+    obj = _extract_self_from_frame(frame)
+    assert obj is not None
+
+    # collect arguments from the stretch of constructor calls on the call stack
+    # that construct obj
+    while isinstance(frame.f_back, types.FrameType) and \
+          frame.f_code.co_name == '__init__' and \
+          _extract_self_from_frame(frame) is obj:
         local_args = get_init_args(frame)
-        # recursive update
         path_args.append(local_args)
-        return collect_init_args(frame.f_back, path_args, inside=True)
-    if not inside:
-        return collect_init_args(frame.f_back, path_args, inside)
+        frame = frame.f_back
+
     return path_args
 
 
