@@ -56,6 +56,7 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
@@ -72,7 +73,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _GPU_AVAILABLE, _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ class AcceleratorConnector:
             C. When multiple flag set to the same thing? (ignore? not handled for now)
 
         """
-
+        torch.backends.cudnn.benchmark = benchmark
         # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
@@ -164,7 +165,7 @@ class AcceleratorConnector:
         if self._strategy_flag is None:
             self._choose_strategy()
         # Reset strategy even user has specificed one
-        self._strategy_fallbacks()
+        self._strategy_check_and_fallbacks()
         self._init_strategy()
 
         # --Precision----------------------------------------------------------------
@@ -196,6 +197,9 @@ class AcceleratorConnector:
             self._amp_level_flag,
             self._amp_type_flag,
         ) = (None, None, None, None, None, amp_type, amp_level)
+        if plugins:
+            plugins = [plugins] if not isinstance(plugins, list) else plugins
+
         if strategy:
             self._strategy_flag = strategy
             if strategy == "ddp_cpu":
@@ -210,24 +214,28 @@ class AcceleratorConnector:
                 )
             # handle duplications and conflict
             if isinstance(accelerator, Strategy) and strategy != accelerator:
-                raise MisconfigurationException("strategy already set through strategy flag, duplicated in accelerator")
+                raise MisconfigurationException(
+                    "strategy already set through strategy flag, but have also passed in through accelerator"
+                )
             if (
                 isinstance(accelerator, str)
                 and accelerator in self._existing_strategies_str
                 and strategy != accelerator
             ):
                 raise MisconfigurationException(
-                    "strategy str already set through strategy flag, duplicated in accelerator"
+                    "strategy str already set through strategy flag, but have also passed in through accelerator"
                 )
             if plugins:
                 for plugin in plugins:
-                    if isinstance(plugin, Strategy) and strategy != plugin:
+                    if isinstance(plugin, Strategy):
                         raise MisconfigurationException(
-                            "strategy already set through strategy flag, duplicated in plugins"
+                            f"You have passed `Trainer(strategy)`"
+                            f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
                     if isinstance(plugin, str) and plugin in self._existing_strategies_str:
                         raise MisconfigurationException(
-                            "strategy already set through strategy flag, duplicated in plugins"
+                            f"You have passed `Trainer(strategy)`"
+                            f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
 
         if (
@@ -262,7 +270,6 @@ class AcceleratorConnector:
                         raise MisconfigurationException("precision set in both precision flag and plugin flag")
 
         if plugins:
-            plugins = [plugins] if not isinstance(plugins, list) else plugins
             for plugin in plugins:
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._existing_strategies_str:
                     self._strategy_flag = plugin
@@ -334,13 +341,13 @@ class AcceleratorConnector:
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
 
         self._device_flag = devices
-        # --- to be deleted v1.7
+        # Delete when remove num_processes, gpus, ipus and tpu_cores
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag:
             self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
                 devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
             )
-        # --- deleted end
+        # Delete end
         if devices == "auto":
             if self._accelerator_flag is None:
                 raise MisconfigurationException(
@@ -351,7 +358,6 @@ class AcceleratorConnector:
     def _mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
         self, devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
     ):
-        # ---- to be deleted v1.7vbg
         # set devices base on num_processes, gpus, ipus, tpu_cores
         if devices:
             rank_zero_warn(
@@ -366,15 +372,14 @@ class AcceleratorConnector:
 
         if not self._accelerator_flag:
             # set accelerator type base on num_processes, gpus, ipus, tpu_cores
-            if num_processes:
-                self._accelerator_flag = "cpu"
-            if gpus:
-                self._accelerator_flag = "gpu"
-            if tpu_cores:
-                self._accelerator_flag = "tpu"
             if ipus:
                 self._accelerator_flag = "ipu"
-        # --- delete end
+            if tpu_cores:
+                self._accelerator_flag = "tpu"
+            if gpus:
+                self._accelerator_flag = "gpu"
+            if num_processes:
+                self._accelerator_flag = "cpu"
 
     def _choose_accelerator(self):
         if self._accelerator_flag == "auto":
@@ -382,7 +387,7 @@ class AcceleratorConnector:
                 self._accelerator_flag = "tpu"
             elif _IPU_AVAILABLE:
                 self._accelerator_flag = "ipu"
-            elif _GPU_AVAILABLE:
+            elif torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 self._accelerator_flag = "gpu"
             else:
                 self._accelerator_flag = "cpu"
@@ -487,7 +492,7 @@ class AcceleratorConnector:
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 self._strategy_flag = "tpu_spawn"
             else:
-                self._srategy_flag = SingleTPUStrategy()
+                self._srategy_flag = SingleTPUStrategy(device=self._parallel_devices[0])
         else:
             if self._num_nodes_flag > 1:
                 self._strategy_flag = "ddp"
@@ -506,8 +511,10 @@ class AcceleratorConnector:
             else:
                 self._strategy_flag = "ddp"
 
-    def _strategy_fallbacks(self):
+    def _strategy_check_and_fallbacks(self):
+        # fallback apply to user pass in object as well, so get the _strategy_flag first
         _strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
+
         if _strategy_flag == "ddp_cpu":
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
@@ -529,6 +536,12 @@ class AcceleratorConnector:
         if _strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{_strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             _strategy_flag = "ddp"
+        if isinstance(self.accelerator, TPUAccelerator) and "tpu" not in _strategy_flag:
+            raise ValueError(
+                "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
+                f" found {_strategy_flag}."
+            )
+
         if _strategy_flag:
             self._strategy_flag = _strategy_flag
 
@@ -600,7 +613,7 @@ class AcceleratorConnector:
             self.precision_plugin = PrecisionPlugin()
 
     def _precision_misconfig_check(self):
-
+        # TODO change exception type to ImpactableConfigurationException
         if self._accelerator_flag == "ipu":
             if self._precision_flag not in (16, 32):
                 raise MisconfigurationException(
@@ -611,6 +624,13 @@ class AcceleratorConnector:
                 "`Trainer(accelerator='tpu', precision=64)` is not implemented."
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
+            )
+        if self._accelerator_flag == "tpu" and isinstance(
+            self._precision_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin)
+        ):
+            raise ValueError(
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                f" found: {self.strategy.precision_plugin}."
             )
         if self._precision_flag == 16 and self._accelerator_flag == "cpu" and self._amp_type_flag == AMPType.APEX:
             # apex was explicitly passed, not a good idea to silently switch to native AMP
@@ -694,7 +714,12 @@ class AcceleratorConnector:
 
     @property
     def devices(self):
-        return len(self._parallel_devices)
+        if isinstance(self.strategy, SingleDeviceStrategy):
+            return 1
+        elif isinstance(self.strategy, ParallelStrategy):
+            return len(self.strategy.parallel_devices)
+        else:
+            return 0
 
     @property
     def tpu_cores(self) -> int:
@@ -706,12 +731,19 @@ class AcceleratorConnector:
 
     @property
     def num_gpus(self) -> int:
-        return self.devices
+        if isinstance(self.accelerator, GPUAccelerator):
+            return self.devices
+        else:
+            return 0
 
     # def parallel_device_ids():
     @property
     def gpus(self):
         return self._gpus if isinstance(self.accelerator, GPUAccelerator) else None
+
+    @property
+    def parallel_device_ids(self):
+        return [i for i in range(len(self.parallel_devices))]
 
     @property
     def is_distributed(self):
