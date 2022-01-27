@@ -242,3 +242,9 @@ class PrecisionPlugin(CheckpointHooks):
 
         It is the right place to release memory and free other resources.
         """
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        pass

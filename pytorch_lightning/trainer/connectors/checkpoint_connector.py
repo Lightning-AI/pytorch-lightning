@@ -192,7 +192,17 @@ class CheckpointConnector:
             return
 
         # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        prec_plugin = self.trainer.precision_plugin
+        prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        if prec_plugin.__class__.__name__ in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__name__])
+
+        # old checkpoints compatibility
+        # should we raise error and force user to run utilities/upgrade_checkpoint instead?
+        if "amp_scaling_state" in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
+        if "native_amp_scaling_state" in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
         # restore loops and their progress
         self.restore_loops()
@@ -372,7 +382,9 @@ class CheckpointConnector:
                 lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
-            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
+            # precision plugin
+            prec_plugin = self.trainer.precision_plugin
+            checkpoint[prec_plugin.__class__.__name__] = self.trainer.precision_plugin.state_dict()
 
         # dump hyper-parameters
         if model.hparams:
@@ -389,6 +401,8 @@ class CheckpointConnector:
         model.on_save_checkpoint(checkpoint)
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
+        if not weights_only:
+            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment

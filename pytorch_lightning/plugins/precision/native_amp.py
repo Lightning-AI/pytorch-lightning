@@ -106,10 +106,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
-            checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()
+            return self.scaler.state_dict()
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None and state_dict:
+            self.scaler.load_state_dict(state_dict)
