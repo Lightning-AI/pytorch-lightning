@@ -13,13 +13,18 @@
 # limitations under the License.
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import torch.multiprocessing as mp
+from build import os
 
-from pytorch_lightning.strategies.executors.ddp_spawn import DDPSpawnExecutor
+import pytorch_lightning as pl
+from pytorch_lightning.strategies.executors.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnExecutor
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.distributed import rank_zero_debug
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 if _TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
@@ -49,3 +54,30 @@ class TPUSpawnExecutor(DDPSpawnExecutor):
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if self.local_rank == 0:
             time.sleep(2)
+
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+        rank_zero_debug("Finalizing the TPU spawn environment.")
+        checkpoint_callback = trainer.checkpoint_callback
+        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+
+        # requires to compute the state_dict on all processes in case Metrics are present
+        state_dict = self.strategy.lightning_module.state_dict()
+
+        # save the last weights
+        weights_path = None
+        if trainer.state.fn == TrainerFn.FITTING:
+            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
+            self.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
+
+        # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
+        if self.strategy.local_rank != 0:
+            return
+
+        # adds the `callback_metrics` to the queue
+        extra = _FakeQueue()
+        if is_overridden("add_to_queue", self.strategy.lightning_module):
+            # TODO: Remove the if in v1.7
+            self.strategy.lightning_module.add_to_queue(extra)
+        self.strategy.add_to_queue(trainer, extra)
+
+        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)

@@ -42,8 +42,8 @@ class SingleDeviceStrategy(Strategy):
         self.world_size = 1
 
     def execute(self, trainer, function, *args, **kwargs):
-        executer = SingleProcessExecutor(self)
-        executer.execute(trainer, function, *args, **kwargs)
+        executor = SingleProcessExecutor(self)
+        executor.execute(trainer, function, *args, **kwargs)
 
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only

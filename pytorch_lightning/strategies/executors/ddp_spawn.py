@@ -15,6 +15,7 @@ import os
 from collections import UserList
 from typing import Any, NamedTuple, Optional
 
+import numpy as np
 import torch
 import torch.multiprocessing as mp
 
@@ -28,9 +29,6 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class DDPSpawnExecutor(Executor):
-    def __init__(self, strategy):
-        super().__init__(strategy)
-
     def execute(self, trainer, function, *args, **kwargs):
         os.environ["MASTER_PORT"] = str(self.strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
@@ -48,7 +46,7 @@ class DDPSpawnExecutor(Executor):
         self.strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
         results = self._collect_rank_zero_results(trainer, results)
-        if self.local_rank == 0:
+        if self.strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
@@ -59,22 +57,22 @@ class DDPSpawnExecutor(Executor):
         # TODO: pass also best score
         # load last weights
         if spawn_output.weights_path is not None:
-            ckpt = self.checkpoint_io.load_checkpoint(
+            ckpt = self.strategy.checkpoint_io.load_checkpoint(
                 spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
-            self.lightning_module.load_state_dict(ckpt)
-            self.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
+            self.strategy.lightning_module.load_state_dict(ckpt)
+            self.strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        if is_overridden("get_from_queue", self.lightning_module):
+        if is_overridden("get_from_queue", self.strategy.lightning_module):
             # only in case the user does not override it.
             # TODO: Remove the if in v1.7
-            self.lightning_module.get_from_queue(spawn_output.extra)
+            self.strategy.lightning_module.get_from_queue(spawn_output.extra)
         self.get_from_queue(trainer, spawn_output.extra)
 
-    def _collect_ranku_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -93,7 +91,7 @@ class DDPSpawnExecutor(Executor):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", self.lightning_module):
+        if is_overridden("add_to_queue", self.strategy.lightning_module):
             # TODO: Remove the if in v1.7
             self.strategy.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
@@ -112,6 +110,18 @@ class DDPSpawnExecutor(Executor):
             trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
+
+    def get_from_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
+        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
+        we cast back the data to ``torch.Tensor``.
+
+        Args:
+            trainer: reference to the Trainer.
+            queue: the instance of the queue from where to get the data.
+        """
+        # NOTE: `add_to_queue` needs to be called before
+        callback_metrics: dict = queue.get()
+        trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
 
 class _FakeQueue(UserList):

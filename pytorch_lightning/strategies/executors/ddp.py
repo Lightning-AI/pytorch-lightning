@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class DDPSubprocessExecutor(Executor):
     def __init__(self, strategy):
-        super().__init__(self, strategy)
+        super().__init__(strategy=strategy)
         self.interactive_ddp_procs = []
 
     def execute(self, trainer, function, *args, **kwargs):
@@ -48,7 +48,7 @@ class DDPSubprocessExecutor(Executor):
 
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.strategy.cluster_environment.node_rank())
-        os.environ["LOCAL_RANK"] = str(self.startegy.cluster_environment.local_rank())
+        os.environ["LOCAL_RANK"] = str(self.strategy.cluster_environment.local_rank())
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
