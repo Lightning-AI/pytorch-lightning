@@ -601,8 +601,9 @@ def test_exception_when_strategy_used_with_accelerator():
 
 
 def test_exception_when_strategy_used_with_plugins():
-    with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
-        Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
+    with pytest.raises(MisconfigurationException, match="only specify one strategy, but you have passed"):
+        with pytest.deprecated_call(match=r"`strategy` to the `plugins` flag in Trainer has been deprecated"):
+            Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
 
 
 def test_exception_invalid_strategy():
@@ -898,13 +899,14 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
+    # if user haven't set strategy, accelerator_connector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16)
+            Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
 def test_unsupported_ipu_choice(monkeypatch):
