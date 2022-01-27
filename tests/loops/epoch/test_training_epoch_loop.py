@@ -166,12 +166,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     trainer = Trainer(**trainer_kwargs)
 
     with patch.object(
-        trainer.fit_loop.epoch_loop.val_loop,
-        "run",
-        wraps=trainer.fit_loop.epoch_loop.val_loop.run,
-    ) as run_mocked, patch.object(
         trainer.fit_loop.epoch_loop.val_loop, "advance", wraps=trainer.fit_loop.epoch_loop.val_loop.advance
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
-        assert run_mocked.call_count == 1
         assert advance_mocked.call_count == 1
