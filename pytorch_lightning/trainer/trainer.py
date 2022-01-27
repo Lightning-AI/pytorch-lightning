@@ -2005,7 +2005,7 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_devices
+        return self._accelerator_connector.parallel_device_ids
 
     @property
     def lightning_module(self) -> "pl.LightningModule":

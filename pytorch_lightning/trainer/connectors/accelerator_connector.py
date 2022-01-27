@@ -133,6 +133,7 @@ class AcceleratorConnector:
 
         """
         torch.backends.cudnn.benchmark = benchmark
+        self._gpus = gpus
         # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
@@ -175,7 +176,7 @@ class AcceleratorConnector:
         self._lazy_init_strategy()
 
         # set properties not used in accelerator_connector. TODO move out of this file
-        # self.gpus = gpus or devices
+
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def _config_check_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level):
@@ -343,12 +344,12 @@ class AcceleratorConnector:
         self._device_flag = devices
         # Delete when remove num_processes, gpus, ipus and tpu_cores
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag:
+        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
             self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
                 devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
             )
         # Delete end
-        if devices == "auto":
+        if self._device_flag == "auto":
             if self._accelerator_flag is None:
                 raise MisconfigurationException(
                     f"You passed `devices={devices}` but haven't specified"
@@ -364,6 +365,7 @@ class AcceleratorConnector:
                 f"The flag `devices={devices}` will be ignored, "
                 f"instand the device specific number {deprecated_devices_specific_flag} will be used"
             )
+        gpus = int(gpus) if isinstance(gpus, str) and gpus.isnumeric() else gpus
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
             True
         ) > 1:
@@ -448,7 +450,7 @@ class AcceleratorConnector:
                 )
             self._parallel_devices = [torch.device("cpu")] * self._device_flag
 
-        self._gpus = self._device_flag
+        self._gpus = self._device_flag if not self._gpus else self._gpus
 
     def _choose_and_init_cluster_environment(self):
         self.cluster_environment = LightningEnvironment()
@@ -739,11 +741,12 @@ class AcceleratorConnector:
     # def parallel_device_ids():
     @property
     def gpus(self):
-        return self._gpus if isinstance(self.accelerator, GPUAccelerator) else None
+        return self._gpus
+        # if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
     def parallel_device_ids(self):
-        return [i for i in range(len(self.parallel_devices))]
+        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def is_distributed(self):
