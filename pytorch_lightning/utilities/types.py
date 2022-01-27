@@ -16,6 +16,7 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
@@ -60,7 +61,8 @@ class Stateful(Protocol):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class _LRScheduler(Stateful):
+@runtime_checkable
+class _LRScheduler(Stateful, Protocol):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
@@ -69,7 +71,8 @@ class _LRScheduler(Stateful):
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
-class ReduceLROnPlateau(Stateful):
+@runtime_checkable
+class ReduceLROnPlateau(Stateful, Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 
@@ -95,12 +98,20 @@ LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
 
 
-class LRSchedulerConfig(TypedDict):
+@dataclass
+class LRSchedulerConfig:
     scheduler: Union[_LRScheduler, ReduceLROnPlateau]
-    name: Optional[str]
-    interval: str
-    frequency: int
-    reduce_on_plateau: bool
-    monitor: Optional[str]
-    strict: bool
-    opt_idx: Optional[int]
+    # no custom name
+    name: Optional[str] = None
+    # after epoch is over
+    interval: str = "epoch"
+    # every epoch/batch
+    frequency: int = 1
+    # most often not ReduceLROnPlateau scheduler
+    reduce_on_plateau: bool = False
+    # value to monitor for ReduceLROnPlateau
+    monitor: Optional[str] = None
+    # enforce that the monitor exists for ReduceLROnPlateau
+    strict: bool = True
+    # opt_idx assigned internally if not assigned by user
+    opt_idx: Optional[int] = None

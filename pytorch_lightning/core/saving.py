@@ -95,28 +95,32 @@ class ModelIO:
                 hyperparameter values.
 
         Return:
-            :class:`LightningModule` with loaded weights and hyperparameters (if available).
+            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
 
         Example::
 
             # load weights without mapping ...
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
             # or load weights mapping all weights from GPU 1 to GPU 0 ...
             map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 map_location=map_location
             )
 
             # or load weights and hyperparameters from separate files.
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 hparams_file='/path/to/hparams_file.yaml'
             )
 
             # override some of the params with new values
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 PATH,
                 num_layers=128,
                 pretrained_ckpt_path=NEW_PATH,

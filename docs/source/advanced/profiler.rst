@@ -1,22 +1,24 @@
-.. role:: hidden
-    :class: hidden-section
-
 .. _profiler:
 
-Performance and Bottleneck Profiler
-===================================
+#########
+Profiling
+#########
 
-Profiling your training run can help you understand if there are any bottlenecks in your code.
+Profiling your training/testing/inference run can help you identify bottlenecks in your code. The reports can be generated with ``trainer.fit()``,
+``trainer.test()``, ``trainer.validate()`` and ``trainer.predict()`` for their respective actions.
 
-Built-in checks
----------------
+
+------------
+
+****************
+Built-in Actions
+****************
 
 PyTorch Lightning supports profiling standard actions in the training loop out of the box, including:
 
 - on_epoch_start
 - on_epoch_end
 - on_batch_start
-- tbptt_split_batch
 - model_forward
 - model_backward
 - on_after_backward
@@ -24,58 +26,86 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_batch_end
 - training_step_end
 - on_training_end
+- etc...
 
-Enable simple profiling
------------------------
+------------
 
-If you only wish to profile the standard actions, you can set `profiler="simple"`
-when constructing your `Trainer` object.
+*******************
+Supported Profilers
+*******************
+
+Lightning provides the following profilers:
+
+Simple Profiler
+===============
+
+If you only wish to profile the standard actions, you can set ``profiler="simple"``. It uses the built-in
+:class:`~pytorch_lightning.profiler.simple.SimpleProfiler`.
 
 .. code-block:: python
 
+    # by passing a string
     trainer = Trainer(..., profiler="simple")
 
-The profiler's results will be printed at the completion of a training `fit()`.
+    # or by passing an instance
+    from pytorch_lightning.profiler import SimpleProfiler
+
+    profiler = SimpleProfiler()
+    trainer = Trainer(..., profiler=profiler)
+
+The profiler's results will be printed at the completion of a training ``trainer.fit()``. Find an example of the
+:class:`~pytorch_lightning.profiler.simple.SimpleProfiler` report containing a few of the actions:
 
 .. code-block::
 
-    Profiler Report
+    FIT Profiler Report
 
-    Action                  |  Mean duration (s)    |  Total time (s)
-    -----------------------------------------------------------------
-    on_epoch_start          |  5.993e-06            |  5.993e-06
-    get_train_batch         |  0.0087412            |  16.398
-    on_batch_start          |  5.0865e-06           |  0.0095372
-    model_forward           |  0.0017818            |  3.3408
-    model_backward          |  0.0018283            |  3.4282
-    on_after_backward       |  4.2862e-06           |  0.0080366
-    optimizer_step          |  0.0011072            |  2.0759
-    on_batch_end            |  4.5202e-06           |  0.0084753
-    on_epoch_end            |  3.919e-06            |  3.919e-06
-    on_train_end            |  5.449e-06            |  5.449e-06
+    -----------------------------------------------------------------------------------------------
+    |  Action                                          |  Mean duration (s)	|  Total time (s) |
+    -----------------------------------------------------------------------------------------------
+    |  [LightningModule]BoringModel.prepare_data       |  2.112e-06      	|  2.112e-06      |
+    |  [LightningModule]BoringModel.setup              |  1.513e-06      	|  1.513e-06      |
+    |  [LightningModule]BoringModel.on_fit_start       |  1.542e-06      	|  1.542e-06      |
+    |  [LightningModule]BoringModel.on_epoch_start     |  1.051e-06      	|  1.051e-06      |
+    |  fetch_next_train_batch                          |  0.0003097      	|  0.00061939     |
+    |  get_train_batch                                 |  0.0003287      	|  0.00065739     |
+    |  on_train_batch_start                            |  7.578e-05      	|  7.578e-05      |
+    |  [LightningModule]BoringModel.training_step_end  |  1.556e-06      	|  1.556e-06      |
+    |  model_forward                                   |  0.00028337     	|  0.00028337     |
+    |  [LightningModule]BoringModel.optimizer_step     |  0.0011853      	|  0.0011853      |
+    |  run_training_batch                              |  0.0016311      	|  0.0016311      |
+    |  on_train_batch_end                              |  7.6117e-05     	|  7.6117e-05     |
+    |  run_training_epoch                              |  0.0036915      	|  0.0036915      |
+    |  [LightningModule]BoringModel.on_epoch_end       |  1.079e-06      	|  1.079e-06      |
+    |  [LightningModule]BoringModel.on_train_end       |  1.509e-06      	|  1.509e-06      |
+    |  [LightningModule]BoringModel.on_fit_end         |  3.127e-06      	|  3.127e-06      |
+    |  [LightningModule]BoringModel.teardown           |  2.581e-06      	|  2.581e-06      |
+    -----------------------------------------------------------------------------------------------
+
+.. note:: Note that there are a lot more actions that will be present in the final report along with percentage and call count for each action.
 
 
-Advanced Profiling
-------------------
+Advanced Profiler
+=================
 
-If you want more information on the functions called during each event, you can use the `AdvancedProfiler`.
-This option uses Python's cProfiler_ to provide a report of time spent on *each* function called within your code.
-
-.. _cProfiler: https://docs.python.org/3/library/profile.html#module-cProfile
+If you want more information on the functions called during each event, you can use the :class:`~pytorch_lightning.profiler.advanced.AdvancedProfiler`.
+This option uses Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_ to provide an in-depth report of time spent within *each* function called in your code.
 
 .. code-block:: python
 
+    # by passing a string
     trainer = Trainer(..., profiler="advanced")
 
-    # or
+    # or by passing an instance
+    from pytorch_lightning.profiler import AdvancedProfiler
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)
 
-The profiler's results will be printed at the completion of a training `fit()`. This profiler
-report can be quite long, so you can also specify a `dirpath` and `filename` to save the report instead
+The profiler's results will be printed at the completion of ``trainer.fit()``. This profiler
+report can be quite long, so you can also specify a ``dirpath`` and ``filename`` to save the report instead
 of logging it to the output in your terminal. The output below shows the profiling for the action
-`get_train_batch`.
+``get_train_batch``.
 
 .. code-block::
 
@@ -97,68 +127,44 @@ of logging it to the output in your terminal. The output below shows the profili
         60000    1.651    0.000    6.839    0.000 functional.py:42(to_tensor)
         60000    0.260    0.000    5.734    0.000 transforms.py:167(__call__)
 
-You can also reference this profiler in your LightningModule to profile specific actions of interest.
-If you don't want to always have the profiler turned on, you can optionally pass a `PassThroughProfiler`
-which will allow you to skip profiling without having to make any code changes. Each profiler has a
-method `profile()` which returns a context handler. Simply pass in the name of your action that you want
-to track and the profiler will record performance for code executed within this context.
 
-.. code-block:: python
-
-    from pytorch_lightning.profiler import Profiler, PassThroughProfiler
-
-
-    class MyModel(LightningModule):
-        def __init__(self, profiler=None):
-            self.profiler = profiler or PassThroughProfiler()
-
-        def custom_processing_step(self, data):
-            with profiler.profile("my_custom_action"):
-                ...
-            return data
-
-
-    profiler = Profiler()
-    model = MyModel(profiler)
-    trainer = Trainer(profiler=profiler, max_epochs=1)
-
-
-PyTorch Profiling
------------------
+PyTorch Profiler
+================
 
 Autograd includes a profiler that lets you inspect the cost of different operators
-inside your model - both on the CPU and GPU.
+inside your model - both on the CPU and GPU. It uses the built-in :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
 
 To read more about the PyTorch Profiler and all its options,
-have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`__
+have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
 
 .. code-block:: python
 
+    # by passing a string
     trainer = Trainer(..., profiler="pytorch")
 
-    # or
+    # or by passing an instance
+    from pytorch_lightning.profiler import PyTorchProfiler
 
-    profiler = PyTorchProfiler(...)
+    profiler = PyTorchProfiler()
     trainer = Trainer(..., profiler=profiler)
 
 
-This profiler works with PyTorch ``DistributedDataParallel``.
+This profiler works with multi-device settings.
 If ``filename`` is provided, each rank will save their profiled operation to their own file. The profiler
 report can be quite long, so you setting a ``filename`` will save the report instead of logging it to the
 output in your terminal. If no filename is given, it will be logged only on rank 0.
 
 The profiler's results will be printed on the completion of ``{fit,validate,test,predict}``.
 
-This profiler will record ``training_step``, ``backward``,
-``validation_step``, ``test_step``, and ``predict_step`` by default.
-The output below shows the profiling for the action ``training_step``.
-The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
+This profiler will record ``training_step``, ``backward``, ``validation_step``, ``test_step``, and ``predict_step`` by default.
+The output below shows the profiling for the action ``training_step``. The user can provide ``PyTorchProfiler(record_functions={...})``
+to extend the scope of profiled functions.
 
 .. note::
     When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time.
     This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
-    the `SimpleProfiler`.
+    the ``SimpleProfiler``.
 
 .. code-block::
 
@@ -191,16 +197,103 @@ The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the s
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following::
+When running with ``PyTorchProfiler(emit_nvtx=True)``, you should run as following:
+
+.. code-block::
 
     nvprof --profile-from-start off -o trace_name.prof -- <regular command here>
 
 To visualize the profiled operation, you can either:
 
-Use::
+.. code-block::
 
     nvvp trace_name.prof
 
-Or::
+.. code-block::
 
     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
+
+
+----------------
+
+****************
+Custom Profiling
+****************
+
+Custom Profiler
+===============
+
+You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
+and override some of its methods. The following is a simple example that profiles the first occurance and total calls of each action:
+
+.. code-block:: python
+
+    from pytorch_lightning.profiler.base import BaseProfiler
+    from collections import defaultdict
+    import time
+
+
+    class ActionCountProfiler(BaseProfiler):
+        def __init__(self, dirpath=None, filename=None):
+            super().__init__(dirpath=dirpath, filename=filename)
+            self._action_count = defaultdict(int)
+            self._action_first_occurance = {}
+
+        def start(self, action_name):
+            if action_name not in self._action_first_occurance:
+                self._action_first_occurance[action_name] = time.strftime("%m/%d/%Y, %H:%M:%S")
+
+        def stop(self, action_name):
+            self._action_count[action_name] += 1
+
+        def summary(self):
+            res = f"\nProfile Summary: \n"
+            max_len = max(len(x) for x in self._action_count)
+
+            for action_name in self._action_count:
+                # generate summary for actions called more than once
+                if self._action_count[action_name] > 1:
+                    res += (
+                        f"{action_name:<{max_len}s} \t "
+                        + "self._action_first_occurance[action_name]} \t "
+                        + "{self._action_count[action_name]} \n"
+                    )
+
+            return res
+
+        def teardown(self, stage):
+            self._action_count = {}
+            self._action_first_occurance = {}
+            super().teardown(stage=stage)
+
+.. code-block:: python
+
+    trainer = Trainer(..., profiler=ActionCountProfiler())
+    trainer.fit(...)
+
+
+Profile Logic of Your Interest
+==============================
+
+You can also reference this profiler in your LightningModule to profile specific actions of interest.
+Each profiler has a method ``profile()`` which returns a context handler. Simply pass in the name of
+your action that you want to track and the profiler will record performance for code executed within this context.
+
+.. code-block:: python
+
+    from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler
+
+
+    class MyModel(LightningModule):
+        def __init__(self, profiler=None):
+            self.profiler = profiler or PassThroughProfiler()
+
+        def custom_processing_step(self, data):
+            with self.profiler.profile("my_custom_action"):
+                ...
+            return data
+
+
+    profiler = SimpleProfiler()
+    model = MyModel(profiler)
+    trainer = Trainer(profiler=profiler, max_epochs=1)

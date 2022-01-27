@@ -286,7 +286,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 def test_device_placement(tmpdir):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:

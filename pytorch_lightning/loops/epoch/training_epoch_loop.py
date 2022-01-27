@@ -20,14 +20,14 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
@@ -134,7 +134,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
+        self._dataloader_iter = iter(data_fetcher)
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -145,12 +145,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
             # skip training and run validation in `on_advance_end`
             return
+        # we are going to train first so the val loop does not need to restart
+        self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
-        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
-
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch)
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_idx + 1
+            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+        else:
+            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         self.batch_progress.increment_ready()
 
@@ -225,13 +228,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
-        """Runs validation and Checkpointing if necessary.
-
-        Raises:
-            StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
-        """
         # -----------------------------------------
-        # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+        # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
         if should_check_val:
@@ -412,31 +410,31 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 so they have to be updated separately.
             opt_indices: indices of the optimizers to update.
         """
-        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
+        if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
             return
 
         if opt_indices is None:
             opt_indices = []
 
-        for lr_scheduler in self.trainer.lr_schedulers:
-            if lr_scheduler["opt_idx"] not in opt_indices:
+        for config in self.trainer.lr_scheduler_configs:
+            if config.opt_idx not in opt_indices:
                 continue
 
-            if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
+            if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
             current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
-            if lr_scheduler["interval"] == interval and current_idx % lr_scheduler["frequency"] == 0:
+            if config.interval == interval and current_idx % config.frequency == 0:
                 monitor_val = None
-                if lr_scheduler["reduce_on_plateau"]:
+                if config.reduce_on_plateau:
                     # If instance of ReduceLROnPlateau, we need a monitor
-                    monitor_key = lr_scheduler["monitor"]
+                    monitor_key = config.monitor
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
-                        if lr_scheduler.get("strict", True):
+                        if config.strict:
                             avail_metrics = list(self.trainer.callback_metrics)
                             raise MisconfigurationException(
                                 f"ReduceLROnPlateau conditioned on metric {monitor_key}"
@@ -456,8 +454,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 # update LR
                 self.trainer._call_lightning_module_hook(
                     "lr_scheduler_step",
-                    lr_scheduler["scheduler"],
-                    lr_scheduler["opt_idx"],
+                    config.scheduler,
+                    config.opt_idx,
                     monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
