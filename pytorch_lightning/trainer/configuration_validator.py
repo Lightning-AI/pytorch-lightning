@@ -326,7 +326,7 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
         )
 
 
-def _check_on_configure_sharded_model(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
