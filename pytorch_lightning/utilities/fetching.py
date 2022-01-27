@@ -206,7 +206,7 @@ class DataFetcher(AbstractDataFetcher):
     """This class is used to control batch fetching flow.
 
     Args:
-        prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessasry to properly track
+        prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
             whether a batch is the last one (available with :attr:`self.done`).
         store_on_device: Whether to store the pre-fetched batches on device.
     """
