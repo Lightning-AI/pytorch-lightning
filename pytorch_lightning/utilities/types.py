@@ -23,9 +23,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import TypedDict
-
-from pytorch_lightning.core.hooks import Stateful
+from typing_extensions import Protocol, runtime_checkable
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -47,6 +45,17 @@ TRAIN_DATALOADERS = Union[
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
+
+
+@runtime_checkable
+class Stateful(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, Stateful)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`

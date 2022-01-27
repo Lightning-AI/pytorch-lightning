@@ -38,11 +38,11 @@ from torch.utils.data.dataloader import (
 )
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.hooks import Stateful
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import Stateful
 
 
 class FastForwardSampler(Sampler):

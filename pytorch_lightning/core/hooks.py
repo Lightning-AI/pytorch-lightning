@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
-from typing_extensions import Protocol, runtime_checkable
 
 from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
@@ -761,17 +760,6 @@ class DataHooks:
             - :meth:`transfer_batch_to_device`
         """
         return batch
-
-
-@runtime_checkable
-class Stateful(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, Stateful)`."""
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
 
 
 class CheckpointHooks:

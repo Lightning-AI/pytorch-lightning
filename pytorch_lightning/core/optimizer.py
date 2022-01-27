@@ -21,11 +21,10 @@ from torch import optim
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.hooks import Stateful
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeTuple
+from pytorch_lightning.utilities.types import LRSchedulerTypeTuple, Stateful
 
 
 def do_nothing_closure() -> None:
