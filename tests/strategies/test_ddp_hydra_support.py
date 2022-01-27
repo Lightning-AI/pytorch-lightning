@@ -2,7 +2,6 @@ import logging
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -14,16 +13,16 @@ if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
 
 
-# fixture to run in a clean temporary directory
-@pytest.fixture()
-def cleandir():
+# fixture to run hydra jobs in a clean temporary directory
+# Hydra creates its own output directories and logs
+@pytest.fixture
+def cleandir(tmp_path):
     """Run function in a temporary directory."""
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        old_dir = os.getcwd()  # get current working directory (cwd)
-        os.chdir(tmpdirname)  # change cwd to the temp-directory
-        yield tmpdirname  # yields control to the test to be run
-        os.chdir(old_dir)
-        logging.shutdown()
+    old_dir = os.getcwd()  # get current working directory (cwd)
+    os.chdir(tmp_path)  # change cwd to the temp-directory
+    yield tmp_path  # yields control to the test to be run
+    os.chdir(old_dir)
+    logging.shutdown()
 
 
 # function to run a command line argument
@@ -113,7 +112,7 @@ def test_ddp_with_hydra_runjob(gpus, subdir):
     run_process(cmd)
 
     # Make sure config.yaml was created
-    logs = sorted(Path.cwd().glob("**/config.yaml"))
+    logs = list(Path.cwd().glob("**/config.yaml"))
     assert len(logs) == 1
 
     # Make sure subdir was set
@@ -125,7 +124,7 @@ def test_ddp_with_hydra_runjob(gpus, subdir):
     assert cfg.gpus == gpus
 
     # Make sure PL spawned a job that is logged by Hydra
-    logs = sorted(Path.cwd().glob("**/train_ddp_process_1.log"))
+    logs = list(Path.cwd().glob("**/train_ddp_process_1.log"))
     assert len(logs) == gpus - 1
 
 
@@ -135,23 +134,29 @@ def test_ddp_with_hydra_runjob(gpus, subdir):
 @pytest.mark.parametrize("gpus", [1, 2])
 @pytest.mark.parametrize("num_jobs", [1, 2])
 def test_ddp_with_hydra_multirunjob(gpus, num_jobs):
+    # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
 
+    # create fake multirun params based on `num_jobs`
     fake_param = "+foo="
     for i in range(num_jobs):
         fake_param += f"{i}"
         if i < num_jobs - 1:
             fake_param += ","
+
+    # Run CLI
     run_process([sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"', fake_param, "--multirun"])
 
+    # Make sure config.yaml was created for each job
     configs = sorted(Path.cwd().glob("**/config.yaml"))
     assert len(configs) == num_jobs
 
+    # Make sure the parameter was set and used for each job
     for i, config in enumerate(configs):
         cfg = OmegaConf.load(config)
         assert cfg.gpus == gpus
         assert cfg.foo == i
 
-    logs = sorted(Path.cwd().glob("**/train_ddp_process_1.log"))
+    logs = list(Path.cwd().glob("**/train_ddp_process_1.log"))
     assert len(logs) == num_jobs * (gpus - 1)
