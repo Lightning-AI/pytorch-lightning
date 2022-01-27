@@ -307,11 +307,16 @@ class WandbLogger(LightningLoggerBase):
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
+        # start wandb run (to create an attach_id for distributed modes)
+        self.experiment
 
     def __getstate__(self):
         state = self.__dict__.copy()
         # args needed to reload correct experiment
-        state["_id"] = self._experiment.id if self._experiment is not None else None
+        if self._experiment is not None:
+            state["_id"] = getattr(self._experiment, "id", None)
+            state["_attach_id"] = getattr(self._experiment, "id", None)
+            state["_name"] = self._experiment.project_name()
 
         # cannot be pickled
         state["_experiment"] = None
@@ -335,19 +340,26 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
-            if wandb.run is None:
-                self._experiment = wandb.init(**self._wandb_init)
-            else:
+
+            attach_id = getattr(self, "_attach_id", None)
+            if attach_id is not None and hasattr(wandb, "_attach"):
+                # attach to wandb process referenced
+                self._experiment = wandb._attach(attach_id)
+            elif wandb.run is not None:
+                # wandb process already created in this instance
                 rank_zero_warn(
                     "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
                     " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
                 )
                 self._experiment = wandb.run
+            else:
+                # create new wandb process
+                self._experiment = wandb.init(**self._wandb_init)
 
-        # define default x-axis (for latest wandb versions)
-        if getattr(self._experiment, "define_metric", None):
-            self._experiment.define_metric("trainer/global_step")
-            self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                # define default x-axis
+                if getattr(self._experiment, "define_metric", None):
+                    self._experiment.define_metric("trainer/global_step")
+                    self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
 
@@ -490,6 +502,7 @@ class WandbLogger(LightningLoggerBase):
                             "save_top_k",
                             "save_weights_only",
                             "_every_n_train_steps",
+                            "_every_n_val_epochs",
                         ]
                         # ensure it does not break if `ModelCheckpoint` args change
                         if hasattr(checkpoint_callback, k)
