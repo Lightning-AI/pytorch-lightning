@@ -280,6 +280,9 @@ def test_log_works_in_train_callback(tmpdir):
         def on_train_start(self, _, pl_module):
             self.make_logging(pl_module, "on_train_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
+        def on_epoch_start(self, _, pl_module):
+            self.make_logging(pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
+
         def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
@@ -310,6 +313,9 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
+        def on_epoch_end(self, _, pl_module):
+            self.make_logging(pl_module, "on_epoch_end", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
+
     class TestModel(BoringModel):
         seen_losses = []
 
@@ -329,7 +335,10 @@ def test_log_works_in_train_callback(tmpdir):
         max_epochs=1,
         callbacks=[cb],
     )
-    trainer.fit(model)
+
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_start` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     assert trainer.progress_bar_callback.get_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
@@ -337,12 +346,14 @@ def test_log_works_in_train_callback(tmpdir):
 
     assert cb.call_counter == {
         "on_train_start": 1,
+        "on_epoch_start": 1,
         "on_train_epoch_start": 1,
         "on_train_batch_start": 2,
         "on_train_batch_end": 2,
         "on_batch_start": 2,
         "on_batch_end": 2,
         "on_train_epoch_end": 1,
+        "on_epoch_end": 1,
     }
 
     def get_expected(on_epoch, values):
