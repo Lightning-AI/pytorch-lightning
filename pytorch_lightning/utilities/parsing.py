@@ -187,31 +187,34 @@ def collect_init_args(frame: types.FrameType, path_args: List[Dict[str, Any]] = 
           constructor at that level. The last entry corresponds to the constructor call of the
           most specific class in the hierarchy.
     """
-
+    # Make mypy happy: frame cannot be used as iterator directly because its
+    # declared static type doesn't allow it to be None
+    frame_iter: Optional[types.FrameType] = frame
+    
     # find innermost constructor call
-    while isinstance(frame, types.FrameType) and frame.f_code.co_name != "__init__":
-        frame = frame.f_back
+    while frame_iter is not None and frame_iter.f_code.co_name != "__init__":
+        frame_iter = frame_iter.f_back
 
-    # frame.f_back can be None, if there's no stretch of constructor calls on
+    # frame_iter.f_back can be None, if there's no stretch of constructor calls on
     # the call stack. In that case, just return what we're given (typically an
     # empty list)
-    if not isinstance(frame.f_back, types.FrameType):
+    if frame_iter is None:
         return path_args
 
     # extract self object from innermost constructor call.
-    obj = _extract_self_from_frame(frame)
+    obj = _extract_self_from_frame(frame_iter)
     assert obj is not None
 
     # collect arguments from the stretch of constructor calls on the call stack
     # that construct obj
     while (
-        isinstance(frame.f_back, types.FrameType)
-        and frame.f_code.co_name == "__init__"
-        and _extract_self_from_frame(frame) is obj
+        frame_iter is not None and
+        frame_iter.f_code.co_name == "__init__" and
+        _extract_self_from_frame(frame_iter) is obj
     ):
-        local_args = get_init_args(frame)
+        local_args = get_init_args(frame_iter)
         path_args.append(local_args)
-        frame = frame.f_back
+        frame_iter = frame_iter.f_back
 
     return path_args
 
