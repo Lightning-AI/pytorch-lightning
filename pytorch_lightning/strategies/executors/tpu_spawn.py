@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import time
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Optional
 
 import torch.multiprocessing as mp
-from build import os
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.executors.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnExecutor
