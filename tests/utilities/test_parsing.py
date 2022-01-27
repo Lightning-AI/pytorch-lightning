@@ -264,9 +264,26 @@ def test_collect_init_args():
         def __init__(self, anyarg, childarg, anykw=42, childkw=42, **kwargs):
             super().__init__(anyarg, anykw=anykw, **kwargs)
 
+    # Regression test for issue 11618
+    class AutoArgsUserParent:
+        pass
+
+    class AutoArgsUserChild(AutoArgsUserParent):
+        def __init__(self, userarg, *args, **kwargs):
+            # The presence of this call is important; it adds an implicit
+            # __class__ argument to __init__, which the old collect_init_args
+            # used to check if a frame on the call stack belonged to the
+            # same object's constructor chain.
+            super().__init__()
+            self.aac = AutomaticArgsChild(*args, **kwargs)
+
     my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
     assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
+
+    # Regression test for issue 11618
+    my_user = AutoArgsUserChild(42, "test1", "test2", anykw=32, childkw=22, otherkw=123)
+    assert len(my_user.aac.result) == 2
 
 
 def test_attribute_dict(tmpdir):
