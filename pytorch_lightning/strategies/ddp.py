@@ -15,16 +15,11 @@ import logging
 import os
 import shutil
 import signal
-import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
-from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
-import __main__
-import numpy as np
 import torch
 import torch.distributed
 from torch.nn import Module
@@ -37,11 +32,12 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.executors.ddp import DDPSubprocessExecutor
+from pytorch_lightning.strategies.executors.single_process import SingleProcessExecutor
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
-    _HYDRA_AVAILABLE,
     _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
@@ -57,15 +53,12 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
@@ -103,7 +96,6 @@ class DDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
-        self.interactive_ddp_procs = []
         self._num_nodes = 1
         self.sync_batchnorm = False
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
@@ -144,11 +136,13 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self) -> None:
-        # start the other scripts
-        if not self.cluster_environment.creates_processes_externally:
-            self._call_children_scripts()
+    def execute(self, trainer, function, *args, **kwargs):
+        executer = (
+            SingleProcessExecutor if self.cluster_environment.creates_processes_externally else DDPSubprocessExecutor
+        )(self)
+        executer.execute(trainer, function, *args, **kwargs)
 
+    def setup_environment(self) -> None:
         self.setup_distributed()
         super().setup_environment()
 
@@ -176,75 +170,6 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
-    def _call_children_scripts(self):
-        # bookkeeping of spawned processes
-        self._check_can_spawn_children()
-
-        # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-
-        # allow the user to pass the node rank
-        os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
-        os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
-        # See https://docs.python.org/3/reference/import.html#main-spec
-        if __main__.__spec__ is None:  # pragma: no-cover
-            # Script called as `python a/b/c.py`
-            # when user is using hydra find the absolute path
-            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
-
-            # pull out the commands used to run the script and resolve the abs file path
-            command = sys.argv
-            try:
-                full_path = path_lib(command[0])
-            except Exception:
-                full_path = os.path.abspath(command[0])
-
-            command[0] = full_path
-            # use the same python interpreter and actually running
-            command = [sys.executable] + command
-        else:  # Script called as `python -m a.b.c`
-            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
-
-        # the visible devices tell us how many GPUs we want to use.
-        # when the trainer script was called the device has already been scoped by the time
-        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
-        # but forward the GPUs selected via environment variables
-        if self.parallel_devices is None:
-            raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
-        os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
-
-        self.interactive_ddp_procs = []
-
-        for local_rank in range(1, self.num_processes):
-            env_copy = os.environ.copy()
-            env_copy["LOCAL_RANK"] = f"{local_rank}"
-
-            # remove env var if global seed not set
-            if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
-                del env_copy["PL_GLOBAL_SEED"]
-
-            # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
-            if _HYDRA_AVAILABLE:
-                if HydraConfig.initialized():
-                    cwd = get_original_cwd()
-                    os_cwd = f'"{os.getcwd()}"'
-                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.interactive_ddp_procs.append(proc)
-
-            # starting all processes at once can cause issues
-            # with dataloaders delay between 1-10 seconds
-            delay = np.random.uniform(1, 5, 1)[0]
-            sleep(delay)
-
-        self._rank_0_has_called_call_children_scripts = True
-
     def setup_distributed(self):
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
@@ -259,14 +184,6 @@ class DDPStrategy(ParallelStrategy):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
-
-    def _check_can_spawn_children(self):
-        if self.local_rank != 0:
-            raise RuntimeError(
-                "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
-                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
-            )
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:

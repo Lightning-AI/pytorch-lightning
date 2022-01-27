@@ -27,6 +27,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnStrategy
+from pytorch_lightning.strategies.executors.tpu_spawn import TPUSpawnExecutor
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -243,7 +244,12 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             "start_method": self.start_method,
         }
 
+    def execute(self, trainer, fn, *args, **kwargs):
+        executor = TPUSpawnExecutor(self)
+        executor.execute(trainer, fn, *args, **kwargs)
+
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
+        raise MisconfigurationException("this should not run")
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())

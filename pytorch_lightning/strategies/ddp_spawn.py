@@ -30,6 +30,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.executors.ddp_spawn import DDPSpawnExecutor
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
@@ -44,6 +45,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -146,6 +148,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
+    def execute(self, trainer, function, *args, **kwargs):
+        executor = DDPSpawnExecutor(self)
+        executor.execute(trainer, function, *args, **kwargs)
+
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.
 
@@ -159,6 +165,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         Return:
             The output of the function of process 0.
         """
+        raise MisconfigurationException("this should not run")
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
@@ -219,6 +226,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
+        raise MisconfigurationException("this should not run")
         rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
@@ -245,6 +253,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
+        raise MisconfigurationException("this should not run")
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback:
             trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
