@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
