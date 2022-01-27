@@ -159,7 +159,7 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
 
 
 def _extract_self_from_frame(frame: types.FrameType) -> Any:
-    """Extracts the first function call argument from a call stack frame
+    """Extracts the first function call argument from a call stack frame.
 
     If the argument frame describes a method call, then the extracted argument
     will be the object on which the method was called (typically called self).
@@ -175,9 +175,7 @@ def _extract_self_from_frame(frame: types.FrameType) -> Any:
     return local_vars[args[0]] if len(args) > 0 else None
 
 
-def collect_init_args(
-    frame: types.FrameType, path_args: List[Dict[str, Any]] = []
-) -> List[Dict[str, Any]]:
+def collect_init_args(frame: types.FrameType, path_args: List[Dict[str, Any]] = []) -> List[Dict[str, Any]]:
     """Collects the arguments passed to the child constructors in the inheritance tree.
 
     Args:
@@ -191,7 +189,7 @@ def collect_init_args(
     """
 
     # find innermost constructor call
-    while isinstance(frame, types.FrameType) and frame.f_code.co_name != '__init__':
+    while isinstance(frame, types.FrameType) and frame.f_code.co_name != "__init__":
         frame = frame.f_back
 
     # frame.f_back can be None, if there's no stretch of constructor calls on
@@ -206,9 +204,11 @@ def collect_init_args(
 
     # collect arguments from the stretch of constructor calls on the call stack
     # that construct obj
-    while isinstance(frame.f_back, types.FrameType) and \
-          frame.f_code.co_name == '__init__' and \
-          _extract_self_from_frame(frame) is obj:
+    while (
+        isinstance(frame.f_back, types.FrameType)
+        and frame.f_code.co_name == "__init__"
+        and _extract_self_from_frame(frame) is obj
+    ):
         local_args = get_init_args(frame)
         path_args.append(local_args)
         frame = frame.f_back
