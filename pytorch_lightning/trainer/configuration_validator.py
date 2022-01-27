@@ -58,7 +58,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
     # TODO: Remove this in v1.8
-    _check_on_configure_sharded_model(trainer, model)
+    _check_on_configure_sharded_model(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
