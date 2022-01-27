@@ -43,7 +43,7 @@ class SingleDeviceStrategy(Strategy):
 
     def execute(self, trainer, function, *args, **kwargs):
         executor = SingleProcessExecutor(self)
-        executor.execute(trainer, function, *args, **kwargs)
+        return executor.execute(trainer, function, *args, **kwargs)
 
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only

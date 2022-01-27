@@ -140,7 +140,7 @@ class DDPStrategy(ParallelStrategy):
         executor = (
             SingleProcessExecutor if self.cluster_environment.creates_processes_externally else DDPSubprocessExecutor
         )(self)
-        executor.execute(trainer, function, *args, **kwargs)
+        return executor.execute(trainer, function, *args, **kwargs)
 
     def setup_environment(self) -> None:
         self.setup_distributed()

@@ -150,7 +150,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def execute(self, trainer, function, *args, **kwargs):
         executor = DDPSpawnExecutor(self)
-        executor.execute(trainer, function, *args, **kwargs)
+        return executor.execute(trainer, function, *args, **kwargs)
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         """Spawn processes that run the given function.

@@ -247,7 +247,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def execute(self, trainer, fn, *args, **kwargs):
         executor = TPUSpawnExecutor(self)
-        executor.execute(trainer, fn, *args, **kwargs)
+        return executor.execute(trainer, fn, *args, **kwargs)
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
         raise MisconfigurationException("this should not run")

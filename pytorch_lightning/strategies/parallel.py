@@ -128,7 +128,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def execute(self, trainer, function, *args, **kwargs):
         executor = SingleProcessExecutor(self)
-        executor.execute(trainer, function, *args, **kwargs)
+        return executor.execute(trainer, function, *args, **kwargs)
 
     def teardown(self) -> None:
         self.cluster_environment.teardown()
