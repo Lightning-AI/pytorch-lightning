@@ -37,6 +37,7 @@ class DDPSubprocessExecutor(Executor):
 
     def execute(self, trainer, function, *args, **kwargs):
         self._call_children_scripts()
+        return function(*args, **kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
