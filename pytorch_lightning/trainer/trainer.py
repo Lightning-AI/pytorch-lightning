@@ -1770,9 +1770,9 @@ class Trainer(
 
         # automatically add samplers
         if isinstance(self.train_dataloader, CombinedLoader):
-            self.train_dataloader = self._data_connector._prepare_dataloader(self.train_dataloader,
-                                                                             shuffle=True, 
-                                                                             mode=RunningStage.TRAINING)
+            self.train_dataloader = self._data_connector._prepare_dataloader(
+                self.train_dataloader, shuffle=True, mode=RunningStage.TRAINING
+            )
             is_combined_loader = True
         else:
             self.train_dataloader = apply_to_collection(
