@@ -190,7 +190,7 @@ def collect_init_args(frame: types.FrameType, path_args: List[Dict[str, Any]] = 
     # Make mypy happy: frame cannot be used as iterator directly because its
     # declared static type doesn't allow it to be None
     frame_iter: Optional[types.FrameType] = frame
-    
+
     # find innermost constructor call
     while frame_iter is not None and frame_iter.f_code.co_name != "__init__":
         frame_iter = frame_iter.f_back
@@ -208,9 +208,9 @@ def collect_init_args(frame: types.FrameType, path_args: List[Dict[str, Any]] = 
     # collect arguments from the stretch of constructor calls on the call stack
     # that construct obj
     while (
-        frame_iter is not None and
-        frame_iter.f_code.co_name == "__init__" and
-        _extract_self_from_frame(frame_iter) is obj
+        frame_iter is not None
+        and frame_iter.f_code.co_name == "__init__"
+        and _extract_self_from_frame(frame_iter) is obj
     ):
         local_args = get_init_args(frame_iter)
         path_args.append(local_args)
