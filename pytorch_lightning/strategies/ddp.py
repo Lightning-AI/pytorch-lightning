@@ -31,7 +31,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -296,7 +296,7 @@ class DDPStrategy(ParallelStrategy):
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
         if _TORCH_GREATER_EQUAL_1_9 or (
-            _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
+            _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device
         ):
             register_ddp_comm_hook(
                 model=self.model,
@@ -351,9 +351,7 @@ class DDPStrategy(ParallelStrategy):
             )
             optimizers[x] = post_localSGD_optimizer
             del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        _convert_to_lightning_optimizers(trainer)
+        self.optimizers = optimizers
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
@@ -516,7 +514,7 @@ class DDPStrategy(ParallelStrategy):
         if self.sync_batchnorm:
             self.model = _revert_sync_batchnorm(self.model)
 
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()

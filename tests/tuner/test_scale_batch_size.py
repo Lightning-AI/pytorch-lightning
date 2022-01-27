@@ -92,7 +92,7 @@ def test_model_reset_correctly(tmpdir):
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"
 
-    assert not any(f for f in os.listdir(tmpdir) if f.startswith("scale_batch_size_temp_model"))
+    assert not any(f for f in os.listdir(tmpdir) if f.startswith(".scale_batch_size"))
 
 
 def test_trainer_reset_correctly(tmpdir):

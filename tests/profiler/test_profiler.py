@@ -16,6 +16,7 @@ import os
 import platform
 import time
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -197,6 +198,76 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
         trainer.test(model)
 
     assert caplog.text.count("Profiler Report") == 2
+
+
+@pytest.mark.parametrize("extended", [True, False])
+@patch("time.monotonic", return_value=70)
+def test_simple_profiler_summary(tmpdir, extended):
+    """Test the summary of `SimpleProfiler`."""
+    profiler = SimpleProfiler(extended=extended)
+    profiler.start_time = 63.0
+    hooks = [
+        "on_train_start",
+        "on_train_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_before_batch_transfer",
+        "on_fit_start",
+    ]
+    sometime = 0.773434
+    sep = os.linesep
+    max_action_len = len("on_before_batch_transfer")
+
+    for hook in hooks:
+        with profiler.profile(hook):
+            pass
+
+        profiler.recorded_durations[hook] = [sometime]
+
+    if extended:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Num calls':<15}\t|"
+            f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep_lines}{sep}"
+        )
+    else:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_end                 |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  0.77343              |"
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  0.77343              |"
+            f"{sep}|  on_fit_start                 |  0.77343              |  0.77343              |"
+            f"{sep_lines}{sep}"
+        )
+
+    summary = profiler.summary().expandtabs()
+    assert expected_text == summary
 
 
 @pytest.fixture
