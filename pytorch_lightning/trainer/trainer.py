@@ -71,7 +71,7 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
@@ -1769,26 +1769,35 @@ class Trainer(
             self.train_dataloader = self._data_connector._resolve_overfit_batches(self.train_dataloader)
 
         # automatically add samplers
-        self.train_dataloader = apply_to_collection(
-            self.train_dataloader,
-            DataLoader,
-            self._data_connector._prepare_dataloader,
-            shuffle=True,
-            mode=RunningStage.TRAINING,
-        )
+        if isinstance(self.train_dataloader, CombinedLoader):
+            self.train_dataloader = self._data_connector._prepare_dataloader(self.train_dataloader,
+                                                                             shuffle=True, 
+                                                                             mode=RunningStage.TRAINING)
+            is_combined_loader = True
+        else:
+            self.train_dataloader = apply_to_collection(
+                self.train_dataloader,
+                DataLoader,
+                self._data_connector._prepare_dataloader,
+                shuffle=True,
+                mode=RunningStage.TRAINING,
+            )
+            is_combined_loader = False
+        loaders = self.train_dataloader.loaders if is_combined_loader else self.train_dataloader
 
         # check the workers recursively
-        apply_to_collection(self.train_dataloader, DataLoader, self._data_connector._worker_check, "train_dataloader")
+        apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
+        apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
-            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
+            apply_to_collection(loaders, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
+        if not is_combined_loader:
+            self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
         self.num_training_batches = (
