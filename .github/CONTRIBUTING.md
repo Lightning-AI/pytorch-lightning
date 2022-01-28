@@ -175,7 +175,8 @@ git submodule update --init --recursive
 pip install -r requirements/docs.txt
 make clean
 cd docs
-make html  # You could disable copying notebooks by running `SHOULD_COPY_NOTEBOOKS=0 make html`
+make html  # build docs
+PL_SHOULD_COPY_NOTEBOOKS=0 make html  # build docs without notebooks
 ```
 
 and open `docs/build/html/index.html` in your browser.
