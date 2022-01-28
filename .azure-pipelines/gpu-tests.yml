@@ -51,7 +51,7 @@ jobs:
     - bash: |
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale==0.4.0
-        pip install deepspeed==0.5.4
+        pip install deepspeed==0.5.7
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
@@ -72,10 +72,10 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
-        bash tests/special_tests.sh
+        bash tests/standalone_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Testing: special'
+      displayName: 'Testing: standalone'
 
     - bash: |
         python -m coverage report

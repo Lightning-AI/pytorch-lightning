@@ -102,15 +102,14 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             )
 
             # manually capture logged metrics
-            lightning_module._current_fx_name = "training_step"
-            with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
-                self.trainer.training_type_plugin.post_training_step()
+            training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+            self.trainer.strategy.post_training_step()
 
             del step_kwargs
 
-            training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
-
+            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+            strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+            training_step_output = strategy_output if model_output is None else model_output
             self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
             result = self.output_result_cls.from_training_step_output(training_step_output)

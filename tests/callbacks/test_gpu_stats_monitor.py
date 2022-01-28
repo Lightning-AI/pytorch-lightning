@@ -41,7 +41,8 @@ def test_gpu_stats_monitor(tmpdir):
         max_epochs=2,
         limit_train_batches=7,
         log_every_n_steps=log_every_n_steps,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[gpu_stats],
         logger=logger,
     )
@@ -79,13 +80,14 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         log_every_n_steps=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[gpu_stats],
     )
     with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
         trainer.fit(model)
 
-    assert log_metrics_mock.mock_calls[2:] == [
+    assert log_metrics_mock.mock_calls[1:] == [
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=0),
         mock.call({"batch_time/inter_step (ms)": mock.ANY}, step=1),
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=1),
@@ -108,7 +110,9 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, gpus=1, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, accelerator="gpu", devices=1, logger=False
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)

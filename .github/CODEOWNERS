@@ -32,6 +32,7 @@
 /pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
 /pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
 /pytorch_lightning/profiler/pytorch.py  @nbcsm @guotuofeng
+/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
 /pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 /pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
 /pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
@@ -52,6 +53,7 @@
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
 /.github/CODEOWNERS              @williamfalcon
+/SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
 /setup.py                        @williamfalcon @borda
 /pytorch_lightning/__about__.py  @williamfalcon @borda

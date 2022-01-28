@@ -31,6 +31,10 @@ class BaseProgress:
         obj.load_state_dict(state_dict)
         return obj
 
+    def reset(self) -> None:
+        """Reset the object's state."""
+        raise NotImplementedError
+
 
 @dataclass
 class ReadyCompletedTracker(BaseProgress):
@@ -148,7 +152,8 @@ class Progress(BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
-    def reset_on_epoch(self) -> None:
+    def reset(self) -> None:
+        self.total.reset()
         self.current.reset()
 
     def reset_on_run(self) -> None:
@@ -184,12 +189,16 @@ class BatchProgress(Progress):
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
     Args:
-        total: Tracks the total dataloader progress.
-        current: Tracks the current dataloader progress.
+        total: Tracks the total batch progress.
+        current: Tracks the current batch progress.
         is_last_batch: Whether the batch is the last one. This is useful for iterable datasets.
     """
 
     is_last_batch: bool = False
+
+    def reset(self) -> None:
+        super().reset()
+        self.is_last_batch = False
 
     def reset_on_run(self) -> None:
         super().reset_on_run()
@@ -227,6 +236,10 @@ class OptimizerProgress(BaseProgress):
     step: Progress = field(default_factory=lambda: Progress.from_defaults(ReadyCompletedTracker))
     zero_grad: Progress = field(default_factory=lambda: Progress.from_defaults(StartedTracker))
 
+    def reset(self) -> None:
+        self.step.reset()
+        self.zero_grad.reset()
+
     def reset_on_run(self) -> None:
         self.step.reset_on_run()
         self.zero_grad.reset_on_run()
@@ -260,8 +273,13 @@ class OptimizationProgress(BaseProgress):
     def optimizer_steps(self) -> int:
         return self.optimizer.step.total.completed
 
+    def reset(self) -> None:
+        self.optimizer.reset()
+        self.optimizer_position = 0
+
     def reset_on_run(self) -> None:
         self.optimizer.reset_on_run()
+        self.optimizer_position = 0
 
     def reset_on_restart(self) -> None:
         self.optimizer.reset_on_restart()

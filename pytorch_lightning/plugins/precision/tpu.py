@@ -27,6 +27,8 @@ if _XLA_AVAILABLE:
 
 
 class TPUPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for TPU integration."""
+
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],

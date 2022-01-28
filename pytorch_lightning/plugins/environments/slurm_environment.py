@@ -38,21 +38,6 @@ class SLURMEnvironment(ClusterEnvironment):
     def creates_processes_externally(self) -> bool:
         return True
 
-    @staticmethod
-    def job_id() -> Optional[int]:
-        job_id = os.environ.get("SLURM_JOB_ID")
-        if job_id:
-            try:
-                job_id = int(job_id)
-            except ValueError:
-                job_id = None
-
-        # in interactive mode, don't make logs use the same job id
-        in_slurm_interactive_mode = os.environ.get("SLURM_JOB_NAME") == "bash"
-        if in_slurm_interactive_mode:
-            job_id = None
-        return job_id
-
     @property
     def main_address(self) -> str:
         # figure out the root node addr
@@ -73,10 +58,10 @@ class SLURMEnvironment(ClusterEnvironment):
         # SLURM JOB = PORT number
         # -----------------------
         # this way every process knows what port to use
-        default_port = os.environ.get("SLURM_JOB_ID")
-        if default_port:
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id is not None:
             # use the last 4 numbers in the job id as the id
-            default_port = default_port[-4:]
+            default_port = job_id[-4:]
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
         else:
@@ -87,18 +72,36 @@ class SLURMEnvironment(ClusterEnvironment):
         # -----------------------
         # in case the user passed it in
         if "MASTER_PORT" in os.environ:
-            default_port = os.environ["MASTER_PORT"]
+            default_port = int(os.environ["MASTER_PORT"])
         else:
             os.environ["MASTER_PORT"] = str(default_port)
 
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
-
-        return int(default_port)
+        return default_port
 
     @staticmethod
     def detect() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster."""
         return "SLURM_NTASKS" in os.environ
+
+    @staticmethod
+    def job_name() -> Optional[str]:
+        return os.environ.get("SLURM_JOB_NAME")
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = SLURMEnvironment.job_name() == "bash"
+        if in_slurm_interactive_mode:
+            return None
+
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id is None:
+            return None
+        try:
+            return int(job_id)
+        except ValueError:
+            return None
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])

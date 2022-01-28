@@ -2,11 +2,13 @@
 
     from pytorch_lightning.core.lightning import LightningModule
 
+#################
 Transfer Learning
------------------
+#################
 
+***********************
 Using Pretrained Models
-^^^^^^^^^^^^^^^^^^^^^^^
+***********************
 
 Sometimes we want to use a LightningModule as a pretrained model. This is fine because
 a LightningModule is just a `torch.nn.Module`!
@@ -44,8 +46,8 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 We used our pretrained Autoencoder (a LightningModule) for transfer learning!
 
-Example: Imagenet (computer Vision)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Example: Imagenet (Computer Vision)
+===================================
 
 .. testcode::
     :skipif: not _TORCHVISION_AVAILABLE
@@ -96,7 +98,8 @@ We used a pretrained model on imagenet, finetuned on CIFAR-10 to predict on CIFA
 In the non-academic world we would finetune on a tiny dataset you have and predict on your dataset.
 
 Example: BERT (NLP)
-^^^^^^^^^^^^^^^^^^^
+===================
+
 Lightning is completely agnostic to what's used for transfer learning so long
 as it is a `torch.nn.Module` subclass.
 

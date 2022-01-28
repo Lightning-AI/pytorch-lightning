@@ -40,7 +40,7 @@ def test_lr_monitor_single_lr(tmpdir):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
 
 
@@ -76,7 +76,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     trainer.fit(model)
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
@@ -103,7 +103,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         trainer.fit(model)
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
@@ -237,7 +237,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     trainer.fit(model)
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
@@ -316,7 +316,7 @@ def test_lr_monitor_param_groups(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
 

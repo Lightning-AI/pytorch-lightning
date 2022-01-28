@@ -18,20 +18,22 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import XLAProfiler
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TPU_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if _TPU_AVAILABLE:
-    import torch_xla.debug.profiler as xp
     import torch_xla.utils.utils as xu
+
+    if _TORCH_GREATER_EQUAL_1_8:
+        import torch_xla.debug.profiler as xp
 
 
 @RunIf(tpu=True)
 def test_xla_profiler_instance(tmpdir):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", tpu_cores=8)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices=8)
 
     assert isinstance(trainer.profiler, XLAProfiler)
     trainer.fit(model)
@@ -46,7 +48,7 @@ def test_xla_profiler_prog_capture(tmpdir):
 
     def train_worker():
         model = BoringModel()
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, profiler="xla", tpu_cores=8)
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=4, profiler="xla", accelerator="tpu", devices=8)
 
         trainer.fit(model)
 

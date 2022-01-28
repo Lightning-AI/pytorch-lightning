@@ -17,15 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
         python-version: ["3.7", "3.9"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
-        include:
-          # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
-          - {os: ubuntu-18.04, python-version: "3.6", requires: "oldest", release: "stable"}
-          - {os: windows-2019, python-version: "3.6", requires: "oldest", release: "stable"}
-          - {os: macOS-10.15, python-version: "3.6", requires: "oldest", release: "stable"}
+        exclude:
+          # Skip if torch<1.8 and py3.9 on Linux: https://github.com/pytorch/pytorch/issues/50014
+          - {os: ubuntu-20.04, python-version: "3.9", requires: "oldest"}
+        #include:
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 

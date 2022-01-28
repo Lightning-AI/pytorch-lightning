@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities related to data saving/loading."""
 
 import io
 from pathlib import Path
@@ -27,6 +28,12 @@ def load(
         Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
     ] = None,
 ) -> Any:
+    """Loads a checkpoint.
+
+    Args:
+        path_or_url: Path or URL of the checkpoint.
+        map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+    """
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)

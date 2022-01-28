@@ -31,7 +31,7 @@ _SHOULD_COPY_NOTEBOOKS = bool(int(os.getenv("PL_SHOULD_COPY_NOTEBOOKS", 1)))
 
 if _SHOULD_COPY_NOTEBOOKS:
     try:
-        from helpers import HelperCLI
+        from assistant import AssistantCLI
     except ImportError:
         _SHOULD_COPY_NOTEBOOKS = False
         warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
@@ -47,7 +47,9 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
-    HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_HERE, "notebooks")
+    AssistantCLI.copy_notebooks(
+        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+    )
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -274,6 +276,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
+    "fairscale": ("https://fairscale.readthedocs.io/en/latest/", None),
+    "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------

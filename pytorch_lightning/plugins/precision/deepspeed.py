@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -34,9 +34,11 @@ warning_cache = WarningCache()
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration."""
 
-    def __init__(self, precision: int) -> None:
+    def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
         super().__init__()
         self.precision = precision
+        self.amp_type = amp_type
+        self.amp_level = amp_level
 
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
@@ -47,7 +49,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: DeepSpeedEngine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional["DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
+        if model is None:
+            raise ValueError("Please provide the model as input to `backward`.")
         model.backward(tensor, *args, **kwargs)
 
     def optimizer_step(
