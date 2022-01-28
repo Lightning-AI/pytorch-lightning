@@ -1789,7 +1789,7 @@ class Trainer(
             apply_to_collection(loaders, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        if not isinstance(self.train_dataloader, CombinedLoader):
+        if not is_combined_loader:
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
