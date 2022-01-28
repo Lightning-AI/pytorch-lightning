@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed
+from omegaconf import OmegaConf
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -432,3 +433,27 @@ class DDPStrategy(ParallelStrategy):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+        if _HYDRA_AVAILABLE:
+            if HydraConfig.initialized():
+                hydra_cfg = HydraConfig.get()
+
+                # check if we are in multirun mode
+                if not OmegaConf.is_missing(hydra_cfg.job, "num"):
+                    # shutdown any distributed process groups
+                    if torch.distributed.is_initialized():
+                        torch.distributed.destroy_process_group()
+
+                    # Remove PL environments so next multirun starts fresh
+                    envs = (
+                        "LOCAL_RANK",
+                        "NODE_RANK",
+                        "WORLD_SIZE",
+                        "MASTER_ADDR",
+                        "MASTER_PORT",
+                        "PL_GLOBAL_SEED",
+                        "PL_SEED_WORKERS",
+                    )
+
+                    for name in envs:
+                        os.environ.pop(name, None)

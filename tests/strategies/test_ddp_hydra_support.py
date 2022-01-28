@@ -5,8 +5,16 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch.distributed
+from hydra._internal.callbacks import Callbacks
+from hydra._internal.hydra import Hydra
+from hydra._internal.utils import create_config_search_path
+from hydra.types import HydraContext, RunMode
+from hydra.utils import instantiate
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
+from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
@@ -37,6 +45,7 @@ def run_process(cmd):
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write(f"Subprocess error:\n{stderr}\n")
+            sys.stderr.write(f"Subprocess stdout:\n{stdout}\n")
             raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
         return stdout, stderr
     except Exception as e:
@@ -47,14 +56,10 @@ def run_process(cmd):
 
 # Script to run from command line
 script = """
-import os
-
 import hydra
 import torch
-from torch import distributed as dist
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.strategies import DDPStrategy
 from tests.helpers.boring_model import BoringModel
 
 
@@ -70,24 +75,6 @@ def task_fn(cfg):
     trainer = Trainer(gpus=cfg.gpus, strategy=cfg.strategy, fast_dev_run=True)
     model = BoringModelGPU()
     trainer.fit(model)
-
-    # Need to do this in addition to Lightning shutting down the
-    # distributed processes in order to run a multirun loop with hydra
-    if dist.is_initialized():
-        dist.destroy_process_group()
-
-    envs = (
-        "LOCAL_RANK",
-        "NODE_RANK",
-        "WORLD_SIZE",
-        "MASTER_ADDR",
-        "MASTER_PORT",
-        "PL_GLOBAL_SEED",
-        "PL_SEED_WORKERS",
-    )
-
-    for name in envs:
-        os.environ.pop(name, None)
 
 
 if __name__ == "__main__":
@@ -160,3 +147,59 @@ def test_ddp_with_hydra_multirunjob(gpus, num_jobs):
 
     logs = list(Path.cwd().glob("**/train_ddp_process_1.log"))
     assert len(logs) == num_jobs * (gpus - 1)
+
+
+def task_fn(cfg):
+    trainer = Trainer(gpus=1, strategy="ddp", fast_dev_run=True)
+    model = BoringModel()
+    trainer.fit(model)
+
+
+def run_hydra_sweeper():
+    """Runs Hydra sweeper as a function (rather than CLI) so we can test teardown"""
+    search_path = create_config_search_path(None)
+    hydra = Hydra.create_main_hydra2(task_name="pytest", config_search_path=search_path)
+
+    cfg = hydra.compose_config(
+        config_name=None,
+        overrides=[],
+        with_log_configuration=False,
+        run_mode=RunMode.MULTIRUN,
+    )
+
+    callbacks = Callbacks(cfg)
+    # Instantiate sweeper without using Hydra's Plugin discovery (Zen!)
+    sweeper = instantiate(cfg.hydra.sweeper)
+    sweeper.setup(
+        config=cfg,
+        hydra_context=HydraContext(config_loader=hydra.config_loader, callbacks=callbacks),
+        task_function=task_fn,
+    )
+
+    return sweeper.sweep(arguments=[])
+
+
+@RunIf(skip_windows=True, min_gpus=2)
+@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
+@pytest.mark.usefixtures("cleandir")
+def test_ddp_teardown_with_hydra():
+    job = run_hydra_sweeper()
+    assert len(job) == 1
+
+    # Make sure DDPPlugin.teardown executed
+    #  - torch.distributed should be shutdown
+    #  - PL environment variables are removed
+    assert not torch.distributed.is_initialized()
+
+    envs = (
+        "LOCAL_RANK",
+        "NODE_RANK",
+        "WORLD_SIZE",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        "PL_GLOBAL_SEED",
+        "PL_SEED_WORKERS",
+    )
+
+    for name in envs:
+        assert name not in os.environ
