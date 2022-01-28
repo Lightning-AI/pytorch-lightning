@@ -51,7 +51,9 @@ There are a few ways to pass multiple Datasets to Lightning:
 
 1. Create a DataLoader that iterates over multiple Datasets under the hood.
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
-   will automatically combine the batches from different DataLoaders.
+   will automatically combine the batches from different DataLoaders. You can control the way how dataloaders of different length
+   are combined by the flag `multiple_trainloader_mode` of the :class:`~pytorch_lightning.trainer.Trainer`. Alternatively, you can provide
+   a dataloader via :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
 3. In the validation, test or prediction you have the option to either return multiple DataLoaders as list/tuple, which Lightning will call sequentially,
    or combine the dataloaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
    automatically combine the batches from different DataLoaders.

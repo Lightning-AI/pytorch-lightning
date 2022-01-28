@@ -1771,7 +1771,7 @@ class Trainer(
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
             self.train_dataloader,
-            DataLoader,
+            (DataLoader, CombinedLoader),
             self._data_connector._prepare_dataloader,
             shuffle=True,
             mode=RunningStage.TRAINING,
