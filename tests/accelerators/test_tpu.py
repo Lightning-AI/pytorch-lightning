@@ -13,7 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import TPUPrecisionPlugin, XLACheckpointIO
+from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -90,10 +90,7 @@ def test_accelerator_tpu():
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `tpu_cores` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="tpu")
+    trainer = Trainer(accelerator="tpu")
 
 
 @RunIf(tpu=True)
@@ -290,7 +287,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises():
-    training_type_plugin = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=Mock())
+    training_type_plugin = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=training_type_plugin)
 
@@ -301,7 +298,7 @@ def test_tpu_invalid_raises():
 
 def test_tpu_invalid_raises_set_precision_with_strategy():
     accelerator = TPUAccelerator()
-    training_type_plugin = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=object())
+    training_type_plugin = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
         Trainer(strategy=training_type_plugin)
 
