@@ -23,7 +23,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed
-from omegaconf import OmegaConf
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 

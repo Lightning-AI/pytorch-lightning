@@ -6,11 +6,6 @@ from pathlib import Path
 
 import pytest
 import torch.distributed
-from hydra._internal.callbacks import Callbacks
-from hydra._internal.hydra import Hydra
-from hydra._internal.utils import create_config_search_path
-from hydra.types import HydraContext, RunMode
-from hydra.utils import instantiate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
@@ -18,6 +13,11 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
+    from hydra._internal.callbacks import Callbacks
+    from hydra._internal.hydra import Hydra
+    from hydra._internal.utils import create_config_search_path
+    from hydra.types import HydraContext, RunMode
+    from hydra.utils import instantiate
     from omegaconf import OmegaConf
 
 
