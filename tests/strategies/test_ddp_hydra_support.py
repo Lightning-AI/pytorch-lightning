@@ -156,7 +156,7 @@ def task_fn(cfg):
 
 
 def run_hydra_sweeper():
-    """Runs Hydra sweeper as a function (rather than CLI) so we can test teardown"""
+    """Runs Hydra sweeper as a function (rather than CLI) so we can test teardown."""
     search_path = create_config_search_path(None)
     hydra = Hydra.create_main_hydra2(task_name="pytest", config_search_path=search_path)
 
