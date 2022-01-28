@@ -46,7 +46,7 @@ Here's a LightningModule that defines a model. Although, we do not recommend to 
             self.layer_2 = nn.Linear()
             self.layer_3 = nn.Linear()
 
-Here's a LightningModule that defines a system. This is how we recommend.
+Here's a LightningModule that defines a system. This structure is what we recommend as a best practice.
 
 .. testcode::
 
