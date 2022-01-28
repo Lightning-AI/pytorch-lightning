@@ -1776,7 +1776,11 @@ class Trainer(
             shuffle=True,
             mode=RunningStage.TRAINING,
         )
-        loaders = self.train_dataloader.loaders if isinstance(self.train_dataloader, CombinedLoader) else self.train_dataloader
+        loaders = (
+            self.train_dataloader.loaders
+            if isinstance(self.train_dataloader, CombinedLoader)
+            else self.train_dataloader
+        )
 
         # check the workers recursively
         apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
