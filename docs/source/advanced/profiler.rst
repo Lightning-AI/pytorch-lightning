@@ -235,7 +235,7 @@ The following instructions are for capturing traces from a running program:
 help you with the Cloud TPU setup with the required installations.
 
 1. Start a `TensorBoard <https://www.tensorflow.org/tensorboard>`_ server. You could view the TensorBoard output at ``http://localhost:9001`` on your local machine, and then open the
-``PROFILE`` plugin from the top right dropdown or open http://localhost:9001/#profile
+``PROFILE`` plugin from the top right dropdown or open ``http://localhost:9001/#profile``
 
 .. code-block:: bash
 
