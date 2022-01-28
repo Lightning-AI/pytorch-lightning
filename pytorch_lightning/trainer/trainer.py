@@ -1769,21 +1769,14 @@ class Trainer(
             self.train_dataloader = self._data_connector._resolve_overfit_batches(self.train_dataloader)
 
         # automatically add samplers
-        if isinstance(self.train_dataloader, CombinedLoader):
-            self.train_dataloader = self._data_connector._prepare_dataloader(
-                self.train_dataloader, shuffle=True, mode=RunningStage.TRAINING
-            )
-            is_combined_loader = True
-        else:
-            self.train_dataloader = apply_to_collection(
-                self.train_dataloader,
-                DataLoader,
-                self._data_connector._prepare_dataloader,
-                shuffle=True,
-                mode=RunningStage.TRAINING,
-            )
-            is_combined_loader = False
-        loaders = self.train_dataloader.loaders if is_combined_loader else self.train_dataloader
+        self.train_dataloader = apply_to_collection(
+            self.train_dataloader,
+            DataLoader,
+            self._data_connector._prepare_dataloader,
+            shuffle=True,
+            mode=RunningStage.TRAINING,
+        )
+        loaders = self.train_dataloader.loaders if isinstance(self.train_dataloader, CombinedLoader) else self.train_dataloader
 
         # check the workers recursively
         apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
