@@ -455,8 +455,8 @@ def test_accelerator_cpu(mack_gpu_avalible):
 
     with pytest.raises(MisconfigurationException):
         trainer = Trainer(gpus=1)
-    with pytest.raises(MisconfigurationException):
-        trainer = Trainer(accelerator="gpu")
+    # with pytest.raises(MisconfigurationException):
+    #     trainer = Trainer(accelerator="gpu")
 
     with pytest.raises(MisconfigurationException, match="You requested GPUs:"):
         trainer = Trainer(accelerator="cpu", gpus=1)

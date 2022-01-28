@@ -154,9 +154,9 @@ class AcceleratorConnector:
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._choose_accelerator()
-        else:
-            #     # [RFC] move to XAccelerator class init?
-            self._check_device_availibility()
+        # else:
+        #     # [RFC] move to XAccelerator class init?
+        #     self._check_device_availibility()
         self._set_parallel_devices_and_init_accelerator()
 
         # --Cluster_environment-----------------------------------------------------
@@ -400,16 +400,16 @@ class AcceleratorConnector:
             self._accelerator_flag = "cpu"
 
     # TODO move this to xAccelerator
-    def _check_device_availibility(self):
-        for accelerator_flag, available in zip(
-            self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, torch.cuda.is_available(), True]
-        ):
-            # only apply to gpu to keep backward compatibility
-            if self._accelerator_flag == accelerator_flag == "gpu":
-                if not available:
-                    raise MisconfigurationException(
-                        f"You choice {accelerator_flag} accelerator, but {accelerator_flag} is not available"
-                    )
+    # def _check_device_availibility(self):
+    #     for accelerator_flag, available in zip(
+    #         self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, torch.cuda.is_available(), True]
+    #     ):
+    #         # only apply to gpu to keep backward compatibility
+    #         if self._accelerator_flag == accelerator_flag == "gpu":
+    #             if not available:
+    #                 raise MisconfigurationException(
+    #                     f"You choice {accelerator_flag} accelerator, but {accelerator_flag} is not available"
+    #                 )
 
     def _set_parallel_devices_and_init_accelerator(self):
         self._parallel_devices = []
