@@ -22,7 +22,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
     CombinedDataset,
