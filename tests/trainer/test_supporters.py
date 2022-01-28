@@ -437,25 +437,31 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 @pytest.mark.parametrize("is_min_size_mode", [False, True])
 @pytest.mark.parametrize("use_combined_loader", [False, True])
-def test_combined_dataloader_for_training_with_ddp(replace_sampler_ddp: bool,
-                                                   is_min_size_mode: bool,
-                                                   use_combined_loader: bool):
-    """
-    When providing a CombinedLoader as the training data, it should be correctly receive the distributed samplers.
-    """
+def test_combined_dataloader_for_training_with_ddp(
+    replace_sampler_ddp: bool, is_min_size_mode: bool, use_combined_loader: bool
+):
+    """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
+    samplers."""
     mode = "min_size" if is_min_size_mode else "max_size_cycle"
     dim = 3
     n1 = 8
     n2 = 6
-    dataloader = {"a": DataLoader(RandomDataset(dim, n1), batch_size=1), 
-                  "b": DataLoader(RandomDataset(dim, n2), batch_size=1)}
+    dataloader = {
+        "a": DataLoader(RandomDataset(dim, n1), batch_size=1),
+        "b": DataLoader(RandomDataset(dim, n2), batch_size=1),
+    }
     if use_combined_loader:
         dataloader = CombinedLoader(dataloader, mode=mode)
     expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
     expected_length_after_ddp = expected_length_before_ddp // 2 if replace_sampler_ddp else expected_length_before_ddp
     model = BoringModel()
-    trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp,
-                      multiple_trainloader_mode="max_size_cycle" if use_combined_loader else mode)
+    trainer = Trainer(
+        strategy="ddp",
+        accelerator="auto",
+        devices=2,
+        replace_sampler_ddp=replace_sampler_ddp,
+        multiple_trainloader_mode="max_size_cycle" if use_combined_loader else mode,
+    )
     trainer._data_connector.attach_data(
         model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
     )
