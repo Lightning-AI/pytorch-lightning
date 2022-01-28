@@ -445,15 +445,17 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.strategy, plugin)
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't require GPU")
-def test_accelerator_cpu():
+@mock.patch("torch.cuda.is_available", return_value=False)
+def test_accelerator_cpu(mack_gpu_avalible):
 
     trainer = Trainer(accelerator="cpu")
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(gpus=1)
+    with pytest.raises(MisconfigurationException):
         trainer = Trainer(accelerator="gpu")
 
     with pytest.raises(MisconfigurationException, match="You requested GPUs:"):
