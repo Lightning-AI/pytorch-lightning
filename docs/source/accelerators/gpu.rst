@@ -36,6 +36,11 @@ Lightning supports multiple ways of doing distributed training.
 
 |
 
+Model Parallel Training
+-----------------------
+
+Check out the :ref:`Model Parallel Guide <model_parallel>` documentation.
+
 ----------
 
 Preparing your code
