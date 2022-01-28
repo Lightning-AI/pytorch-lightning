@@ -226,7 +226,7 @@ workload performance for your models using Cloud TPU performance tools.
     trainer = Trainer(..., profiler=profiler)
 
 
-Manual capture via TensorBoard
+Manual Capture via TensorBoard
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following instructions are for capturing traces from a running program:
