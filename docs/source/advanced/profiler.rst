@@ -222,7 +222,7 @@ workload performance for your models using Cloud TPU performance tools.
     # or by passing an instance
     from pytorch_lightning.profiler import XLAProfiler
 
-    profiler = XLAProfiler(port=9012)
+    profiler = XLAProfiler(port=9001)
     trainer = Trainer(..., profiler=profiler)
 
 
@@ -242,7 +242,7 @@ help you with the Cloud TPU setup with the required installations.
     tensorboard --logdir ./tensorboard --port 9001
 
 2. Once the code you'd like to profile is running, click on the ``CAPTURE PROFILE`` button. Enter
-``localhost:9012`` (default port for XLA Profiler) as the Profile Service URL. Then, enter
+``localhost:9001`` (default port for XLA Profiler) as the Profile Service URL. Then, enter
 the number of milliseconds for the profiling duration, and click ``CAPTURE``
 
 3. Make sure the code is running while you are trying to capture the traces. Also, it would lead to better
