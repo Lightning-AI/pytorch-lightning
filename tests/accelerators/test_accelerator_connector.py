@@ -575,8 +575,10 @@ def test_set_devices_if_none_gpu():
 
 def test_devices_with_cpu_only_supports_integer():
 
-    with pytest.raises(MisconfigurationException, match="The flag `devices` must be an int"):
-        Trainer(accelerator="cpu", devices="1,3")
+    with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
+        trainer = Trainer(accelerator="cpu", devices="1,3")
+        assert isinstance(trainer.accelerator, CPUAccelerator)
+        assert trainer.devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])

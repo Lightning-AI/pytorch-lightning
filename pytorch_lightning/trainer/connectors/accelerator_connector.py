@@ -133,6 +133,8 @@ class AcceleratorConnector:
 
         """
         torch.backends.cudnn.benchmark = benchmark
+        self.replace_sampler_ddp = replace_sampler_ddp
+        self.sync_batchnorm = sync_batchnorm
 
         # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
@@ -174,8 +176,6 @@ class AcceleratorConnector:
 
         # --Strategy Part 2 : init Strategy and set Strategy properties -------------
         self._lazy_init_strategy()
-
-        self.replace_sampler_ddp = replace_sampler_ddp
 
     def _config_check_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level):
         """This method checks:
@@ -295,29 +295,29 @@ class AcceleratorConnector:
 
         # if user pass in a strategy class which has accelerator, precision, checkpoint or cluster env set up
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
-            if self._strategy_flag.accelerator:
+            if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
                     raise MisconfigurationException(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
                 else:
-                    self._accelerator_flag = self._strategy_flag.accelerator
-            if self._strategy_flag.precision_plugin:
+                    self._accelerator_flag = self._strategy_flag._accelerator
+            if self._strategy_flag._precision_plugin:
                 # precision has default value 32, we can not tell whether user set it or not
                 # [RFC] remove default from trainer?
                 # if self._precision_flag:
                 #     raise MisconfigurationException("precision set through both strategy class and flags,
                 #     choose one place to set")
                 # else:
-                self._precision_flag = self._strategy_flag.precision_plugin
-            if self._strategy_flag.checkpoint_io:
+                self._precision_flag = self._strategy_flag._precision_plugin
+            if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise MisconfigurationException(
                         "checkpoint_io set through both strategy class and plugins, choose one"
                     )
                 else:
-                    self.checkpoint_io = self._strategy_flag.checkpoint_io
-            if getattr(self._strategy_flag, "cluster_environment", None):
+                    self.checkpoint_io = self._strategy_flag._checkpoint_io
+            if getattr(self._strategy_flag, "_cluster_environment", None):
                 if self._cluster_environment:
                     raise MisconfigurationException(
                         "cluster_environment set through both strategy class and plugins, choose one"
@@ -343,6 +343,9 @@ class AcceleratorConnector:
         self._device_flag = devices
         # Delete when remove num_processes, gpus, ipus and tpu_cores
         self._gpus = gpus
+        self._tpu_cores = tpu_cores
+        gpus = device_parser.parse_gpu_ids(gpus)
+        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
             self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
@@ -365,7 +368,7 @@ class AcceleratorConnector:
                 f"The flag `devices={devices}` will be ignored, "
                 f"instand the device specific number {deprecated_devices_specific_flag} will be used"
             )
-        gpus = int(gpus) if isinstance(gpus, str) and gpus.isnumeric() else gpus
+
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
             True
         ) > 1:
@@ -447,12 +450,13 @@ class AcceleratorConnector:
             self.accelerator = CPUAccelerator()
             if self._device_flag == "auto" or not self._device_flag:
                 self._device_flag = CPUAccelerator.auto_device_count()
-            if not isinstance(self._device_flag, int):
-                raise MisconfigurationException(
+            if isinstance(self._device_flag, int):
+                self._parallel_devices = [torch.device("cpu")] * self._device_flag
+            else:
+                rank_zero_warn(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
                     f" got `devices={self._device_flag}` instead."
                 )
-            self._parallel_devices = [torch.device("cpu")] * self._device_flag
 
         self._gpus = self._device_flag if not self._gpus else self._gpus
 
@@ -549,7 +553,6 @@ class AcceleratorConnector:
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:
             self.strategy = self._strategy_flag
-        # print(self.strategy)
 
     def _check_capatibility_and_init_precision(self):
         self._precision_misconfig_check()
@@ -625,8 +628,7 @@ class AcceleratorConnector:
             and not isinstance(self._precision_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin))
         ):
             raise ValueError(
-                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
-                f" found: {self.strategy.precision_plugin}."
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`," f" found: {self._precision_flag}."
             )
         if (
             self._precision_flag == 16
@@ -660,6 +662,8 @@ class AcceleratorConnector:
             self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
+        if hasattr(self.strategy, "sync_batchnorm"):
+            self.strategy.sync_batchnorm = self.sync_batchnorm
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
