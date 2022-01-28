@@ -113,8 +113,10 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
 ]
+
+if _SHOULD_COPY_NOTEBOOKS:
+    extensions.append("pt_lightning_sphinx_theme.extensions.lightning_tutorials")
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
 suppress_warnings = [
