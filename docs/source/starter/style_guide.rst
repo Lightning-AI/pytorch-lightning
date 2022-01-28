@@ -3,7 +3,7 @@ Style Guide
 ###########
 
 A main goal of Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a lightning module, and knowing exactly where to look to find the things you care about.
+finding a :class:`~pytorch_lightning.core.lightning.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
