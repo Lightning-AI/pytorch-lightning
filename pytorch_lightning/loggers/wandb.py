@@ -315,7 +315,7 @@ class WandbLogger(LightningLoggerBase):
         # args needed to reload correct experiment
         if self._experiment is not None:
             state["_id"] = getattr(self._experiment, "id", None)
-            state["_attach_id"] = getattr(self._experiment, "id", None)
+            state["_attach_id"] = getattr(self._experiment, "_attach_id", None)
             state["_name"] = self._experiment.project_name()
 
         # cannot be pickled
