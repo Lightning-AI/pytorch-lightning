@@ -170,6 +170,8 @@ class AcceleratorConnector:
         # Reset strategy even user has specificed one
         self._strategy_check_and_fallbacks()
         self._init_strategy()
+        if _HOROVOD_AVAILABLE and isinstance(self.strategy, HorovodStrategy):
+            self.handle_horovod
 
         # --Precision----------------------------------------------------------------
         self.precision_plugin = self._check_capatibility_and_init_precision()
@@ -530,7 +532,7 @@ class AcceleratorConnector:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
                 )
-        if "ddp_spawn" in _strategy_flag and (
+        if _strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
             _strategy_flag = "ddp"
@@ -553,6 +555,28 @@ class AcceleratorConnector:
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         else:
             self.strategy = self._strategy_flag
+
+    def handle_horovod(self):
+        if self._num_nodes_flag > 1:
+            raise MisconfigurationException(
+                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
+                "horovodrun / mpirun to configure the number of processes."
+            )
+
+        if isinstance(self.strategy, HorovodStrategy) and not _HOROVOD_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested `accelerator="horovod"`, but Horovod is not installed.'
+                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
+            )
+
+        import horovod.torch as hvd
+
+        hvd.init()
+        if isinstance(self.accelerator, GPUAccelerator):
+            # Horovod assigns one local GPU per process
+            self._parallel_device = list(range(hvd.local_size()))
+        else:
+            self._parallel_device = hvd.local_size()
 
     def _check_capatibility_and_init_precision(self):
         self._precision_misconfig_check()
