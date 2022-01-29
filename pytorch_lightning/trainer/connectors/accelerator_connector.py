@@ -492,9 +492,6 @@ class AcceleratorConnector:
         return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self):
-        if _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
-            self._strategy_flag = HorovodStrategy()
-
         if self._accelerator_flag == "ipu":
             self._strategy_flag = "ipu"
         elif self._accelerator_flag == "tpu":
@@ -502,6 +499,8 @@ class AcceleratorConnector:
                 self._strategy_flag = "tpu_spawn"
             else:
                 self._srategy_flag = SingleTPUStrategy(device=self._parallel_devices[0])
+        elif _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
+            self._strategy_flag = HorovodStrategy()
         else:
             if self._num_nodes_flag > 1:
                 self._strategy_flag = "ddp"
@@ -556,8 +555,10 @@ class AcceleratorConnector:
     def _init_strategy(self):
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
-        else:
+        elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag
+        else:
+            raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
     def handle_horovod(self):
         if self._num_nodes_flag > 1:
