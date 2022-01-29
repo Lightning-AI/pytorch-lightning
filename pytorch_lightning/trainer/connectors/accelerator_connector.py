@@ -77,6 +77,9 @@ from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILAB
 
 log = logging.getLogger(__name__)
 
+if _HOROVOD_AVAILABLE:
+    import horovod.torch as hvd
+
 
 class AcceleratorConnector:
     def __init__(
@@ -568,8 +571,6 @@ class AcceleratorConnector:
                 'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
-
-        import horovod.torch as hvd
 
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
