@@ -182,7 +182,8 @@ class AcceleratorConnector:
 
         # benchmarking
         # TODO: should this be moved to GPU accelerator?
-        torch.backends.cudnn.benchmark = self.benchmark
+        if self.benchmark is not None:
+            torch.backends.cudnn.benchmark = self.benchmark
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
