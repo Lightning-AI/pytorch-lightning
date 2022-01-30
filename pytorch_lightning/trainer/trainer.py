@@ -176,7 +176,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
@@ -227,7 +227,8 @@ class Trainer(
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
 
-            benchmark: If true enables cudnn.benchmark.
+            benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified,
+                the value set in the current session will be unchanged.
 
             callbacks: Add a callback or list of callbacks.
 
