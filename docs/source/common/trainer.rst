@@ -416,11 +416,10 @@ benchmark
 
 |
 
-The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified, the value set in
-the current session will be unchanged.
-This flag is likely to increase the speed of your system if your
-input sizes don't change. However, if it does, then it will likely
-make your system slower.
+The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified, the value
+set in the current session will be unchanged.
+Setting this flag to ``True`` is likely to increase the speed of your system if your input sizes don't
+change. However, if it does, then it will likely make your system slower.
 
 The speedup comes from allowing the cudnn auto-tuner to find the best
 algorithm for the hardware `[see discussion here]
@@ -428,8 +427,8 @@ algorithm for the hardware `[see discussion here]
 
 Example::
 
-    # default used by the Trainer
-    trainer = Trainer(benchmark=False)
+    # default used by the Trainer (current setting for torch.backends.cudnn.benchmark is unchanged)
+    trainer = Trainer(benchmark=None)
 
 deterministic
 ^^^^^^^^^^^^^
