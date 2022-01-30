@@ -416,7 +416,8 @@ benchmark
 
 |
 
-If true enables cudnn.benchmark.
+The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified, the value set in
+the current session will be unchanged.
 This flag is likely to increase the speed of your system if your
 input sizes don't change. However, if it does, then it will likely
 make your system slower.
