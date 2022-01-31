@@ -51,7 +51,7 @@ To run the test set after training completes, use this method.
 .. warning::
 
     It is recommended to test with ``Trainer(devices=1)`` since distributed strategies such as DDP
-    uses :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
+    use :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
     make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
     benchmarking for research papers is done the right way.
 
