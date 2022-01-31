@@ -48,6 +48,9 @@ class ProgressBarBase(Callback):
 
     def __init__(self) -> None:
         self._trainer: Optional["pl.Trainer"] = None
+        self._val_progress: Optional[int] = None
+        self._test_progress: Optional[int] = None
+        self._predict_progress: Optional[int] = None
 
     @property
     def trainer(self) -> "pl.Trainer":
@@ -63,6 +66,34 @@ class ProgressBarBase(Callback):
         """
         return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
+    def on_validation_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ):
+        if self._val_progress is None or batch_idx == 0:
+            max_batches = trainer.num_sanity_val_batches if trainer.sanity_checking else trainer.num_val_batches
+            self._val_progress = sum(max_batches[:dataloader_idx])
+
+    def on_test_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ):
+        if self._test_progress is None or batch_idx == 0:
+            self._test_progress = sum(trainer.num_test_batches[:dataloader_idx])
+
+    def on_predict_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ):
+        if self._predict_progress is None or batch_idx == 0:
+            self._predict_progress = sum(trainer.num_predict_batches[:dataloader_idx])
+
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._val_progress = None
+
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._test_progress = None
+
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._predict_progress = None
+
     @property
     def val_batch_idx(self) -> int:
         """The number of batches processed during validation.
@@ -70,8 +101,13 @@ class ProgressBarBase(Callback):
         Use this to update your progress bar.
         """
         if self.trainer.state.fn == "fit":
-            return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
-        return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
+            loop = self.trainer.fit_loop.epoch_loop.val_loop
+        else:
+            loop = self.trainer.validate_loop
+
+        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        batch_idx = self._val_progress + current_batch_idx
+        return batch_idx
 
     @property
     def test_batch_idx(self) -> int:
@@ -79,7 +115,10 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
+        loop = self.trainer.test_loop
+        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        batch_idx = self._test_progress + current_batch_idx
+        return batch_idx
 
     @property
     def predict_batch_idx(self) -> int:
@@ -87,7 +126,10 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
+        loop = self.trainer.predict_loop
+        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        batch_idx = self._predict_progress + current_batch_idx
+        return batch_idx
 
     @property
     def total_train_batches(self) -> Union[int, float]:
@@ -105,6 +147,9 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        if self.trainer.sanity_checking:
+            return sum(self.trainer.num_sanity_val_batches)
+
         total_val_batches = 0
         if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0

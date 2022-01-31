@@ -75,55 +75,97 @@ def test_tqdm_progress_bar_misconfiguration():
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
-def test_tqdm_progress_bar_totals(tmpdir):
+@pytest.mark.parametrize("num_dl", [1, 2])
+def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     """Test that the progress finishes with the correct total steps processed."""
 
-    model = BoringModel()
+    class CustomModel(BoringModel):
+        def _get_dataloaders(self):
+            dls = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+            return dls[0] if num_dl == 1 else dls
 
+        def val_dataloader(self):
+            return self._get_dataloaders()
+
+        def test_dataloader(self):
+            return self._get_dataloaders()
+
+        def predict_dataloader(self):
+            return self._get_dataloaders()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+    model = CustomModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    # check the sanity dataloaders
+    num_sanity_val_steps = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
+    )
+    bar = trainer.progress_bar_callback
+    trainer.fit(model)
+    expected_sanity_steps = num_sanity_val_steps * num_dl
+    assert not bar.val_progress_bar.leave
+    assert sum(trainer.num_sanity_val_batches) == expected_sanity_steps
+    assert bar.val_progress_bar.total == expected_sanity_steps
+    assert bar.val_progress_bar.n == expected_sanity_steps
+
+    # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     bar = trainer.progress_bar_callback
-
     trainer.fit(model)
-
-    # check main progress bar total
     n = bar.total_train_batches
     m = bar.total_val_batches
+    assert trainer.num_training_batches == n
     assert len(trainer.train_dataloader) == n
     assert bar.main_progress_bar.total == n + m
+    assert bar.main_progress_bar.leave
 
-    # check val progress bar total
-    assert sum(len(loader) for loader in trainer.val_dataloaders) == m
-    assert bar.val_progress_bar.total == m
-
-    # main progress bar should have reached the end (train batches + val batches)
+    assert sum(trainer.num_val_batches) == m
     assert bar.main_progress_bar.n == n + m
     assert bar.train_batch_idx == n
 
-    # val progress bar should have reached the end
+    # check val progress bar total
+    assert bar.val_progress_bar.total == m
     assert bar.val_progress_bar.n == m
-    assert bar.val_batch_idx == m
+    assert not bar.val_progress_bar.leave
 
     # check that the test progress bar is off
     assert 0 == bar.total_test_batches
     with pytest.raises(TypeError, match="test_progress_bar` .* not been set"):
         assert bar.test_progress_bar is None
 
+    # validate
     trainer.validate(model)
-
+    assert bar.val_progress_bar.leave
+    assert sum(trainer.num_val_batches) == m
     assert bar.val_progress_bar.total == m
     assert bar.val_progress_bar.n == m
-    assert bar.val_batch_idx == m
 
+    # test
     trainer.test(model)
-
-    # check test progress bar total
+    assert bar.test_progress_bar.leave
     k = bar.total_test_batches
-    assert sum(len(loader) for loader in trainer.test_dataloaders) == k
+    assert sum(trainer.num_test_batches) == k
     assert bar.test_progress_bar.total == k
-
-    # test progress bar should have reached the end
     assert bar.test_progress_bar.n == k
-    assert bar.test_batch_idx == k
+
+    # predict
+    trainer.predict(model)
+    assert bar.predict_progress_bar.leave
+    k = bar.total_predict_batches
+    assert sum(trainer.num_predict_batches) == k
+    assert bar.test_progress_bar.total == k
+    assert bar.test_progress_bar.n == k
 
 
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
@@ -139,8 +181,7 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
 
     assert 1 == progress_bar.total_val_batches
     assert 1 == progress_bar.train_batch_idx
-    assert 1 == progress_bar.val_batch_idx
-    assert 0 == progress_bar.test_batch_idx
+    assert 1 == progress_bar.val_progress_bar.n
 
     # the main progress bar should display 2 batches (1 train, 1 val)
     assert 2 == progress_bar.main_progress_bar.total
@@ -149,14 +190,12 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == progress_bar.val_batch_idx
     assert 1 == progress_bar.val_progress_bar.total
     assert 1 == progress_bar.val_progress_bar.n
 
     trainer.test(model)
 
     # the test progress bar should display 1 batch
-    assert 1 == progress_bar.test_batch_idx
     assert 1 == progress_bar.test_progress_bar.total
     assert 1 == progress_bar.test_progress_bar.n
 
@@ -298,10 +337,10 @@ class MockTqdm(Tqdm):
         [2, 3, 1, [1, 2, 3, 4, 5], [1, 2, 3]],
         [0, 0, 3, None, None],
         [1, 0, 3, [1], None],
-        [1, 1, 3, [2], [1]],
+        [1, 1, 3, [1, 2], [1]],
         [5, 0, 3, [3, 5], None],
-        [5, 2, 3, [3, 7], [2]],
-        [5, 2, 6, [7], [2]],
+        [5, 2, 3, [3, 5, 7], [2]],
+        [5, 2, 6, [5, 7], [2]],
     ],
 )
 def test_main_progress_bar_update_amount(
