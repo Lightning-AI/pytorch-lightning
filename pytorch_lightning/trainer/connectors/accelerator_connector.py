@@ -690,6 +690,8 @@ class AcceleratorConnector:
             self.strategy._num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "sync_batchnorm"):
             self.strategy.sync_batchnorm = self.sync_batchnorm
+        if hasattr(self.strategy, "set_world_ranks"):
+            self.strategy.set_world_ranks()
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 

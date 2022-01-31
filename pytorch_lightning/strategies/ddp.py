@@ -109,7 +109,6 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False
-        self.set_world_ranks()
 
     @property
     def is_distributed(self) -> bool:
@@ -127,7 +126,6 @@ class DDPStrategy(ParallelStrategy):
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
-        self.set_world_ranks()
 
     @property
     def num_processes(self):

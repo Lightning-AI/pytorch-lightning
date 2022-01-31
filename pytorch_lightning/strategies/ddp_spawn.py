@@ -81,7 +81,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
-        self.set_world_ranks()
 
     @property
     def num_nodes(self) -> int:
@@ -95,7 +94,6 @@ class DDPSpawnStrategy(ParallelStrategy):
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
-        self.set_world_ranks()
 
     @property
     def local_rank(self) -> int:
