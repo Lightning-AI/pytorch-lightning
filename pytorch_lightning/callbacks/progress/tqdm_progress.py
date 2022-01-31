@@ -289,15 +289,6 @@ class TQDMProgressBar(ProgressBarBase):
             self.val_progress_bar = self.init_validation_tqdm()
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
-    def on_validation_batch_start(self, *args: Any, **kwargs: Any):
-        return super().on_validation_batch_start(*args, **kwargs)
-
-    def on_test_batch_start(self, *args: Any, **kwargs: Any):
-        return super().on_test_batch_start(*args, **kwargs)
-
-    def on_predict_batch_start(self, *args: Any, **kwargs: Any):
-        return super().on_predict_batch_start(*args, **kwargs)
-
     def on_validation_batch_end(self, trainer: "pl.Trainer", *_: Any) -> None:
         if self._should_update(self.val_batch_idx, self.total_val_batches):
             _update_n(self.val_progress_bar, self.val_batch_idx)
