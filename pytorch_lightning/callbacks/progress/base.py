@@ -61,13 +61,13 @@ class ProgressBarBase(Callback):
         self._current_eval_dataloader_idx = dataloader_idx
         return old_dataloader_idx != dataloader_idx
 
-    def on_validation_end(self, *_: Any) -> None:
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._current_eval_dataloader_idx = None
 
-    def on_test_end(self, *_: Any) -> None:
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._current_eval_dataloader_idx = None
 
-    def on_predict_end(self, *_: Any) -> None:
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._current_eval_dataloader_idx = None
 
     @property
@@ -124,6 +124,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        assert self._current_eval_dataloader_idx is not None
         if self.trainer.sanity_checking:
             return self.trainer.num_sanity_val_batches[self._current_eval_dataloader_idx]
 
@@ -136,6 +137,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
         """
+        assert self._current_eval_dataloader_idx is not None
         return self.trainer.num_test_batches[self._current_eval_dataloader_idx]
 
     @property
@@ -145,6 +147,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
+        assert self._current_eval_dataloader_idx is not None
         return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
 
     def disable(self) -> None:
