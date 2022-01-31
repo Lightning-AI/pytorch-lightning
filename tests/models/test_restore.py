@@ -17,6 +17,7 @@ import os
 import pickle
 from copy import deepcopy
 from typing import Generic, Mapping, TypeVar
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -726,28 +727,28 @@ def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
             return super().training_step(batch, batch_idx)
 
     limit_train_batches = 7
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=limit_train_batches,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": limit_train_batches,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+    }
+    trainer = Trainer(max_epochs=1, **trainer_kwargs)
     model = CustomModel(stop_batch_idx)
     trainer.fit(model)
 
-    ckpt_path = tmpdir / "resume.ckpt"
+    ckpt_path = str(tmpdir / "resume.ckpt")
     trainer.save_checkpoint(ckpt_path)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=0,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
+    trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
 
-    context_manager = no_warning_call if limit_train_batches == stop_batch_idx else pytest.warns
+    warning_raised = limit_train_batches != stop_batch_idx
+    context_manager = pytest.warns if warning_raised else no_warning_call
     with context_manager(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
-        trainer.fit(model, ckpt_path=str(ckpt_path))
+        trainer.fit(model, ckpt_path=ckpt_path)
+
+    if warning_raised:
+        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
+            trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
+            with no_warning_call(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
+                trainer.fit(model, ckpt_path=ckpt_path)

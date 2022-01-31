@@ -23,6 +23,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import rank_zero_warn
@@ -199,7 +200,8 @@ class FitLoop(Loop[None]):
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
 
         # global_step is incremented during checkpointing (#11555)
-        if self.restarting and self.trainer.num_training_batches not in (0, float("inf")):
+        ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
+        if not ft_enabled and self.restarting and self.trainer.num_training_batches not in (0, float("inf")):
             self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
                 self.trainer.current_epoch
             )
