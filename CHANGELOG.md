@@ -457,6 +457,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disbled sampler replacement when using `IterableDataset` ([#11507](https://github.com/PyTorchLightning/pytorch-lightning/pull/11507))
 
 
+- Fixed `RichProgressBar` progress with uneven refresh rate ([#11507](https://github.com/PyTorchLightning/pytorch-lightning/pull/11668))
+
+
+- Fixed `RichProgressBar` progress validation bar total when using multiple validation runs within a single training epoch ([#11507](https://github.com/PyTorchLightning/pytorch-lightning/pull/11668))
+
+
 ## [1.5.8] - 2022-01-05
 
 ### Fixed
