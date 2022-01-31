@@ -44,7 +44,7 @@ def get_ddp_spawn_command_for_hydra(command: List[str], local_rank: str) -> Tupl
     return command, cwd
 
 
-def teardown_ddp_for_hydra_multirun():
+def teardown_ddp_for_hydra_multirun() -> None:
     """Performs additional teardown steps for PL to allow for Hydra multirun jobs."""
 
     if HydraConfig.initialized():

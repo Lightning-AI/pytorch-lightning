@@ -19,7 +19,7 @@ import tempfile
 import time
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
