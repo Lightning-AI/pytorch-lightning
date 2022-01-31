@@ -1439,3 +1439,31 @@ def test_cli_parameter_with_lazy_instance_default():
         assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
         assert cli.model.activation.negative_slope == 0.05
         assert cli.model.activation is not model.activation
+
+
+def test_cli_no_need_configure_optimizers():
+    class BoringModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def training_step(self, *_):
+            ...
+
+        def train_dataloader(self):
+            ...
+
+        # did not define `configure_optimizers`
+
+    from pytorch_lightning.trainer.configuration_validator import __verify_train_val_loop_configuration
+
+    with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
+        "pytorch_lightning.Trainer._run_train"
+    ) as run, mock.patch(
+        "pytorch_lightning.trainer.configuration_validator.__verify_train_val_loop_configuration",
+        wraps=__verify_train_val_loop_configuration,
+    ) as verify:
+        cli = LightningCLI(BoringModel)
+    # `__verify_train_val_loop_configuration` should have been called
+    assert run.called
+    verify.assert_called_once_with(cli.trainer, cli.model)
