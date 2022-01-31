@@ -15,10 +15,8 @@ if _HYDRA_AVAILABLE:
 def get_ddp_spawn_command_for_hydra(command: List[str], local_rank: str) -> Tuple[str, str]:
     """Modifies the DDP spawn command to support Hydra initiated processes.
 
-    If Hydra is initialized:
-      1) Set `cwd` to the hydra working directory
-      2) Use the stored configuration in `hydra_cfg.output_subdir / config.yaml` to spawn a new child
-
+    If Hydra is initialized:   1) Set `cwd` to the hydra working directory   2) Use the stored configuration in
+    `hydra_cfg.output_subdir / config.yaml` to spawn a new child
     """
 
     cwd: Optional[str] = None
