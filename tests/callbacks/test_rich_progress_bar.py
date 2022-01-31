@@ -68,7 +68,6 @@ def test_rich_progress_bar(tmpdir, dataset):
             limit_val_batches=1,
             limit_test_batches=1,
             limit_predict_batches=1,
-            max_steps=1,
             callbacks=RichProgressBar(),
         )
         return trainer
