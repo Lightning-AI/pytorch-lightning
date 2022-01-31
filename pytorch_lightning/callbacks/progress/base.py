@@ -150,6 +150,16 @@ class ProgressBarBase(Callback):
         assert self._current_eval_dataloader_idx is not None
         return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
 
+    @property
+    def num_val_batches(self) -> Union[int, float]:
+        if (
+            self.trainer.enable_validation
+            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        ):
+            return sum(self.trainer.num_val_batches)
+
+        return 0
+
     def disable(self) -> None:
         """You should provide a way to disable the progress bar.
 

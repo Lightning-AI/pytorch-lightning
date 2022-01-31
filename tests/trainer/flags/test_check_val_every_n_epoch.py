@@ -27,7 +27,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
         val_batches = []
 
         def on_train_epoch_end(self, *args, **kwargs):
-            self.val_batches.append(self.trainer.progress_bar_callback.total_val_batches)
+            self.val_batches.append(self.trainer.progress_bar_callback.num_val_batches)
 
         def on_validation_epoch_start(self) -> None:
             self.val_epoch_calls += 1
