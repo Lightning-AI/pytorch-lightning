@@ -199,7 +199,6 @@ class FitLoop(Loop[None]):
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
 
-        # global_step is incremented during checkpointing (#11555)
         ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
         if not ft_enabled and self.restarting and self.trainer.num_training_batches not in (0, float("inf")):
             self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
@@ -207,6 +206,7 @@ class FitLoop(Loop[None]):
             )
             expected_steps = math.ceil(self.trainer.num_training_batches / self.trainer.accumulate_grad_batches)
 
+            # global_step is incremented during checkpointing (#11555)
             if (self.trainer.global_step - 1) % expected_steps != 0:
                 rank_zero_warn(
                     "You're resuming from a checkpoint that ended mid-epoch."
