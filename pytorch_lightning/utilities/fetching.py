@@ -154,8 +154,8 @@ class AbstractDataFetcher(ABC):
         return loader_iters
 
     @property
-    def state(self) -> Any:
-        def collect_state(iterator: Iterator) -> Any:
+    def state(self) -> List[MergedIteratorState]:
+        def collect_state(iterator: Iterator) -> MergedIteratorState:
             return iterator.state
 
         return apply_to_collection(self.loader_iters, Iterator, collect_state)
