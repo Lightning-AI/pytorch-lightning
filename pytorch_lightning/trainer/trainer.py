@@ -1349,6 +1349,9 @@ class Trainer(
 
             # reload dataloaders
             val_loop._reload_evaluation_dataloaders()
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # run eval step
             with torch.no_grad():
