@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
@@ -325,7 +326,7 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_epoch_start(self, trainer, pl_module):
         total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
+        total_val_batches = sum(self.trainer.num_val_batches)
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
@@ -345,8 +346,13 @@ class RichProgressBar(ProgressBarBase):
             )
         self.refresh()
 
-    def on_validation_epoch_start(self, trainer, pl_module):
-        if self.total_val_batches > 0:
+    def on_validation_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        if self.is_dataloader_changed(dataloader_idx):
+            if self.val_progress_bar_id is not None:
+                self.progress.update(self.val_progress_bar_id, advance=self.refresh_rate, visible=False)
+
             total_val_batches = self.total_val_batches
             if self.total_train_batches != float("inf") and hasattr(trainer, "val_check_batch"):
                 # val can be checked multiple times per epoch
@@ -369,17 +375,27 @@ class RichProgressBar(ProgressBarBase):
     def _should_update(self, current: int, total: int) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if self.val_progress_bar_id is not None:
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
-    def on_test_epoch_start(self, trainer, pl_module):
-        self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
-        self.refresh()
+    def on_test_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        if self.is_dataloader_changed(dataloader_idx):
+            if self.test_progress_bar_id is not None:
+                self.progress.update(self.test_progress_bar_id, advance=self.refresh_rate, visible=False)
+            self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
+            self.refresh()
 
-    def on_predict_epoch_start(self, trainer, pl_module):
-        self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
-        self.refresh()
+    def on_predict_batch_start(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        if self.is_dataloader_changed(dataloader_idx):
+            if self.predict_progress_bar_id is not None:
+                self.progress.update(self.predict_progress_bar_id, advance=self.refresh_rate, visible=False)
+            self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
+            self.refresh()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)
