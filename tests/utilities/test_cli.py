@@ -1464,6 +1464,5 @@ def test_cli_no_need_configure_optimizers():
         wraps=__verify_train_val_loop_configuration,
     ) as verify:
         cli = LightningCLI(BoringModel)
-    # `__verify_train_val_loop_configuration` should have been called
     run.assert_called_once()
     verify.assert_called_once_with(cli.trainer, cli.model)
