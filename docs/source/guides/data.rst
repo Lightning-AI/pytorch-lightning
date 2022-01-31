@@ -53,7 +53,7 @@ There are a few ways to pass multiple Datasets to Lightning:
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
    will automatically combine the batches from different DataLoaders. You can control the way how dataloaders of different length
    are combined by the flag `multiple_trainloader_mode` of the :class:`~pytorch_lightning.trainer.Trainer`. Alternatively, you can provide
-   a dataloader via :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
+   dataloaders via :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
 3. In the validation, test or prediction you have the option to either return multiple DataLoaders as list/tuple, which Lightning will call sequentially,
    or combine the dataloaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
    automatically combine the batches from different DataLoaders.
@@ -186,6 +186,24 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
+Alternatively, you can also pass in a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` containing multiple DataLoaders.
+
+.. testcode::
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+
+    def train_dataloader(self):
+        loader_a = DataLoader()
+        loader_b = DataLoader()
+        loaders = {"a": loader_a, "b": loader_b}
+        combined_loader = CombinedLoader(loaders, mode="max_size_cycle")
+        return combined_loader
+
+
+    def training_step(self, batch, batch_idx):
+        batch_a = batch["a"]
+        batch_b = batch["b"]
 
 Multiple Validation/Test/Predict DataLoaders
 ============================================
