@@ -105,6 +105,9 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        if self.trainer.sanity_checking:
+            return sum(self.trainer.num_sanity_val_batches)
+
         total_val_batches = 0
         if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0

@@ -248,7 +248,7 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("limit_val_batches", (1, 5))
-def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
     model = BoringModel()
 
     progress_bar = RichProgressBar()
@@ -265,3 +265,34 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
 
     trainer.fit(model)
     assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)
+    assert progress_bar.progress.tasks[0].total == min(num_sanity_val_steps, limit_val_batches)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
+    """Test the completed and total counter for rich progress bar when using val_check_interval."""
+
+    progress_bar = RichProgressBar()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        val_check_interval=2,
+        max_epochs=1,
+        limit_train_batches=7,
+        limit_val_batches=4,
+        callbacks=[progress_bar],
+    )
+    trainer.fit(model)
+
+    fit_main_progress_bar = progress_bar.progress.tasks[1]
+    fit_val_bar = progress_bar.progress.tasks[2]
+    assert fit_main_progress_bar.completed == 19  # 7 + 3*4
+    assert fit_main_progress_bar.total == 19  # 7 + 3*4
+
+    assert fit_val_bar.completed == 4
+    assert fit_val_bar.total == 4
+
+    trainer.validate(model)
+    val_bar = progress_bar.progress.tasks[0]
+    assert val_bar.completed == 4
+    assert val_bar.total == 4
