@@ -25,6 +25,11 @@ from pytorch_lightning.profiler.base import BaseProfiler
 
 log = logging.getLogger(__name__)
 
+_TABLE_ROW_EXTENDED = Tuple[str, float, int, float, float]
+_TABLE_DATA_EXTENDED = List[_TABLE_ROW_EXTENDED]
+_TABLE_ROW = Tuple[str, float, float]
+_TABLE_DATA = List[_TABLE_ROW]
+
 
 class SimpleProfiler(BaseProfiler):
     """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each
@@ -72,17 +77,17 @@ class SimpleProfiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def _make_report_extended(self) -> Tuple[List, float, float]:
+    def _make_report_extended(self) -> Tuple[_TABLE_DATA_EXTENDED, float, float]:
         total_duration = time.monotonic() - self.start_time
         report = [
-            [a, np.mean(d), len(d), np.sum(d), 100.0 * np.sum(d) / total_duration]
+            (a, np.mean(d), len(d), np.sum(d), 100.0 * np.sum(d) / total_duration)
             for a, d in self.recorded_durations.items()
         ]
         report.sort(key=lambda x: x[4], reverse=True)
         total_calls = sum(x[2] for x in report)
         return report, total_calls, total_duration
 
-    def _make_report(self) -> List[Tuple[str, float, float]]:
+    def _make_report(self) -> _TABLE_DATA:
         report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[1], reverse=True)
         return report
