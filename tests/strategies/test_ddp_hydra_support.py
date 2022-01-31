@@ -13,7 +13,11 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
-    from hydra._internal.callbacks import Callbacks
+    try:
+        from hydra._internal.callbacks import Callbacks
+    except:
+        Callbacks = None
+
     from hydra._internal.hydra import Hydra
     from hydra._internal.utils import create_config_search_path
     from hydra.types import HydraContext, RunMode
@@ -181,6 +185,7 @@ def run_hydra_sweeper():
 
 @RunIf(skip_windows=True, min_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
+@pytest.mark.skipif(Callbacks is None, reason="Hydra version too old (for test only)")
 @pytest.mark.usefixtures("cleandir")
 def test_ddp_teardown_with_hydra():
     job = run_hydra_sweeper()
