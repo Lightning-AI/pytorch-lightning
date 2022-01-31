@@ -82,7 +82,7 @@ class SimpleProfiler(BaseProfiler):
         total_calls = sum(x[2] for x in report)
         return report, total_calls, total_duration
 
-    def _make_report_non_extended(self) -> List[Tuple[str, float, float]]:
+    def _make_report(self) -> List[Tuple[str, float, float]]:
         report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[1], reverse=True)
         return report
@@ -130,7 +130,7 @@ class SimpleProfiler(BaseProfiler):
             output_string_len = len(header_string.expandtabs())
             sep_lines = f"{sep}{'-' * output_string_len}"
             output_string += sep_lines + header_string + sep_lines
-            report = self._make_report_non_extended()
+            report = self._make_report()
 
             for action, mean_duration, total_duration in report:
                 output_string += log_row(action, f"{mean_duration:.5}", f"{total_duration:.5}")
