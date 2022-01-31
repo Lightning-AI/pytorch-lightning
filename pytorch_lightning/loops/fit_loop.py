@@ -213,7 +213,7 @@ class FitLoop(Loop[None]):
                     " Training will start from the beginning of the next epoch."
                     " This can cause unreliable results if further training is done,"
                     " consider using an end of epoch checkpoint or use fault-tolerant training"
-                    " to enable full-reproducibility."
+                    " to restart as if training did not stop."
                 )
 
         self._is_fresh_start_epoch = True
