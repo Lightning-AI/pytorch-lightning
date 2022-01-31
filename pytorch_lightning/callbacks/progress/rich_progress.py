@@ -326,7 +326,7 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_epoch_start(self, trainer, pl_module):
         total_train_batches = self.total_train_batches
-        total_val_batches = sum(self.trainer.num_val_batches)
+        total_val_batches = self.num_val_batches
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
