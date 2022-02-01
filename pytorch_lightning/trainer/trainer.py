@@ -618,7 +618,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             if self.logger is not None:
                 self.logger = DummyLogger()
-                self.loggers = [self.logger]
+                self._loggers = [self.logger]
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -2091,7 +2091,8 @@ class Trainer(
     def log_dir(self) -> Optional[str]:
         if self.loggers is None:
             dirpath = self.default_root_dir
-        elif len(self.loggers == 1):
+        elif len(self.loggers) == 1:
+            print(type(self.loggers))
             logger = self.loggers[0]
             if isinstance(logger, TensorBoardLogger):
                 dirpath = logger.log_dir

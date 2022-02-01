@@ -78,7 +78,7 @@ class LoggerConnector:
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
             # default logger
-            if logger == True:
+            if logger:
                 self.trainer.logger = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs")
                 self.trainer._loggers = [self.trainer.logger]
         elif isinstance(logger, Iterable):
@@ -115,8 +115,8 @@ class LoggerConnector:
 
         # log actual metrics
         for logger in self.trainer.loggers:
-            self.trainer.loggers.agg_and_log_metrics(scalar_metrics, step=step)
-            self.trainer.loggers.save()
+            logger.agg_and_log_metrics(scalar_metrics, step=step)
+            logger.save()
 
     """
     Evaluation metric updates
