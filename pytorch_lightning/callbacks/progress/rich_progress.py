@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
@@ -386,6 +387,9 @@ class RichProgressBar(ProgressBarBase):
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._update_metrics(trainer, pl_module)
+
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches)
@@ -395,6 +399,10 @@ class RichProgressBar(ProgressBarBase):
                 self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()
+
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if trainer.state.fn == "fit":
+            self._update_metrics(trainer, pl_module)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
