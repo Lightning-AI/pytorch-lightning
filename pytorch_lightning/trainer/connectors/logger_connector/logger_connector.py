@@ -78,17 +78,15 @@ class LoggerConnector:
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
             # default logger
-            self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
-                if logger
-                else None
-            )
+            if logger == True:
+                self.trainer.logger = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs")
+                self.trainer._loggers = [self.trainer.logger]
         elif isinstance(logger, Iterable):
             self.trainer.logger = LoggerCollection(logger)
+            self.trainer._loggers = list(logger)
         else:
             self.trainer.logger = logger
+            self.trainer._loggers = [self.trainer.logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
@@ -99,7 +97,7 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        if self.trainer.logger is None or not metrics:
+        if self.trainer.loggers is None or not metrics:
             return
 
         self._logged_metrics.update(metrics)
@@ -116,8 +114,9 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-        self.trainer.logger.save()
+        for logger in self.trainer.loggers:
+            self.trainer.loggers.agg_and_log_metrics(scalar_metrics, step=step)
+            self.trainer.loggers.save()
 
     """
     Evaluation metric updates

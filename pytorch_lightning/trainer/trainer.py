@@ -565,6 +565,9 @@ class Trainer(
 
         # init logger flags
         self.logger: Optional[LightningLoggerBase]
+
+        self._loggers: Optional[List[LightningLoggerBase]]
+
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -613,7 +616,9 @@ class Trainer(
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
-            self.logger = DummyLogger() if self.logger is not None else None
+            if self.logger is not None:
+                self.logger = DummyLogger()
+                self.loggers = [self.logger]
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -1201,7 +1206,7 @@ class Trainer(
         # log hyper-parameters
         hparams_initial = None
 
-        if self.logger is not None:
+        if self.loggers is not None:
             # save exp to get started (this is where the first experiment logs are written)
             datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
@@ -1229,10 +1234,11 @@ class Trainer(
             elif datamodule_log_hyperparams:
                 hparams_initial = self.datamodule.hparams_initial
 
-            if hparams_initial is not None:
-                self.logger.log_hyperparams(hparams_initial)
-            self.logger.log_graph(self.lightning_module)
-            self.logger.save()
+            for logger in self.loggers:
+                if hparams_initial is not None:
+                    logger.log_hyperparams(hparams_initial)
+                logger.log_graph(self.lightning_module)
+                logger.save()
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
@@ -1463,8 +1469,9 @@ class Trainer(
 
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu kill loggers.
-        if self.logger is not None:
-            self.logger.finalize("success")
+        if self.loggers is not None:
+            for logger in self.loggers:
+                logger.finalize("success")
 
         # summarize profile results
         self.profiler.describe()
@@ -1833,7 +1840,7 @@ class Trainer(
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-        if self.logger and self.num_training_batches < self.log_every_n_steps:
+        if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
@@ -2082,14 +2089,18 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if self.logger is None:
+        if self.loggers is None:
             dirpath = self.default_root_dir
-        elif isinstance(self.logger, TensorBoardLogger):
-            dirpath = self.logger.log_dir
-        elif isinstance(self.logger, LoggerCollection):
-            dirpath = self.default_root_dir
+        elif len(self.loggers == 1):
+            logger = self.loggers[0]
+            if isinstance(logger, TensorBoardLogger):
+                dirpath = logger.log_dir
+            elif isinstance(logger, LoggerCollection):
+                dirpath = self.default_root_dir
+            else:
+                dirpath = logger.save_dir
         else:
-            dirpath = self.logger.save_dir
+            dirpath = self.default_root_dir
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
@@ -2470,6 +2481,10 @@ class Trainer(
     """
     Logging properties
     """
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
 
     @property
     def callback_metrics(self) -> dict:
