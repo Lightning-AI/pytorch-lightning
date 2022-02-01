@@ -29,8 +29,9 @@ or show all options you can change:
     python imagenet.py --help
     python imagenet.py fit --help
 """
+from __future__ import annotations
+
 import os
-from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -80,8 +81,8 @@ class ImageNetLightningModel(LightningModule):
         self.batch_size = batch_size
         self.workers = workers
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
-        self.train_dataset: Optional[Dataset] = None
-        self.eval_dataset: Optional[Dataset] = None
+        self.train_dataset: Dataset | None = None
+        self.eval_dataset: Dataset | None = None
         self.train_acc1 = Accuracy(top_k=1)
         self.train_acc5 = Accuracy(top_k=5)
         self.eval_acc1 = Accuracy(top_k=1)
@@ -125,7 +126,7 @@ class ImageNetLightningModel(LightningModule):
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))
         return [optimizer], [scheduler]
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: str | None = None):
         if isinstance(self.trainer.strategy, ParallelStrategy):
             # When using a single GPU per process and per `DistributedDataParallel`, we need to divide the batch size
             # ourselves based on the total number of GPUs we have
