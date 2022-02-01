@@ -43,7 +43,9 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 from torchmetrics import Accuracy
 
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.utilities.cli import LightningCLI
 
 
@@ -113,10 +115,20 @@ class ImageNetLightningModel(LightningModule):
     def validation_step(self, batch, batch_idx):
         return self.eval_step(batch, batch_idx, "val")
 
+    def test_step(self, batch, batch_idx):
+        return self.eval_step(batch, batch_idx, "test")
+
     def configure_optimizers(self):
         optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))
         return [optimizer], [scheduler]
+
+    def setup(self, stage=None):
+        if isinstance(self.trainer.strategy, ParallelStrategy):
+            # When using a single GPU per process and per `DistributedDataParallel`, we need to divide the batch size
+            # ourselves based on the total number of GPUs we have
+            self.batch_size = int(self.batch_size / max(1, self.trainer.devices))
+            self.workers = int(self.workers / max(1, self.trainer.devices))
 
     def train_dataloader(self):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -130,7 +142,7 @@ class ImageNetLightningModel(LightningModule):
         )
 
         train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers
+            dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers, pin_memory=True
         )
         return train_loader
 
@@ -146,25 +158,29 @@ class ImageNetLightningModel(LightningModule):
             ),
             batch_size=self.batch_size,
             num_workers=self.workers,
+            pin_memory=True,
         )
         return val_loader
 
     def test_dataloader(self):
         return self.val_dataloader()
 
-    def test_step(self, batch, batch_idx):
-        return self.eval_step(batch, batch_idx, "test")
-
 
 if __name__ == "__main__":
     LightningCLI(
         ImageNetLightningModel,
         trainer_defaults={
-            "max_epochs": 15,
+            "max_epochs": 90,
             "accelerator": "auto",
             "devices": 1,
             "logger": False,
-            "enable_checkpointing": False,
+            "benchmark": True,
+            "callbacks": [
+                # the PyTorch example refreshes every 10 batches
+                TQDMProgressBar(refresh_rate=10),
+                # save when the validation top1 accuracy improves
+                ModelCheckpoint(monitor="val_acc1", mode="max"),
+            ],
         },
         seed_everything_default=42,
         save_config_overwrite=True,
