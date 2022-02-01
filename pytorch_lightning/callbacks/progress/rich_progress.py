@@ -374,6 +374,9 @@ class RichProgressBar(ProgressBarBase):
         if self.val_progress_bar_id is not None:
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
+        if trainer.state.fn == "fit":
+            self._update_metrics(trainer, pl_module)
+
     def on_test_epoch_start(self, trainer, pl_module):
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
         self.refresh()
@@ -399,10 +402,6 @@ class RichProgressBar(ProgressBarBase):
                 self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()
-
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.state.fn == "fit":
-            self._update_metrics(trainer, pl_module)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
