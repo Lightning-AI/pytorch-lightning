@@ -227,8 +227,6 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
 
 @RunIf(rich=True)
 def test_rich_progress_bar_metric_display_task_id(tmpdir):
-    model = BoringModel()
-
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
             res = super().training_step(*args, **kwargs)
@@ -237,7 +235,6 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
 
     progress_bar = RichProgressBar()
     model = CustomModel()
-
     trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
 
     trainer.fit(model)
