@@ -375,7 +375,7 @@ class RichProgressBar(ProgressBarBase):
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.state.fn == "fit" and not trainer.sanity_checking:
+        if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
 
     def on_test_epoch_start(self, trainer, pl_module):

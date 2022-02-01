@@ -302,7 +302,7 @@ class TQDMProgressBar(ProgressBarBase):
         _update_n(self.val_progress_bar, self._val_processed)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self._main_progress_bar is not None and trainer.state.fn == "fit" and not trainer.sanity_checking:
+        if self._main_progress_bar is not None and trainer.state.fn == "fit":
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
 

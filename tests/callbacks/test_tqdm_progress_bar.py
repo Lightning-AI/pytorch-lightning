@@ -603,6 +603,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.fit(model)
     assert pbar.calls["fit"] == [
+        ("sanity_check", 0, 0, {"b": 0}),
         ("train", 0, 0, {}),
         ("train", 0, 1, {}),
         ("validate", 0, 1, {"b": 1}),  # validation end
