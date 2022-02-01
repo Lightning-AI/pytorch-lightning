@@ -173,8 +173,6 @@ class AcceleratorConnector:
         # Reset strategy even user has specificed one
         self._strategy_check_and_fallbacks()
         self._init_strategy()
-        if _HOROVOD_AVAILABLE and isinstance(self.strategy, HorovodStrategy):
-            self.handle_horovod
 
         # --Precision----------------------------------------------------------------
         self.precision_plugin = self._check_capatibility_and_init_precision()
@@ -413,7 +411,7 @@ class AcceleratorConnector:
     #         self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, torch.cuda.is_available(), True]
     #     ):
     #         # only apply to gpu to keep backward compatibility
-    #         if self._accelerator_flag == accelerator_flag == "gpu":
+    #         if self._accelerator_flag == accelerator_flag:
     #             if not available:
     #                 raise MisconfigurationException(
     #                     f"You choice {accelerator_flag} accelerator, but {accelerator_flag} is not available"
@@ -498,9 +496,10 @@ class AcceleratorConnector:
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 self._strategy_flag = "tpu_spawn"
             else:
-                self._srategy_flag = SingleTPUStrategy(device=self._parallel_devices[0])
+                # TODO lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
+                self._strategy_flag = SingleTPUStrategy(device=self._parallel_devices[0])
         elif _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
-            self._strategy_flag = HorovodStrategy()
+            self._strategy_flag = "horovod"
         else:
             if self._num_nodes_flag > 1:
                 self._strategy_flag = "ddp"
@@ -510,6 +509,7 @@ class AcceleratorConnector:
                     if self._accelerator_flag == "gpu"
                     else "cpu"
                 )
+                # TODO lazy initialized device, then here could be self._strategy_flag = "single_device"
                 self._strategy_flag = SingleDeviceStrategy(device=device)
             elif len(self._parallel_devices) > 1:
                 self._strategy_flag = "ddp_spawn"
@@ -517,7 +517,7 @@ class AcceleratorConnector:
                 self._strategy_flag = "ddp"
 
     def _strategy_check_and_fallbacks(self):
-        # fallback apply to user pass in object as well, so get the _strategy_flag first
+        # current logic, fallback only apply to user pass in str config not object config
         _strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if _strategy_flag == "ddp_cpu":
@@ -541,24 +541,9 @@ class AcceleratorConnector:
         if _strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{_strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             _strategy_flag = "ddp"
-        # Current test check precision first. So move this test to the end for now.
-        # TODO update tests and uncomment this part
-        # if isinstance(self.accelerator, TPUAccelerator) and "tpu" not in _strategy_flag:
-        #     raise ValueError(
-        #         "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
-        #         f" found {_strategy_flag}."
-        #     )
 
         if _strategy_flag:
             self._strategy_flag = _strategy_flag
-
-    def _init_strategy(self):
-        if isinstance(self._strategy_flag, str):
-            self.strategy = StrategyRegistry.get(self._strategy_flag)
-        elif isinstance(self._strategy_flag, Strategy):
-            self.strategy = self._strategy_flag
-        else:
-            raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
     def handle_horovod(self):
         if self._num_nodes_flag > 1:
@@ -567,7 +552,7 @@ class AcceleratorConnector:
                 "horovodrun / mpirun to configure the number of processes."
             )
 
-        if isinstance(self.strategy, HorovodStrategy) and not _HOROVOD_AVAILABLE:
+        if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `accelerator="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
@@ -578,7 +563,19 @@ class AcceleratorConnector:
             # Horovod assigns one local GPU per process
             self._parallel_device = list(range(hvd.local_size()))
         else:
-            self._parallel_device = hvd.local_size()
+            self._parallel_device = [torch.device("cpu")] * hvd.local_size()
+
+    def _init_strategy(self):
+        if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
+            # handle horovod has to happen before initialize strategy because HorovodStrategy needs hvd.init() first.
+            # TODO lazy initialized and setup horovod strategy `global_rank`
+            self.handle_horovod()
+        if isinstance(self._strategy_flag, str):
+            self.strategy = StrategyRegistry.get(self._strategy_flag)
+        elif isinstance(self._strategy_flag, Strategy):
+            self.strategy = self._strategy_flag
+        else:
+            raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
     def _check_capatibility_and_init_precision(self):
         self._precision_misconfig_check()
@@ -706,7 +703,8 @@ class AcceleratorConnector:
                 " creation inside the worker function."
             )
 
-
+        # TODO should be moved to _strategy_check_and_fallbacks().
+        # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
             self.strategy, (SingleTPUStrategy, TPUSpawnStrategy)
         ):
