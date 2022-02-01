@@ -175,6 +175,30 @@ def test_multiple_loggers(tmpdir):
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 
+def test_loggers_property(tmpdir):
+    logger1 = CustomLogger()
+    logger2 = CustomLogger()
+
+    # trainer.loggers should be a copy of the input list
+    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=[logger1, logger2], default_root_dir=tmpdir)
+
+    assert trainer.loggers == [logger1, logger2]
+
+    # trainer.loggers should create a list of size 1
+    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger1, default_root_dir=tmpdir)
+
+    assert trainer.loggers == [logger1]
+
+    # trainer.loggers should be None
+    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=False, default_root_dir=tmpdir)
+
+    assert trainer.loggers is None
+
+    # trainer.loggers should be a list of size 1 holding the default logger
+    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=True, default_root_dir=tmpdir)
+
+    assert trainer.loggers == [trainer.logger]
+    assert type(trainer.loggers[0]) == TensorBoardLogger
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
