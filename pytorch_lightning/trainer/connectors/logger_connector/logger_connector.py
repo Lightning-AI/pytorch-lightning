@@ -86,7 +86,7 @@ class LoggerConnector:
                 self.trainer.loggers = [default_logger]
             else:
                 self.trainer.logger = None
-                self.trainer.loggers = None
+                self.trainer.loggers = []
         elif isinstance(logger, Iterable):
             self.trainer.logger = LoggerCollection(logger)
             self.trainer.loggers = list(logger)
