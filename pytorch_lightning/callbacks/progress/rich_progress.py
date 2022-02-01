@@ -144,10 +144,12 @@ if _RICH_AVAILABLE:
             self._metrics = metrics
 
         def render(self, task) -> Text:
-            from pytorch_lightning.trainer.states import TrainerFn
-
-            if self._trainer.state.fn != TrainerFn.FITTING or self._trainer.sanity_checking:
-                return Text("")
+            if (
+                self._trainer.state.fn != "fit"
+                or self._trainer.sanity_checking
+                or self._trainer.progress_bar_callback.main_progress_bar_id != task.id
+            ):
+                return Text()
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
                 if self._renderable_cache:
@@ -156,13 +158,10 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
 
-            if self._trainer.progress_bar_callback.main_progress_bar_id != task.id:
-                return Text("")
-
-            _text = ""
+            text = ""
             for k, v in self._metrics.items():
-                _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
-            return Text(_text, justify="left", style=self._style)
+                text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
+            return Text(text, justify="left", style=self._style)
 
 
 @dataclass
