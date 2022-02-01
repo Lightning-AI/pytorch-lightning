@@ -155,8 +155,11 @@ if _RICH_AVAILABLE:
                 self._current_task_id = task.id
             if self._trainer.training and task.id != self._current_task_id:
                 return self._tasks[task.id]
-            _text = ""
 
+            if self._trainer.progress_bar_callback.main_progress_bar_id != task.id:
+                return Text("")
+
+            _text = ""
             for k, v in self._metrics.items():
                 _text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             return Text(_text, justify="left", style=self._style)

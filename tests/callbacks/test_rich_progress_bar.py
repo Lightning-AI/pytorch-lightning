@@ -223,3 +223,28 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
 
     trainer.fit(model)
     assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_metric_display_task_id(tmpdir):
+    model = BoringModel()
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            res = super().training_step(*args, **kwargs)
+            self.log("train_loss", res["loss"], prog_bar=True)
+            return res
+
+    progress_bar = RichProgressBar()
+    model = CustomModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
+
+    trainer.fit(model)
+    main_progress_bar_id = progress_bar.main_progress_bar_id
+    val_progress_bar_id = progress_bar.val_progress_bar_id
+    rendered = progress_bar.progress.columns[-1]._renderable_cache
+
+    for key in ("loss", "v_num", "train_loss"):
+        assert key in rendered[main_progress_bar_id][1]
+        assert key not in rendered[val_progress_bar_id][1]
