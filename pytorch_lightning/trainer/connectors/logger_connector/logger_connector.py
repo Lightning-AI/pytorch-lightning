@@ -102,7 +102,7 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        if self.trainer.loggers is None or not metrics:
+        if self.trainer.logger is None or not metrics:
             return
 
         self._logged_metrics.update(metrics)
@@ -119,9 +119,8 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        for logger in self.trainer.loggers:
-            logger.agg_and_log_metrics(scalar_metrics, step=step)
-            logger.save()
+        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+        self.trainer.logger.save()
 
     """
     Evaluation metric updates
