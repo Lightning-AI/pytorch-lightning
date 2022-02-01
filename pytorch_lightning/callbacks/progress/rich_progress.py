@@ -374,7 +374,7 @@ class RichProgressBar(ProgressBarBase):
         if self.val_progress_bar_id is not None:
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
 
-        if trainer.state.fn == "fit":
+        if trainer.state.fn == "fit" and not trainer.sanity_checking:
             self._update_metrics(trainer, pl_module)
 
     def on_test_epoch_start(self, trainer, pl_module):
