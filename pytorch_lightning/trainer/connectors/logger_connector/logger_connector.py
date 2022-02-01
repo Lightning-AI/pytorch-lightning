@@ -81,6 +81,9 @@ class LoggerConnector:
             if logger:
                 self.trainer.logger = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs")
                 self.trainer._loggers = [self.trainer.logger]
+            else:
+                self.trainer.logger = None
+                self.trainer._loggers = None
         elif isinstance(logger, Iterable):
             self.trainer.logger = LoggerCollection(logger)
             self.trainer._loggers = list(logger)
