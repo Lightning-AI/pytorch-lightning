@@ -88,10 +88,7 @@ class LoggerConnector:
                 self.trainer._loggers = None
         elif isinstance(logger, Iterable):
             self.trainer.logger = LoggerCollection(logger)
-            if(len(logger) < 1):
-                self.trainer._loggers = list(logger)
-            else:
-                self.trainer._loggers = [self.trainer.logger]
+            self.trainer._loggers = list(logger)
         else:
             self.trainer.logger = logger
             self.trainer._loggers = [self.trainer.logger]

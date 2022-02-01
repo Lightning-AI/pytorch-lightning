@@ -2093,10 +2093,10 @@ class Trainer(
             dirpath = self.default_root_dir
         elif len(self.loggers) == 1:
             logger = self.loggers[0]
-            if isinstance(logger, TensorBoardLogger):
-                dirpath = logger.log_dir
-            elif isinstance(logger, LoggerCollection):
+            if isinstance(self.logger, LoggerCollection):
                 dirpath = self.default_root_dir
+            elif isinstance(logger, TensorBoardLogger):
+                dirpath = logger.log_dir
             else:
                 dirpath = logger.save_dir
         else:
