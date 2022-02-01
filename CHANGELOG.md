@@ -457,7 +457,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disbled sampler replacement when using `IterableDataset` ([#11507](https://github.com/PyTorchLightning/pytorch-lightning/pull/11507))
 
 
-- Fixed `RichProgressBar` metric render on epoch_end ([#11689](https://github.com/PyTorchLightning/pytorch-lightning/pull/11689))
+- Fixed `RichProgressBar` metric render on epoch end ([#11689](https://github.com/PyTorchLightning/pytorch-lightning/pull/11689))
 
 
 ## [1.5.8] - 2022-01-05
