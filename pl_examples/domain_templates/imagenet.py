@@ -30,6 +30,7 @@ or show all options you can change:
     python imagenet.py fit --help
 """
 import os
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -41,6 +42,7 @@ import torch.utils.data.distributed
 import torchvision.datasets as datasets
 import torchvision.models as models
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
 from torchmetrics import Accuracy
 
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
@@ -69,7 +71,6 @@ class ImageNetLightningModel(LightningModule):
         workers: int = 4,
     ):
         super().__init__()
-        self.save_hyperparameters()
         self.arch = arch
         self.pretrained = pretrained
         self.lr = lr
@@ -79,7 +80,8 @@ class ImageNetLightningModel(LightningModule):
         self.batch_size = batch_size
         self.workers = workers
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
-
+        self.train_dataset: Optional[Dataset] = None
+        self.eval_dataset: Optional[Dataset] = None
         self.train_acc1 = Accuracy(top_k=1)
         self.train_acc5 = Accuracy(top_k=5)
         self.eval_acc1 = Accuracy(top_k=1)
@@ -90,7 +92,7 @@ class ImageNetLightningModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, target = batch
-        output = self(images)
+        output = self.model(images)
         loss_train = F.cross_entropy(output, target)
         self.log("train_loss", loss_train)
         # update metrics
@@ -102,7 +104,7 @@ class ImageNetLightningModel(LightningModule):
 
     def eval_step(self, batch, batch_idx, prefix: str):
         images, target = batch
-        output = self(images)
+        output = self.model(images)
         loss_val = F.cross_entropy(output, target)
         self.log(f"{prefix}_loss", loss_val)
         # update metrics
@@ -123,44 +125,49 @@ class ImageNetLightningModel(LightningModule):
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))
         return [optimizer], [scheduler]
 
-    def setup(self, stage=None):
+    def setup(self, stage: Optional[str] = None):
         if isinstance(self.trainer.strategy, ParallelStrategy):
             # When using a single GPU per process and per `DistributedDataParallel`, we need to divide the batch size
             # ourselves based on the total number of GPUs we have
-            self.batch_size = int(self.batch_size / max(1, self.trainer.devices))
-            self.workers = int(self.workers / max(1, self.trainer.devices))
+            num_processes = max(1, self.trainer.strategy.num_processes)
+            self.batch_size = int(self.batch_size / num_processes)
+            self.workers = int(self.workers / num_processes)
 
-    def train_dataloader(self):
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-
-        train_dir = os.path.join(self.data_path, "train")
-        train_dataset = datasets.ImageFolder(
-            train_dir,
-            transforms.Compose(
-                [transforms.RandomResizedCrop(224), transforms.RandomHorizontalFlip(), transforms.ToTensor(), normalize]
-            ),
-        )
-
-        train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers, pin_memory=True
-        )
-        return train_loader
-
-    def val_dataloader(self):
+        if stage in (None, "fit"):
+            normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            train_dir = os.path.join(self.data_path, "train")
+            self.train_dataset = datasets.ImageFolder(
+                train_dir,
+                transforms.Compose(
+                    [
+                        transforms.RandomResizedCrop(224),
+                        transforms.RandomHorizontalFlip(),
+                        transforms.ToTensor(),
+                        normalize,
+                    ]
+                ),
+            )
+        # all stages will use the eval dataset
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         val_dir = os.path.join(self.data_path, "val")
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(
-                val_dir,
-                transforms.Compose(
-                    [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
-                ),
-            ),
+        self.eval_dataset = datasets.ImageFolder(
+            val_dir,
+            transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]),
+        )
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            dataset=self.train_dataset,
             batch_size=self.batch_size,
+            shuffle=True,
             num_workers=self.workers,
             pin_memory=True,
         )
-        return val_loader
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.eval_dataset, batch_size=self.batch_size, num_workers=self.workers, pin_memory=True
+        )
 
     def test_dataloader(self):
         return self.val_dataloader()
