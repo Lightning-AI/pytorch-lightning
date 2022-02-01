@@ -566,7 +566,7 @@ class Trainer(
         # init logger flags
         self.logger: Optional[LightningLoggerBase]
 
-        self._loggers: Optional[List[LightningLoggerBase]]
+        self.loggers: Optional[List[LightningLoggerBase]]
 
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
@@ -618,7 +618,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             if self.logger is not None:
                 self.logger = DummyLogger()
-                self._loggers = [self.logger]
+                self.loggers = [self.logger]
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -2481,10 +2481,6 @@ class Trainer(
     """
     Logging properties
     """
-
-    @property
-    def loggers(self) -> List[LightningLoggerBase]:
-        return self._loggers
 
     @property
     def callback_metrics(self) -> dict:

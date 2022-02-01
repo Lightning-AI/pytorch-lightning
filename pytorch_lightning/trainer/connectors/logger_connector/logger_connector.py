@@ -82,16 +82,16 @@ class LoggerConnector:
                 self.trainer.logger = TensorBoardLogger(
                     save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
                 )
-                self.trainer._loggers = [self.trainer.logger]
+                self.trainer.loggers = [self.trainer.logger]
             else:
                 self.trainer.logger = None
-                self.trainer._loggers = None
+                self.trainer.loggers = None
         elif isinstance(logger, Iterable):
             self.trainer.logger = LoggerCollection(logger)
-            self.trainer._loggers = list(logger)
+            self.trainer.loggers = list(logger)
         else:
             self.trainer.logger = logger
-            self.trainer._loggers = [self.trainer.logger]
+            self.trainer.loggers = [self.trainer.logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
