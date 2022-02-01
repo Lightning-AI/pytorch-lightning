@@ -33,20 +33,10 @@ A system defines how a collection of models interact with each other with user-d
 * BERT
 * etc...
 
-A LightningModule can define both a system and a model.
+A LightningModule can define both a system and a model:
 
-Here's a LightningModule that defines a model. Although, we do not recommend to define a model like in the example.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.layer_1 = nn.Linear()
-            self.layer_2 = nn.Linear()
-            self.layer_3 = nn.Linear()
-
-Here's a LightningModule that defines a system. This structure is what we recommend as a best practice.
+Here's a LightningModule that defines a system. This structure is what we recommend as a best practice. Keeping the model separate from the system improves
+modularity, which eventually helps in better testing, reduces dependencies on the system and makes it easier to refactor.
 
 .. testcode::
 
@@ -76,6 +66,18 @@ Here's a LightningModule that defines a system. This structure is what we recomm
 
 For fast prototyping it's often useful to define all the computations in a LightningModule. For reusability
 and scalability it might be better to pass in the relevant backbones.
+
+Here's a LightningModule that defines a model. Although, we do not recommend to define a model like in the example.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer_1 = nn.Linear()
+            self.layer_2 = nn.Linear()
+            self.layer_3 = nn.Linear()
+
 
 Self-contained
 ==============
