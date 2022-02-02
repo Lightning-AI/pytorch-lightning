@@ -564,8 +564,8 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self.logger: Optional[LightningLoggerBase]
-        self.loggers: List[LightningLoggerBase]
+        self._logger: Optional[LightningLoggerBase]
+        self._loggers: List[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -2473,6 +2473,37 @@ class Trainer(
     """
     Logging properties
     """
+
+    @property
+    def logger(self) -> Optional[LightningLoggerBase]:
+        return self._logger
+
+    @logger.setter
+    def logger(self, new_logger: Union[LightningLoggerBase, None]) -> None:
+        if new_logger:
+            if isinstance(new_logger, LoggerCollection):
+                self._logger = new_logger
+                self._loggers = [_logger for _logger in new_logger]
+            else:
+                self._logger = new_logger
+                self._loggers = [new_logger]
+        else:
+            self._logger = None
+            self._loggers = []
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
+
+    @loggers.setter
+    def loggers(self, new_loggers: Union[Iterable[LightningLoggerBase], None]) -> None:
+        if new_loggers:
+            self._loggers = [_logger for _logger in new_loggers]
+            self._logger = LoggerCollection(self._loggers)
+        else:
+            self._logger = None
+            self._loggers = []
+
 
     @property
     def callback_metrics(self) -> dict:
