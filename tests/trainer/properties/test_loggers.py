@@ -18,7 +18,7 @@ from tests.loggers.test_base import CustomLogger
 
 
 def test_trainer_loggers_property():
-    """Test for correct initialization of loggers in Trainer"""
+    """Test for correct initialization of loggers in Trainer."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
@@ -45,7 +45,7 @@ def test_trainer_loggers_property():
 
 
 def test_trainer_logger_setters():
-    """Test the behavior of setters for trainer.logger and trainer.loggers"""
+    """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
     logger_collection = LoggerCollection([logger1, logger2])
