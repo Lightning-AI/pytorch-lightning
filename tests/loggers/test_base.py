@@ -207,8 +207,8 @@ def test_trainer_logger_setters():
     logger_collection = LoggerCollection([logger1, logger2])
 
     trainer = Trainer()
-    assert trainer.logger is None
-    assert trainer.loggers == []
+    assert type(trainer.logger) == TensorBoardLogger
+    assert trainer.loggers == [trainer.logger]
 
     # Test setters for trainer.logger
     trainer.logger = logger1
@@ -226,15 +226,15 @@ def test_trainer_logger_setters():
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger == logger_collection
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = [logger1]
-    assert trainer.loggers == [logger1, logger2]
+    assert trainer.loggers == [logger1]
     assert trainer.logger == logger1
 
     trainer.loggers = logger_collection
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger == logger_collection
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = []
     assert trainer.loggers == []
