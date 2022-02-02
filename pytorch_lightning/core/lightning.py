@@ -148,7 +148,7 @@ class LightningModule(
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
         if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers.values())
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -158,7 +158,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -166,11 +166,11 @@ class LightningModule(
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
             schedulers were returned in :meth:`configure_optimizers`.
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_scheduler_configs:
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+        lr_schedulers = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -514,9 +514,9 @@ class LightningModule(
 
             # DEFAULT
             def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
         """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -1895,7 +1895,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
             ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP

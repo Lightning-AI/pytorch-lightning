@@ -272,6 +272,9 @@ Refer to :doc:`Advanced GPU Optimized Training <../advanced/advanced_gpu>` for m
 
 ----------
 
+
+.. _ddp_spawn_shared_memory:
+
 ******************************************
 Sharing Datasets Across Process Boundaries
 ******************************************

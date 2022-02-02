@@ -19,8 +19,8 @@ PyTorch Lightning
    :caption: Getting started
 
    starter/new-project
+   starter/installation
    starter/converting
-   starter/rapid_prototyping_templates
    starter/lightning_lite
 
 .. toctree::

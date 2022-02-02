@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from __future__ import annotations
+
+from typing import Any
 
 import torch
 
@@ -19,7 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.types import _DEVICE
 
 
 class SingleDeviceStrategy(Strategy):
@@ -27,26 +29,18 @@ class SingleDeviceStrategy(Strategy):
 
     def __init__(
         self,
-        device: torch.device,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        device: _DEVICE,
+        accelerator: pl.accelerators.accelerator.Accelerator | None = None,
+        checkpoint_io: CheckpointIO | None = None,
+        precision_plugin: PrecisionPlugin | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
-        self.device: torch.device = device
+        self._root_device = torch.device(device)
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
 
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
-
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
-    def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
+    def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
 
@@ -60,18 +54,18 @@ class SingleDeviceStrategy(Strategy):
         """
         return tensor
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: torch.Tensor, group: Any | None = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes."""
         return tensor
 
     @property
     def root_device(self) -> torch.device:
-        return self.device
+        return self._root_device
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: pl.Trainer) -> None:
         self.model_to_device()
         super().setup(trainer)
 
@@ -87,7 +81,7 @@ class SingleDeviceStrategy(Strategy):
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

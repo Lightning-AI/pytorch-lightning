@@ -1179,6 +1179,8 @@ override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split
 
 --------------
 
+.. _lightning_hooks:
+
 Hooks
 =====
 

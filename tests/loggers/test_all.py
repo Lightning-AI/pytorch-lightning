@@ -354,7 +354,8 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         logger=logger,
         default_root_dir=tmpdir,
         strategy="ddp_spawn",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         max_steps=1,
         callbacks=[RankZeroLoggerCheck()],
     )
@@ -386,9 +387,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 1
-        logger.log_metrics({"test": 1.0}, step=0)
         assert logger.experiment.__getitem__.call_count == 2
+        logger.log_metrics({"test": 1.0}, step=0)
+        assert logger.experiment.__getitem__.call_count == 3
         logger.experiment.__getitem__.assert_called_with("tmp/test")
         logger.experiment.__getitem__().log.assert_called_once_with(1.0)
 
