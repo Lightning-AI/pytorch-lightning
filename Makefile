@@ -34,4 +34,3 @@ docs: clean
 
 update:
 	git submodule update --init --recursive --remote
-
