@@ -2016,7 +2016,7 @@ class Trainer(
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
-        return self.strategy.lr_schedulers
+        return self.strategy.lr_scheduler_configs
 
     @property
     def lr_schedulers(self) -> List[Dict[str, Any]]:
@@ -2027,7 +2027,7 @@ class Trainer(
         )
         from dataclasses import asdict
 
-        return [asdict(config) for config in self.strategy.lr_schedulers]
+        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
