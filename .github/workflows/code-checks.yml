@@ -1,10 +1,14 @@
-name: Test
+name: Code check
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
   mypy:
