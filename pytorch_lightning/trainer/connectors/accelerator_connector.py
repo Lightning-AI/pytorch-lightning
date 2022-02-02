@@ -320,13 +320,21 @@ class AcceleratorConnector:
                     )
                 else:
                     self.checkpoint_io = self._strategy_flag._checkpoint_io
-            if getattr(self._strategy_flag, "_cluster_environment", None):
+            if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment:
                     raise MisconfigurationException(
                         "cluster_environment set through both strategy class and plugins, choose one"
                     )
                 else:
                     self._cluster_environment = getattr(self._strategy_flag, "cluster_environment")
+            # RFC existing accel_conn doesn't handle this, should we add conflict check?
+            # eg: parallel_device is torch.device(cpu) but accelerator=gpu
+            if hasattr(self._strategy_flag, "parallel_devices"):
+                if self._strategy_flag.parallel_devices:
+                    if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        self._accelerator_flag = "cpu"
+                    if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        self._accelerator_flag = "gpu"
 
         amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self._amp_type_flag = AMPType.from_str(amp_type)
@@ -561,9 +569,9 @@ class AcceleratorConnector:
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
             # Horovod assigns one local GPU per process
-            self._parallel_device = list(range(hvd.local_size()))
+            self._parallel_devices = list(range(hvd.local_size()))
         else:
-            self._parallel_device = [torch.device("cpu")] * hvd.local_size()
+            self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 
     def _init_strategy(self):
         if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
@@ -680,9 +688,13 @@ class AcceleratorConnector:
             self.strategy.precision_plugin = self.precision_plugin
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
-        self.strategy.cluster_environment = self.cluster_environment
+        if hasattr(self.strategy, "cluster_environment"):
+            self.strategy.cluster_environment = self.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
-            self.strategy.parallel_devices = self._parallel_devices
+            if self.strategy.parallel_devices:
+                self._parallel_devices = self.strategy.parallel_devices
+            else:
+                self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "sync_batchnorm"):
