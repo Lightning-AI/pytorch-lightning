@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for LightningCLI."""
+
 import inspect
 import os
 import sys
@@ -113,7 +115,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
@@ -697,8 +699,8 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser,
-                self.config,
+                self._parser(self.subcommand),
+                self.config.get(str(self.subcommand), self.config),
                 self.save_config_filename,
                 overwrite=self.save_config_overwrite,
                 multifile=self.save_config_multifile,
@@ -796,9 +798,7 @@ class LightningCLI:
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
-        if self.subcommand is not None:
-            return config[self.subcommand].get(key, default)
-        return config.get(key, default)
+        return config.get(str(self.subcommand), config).get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
         """Run the chosen subcommand."""

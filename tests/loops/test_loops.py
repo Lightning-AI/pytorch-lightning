@@ -86,6 +86,23 @@ def test_connect_loops_recursive():
     assert child1.trainer is trainer
 
 
+def test_restarting_loops_recursive():
+    class MyLoop(NestedLoop):
+        def __init__(self, loop=None):
+            super().__init__()
+            self.child = loop
+
+    loop = MyLoop(MyLoop(MyLoop()))
+
+    assert not loop.restarting
+    assert not loop.child.restarting
+    assert not loop.child.child.restarting
+    loop.restarting = True
+    assert loop.restarting
+    assert loop.child.restarting
+    assert loop.child.child.restarting
+
+
 def test_connect_subloops(tmpdir):
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()

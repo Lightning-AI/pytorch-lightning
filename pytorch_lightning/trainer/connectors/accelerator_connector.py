@@ -752,7 +752,7 @@ class AcceleratorConnector:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDeviceStrategy(device=single_gpu_ordinal if self.use_gpu else "cpu")
         return plugin
 
     def resolve_strategy(self, training_type: Strategy) -> Strategy:

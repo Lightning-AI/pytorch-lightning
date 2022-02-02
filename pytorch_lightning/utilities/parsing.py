@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities used for parameter parsing."""
+
 import copy
 import inspect
 import pickle
@@ -106,13 +108,15 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
 
 
 def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
-    """Parse key words for standard self, *args and **kwargs.
+    """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
-    >>> class Model():
-    ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
-    ...         pass
-    >>> parse_class_init_keys(Model)
-    ('self', 'my_args', 'my_kwargs')
+    Examples:
+
+        >>> class Model():
+        ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
+        ...         pass
+        >>> parse_class_init_keys(Model)
+        ('self', 'my_args', 'my_kwargs')
     """
     init_parameters = inspect.signature(cls.__init__).parameters
     # docs claims the params are always ordered
