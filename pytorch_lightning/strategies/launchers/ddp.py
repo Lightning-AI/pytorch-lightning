@@ -14,8 +14,9 @@
 import os
 import subprocess
 import sys
+from subprocess import Popen
 from time import sleep
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 import __main__
 import numpy as np
@@ -35,7 +36,7 @@ class DDPSubprocessLauncher(Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.interactive_ddp_procs = []
+        self.interactive_ddp_procs: List[Popen] = []
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         kwargs.pop("trainer")
