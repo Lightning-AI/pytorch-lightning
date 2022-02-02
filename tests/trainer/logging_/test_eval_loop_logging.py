@@ -14,6 +14,7 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
+import os
 from io import StringIO
 from unittest import mock
 from unittest.mock import call
@@ -856,7 +857,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
     out = StringIO()
     EvaluationLoop._print_results(*inputs, file=out)
     expected = expected[1:]  # remove the initial line break from the """ string
-    assert out.getvalue() == expected.lstrip()
+    assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
 
 expected0 = """
