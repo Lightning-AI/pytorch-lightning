@@ -2507,7 +2507,6 @@ class Trainer(
             self._logger = None
             self._loggers = []
 
-
     @property
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
