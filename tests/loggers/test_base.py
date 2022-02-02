@@ -239,11 +239,11 @@ def test_trainer_logger_setters():
 
     trainer.loggers = []
     assert trainer.loggers == []
-    assert trainer.logger == None
+    assert trainer.logger is None
 
     trainer.loggers = None
     assert trainer.loggers == []
-    assert trainer.logger == None
+    assert trainer.logger is None
 
 
 def test_multiple_loggers_pickle(tmpdir):
