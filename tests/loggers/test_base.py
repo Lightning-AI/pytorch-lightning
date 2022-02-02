@@ -201,6 +201,44 @@ def test_trainer_loggers_property():
     assert trainer.loggers == [trainer.logger]
     assert type(trainer.loggers[0]) == TensorBoardLogger
 
+def test_trainer_logger_setters():
+    logger1 = CustomLogger()
+    logger2 = CustomLogger()
+    logger_collection = LoggerCollection([logger1, logger2])
+
+    trainer = Trainer()
+    assert trainer.logger is None
+    assert trainer.loggers == []
+
+    # Test setters for trainer.logger
+    trainer.logger = logger1
+    assert trainer.logger == logger1
+    assert trainer.loggers == [logger1]
+
+    trainer.logger = logger_collection
+    assert trainer.logger == logger_collection
+    assert trainer.loggers == [logger1, logger2]
+
+    trainer.logger = None
+    assert trainer.logger is None
+    assert trainer.loggers == []
+
+    # Test setters for trainer.loggers
+    trainer.loggers = [logger1, logger2]
+    assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger == logger_collection
+
+    trainer.loggers = logger_collection
+    assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger == logger_collection
+
+    trainer.loggers = []
+    assert trainer.loggers == []
+    assert trainer.logger == None
+
+    trainer.loggers = None
+    assert trainer.loggers == []
+    assert trainer.logger == None
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
