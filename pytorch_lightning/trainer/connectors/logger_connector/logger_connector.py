@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage
