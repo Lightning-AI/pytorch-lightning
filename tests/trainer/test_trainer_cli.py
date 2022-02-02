@@ -165,6 +165,7 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
     ["cli_args", "expected_parsed", "expected_device_ids"],
     [("", None, None), ("--devices 1", 1, [0]), ("--devices 0,", "0,", [0])],
 )
+@RunIf(min_gpus=1)
 def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_ids):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(" ") if cli_args else []
@@ -172,7 +173,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
-
+    
     assert args.gpus == expected_parsed
     trainer = Trainer.from_argparse_args(args)
     assert trainer.data_parallel_device_ids == expected_device_ids
