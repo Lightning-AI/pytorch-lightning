@@ -21,6 +21,7 @@ import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
+from pytorch_lightning.utilities.types import _PATH
 
 
 def load(
@@ -45,8 +46,8 @@ def load(
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
-    fs, _ = url_to_fs(str(path))
+def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
+    fs, _ = url_to_fs(str(path), **kwargs)
     return fs
 
 
