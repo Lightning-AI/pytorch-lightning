@@ -40,7 +40,7 @@ def test_prefetch_iterator(use_combined_loader):
             yield 2
             yield 3
 
-    for prefetch_batches in range(0, 4):
+    for prefetch_batches in range(1, 5):
         if use_combined_loader:
             loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
             expected = [
@@ -52,17 +52,13 @@ def test_prefetch_iterator(use_combined_loader):
             loader = DataLoader(IterDataset())
             expected = [(1, False), (2, False), (3, True)]
         iterator = DataFetcher(prefetch_batches=prefetch_batches)
-        prefetch_batches += 1
         assert iterator.prefetch_batches == prefetch_batches
         iterator.setup(loader)
 
         def generate():
             generated = []
-            for idx, data in enumerate(iterator, 1):
-                if iterator.done:
-                    assert iterator.fetched == 3
-                else:
-                    assert iterator.fetched == (idx + prefetch_batches)
+            for idx, data in enumerate(iterator, prefetch_batches + 1):
+                assert iterator.fetched == 3 if iterator.done else idx
                 generated.append(data)
             return generated
 
@@ -78,7 +74,7 @@ def test_prefetch_iterator(use_combined_loader):
     dataloader = DataLoader(EmptyIterDataset())
     iterator = DataFetcher()
     iterator.setup(dataloader)
-    assert list(iterator) == []
+    assert not list(iterator)
 
 
 def test_misconfiguration_error():
@@ -180,14 +176,13 @@ def test_trainer_num_prefetch_batches(tmpdir):
     model = RecommenderModel()
 
     class AssertFetcher(Callback):
-        def __init__(self, check_inter_batch: bool):
+        def __init__(self, check_inter_batch):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            if self._check_inter_batch:
-                assert isinstance(trainer._data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
-            else:
-                assert isinstance(trainer._data_connector.train_data_fetcher, DataFetcher)
+            fetcher = trainer._data_connector.train_data_fetcher
+            assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
+            assert fetcher.prefetch_batches == 1
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -197,28 +192,28 @@ def test_trainer_num_prefetch_batches(tmpdir):
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        callbacks=[AssertFetcher(check_inter_batch=True)],
+        enable_progress_bar=0,
     )
 
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=True))
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        global_step = trainer.global_step
+        inter_batch_duration = t1 - t0
+    global_step = trainer.global_step
 
     torch.cuda.synchronize()
 
-    trainer_kwargs["callbacks"] = [AssertFetcher(check_inter_batch=False)]
-
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=False))
     t2 = time()
-    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
+    regular_duration = t3 - t2
 
     assert global_step == trainer.global_step == 4
-    ratio = (t3 - t2) / (t1 - t0)
-    assert ratio > 1.1, ratio
+    ratio = regular_duration / inter_batch_duration
+    assert ratio > 1.1, (regular_duration, inter_batch_duration, ratio)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
