@@ -45,8 +45,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
 
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning import LightningModule
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.utilities.cli import LightningCLI
 
