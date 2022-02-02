@@ -15,5 +15,6 @@ from pytorch_lightning.strategies.launchers.base import Launcher
 
 
 class SingleProcessLauncher(Launcher):
-    def launch(self, trainer, function, *args, **kwargs):
+    def launch(self, function, *args, **kwargs):
+        kwargs.pop("trainer")
         return function(*args, **kwargs)

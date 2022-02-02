@@ -27,15 +27,17 @@ if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 
 class DDPSubprocessLauncher(Launcher):
-    def __init__(self, strategy):
-        super().__init__(strategy=strategy)
+    def __init__(self, cluster_environment, num_processes, num_nodes):
+        super().__init__()
+        self.cluster_environment = cluster_environment
+        self.num_processes = num_processes
+        self.num_nodes = num_nodes
         self.interactive_ddp_procs = []
 
-    def launch(self, trainer, function, *args, **kwargs):
+    def launch(self, function, *args, **kwargs):
+        kwargs.pop("trainer")
         self._call_children_scripts()
         return function(*args, **kwargs)
 
@@ -44,12 +46,12 @@ class DDPSubprocessLauncher(Launcher):
         self._check_can_spawn_children()
 
         # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.strategy.cluster_environment.main_address
-        os.environ["MASTER_PORT"] = str(self.strategy.cluster_environment.main_port)
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
         # allow the user to pass the node rank
-        os.environ["NODE_RANK"] = str(self.strategy.cluster_environment.node_rank())
-        os.environ["LOCAL_RANK"] = str(self.strategy.cluster_environment.local_rank())
+        os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
+        os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -71,18 +73,11 @@ class DDPSubprocessLauncher(Launcher):
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
-        # the visible devices tell us how many GPUs we want to use.
-        # when the trainer script was called the device has already been scoped by the time
-        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
-        # but forward the GPUs selected via environment variables
-        if self.strategy.parallel_devices is None:
-            raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
-        os.environ["WORLD_SIZE"] = f"{self.strategy.num_processes * self.strategy.num_nodes}"
+        os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
         self.interactive_ddp_procs = []
 
-        for local_rank in range(1, self.strategy.num_processes):
+        for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 
@@ -106,10 +101,8 @@ class DDPSubprocessLauncher(Launcher):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-        self.strategy._rank_0_has_called_call_children_scripts = True
-
     def _check_can_spawn_children(self):
-        if self.strategy.local_rank != 0:
+        if self.cluster_environment.local_rank() != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"

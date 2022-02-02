@@ -15,9 +15,6 @@ from abc import ABC, abstractmethod
 
 
 class Launcher(ABC):
-    def __init__(self, strategy):
-        self.strategy = strategy
-
     @abstractmethod
-    def launch(self, trainer, fn, *args, **kwargs) -> bool:
+    def launch(self, fn, *args, **kwargs) -> bool:
         """Launches the proceses."""

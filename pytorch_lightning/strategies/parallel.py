@@ -126,9 +126,9 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
-    def launch(self, trainer, function, *args, **kwargs):
-        launcher = SingleProcessLauncher(self)
-        return launcher.launch(trainer, function, *args, **kwargs)
+    def launch(self, function, *args, **kwargs):
+        launcher = SingleProcessLauncher()
+        return launcher.launch(function, *args, **kwargs)
 
     def teardown(self) -> None:
         self.cluster_environment.teardown()

@@ -33,26 +33,38 @@ else:
 
 
 class TPUSpawnLauncher(DDPSpawnLauncher):
-    def launch(self, trainer, function, *args, **kwargs):
+    def launch(self, function, *args, **kwargs):
+        trainer = kwargs.pop("trainer")
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
-        xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
+        xmp.spawn(
+            self._wrapped_function,
+            args=(trainer, function, args, kwargs, return_queue),
+            **trainer.strategy.get_mp_spawn_kwargs()
+        )
         return return_queue.get()
 
     def _wrapped_function(
-        self, process_idx: int, function: Callable, args: Any, kwargs: Any, return_queue: SimpleQueue
+        self,
+        process_idx: int,
+        trainer: "pl.Trainer",
+        function: Callable,
+        args: Any,
+        kwargs: Any,
+        return_queue: SimpleQueue,
     ) -> None:
         self._worker_setup(process_idx)
-        result = function(*args, **kwargs)
-        if self.local_rank == 0:
-            return_queue.put(move_data_to_device(result, "cpu"))
+        results = function(*args, **kwargs)
+        results = self._collect_rank_zero_results(trainer, results)
+        if trainer.strategy.local_rank == 0:
+            return_queue.put(move_data_to_device(results, "cpu"))
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        self.barrier("end-process")
+        trainer.strategy.barrier("end-process")
 
         # Ensure that the rank 0 process is the one exiting last
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.local_rank == 0:
+        if trainer.strategy.local_rank == 0:
             time.sleep(2)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
@@ -61,23 +73,23 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = self.strategy.lightning_module.state_dict()
+        state_dict = trainer.lightning_module.state_dict()
 
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
-            self.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
+            trainer.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
-        if self.strategy.local_rank != 0:
+        if trainer.strategy.local_rank != 0:
             return
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", self.strategy.lightning_module):
+        if is_overridden("add_to_queue", trainer.lightning_module):
             # TODO: Remove the if in v1.7
-            self.strategy.lightning_module.add_to_queue(extra)
-        self.strategy.add_to_queue(trainer, extra)
+            trainer.lightning_module.add_to_queue(extra)
+        self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)

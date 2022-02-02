@@ -136,13 +136,16 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def launch(self, trainer, function, *args, **kwargs):
-        launcher = (
-            SingleProcessLauncher if self.cluster_environment.creates_processes_externally else DDPSubprocessLauncher
-        )(self)
-        return launcher.launch(trainer, function, *args, **kwargs)
+    def launch(self, function, *args, **kwargs):
+        if self.cluster_environment.creates_processes_externally:
+            launcher = SingleProcessLauncher()
+        else:
+            launcher = DDPSubprocessLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+
+        return launcher.launch(function, *args, **kwargs)
 
     def setup_environment(self) -> None:
+        self._rank_0_has_called_call_children_scripts = not self.cluster_environment.creates_processes_externally
         self.setup_distributed()
         super().setup_environment()
 

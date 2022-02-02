@@ -140,9 +140,9 @@ class DDPSpawnStrategy(ParallelStrategy):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def launch(self, trainer, function, *args, **kwargs):
-        launcher = DDPSpawnLauncher(self)
-        return launcher.launch(trainer, function, *args, **kwargs)
+    def launch(self, function, *args, **kwargs):
+        launcher = DDPSpawnLauncher()
+        return launcher.launch(function, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

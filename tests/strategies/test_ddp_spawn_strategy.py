@@ -89,14 +89,14 @@ class CustomDDPSpawnLauncher(DDPSpawnLauncher):
         return super().add_to_queue(trainer, queue)
 
     def get_from_queue(self, trainer: Trainer, queue) -> None:
-        self.strategy.new_test_val = queue.get()
+        trainer.strategy.new_test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
-    def launch(self, trainer, function, *args, **kwargs):
-        launcher = CustomDDPSpawnLauncher(self)
-        return launcher.launch(trainer, function, *args, **kwargs)
+    def launch(self, function, *args, **kwargs):
+        launcher = CustomDDPSpawnLauncher()
+        return launcher.launch(function, *args, **kwargs)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
@@ -155,9 +155,9 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPSpawnStrategy()
-    launcher = DDPSpawnLauncher(strategy)
-    strategy.model = model
-    trainer = Trainer(default_root_dir=tmpdir)
+    launcher = DDPSpawnLauncher()
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
+    trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
     temp_file = Path(tmpdir, ".temp.ckpt")
 

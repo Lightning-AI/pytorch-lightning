@@ -41,9 +41,9 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
-    def launch(self, trainer, function, *args, **kwargs):
-        launcher = SingleProcessLauncher(self)
-        return launcher.launch(trainer, function, *args, **kwargs)
+    def launch(self, function, *args, **kwargs):
+        launcher = SingleProcessLauncher()
+        return launcher.launch(function, *args, **kwargs)
 
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only

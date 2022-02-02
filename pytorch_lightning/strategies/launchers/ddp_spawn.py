@@ -13,7 +13,8 @@
 # limitations under the License.
 import os
 from collections import UserList
-from typing import Any, NamedTuple, Optional
+from multiprocessing.queues import SimpleQueue
+from typing import Any, Callable, NamedTuple, Optional
 
 import numpy as np
 import torch
@@ -29,24 +30,33 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class DDPSpawnLauncher(Launcher):
-    def launch(self, trainer, function, *args, **kwargs):
-        os.environ["MASTER_PORT"] = str(self.strategy.cluster_environment.main_port)
+    def launch(self, function, *args, **kwargs):
+        trainer = kwargs.pop("trainer")
+        os.environ["MASTER_PORT"] = str(trainer.strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
         mp.spawn(
             self._wrapped_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=self.strategy.num_processes,
+            nprocs=trainer.strategy.num_processes,
         )
         spawn_output = return_queue.get()
         self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
-    def _wrapped_function(self, process_idx, trainer, function, args, kwargs, return_queue):
-        self.strategy._worker_setup(process_idx)
+    def _wrapped_function(
+        self,
+        process_idx: int,
+        trainer: "pl.Trainer",
+        function: Callable,
+        args: Any,
+        kwargs: Any,
+        return_queue: SimpleQueue,
+    ):
+        trainer.strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
         results = self._collect_rank_zero_results(trainer, results)
-        if self.strategy.local_rank == 0:
+        if trainer.strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
@@ -57,19 +67,19 @@ class DDPSpawnLauncher(Launcher):
         # TODO: pass also best score
         # load last weights
         if spawn_output.weights_path is not None:
-            ckpt = self.strategy.checkpoint_io.load_checkpoint(
+            ckpt = trainer.strategy.checkpoint_io.load_checkpoint(
                 spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
-            self.strategy.lightning_module.load_state_dict(ckpt)
-            self.strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
+            trainer.lightning_module.load_state_dict(ckpt)
+            trainer.strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        if is_overridden("get_from_queue", self.strategy.lightning_module):
+        if is_overridden("get_from_queue", trainer.lightning_module):
             # only in case the user does not override it.
             # TODO: Remove the if in v1.7
-            self.strategy.lightning_module.get_from_queue(spawn_output.extra)
+            trainer.lightning_module.get_from_queue(spawn_output.extra)
         self.get_from_queue(trainer, spawn_output.extra)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
@@ -78,22 +88,22 @@ class DDPSpawnLauncher(Launcher):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = self.strategy.lightning_module.state_dict()
+        state_dict = trainer.lightning_module.state_dict()
 
-        if self.strategy.global_rank != 0:
+        if trainer.strategy.global_rank != 0:
             return
 
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
-            self.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
+            trainer.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", self.strategy.lightning_module):
+        if is_overridden("add_to_queue", trainer.lightning_module):
             # TODO: Remove the if in v1.7
-            self.strategy.lightning_module.add_to_queue(extra)
+            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
