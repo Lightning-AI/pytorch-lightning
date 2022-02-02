@@ -39,8 +39,6 @@ def test_ddp_with_2_gpus():
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer.strategy.on_gpu
-    assert not trainer.strategy.on_tpu
     local_rank = trainer.strategy.local_rank
     assert trainer.strategy.root_device == torch.device(f"cuda:{local_rank}")
 
