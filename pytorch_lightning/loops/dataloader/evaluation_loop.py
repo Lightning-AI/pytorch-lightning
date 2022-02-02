@@ -116,6 +116,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
+        assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader,
             batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),

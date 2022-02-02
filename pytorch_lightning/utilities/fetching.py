@@ -188,10 +188,10 @@ class AbstractDataFetcher(ABC):
 
     def teardown(self) -> None:
         self.reset()
-        if isinstance(self.dataloader, CombinedLoader):
-            self.dataloader.reset()
-        if isinstance(self.dataloader, DataLoader):
-            CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
+        if isinstance(self._dataloader, CombinedLoader):
+            self._dataloader.reset()
+        if isinstance(self._dataloader, DataLoader):
+            CombinedLoader._shutdown_workers_and_reset_iterator(self._dataloader)
         self.dataloader_iter = None
         _teardown_dataloader_get_iterators()
 
