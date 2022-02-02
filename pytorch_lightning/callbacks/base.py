@@ -58,8 +58,8 @@ class Callback:
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         r"""
-        ..deprecated:: v1.6
-            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use `setup()` instead.
 
         Called before configure sharded model.
         """
