@@ -87,7 +87,11 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model.test_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, accelerator="cpu", devices=1, strategy="ddp_find_unused_parameters_false",
+        default_root_dir=tmpdir,
+        limit_test_batches=2,
+        accelerator="cpu",
+        devices=1,
+        strategy="ddp_find_unused_parameters_false",
     )
     trainer.test(model)
 

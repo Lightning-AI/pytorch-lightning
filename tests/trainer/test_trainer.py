@@ -1175,7 +1175,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         assert mocked.call_count == sum(trainer.num_val_batches)
 
 
-@pytest.mark.parametrize( # TODO: please update tests, @daniellepintz
+@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
     "trainer_kwargs,expected",
     [
         (
@@ -1309,7 +1309,10 @@ def test_trainer_subclassing():
 
 
 @RunIf(omegaconf=True)
-@pytest.mark.parametrize("trainer_params", [{"max_epochs": 1, "accelerator":"gpu", "devices": 1}, {"max_epochs": 1, "accelerator":"gpu", "devices": [0]}])
+@pytest.mark.parametrize(
+    "trainer_params",
+    [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
+)
 @mock.patch("torch.cuda.device_count", return_value=1)
 def test_trainer_omegaconf(_, trainer_params):
     config = OmegaConf.create(trainer_params)
@@ -1918,7 +1921,13 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, accelerator="gpu", devices=2, strategy="ddp"
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
     )
 
     # simulate random failure in training_step on rank 0
@@ -2091,7 +2100,7 @@ def test_detect_anomaly_nan(tmpdir):
             trainer.fit(model)
 
 
-@pytest.mark.parametrize( # TODO: please update tests, @daniellepintz
+@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
     "trainer_kwargs,expected",
     [
         (

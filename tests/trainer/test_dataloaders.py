@@ -914,7 +914,12 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     model = CurrentTestModel(batch_size=batch_size)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0, accelerator="gpu", devices=num_gpus
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0,
+        accelerator="gpu",
+        devices=num_gpus,
     )
 
     # we expect the reduction for the metrics also to happen on the last batch
