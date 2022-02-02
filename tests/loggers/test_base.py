@@ -176,8 +176,6 @@ def test_multiple_loggers(tmpdir):
     assert logger2.finalized_status == "success"
 
 
-
-
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
 

@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from tests.loggers.test_base import CustomLogger
-from tests.helpers.boring_model import BoringModel
+
 
 def test_trainer_loggers_property():
     """Test for correct initialization of loggers in Trainer"""
