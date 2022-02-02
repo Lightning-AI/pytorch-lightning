@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -140,7 +140,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         launcher = DDPSpawnLauncher()
         return launcher.launch(function, *args, **kwargs)
 

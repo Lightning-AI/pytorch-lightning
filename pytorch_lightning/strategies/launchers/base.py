@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import Any, Callable
 
 
 class Launcher(ABC):
     @abstractmethod
-    def launch(self, fn, *args, **kwargs) -> bool:
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches the proceses."""

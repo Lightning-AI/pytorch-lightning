@@ -212,9 +212,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             "start_method": self.start_method,
         }
 
-    def launch(self, fn, *args, **kwargs):
+    def launch(self, function: Any, *args: Any, **kwargs: Any) -> Any:
         launcher = TPUSpawnLauncher()
-        return launcher.launch(fn, *args, **kwargs)
+        return launcher.launch(function, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

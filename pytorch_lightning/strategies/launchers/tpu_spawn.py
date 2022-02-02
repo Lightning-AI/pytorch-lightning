@@ -53,7 +53,7 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        self._worker_setup(process_idx)
+        self.trainer.strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
         results = self._collect_rank_zero_results(trainer, results)
         if trainer.strategy.local_rank == 0:

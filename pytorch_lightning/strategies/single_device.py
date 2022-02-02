@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import torch
 
@@ -41,7 +41,7 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         launcher = SingleProcessLauncher()
         return launcher.launch(function, *args, **kwargs)
 

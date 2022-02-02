@@ -18,7 +18,7 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -136,7 +136,7 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         if self.cluster_environment.creates_processes_externally:
             launcher = SingleProcessLauncher()
         else:

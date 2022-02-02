@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -126,7 +126,7 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         launcher = SingleProcessLauncher()
         return launcher.launch(function, *args, **kwargs)
 
