@@ -479,6 +479,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
+
+        # while restarting with no fault-tolerant, batch_progress.current.ready is -1
+        if batch_idx == -1:
+            return False
+
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
