@@ -31,13 +31,23 @@ class _FxValidator:
         "on_before_backward": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
+        "backward": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
         "on_after_backward": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
         "on_before_optimizer_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
+        "optimizer_step": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "lr_scheduler_step": None,
         "on_before_zero_grad": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "optimizer_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
         "on_init_start": None,
@@ -160,6 +170,8 @@ class _FxValidator:
         "configure_callbacks": None,
         "on_validation_model_eval": None,
         "on_test_model_eval": None,
+        "on_validation_model_train": None,
+        "on_test_model_train": None,
     }
 
     @classmethod

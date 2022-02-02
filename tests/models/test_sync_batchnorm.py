@@ -17,8 +17,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
@@ -36,6 +36,9 @@ class SyncBNModule(LightningModule):
 
         self.linear = nn.Linear(28 * 28, 10)
         self.bn_layer = nn.BatchNorm1d(28 * 28)
+
+    def on_train_start(self) -> None:
+        assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
 
     def forward(self, x, batch_idx):
         with torch.no_grad():
@@ -102,7 +105,7 @@ def test_sync_batchnorm_ddp(tmpdir):
     dm.setup(stage=None)
 
     model = SyncBNModule(gpu_count=2, bn_targets=bn_outputs)
-    ddp = DDPSpawnPlugin(
+    ddp = DDPSpawnStrategy(
         parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
         num_nodes=1,
         sync_batchnorm=True,
@@ -123,4 +126,6 @@ def test_sync_batchnorm_ddp(tmpdir):
     )
 
     trainer.fit(model, dm)
-    assert trainer.state.finished, "Sync batchnorm failing with DDP"
+    # the strategy is responsible for tearing down the batchnorm wrappers
+    assert not isinstance(model.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+    assert isinstance(model.bn_layer, torch.nn.modules.batchnorm._BatchNorm)

@@ -28,10 +28,10 @@ if standalone:
     # recording
     with redirect_stderr(stderr):
         _warn("test1")
-        _warn("test2", DeprecationWarning)
+        _warn("test2", category=DeprecationWarning)
 
         rank_zero_warn("test3")
-        rank_zero_warn("test4", DeprecationWarning)
+        rank_zero_warn("test4", category=DeprecationWarning)
 
         rank_zero_deprecation("test5")
 
@@ -54,6 +54,8 @@ if standalone:
     # check that logging is properly configured
     import logging
 
+    from pytorch_lightning import _DETAIL
+
     root_logger = logging.getLogger()
     lightning_logger = logging.getLogger("pytorch_lightning")
     # should have a `StreamHandler`
@@ -75,5 +77,17 @@ if standalone:
         # level is set to INFO
         lightning_logger.debug("test3")
 
+    output = stderr.getvalue()
+    assert output == "test2\n", repr(output)
+
+    stderr = StringIO()
+    lightning_logger.handlers[0].stream = stderr
+    with redirect_stderr(stderr):
+        # Lightning should not output DETAIL level logging by default
+        lightning_logger.detail("test1")
+        lightning_logger.setLevel(_DETAIL)
+        lightning_logger.detail("test2")
+        # logger should not output anything for DEBUG statements if set to DETAIL
+        lightning_logger.debug("test3")
     output = stderr.getvalue()
     assert output == "test2\n", repr(output)

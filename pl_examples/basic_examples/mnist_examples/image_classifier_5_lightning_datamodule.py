@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.cli import LightningCLI
 class ImageClassifier(LightningModule):
     def __init__(self, model, lr=1.0, gamma=0.7, batch_size=32):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore="model")
         self.model = model or Net()
         self.test_acc = Accuracy()
 
@@ -47,8 +47,9 @@ class ImageClassifier(LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
-        self.log("test_acc", self.test_acc(logits, y))
-        return loss
+        self.test_acc(logits, y)
+        self.log("test_acc", self.test_acc)
+        self.log("test_loss", loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adadelta(self.model.parameters(), lr=self.hparams.lr)

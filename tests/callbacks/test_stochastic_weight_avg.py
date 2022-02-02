@@ -22,8 +22,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -79,9 +78,9 @@ class SwaTestCallback(StochasticWeightAveraging):
         super().on_train_epoch_start(trainer, *args)
         assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
-            assert isinstance(trainer.lr_schedulers[0]["scheduler"], SWALR)
-            assert trainer.lr_schedulers[0]["interval"] == "epoch"
-            assert trainer.lr_schedulers[0]["frequency"] == 1
+            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, SWALR)
+            assert trainer.lr_scheduler_configs[0].interval == "epoch"
+            assert trainer.lr_scheduler_configs[0].frequency == 1
 
     def on_train_epoch_end(self, trainer, *args):
         super().on_train_epoch_end(trainer, *args)
@@ -99,9 +98,9 @@ class SwaTestCallback(StochasticWeightAveraging):
         assert trainer.accumulate_grad_batches == 2
         assert trainer.num_training_batches == 5
 
-        if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+        if not isinstance(trainer.strategy, DDPSpawnStrategy):
             # check backward call count. the batchnorm update epoch should not backward
-            assert trainer.training_type_plugin.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
+            assert trainer.strategy.backward.call_count == trainer.max_epochs * trainer.limit_train_batches
 
         # check call counts
         assert self.update_parameters_calls == trainer.max_epochs - (self._swa_epoch_start - 1)
@@ -109,7 +108,13 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 
 def train_with_swa(
-    tmpdir, batchnorm=True, strategy=None, gpus=None, num_processes=1, interval="epoch", iterable_dataset=False
+    tmpdir,
+    batchnorm=True,
+    strategy=None,
+    accelerator="cpu",
+    devices=1,
+    interval="epoch",
+    iterable_dataset=False,
 ):
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
@@ -127,11 +132,11 @@ def train_with_swa(
         callbacks=[swa_callback],
         accumulate_grad_batches=2,
         strategy=strategy,
-        gpus=gpus,
-        num_processes=num_processes,
+        accelerator=accelerator,
+        devices=devices,
     )
 
-    with mock.patch.object(TrainingTypePlugin, "backward", wraps=trainer.training_type_plugin.backward):
+    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
         trainer.fit(model)
 
     # check the model is the expected
@@ -140,22 +145,22 @@ def train_with_swa(
 
 @RunIf(min_gpus=2, standalone=True)
 def test_swa_callback_ddp(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
 @RunIf(min_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", gpus=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
 def test_swa_callback_ddp_cpu(tmpdir):
-    train_with_swa(tmpdir, strategy="ddp_spawn", num_processes=2)
+    train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @RunIf(min_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
-    train_with_swa(tmpdir, gpus=1)
+    train_with_swa(tmpdir, accelerator="gpu", devices=1)
 
 
 @pytest.mark.parametrize("batchnorm", (True, False))

@@ -196,7 +196,7 @@ class MLFlowLogger(LightningLoggerBase):
         for k, v in params.items():
             if len(str(v)) > 250:
                 rank_zero_warn(
-                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", RuntimeWarning
+                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
                 )
                 continue
 
@@ -219,7 +219,7 @@ class MLFlowLogger(LightningLoggerBase):
                 rank_zero_warn(
                     "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
                     f" Replacing {k} with {new_k}.",
-                    RuntimeWarning,
+                    category=RuntimeWarning,
                 )
                 k = new_k
 

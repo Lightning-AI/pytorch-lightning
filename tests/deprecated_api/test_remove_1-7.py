@@ -27,7 +27,6 @@ from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.plugins import SingleDevicePlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -35,12 +34,13 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from tests.callbacks.test_callbacks import OldStatefulCallback
+from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 from tests.loggers.test_base import CustomLogger
+from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
 def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
@@ -413,49 +413,6 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
         trainer.fit_loop.max_steps = None
 
 
-def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
-    # test resume_from_checkpoint still works until v1.7 deprecation
-    model = BoringModel()
-    callback = OldStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
-    trainer.fit(model)
-    ckpt_path = trainer.checkpoint_callback.best_model_path
-
-    callback = OldStatefulCallback(state=222)
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
-    with pytest.deprecated_call(
-        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-    ):
-        _ = trainer.resume_from_checkpoint
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
-    trainer.validate(model=model, ckpt_path=ckpt_path)
-    assert callback.state == 222
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
-    with pytest.deprecated_call(
-        match=r"trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7."
-    ):
-        trainer.fit(model)
-    assert callback.state == 111
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
-    trainer.predict(model=model, ckpt_path=ckpt_path)
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
-    trainer.fit(model)
-    assert trainer.checkpoint_connector.resume_checkpoint_path is None
-    assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
-
-    # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
-    model = BoringModel()
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
-        trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
-    with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
-        trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
-
-
 def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
     model = BoringModel()
     lr_monitor = LearningRateMonitor()
@@ -514,8 +471,7 @@ def test_v1_7_0_cluster_environment_master_port(cls):
         (TorchElasticEnvironment, "is_using_torchelastic"),
     ],
 )
-@mock.patch.dict(os.environ, {"LSB_HOSTS": "batch 10.10.10.0 10.10.10.1", "LSB_JOBID": "1234"})
-def test_v1_7_0_cluster_environment_detection(cls, method_name):
+def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
     class MyClusterEnvironment(cls):
         @staticmethod
         def is_using_kubeflow():
@@ -529,10 +485,19 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name):
         def is_using_torchelastic():
             pass
 
-    with pytest.deprecated_call(
-        match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
-    ):
-        MyClusterEnvironment()
+    environ = {
+        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
+        "LSB_JOBID": "1234",
+        "JSM_NAMESPACE_SIZE": "4",
+        "JSM_NAMESPACE_RANK": "3",
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+    }
+    with mock.patch.dict(os.environ, environ):
+        with mock.patch("socket.gethostname", return_value="10.10.10.2"):
+            with pytest.deprecated_call(
+                match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
+            ):
+                MyClusterEnvironment()
 
 
 def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
@@ -545,7 +510,7 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
 
 
 def test_v1_7_0_post_dispatch_hook():
-    class CustomPlugin(SingleDevicePlugin):
+    class CustomPlugin(SingleDeviceStrategy):
         def post_dispatch(self, trainer):
             pass
 

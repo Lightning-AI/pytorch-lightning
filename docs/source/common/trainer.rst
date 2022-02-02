@@ -403,7 +403,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
+    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -603,7 +603,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -734,7 +734,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -1103,7 +1103,7 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <multi_gpu>`
+- :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Apex <amp>`
 
@@ -1376,7 +1376,7 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
     Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
@@ -1416,10 +1416,10 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.strategies import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -1427,12 +1427,12 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
             )
 
 
-    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`.
     - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^

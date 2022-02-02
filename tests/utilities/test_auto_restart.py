@@ -48,7 +48,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
-    _SupportsStateDict,
     _teardown_dataloader_get_iterators,
     _validate_fault_tolerant_automatic,
     CaptureIterableDataset,
@@ -60,6 +59,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.types import _SupportsStateDict
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -666,7 +666,7 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
     return dataset
 
 
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
+@mock.patch("pytorch_lightning.trainer.connectors.data_connector._validate_fault_tolerant_automatic")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
 def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
@@ -895,7 +895,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     return model.seen_batches, model.parameters()
 
 
-@mock.patch("pytorch_lightning.trainer.data_loading._validate_fault_tolerant_automatic")
+@mock.patch("pytorch_lightning.trainer.connectors.data_connector._validate_fault_tolerant_automatic")
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize(
     "dataset_classes",
@@ -1139,17 +1139,15 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
                 status = "EvaluationEpochLoop:advance"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
-                status = (
-                    "TrainingEpochLoop:on_run_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
-                )
+                status = "FitLoop:on_advance_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
         else:
             status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
     else:
         if val_check_interval == 1.0:
-            status = "TrainingEpochLoop:on_run_end"
+            status = "FitLoop:on_advance_end"
         else:
             # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
-            status = "TrainingEpochLoop:on_run_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
+            status = "FitLoop:on_advance_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
 
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status

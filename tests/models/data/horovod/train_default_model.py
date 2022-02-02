@@ -58,8 +58,8 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
             assert self.device == expected_device
 
         def training_epoch_end(self, outputs) -> None:
-            res = self.trainer.training_type_plugin.reduce(torch.tensor(1.0, device=self.device), reduce_op="sum")
-            assert res.sum() == self.trainer.training_type_plugin.world_size
+            res = self.trainer.strategy.reduce(torch.tensor(1.0, device=self.device), reduce_op="sum")
+            assert res.sum() == self.trainer.strategy.world_size
 
     model = TestModel()
     trainer = Trainer(**trainer_options)
@@ -90,9 +90,13 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
         pretrained_model(batch)
 
     # test HPC saving
-    trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
+    # save logger to make sure we get all the metrics
+    if trainer.logger:
+        trainer.logger.finalize("finished")
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(ckpt_path)
+    trainer.save_checkpoint(hpc_save_path)
     # test HPC loading
-    checkpoint_path = trainer.checkpoint_connector.get_max_ckpt_path_from_folder(ckpt_path)
+    checkpoint_path = trainer.checkpoint_connector._CheckpointConnector__get_max_ckpt_path_from_folder(ckpt_path)
     trainer.checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
