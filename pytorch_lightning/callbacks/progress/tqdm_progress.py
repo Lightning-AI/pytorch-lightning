@@ -227,7 +227,7 @@ class TQDMProgressBar(ProgressBarBase):
     def init_validation_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
-        has_main_bar = not self.trainer.state.fn == "validate"
+        has_main_bar = self.trainer.state.fn != "validate"
         bar = Tqdm(
             desc="Validating",
             position=(2 * self.process_position + has_main_bar),
