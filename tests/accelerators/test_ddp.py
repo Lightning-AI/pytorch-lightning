@@ -108,17 +108,9 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
-def test_ddp_wrapper_16(tmpdir):
-    _test_ddp_wrapper(tmpdir, precision=16)
-
-
-@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
-def test_ddp_wrapper_32(tmpdir):
-    _test_ddp_wrapper(tmpdir, precision=32)
-
-
-def _test_ddp_wrapper(tmpdir, precision):
+@RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
+@pytest.mark.parametrize("precision", (16, 32))
+def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):
@@ -135,9 +127,9 @@ def _test_ddp_wrapper(tmpdir, precision):
 
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
-            assert trainer.training_type_plugin.model.parameters_to_ignore == ("something")
-            assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ("something")
+            assert isinstance(trainer.strategy.model, DistributedDataParallel)
+            assert trainer.strategy.model.parameters_to_ignore == ("something")
+            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == ("something")
 
     model = CustomModel()
     trainer = Trainer(

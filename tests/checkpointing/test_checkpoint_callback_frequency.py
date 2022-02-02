@@ -87,18 +87,9 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 
 @mock.patch("torch.save")
-@RunIf(special=True, min_gpus=2)
-def test_top_k_ddp_0(save_mock, tmpdir):
-    _top_k_ddp(save_mock, tmpdir, k=1, epochs=1, val_check_interval=1.0, expected=1)
-
-
-@mock.patch("torch.save")
-@RunIf(special=True, min_gpus=2)
-def test_top_k_ddp_1(save_mock, tmpdir):
-    _top_k_ddp(save_mock, tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=4)
-
-
-def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+@RunIf(standalone=True, min_gpus=2)
+@pytest.mark.parametrize(["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
+def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
@@ -111,7 +102,7 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
                 self.log("my_loss_2", (1 + local_rank), on_epoch=True, rank_zero_only=True)
             data = str(self.global_rank)
             obj = [[data], (data,), set(data)]
-            out = self.trainer.training_type_plugin.broadcast(obj)
+            out = self.trainer.strategy.broadcast(obj)
             assert obj == [[str(self.global_rank)], (str(self.global_rank),), set(str(self.global_rank))]
             assert out == [["0"], ("0",), set("0")]
 
@@ -124,7 +115,8 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         enable_model_summary=False,
         val_check_interval=val_check_interval,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         limit_train_batches=64,
         limit_val_batches=32,
     )

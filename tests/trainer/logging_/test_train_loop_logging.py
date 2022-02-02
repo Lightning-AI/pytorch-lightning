@@ -91,6 +91,9 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -128,6 +131,9 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -169,6 +175,9 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(
@@ -395,7 +404,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True, skip_49370=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
@@ -433,7 +442,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
@@ -715,19 +724,15 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
             assert all(v == 3 for v in self.trainer.callback_metrics.values())
 
         def on_train_batch_start(self, batch, batch_idx):
-            assert self.trainer._results.batch_size == 2
-            self.log("on_train_batch_start", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_start", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
-            assert self.trainer._results.batch_size == 2
-            self.log("on_train_batch_end", 1.0, reduce_fx="sum")
+            self.log("on_train_batch_end", 1.0, on_step=False, on_epoch=True, reduce_fx="sum")
 
         def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-            assert self.trainer._results.batch_size == 2
             self.log("on_validation_batch_start", 1.0, reduce_fx="sum")
 
         def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            assert self.trainer._results.batch_size == 2
             self.log("on_validation_batch_end", 1.0, reduce_fx="sum")
 
         def training_epoch_end(self, *_) -> None:

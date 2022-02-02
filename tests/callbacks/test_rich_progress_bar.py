@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.runif import RunIf
 
@@ -36,11 +35,11 @@ def test_rich_progress_bar_callback():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_refresh_rate():
-    progress_bar = RichProgressBar(refresh_rate_per_second=1)
+def test_rich_progress_bar_refresh_rate_enabled():
+    progress_bar = RichProgressBar(refresh_rate=1)
     assert progress_bar.is_enabled
     assert not progress_bar.is_disabled
-    progress_bar = RichProgressBar(refresh_rate_per_second=0)
+    progress_bar = RichProgressBar(refresh_rate=0)
     assert not progress_bar.is_enabled
     assert progress_bar.is_disabled
 
@@ -83,10 +82,12 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
     assert progress_update.call_count == 8
 
 
-def test_rich_progress_bar_import_error():
-    if not _RICH_AVAILABLE:
-        with pytest.raises(ImportError, match="`RichProgressBar` requires `rich` to be installed."):
-            Trainer(callbacks=RichProgressBar())
+def test_rich_progress_bar_import_error(monkeypatch):
+    import pytorch_lightning.callbacks.progress.rich_progress as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+    with pytest.raises(ModuleNotFoundError, match="`RichProgressBar` requires `rich` >= 10.2.2."):
+        RichProgressBar()
 
 
 @RunIf(rich=True)
@@ -106,11 +107,11 @@ def test_rich_progress_bar_custom_theme(tmpdir):
 
         assert progress_bar.theme == theme
         args, kwargs = mocks["CustomBarColumn"].call_args
-        assert kwargs["complete_style"] == theme.progress_bar_complete
+        assert kwargs["complete_style"] == theme.progress_bar
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
         args, kwargs = mocks["BatchesProcessedColumn"].call_args
-        assert kwargs["style"] == theme.batch_process
+        assert kwargs["style"] == theme.batch_progress
 
         args, kwargs = mocks["CustomTimeColumn"].call_args
         assert kwargs["style"] == theme.time
@@ -180,3 +181,45 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count
+
+
+@RunIf(rich=True)
+@mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
+@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(0, 0), (3, 7)]))
+def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, expected_call_count):
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_train_batches=6,
+        limit_val_batches=6,
+        max_epochs=1,
+        callbacks=RichProgressBar(refresh_rate=refresh_rate),
+    )
+
+    trainer.fit(model)
+
+    assert progress_update.call_count == expected_call_count
+
+
+@RunIf(rich=True)
+@pytest.mark.parametrize("limit_val_batches", (1, 5))
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
+    model = BoringModel()
+
+    progress_bar = RichProgressBar()
+    num_sanity_val_steps = 3
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=num_sanity_val_steps,
+        limit_train_batches=1,
+        limit_val_batches=limit_val_batches,
+        max_epochs=1,
+        callbacks=progress_bar,
+    )
+
+    trainer.fit(model)
+    assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)

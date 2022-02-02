@@ -5,8 +5,11 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
-    dict(torch="1.11.0", torchvision="0.11.*", torchtext=""),  # nightly
-    dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),  # stable
+    dict(torch="1.12.0", torchvision="0.12.*", torchtext=""),  # nightly
+    dict(torch="1.11.0", torchvision="0.12.0", torchtext="0.12.0"),  # pre-release
+    dict(torch="1.10.2", torchvision="0.11.3", torchtext="0.11.2"),  # stable
+    dict(torch="1.10.1", torchvision="0.11.2", torchtext="0.11.1"),
+    dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),
     dict(torch="1.9.1", torchvision="0.10.1", torchtext="0.10.1"),
     dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
     # dict(torch="1.8.2", torchvision="0.9.1", torchtext="0.9.1"), # LTS # Not on PyPI, commented so 1.8.1 is used
@@ -83,8 +86,9 @@ if __name__ == "__main__":
     else:
         requirements_path, torch_version = sys.argv[1], None
 
-    with open(requirements_path, "r+") as fp:
+    with open(requirements_path) as fp:
         requirements = fp.read()
-        requirements = main(requirements, torch_version)
-        print(requirements)  # on purpose - to debug
+    requirements = main(requirements, torch_version)
+    print(requirements)  # on purpose - to debug
+    with open(requirements_path, "w") as fp:
         fp.write(requirements)

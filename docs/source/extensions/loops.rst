@@ -50,7 +50,7 @@ Think of this as swapping out the engine in a car!
 
 ----------
 
-Understanding the default Trainer loop
+Understanding the Default Trainer Loop
 --------------------------------------
 
 The Lightning :class:`~pytorch_lightning.trainer.trainer.Trainer` automates the standard optimization loop which every PyTorch user is familiar with:
@@ -75,7 +75,7 @@ The core research logic is simply shifted to the :class:`~pytorch_lightning.core
         # loss = loss_function(y_hat, y)    moved to training_step
         loss = lightning_module.training_step(batch, i)
 
-        # Lighting handles automatically:
+        # Lightning handles automatically:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -109,12 +109,12 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 
 .. _override default loops:
 
-Overriding the default loops
+Overriding the default Loops
 ----------------------------
 
 The fastest way to get started with loops, is to override functionality of an existing loop.
-Lightning has 4 main loops it uses: :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for training and validating,
-:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for testing,
+Lightning has 4 main loops which relies on : :class:`~pytorch_lightning.loops.fit_loop.FitLoop` for fitting (training and validating),
+:class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` for validating or testing,
 :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` for predicting.
 
 For simple changes that don't require a custom loop, you can modify each of these loops.
@@ -166,11 +166,11 @@ Now simply attach the correct loop in the trainer directly:
     # fit() now uses the new FitLoop!
     trainer.fit(...)
 
-    # the equivalent for validate(), test(), predict()
+    # the equivalent for validate()
     val_loop = CustomValLoop()
     trainer = Trainer()
     trainer.validate_loop = val_loop
-    trainer.validate(model)
+    trainer.validate(...)
 
 Now your code is FULLY flexible and you can still leverage ALL the best parts of Lightning!
 
@@ -179,7 +179,7 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 
 ----------
 
-Creating a new loop from scratch
+Creating a New Loop From Scratch
 --------------------------------
 
 You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
@@ -212,8 +212,7 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
     # fit() now uses your fancy loop!
     trainer.fit(...)
 
-Now you have full control over the Trainer.
-But beware: The power of loop customization comes with great responsibility.
+But beware: Loop customization gives you more power and full control over the Trainer and with great power comes great responsibility.
 We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
 
 ----------
@@ -222,7 +221,7 @@ Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base for all loops in Lighting just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
+The :class:`~pytorch_lightning.loops.base.Loop` class is the base of all loops in the same way as the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base of all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties
@@ -267,17 +266,25 @@ run (optional)
 Subloops
 --------
 
-When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.replace` method:
 
 .. code-block:: python
 
-    # Step 1: create your loop
-    my_epoch_loop = MyEpochLoop()
-
-    # Step 2: use connect()
-    trainer.fit_loop.connect(epoch_loop=my_epoch_loop)
-
+    # This takes care of properly instantiating the new Loop and setting all references
+    trainer.fit_loop.replace(epoch_loop=MyEpochLoop)
     # Trainer runs the fit loop with your new epoch loop!
+    trainer.fit(model)
+
+Alternatively, for more fine-grained control, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+
+.. code-block:: python
+
+    # Optional: stitch back the trainer arguments
+    epoch_loop = MyEpochLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+    # Optional: connect children loops as they might have existing state
+    epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
+    # Instantiate and connect the loop.
+    trainer.fit_loop.connect(epoch_loop=epoch_loop)
     trainer.fit(model)
 
 More about the built-in loops and how they are composed is explained in the next section.
@@ -336,18 +343,24 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        The validation is carried out by yet another loop, :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
 
        In the :code:`run()` method, the training epoch loop could in theory simply call the :code:`LightningModule.training_step` already and perform the optimization.
-       However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :doc:`truncated back-propagation through time <../advanced/sequences>`.
+       However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :ref:`TBPTT <sequential-data>`.
        For this reason there are actually two more loops nested under :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
    * - :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop`
      - The responsibility of the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` is to split a batch given by the :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` along the time-dimension and iterate over the list of splits.
        It also keeps track of the hidden state *hiddens* returned by the training step.
        By default, when truncated back-propagation through time (TBPTT) is turned off, this loop does not do anything except redirect the call to the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`.
-       Read more about :doc:`TBPTT <../advanced/sequences>`.
+       Read more about :ref:`TBPTT <sequential-data>`.
    * - :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`
      - The :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` iterates over one or multiple optimizers and for each one it calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method with the batch, the current batch index and the optimizer index if multiple optimizers are requested.
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
      - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
+   * - :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` is the top-level loop where validation/testing starts.
+       It simply iterates over each evaluation dataloader from one to the next by calling :code:`EvaluationEpochLoop.run()` in its :code:`advance()` method.
+   * - :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop`
+     - The :class:`~pytorch_lightning.loops.dataloader.prediction_loop.PredictionLoop` is the top-level loop where prediction starts.
+       It simply iterates over each prediction dataloader from one to the next by calling :code:`PredictionEpochLoop.run()` in its :code:`advance()` method.
 
 
 ----------
@@ -382,6 +395,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # Implement the research use-case where we mask labels from labelled dataset.
     datamodule = ActiveLearningDataModule(
         ImageClassificationData.from_folders(train_folder="data/hymenoptera_data/train/", batch_size=2),
+        initial_num_labels=5,
         val_split=0.1,
     )
 
@@ -390,7 +404,8 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
         torch.nn.Dropout(p=0.1),
         torch.nn.Linear(512, datamodule.num_classes),
     )
-    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, serializer=Probabilities())
+    model = ImageClassifier(backbone="resnet18", head=head, num_classes=datamodule.num_classes, output=Probabilities())
+
 
     # 3.1 Create the trainer
     trainer = flash.Trainer(max_epochs=3)
@@ -410,7 +425,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
 
-Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py#L31>`_.
+Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py>`_.
 
 
 ----------

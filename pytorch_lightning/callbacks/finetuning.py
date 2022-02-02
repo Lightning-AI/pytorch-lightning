@@ -210,7 +210,6 @@ class BaseFinetuning(Callback):
                 " Those parameters will be skipped.\n"
                 "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
                 f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ",
-                UserWarning,
             )
         return out_params
 

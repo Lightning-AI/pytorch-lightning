@@ -13,6 +13,8 @@
 # limitations under the License.
 from functools import partial
 
+import pytest
+
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from tests.helpers.boring_model import BoringModel
@@ -46,7 +48,8 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.fit(model)
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
@@ -60,8 +63,11 @@ def test_lambda_call(tmpdir):
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    trainer.fit(model, ckpt_path=ckpt_path)
-    trainer.test(model)
-    trainer.predict(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.fit(model, ckpt_path=ckpt_path)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.test(model)
+    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+        trainer.predict(model)
 
     assert checker == hooks

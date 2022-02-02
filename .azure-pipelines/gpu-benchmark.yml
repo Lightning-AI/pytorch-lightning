@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - bash: |
-          python -m pytest benchmarks -v --durations=0
+          python -m pytest tests/benchmarks -v --durations=0
         displayName: 'Testing: benchmarks'
         env:
           PL_RUNNING_BENCHMARKS: 1

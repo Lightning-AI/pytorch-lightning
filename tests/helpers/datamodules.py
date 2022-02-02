@@ -46,7 +46,6 @@ class MNISTDataModule(LightningDataModule):
         self.dataset_cls(self.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None):
-        # TODO: need to split using random_split once updated to torch >= 1.6
         if stage == "fit" or stage is None:
             self.mnist_train = self.dataset_cls(self.data_dir, train=True)
         if stage == "test" or stage is None:

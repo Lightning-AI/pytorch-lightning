@@ -27,7 +27,9 @@ def test_default_attributes():
     assert env.creates_processes_externally
     assert env.main_address == "127.0.0.1"
     assert env.main_port == 12910
-    assert env.world_size() is None
+    with pytest.raises(KeyError):
+        # world size is required to be passed as env variable
+        env.world_size()
     with pytest.raises(KeyError):
         # local rank is required to be passed as env variable
         env.local_rank()
@@ -66,3 +68,20 @@ def test_attributes_from_environment_variables(caplog):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
+
+
+def test_detect():
+    """Test the detection of a torchelastic environment configuration."""
+    with mock.patch.dict(os.environ, {}):
+        assert not TorchElasticEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "RANK": "",
+            "GROUP_RANK": "",
+            "LOCAL_RANK": "",
+            "LOCAL_WORLD_SIZE": "",
+        },
+    ):
+        assert TorchElasticEnvironment.detect()

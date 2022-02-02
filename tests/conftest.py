@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
+import signal
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
@@ -22,7 +22,8 @@ import pytest
 import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
 from tests import _PATH_DATASETS
 
 
@@ -65,7 +66,7 @@ def restore_env_variables():
         "WANDB_MODE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUPlugin
+        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         # set by XLA
         "TF2_BEHAVIOR",
         "XRT_MESH_SERVICE_ADDRESS",
@@ -82,6 +83,23 @@ def restore_env_variables():
 
 
 @pytest.fixture(scope="function", autouse=True)
+def restore_signal_handlers():
+    """Ensures that signal handlers get restored before the next test runs.
+
+    This is a safety net for tests that don't run Trainer's teardown.
+    """
+    valid_signals = SignalConnector._valid_signals()
+    if not _IS_WINDOWS:
+        # SIGKILL and SIGSTOP are not allowed to be modified by the user
+        valid_signals -= {signal.SIGKILL, signal.SIGSTOP}
+    handlers = {signum: signal.getsignal(signum) for signum in valid_signals}
+    yield
+    for signum, handler in handlers.items():
+        if handler is not None:
+            signal.signal(signum, handler)
+
+
+@pytest.fixture(scope="function", autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
@@ -95,36 +113,29 @@ def reset_deterministic_algorithm():
     yield
     if _TORCH_GREATER_EQUAL_1_8:
         torch.use_deterministic_algorithms(False)
-    elif _TORCH_GREATER_EQUAL_1_7:
+    else:
         torch.set_deterministic(False)
-    else:  # the minimum version Lightning supports is PyTorch 1.6
-        torch._set_deterministic(False)
+
+
+@pytest.fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
+
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    lightning_logger = logging.getLogger("pytorch_lightning")
+    propagate = lightning_logger.propagate
+    lightning_logger.propagate = True
+    yield caplog
+    lightning_logger.propagate = propagate
 
 
 @pytest.fixture
 def tmpdir_server(tmpdir):
-    if sys.version_info >= (3, 7):
-        Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
-        from http.server import ThreadingHTTPServer
-    else:
-        # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
-        # so we have to hack it like this
-
-        class Handler(SimpleHTTPRequestHandler):
-            def translate_path(self, path):
-                # get the path from cwd
-                path = super().translate_path(path)
-                # get the relative path
-                relpath = os.path.relpath(path, os.getcwd())
-                # return the full path from root_dir
-                return os.path.join(str(tmpdir), relpath)
-
-        # ThreadingHTTPServer was added in 3.7, so we need to define it ourselves
-        from http.server import HTTPServer
-        from socketserver import ThreadingMixIn
-
-        class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
-            daemon_threads = True
+    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
+    from http.server import ThreadingHTTPServer
 
     with ThreadingHTTPServer(("localhost", 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
@@ -156,3 +167,23 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+def pytest_collection_modifyitems(items):
+    # filter out special tests
+    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(standalone=True)`
+            if marker.name == "skipif" and marker.kwargs.get("standalone")
+        ]
+    elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(slow=True)`
+            if marker.name == "skipif" and marker.kwargs.get("slow")
+        ]

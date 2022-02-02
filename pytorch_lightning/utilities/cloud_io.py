@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities related to data saving/loading."""
 
 import io
 from pathlib import Path
@@ -19,7 +20,6 @@ from typing import Any, Callable, Dict, IO, Optional, Union
 import fsspec
 import torch
 from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
-from packaging.version import Version
 
 
 def load(
@@ -28,6 +28,12 @@ def load(
         Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
     ] = None,
 ) -> Any:
+    """Loads a checkpoint.
+
+    Args:
+        path_or_url: Path or URL of the checkpoint.
+        map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
+    """
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
@@ -59,12 +65,6 @@ def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     """
 
     bytesbuffer = io.BytesIO()
-    # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
-    # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
-    # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if Version(torch.__version__).release[:3] == (1, 6, 0):
-        torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
-    else:
-        torch.save(checkpoint, bytesbuffer)
+    torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())

@@ -15,16 +15,18 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
-class HPCHookdedModel(BoringModel):
+# TODO: remove HPCHookedModel in v1.8
+class HPCHookedModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.hpc_save_called = 0
@@ -39,19 +41,35 @@ class HPCHookdedModel(BoringModel):
         self.hpc_load_called += 1
 
 
-def test_hpc_hook_calls(tmpdir):
-    model = HPCHookdedModel()
+# TODO: remove test_hpc_hook_calls in v1.8
+@mock.patch(
+    "pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks",
+    return_value=True,
+)
+def test_hpc_hook_calls(mock_slurm_env, tmpdir):
+    model = HPCHookedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
-    connector = trainer.checkpoint_connector
-    connector.hpc_save(tmpdir, logger=Mock())
+    environment = trainer._accelerator_connector.cluster_environment
+    assert isinstance(environment, SLURMEnvironment)
+    assert environment.auto_requeue
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
+
+    # simulate snapshot on slurm
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    trainer.save_checkpoint(hpc_save_path)
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 0
 
     # new training run, restore from hpc checkpoint file automatically
     assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    trainer.fit(model)
+    with pytest.deprecated_call(
+        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
     assert model.hpc_save_called == 1
     assert model.hpc_load_called == 1
 
@@ -127,13 +145,15 @@ def test_hpc_max_ckpt_version(tmpdir):
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
 
-    assert trainer.checkpoint_connector.hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
-    assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir) == 33
-    assert trainer.checkpoint_connector.max_ckpt_version_in_folder(tmpdir / "not" / "existing") is None
+    assert trainer.checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
+    assert trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
+    assert (
+        trainer.checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        is None
+    )
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(min_torch="1.7.0")
 def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()

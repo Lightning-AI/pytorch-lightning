@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import Sequence
+from typing import Sequence
 from unittest import mock
 
 import pytest
@@ -35,7 +35,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers.boring_model import RandomDataset
 
 
@@ -312,7 +311,6 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_7, reason="Requires at least PyTorch 1.7")
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -352,7 +350,7 @@ def test_combined_data_loader_validation_test(
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
 
         trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", gpus=2)
-        dataloader = trainer.prepare_dataloader(dataloader, shuffle=True)
+        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False
 
@@ -392,7 +390,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
     )
-    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader) == 4 if replace_sampler_ddp else 8
 
     for a_length in [6, 8, 10]:
@@ -406,7 +404,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
 
         length = max(a_length, 8)
         assert len(dataloader) == length
-        dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+        dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
         assert len(dataloader) == length // 2 if replace_sampler_ddp else length
         if replace_sampler_ddp:
             last_batch = list(dataloader)[-1]
@@ -431,6 +429,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     )
     assert get_len(dataloader) == float("inf")
     assert len(dataloader.loaders["b"].loader) == 8
-    dataloader = trainer.prepare_dataloader(dataloader, shuffle=False)
+    dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
     assert get_len(dataloader) == float("inf")

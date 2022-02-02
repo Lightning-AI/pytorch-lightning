@@ -66,7 +66,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -82,7 +82,7 @@ def test_horovod_cpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -99,7 +99,7 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(skip_windows=True, horovod=True)
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
@@ -340,7 +340,7 @@ def test_accuracy_metric_horovod():
         metric = Accuracy(
             compute_on_step=True,
             dist_sync_on_step=True,
-            dist_sync_fn=trainer.training_type_plugin.all_gather,
+            dist_sync_fn=trainer.strategy.all_gather,
             threshold=threshold,
         )
 

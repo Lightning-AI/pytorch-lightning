@@ -45,7 +45,7 @@ pull_request_rules:
       - "#changes-requested-reviews-by=0" # no requested changes
     actions:
       label:
-        add: [ "0:] Ready-To-Go" ]
+        add: [ "ready" ]
 
   - name: Not ready yet
     conditions:
@@ -54,16 +54,16 @@ pull_request_rules:
         - "#changes-requested-reviews-by>=1" # no requested changes
     actions:
       label:
-        remove: [ "0:] Ready-To-Go" ]
+        remove: [ "ready" ]
 
   - name: add core reviewer
     conditions:
       - -conflict # skip if conflict
       - -draft # filter-out GH draft PRs
-      - label="0:] Ready-To-Go"
+      - label="ready"
       - "#approved-reviews-by<3" # number of review approvals
       - "#review-requested<3" # number of requested reviews
     actions:
       request_reviews:
         teams:
-          - "@PyTorchLightning/core-contributors"
+          - "@PyTorchLightning/core-lightning"
