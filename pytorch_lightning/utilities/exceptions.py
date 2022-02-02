@@ -17,7 +17,7 @@ class MisconfigurationException(Exception):
     """Exception used to inform users of mis-use with PyTorch Lightning."""
 
 
-class DeviceNotAvailibleException(Exception):
+class DeviceNotAvailableException(Exception):
     """Exception used to inform users that requested devices are not availible."""
 
 
