@@ -56,20 +56,6 @@ class ProgressBarBase(Callback):
             raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
 
-    def is_dataloader_changed(self, dataloader_idx: int) -> bool:
-        old_dataloader_idx = self._current_eval_dataloader_idx
-        self._current_eval_dataloader_idx = dataloader_idx
-        return old_dataloader_idx != dataloader_idx
-
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._current_eval_dataloader_idx = None
-
-    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._current_eval_dataloader_idx = None
-
-    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._current_eval_dataloader_idx = None
-
     @property
     def train_batch_idx(self) -> int:
         """The number of batches processed during training.
@@ -151,14 +137,22 @@ class ProgressBarBase(Callback):
         return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
 
     @property
-    def num_val_batches(self) -> Union[int, float]:
-        if (
-            self.trainer.enable_validation
-            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-        ):
-            return sum(self.trainer.num_val_batches)
+    def total_val_batches_current_epoch(self) -> Union[int, float]:
+        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._is_check_val_epoch() else 0
 
-        return 0
+    def has_dataloader_changed(self, dataloader_idx: int) -> bool:
+        old_dataloader_idx = self._current_eval_dataloader_idx
+        self._current_eval_dataloader_idx = dataloader_idx
+        return old_dataloader_idx != dataloader_idx
+
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._current_eval_dataloader_idx = None
+
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._current_eval_dataloader_idx = None
+
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self._current_eval_dataloader_idx = None
 
     def disable(self) -> None:
         """You should provide a way to disable the progress bar.

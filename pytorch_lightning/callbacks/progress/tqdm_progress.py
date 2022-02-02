@@ -117,7 +117,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     @property
     def sanity_check_description(self) -> str:
-        return "Validation Sanity Check"
+        return "Sanity Checking"
 
     @property
     def train_description(self) -> str:
@@ -244,12 +244,12 @@ class TQDMProgressBar(ProgressBarBase):
     def init_validation_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
-        has_main_bar = not self.trainer.state.fn == "validate"
+        has_main_bar = self._main_progress_bar is not None
         bar = Tqdm(
             desc=self.validation_description,
             position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
-            leave=not has_main_bar,
+            leave=False,
             dynamic_ncols=True,
             file=sys.stdout,
         )
@@ -281,7 +281,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         total_train_batches = self.total_train_batches
-        total_val_batches = self.num_val_batches
+        total_val_batches = self.total_val_batches_current_epoch
         if total_train_batches != float("inf") and total_val_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
@@ -309,7 +309,7 @@ class TQDMProgressBar(ProgressBarBase):
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             self.val_progress_bar.total = convert_inf(self.total_val_batches)
             desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
             self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
@@ -332,7 +332,7 @@ class TQDMProgressBar(ProgressBarBase):
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             self.test_progress_bar.total = convert_inf(self.total_test_batches)
             self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
@@ -351,7 +351,7 @@ class TQDMProgressBar(ProgressBarBase):
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
             self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 

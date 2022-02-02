@@ -267,7 +267,7 @@ class RichProgressBar(ProgressBarBase):
 
     @property
     def sanity_check_description(self) -> str:
-        return "Validation Sanity Check"
+        return "Sanity Checking"
 
     @property
     def validation_description(self) -> str:
@@ -326,7 +326,7 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_epoch_start(self, trainer, pl_module):
         total_train_batches = self.total_train_batches
-        total_val_batches = self.num_val_batches
+        total_val_batches = self.total_val_batches_current_epoch
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
@@ -349,7 +349,7 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             if self.val_progress_bar_id is not None:
                 self.progress.update(self.val_progress_bar_id, advance=self.refresh_rate, visible=False)
 
@@ -382,7 +382,7 @@ class RichProgressBar(ProgressBarBase):
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             if self.test_progress_bar_id is not None:
                 self.progress.update(self.test_progress_bar_id, advance=self.refresh_rate, visible=False)
             self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
@@ -391,7 +391,7 @@ class RichProgressBar(ProgressBarBase):
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.is_dataloader_changed(dataloader_idx):
+        if self.has_dataloader_changed(dataloader_idx):
             if self.predict_progress_bar_id is not None:
                 self.progress.update(self.predict_progress_bar_id, advance=self.refresh_rate, visible=False)
             self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)

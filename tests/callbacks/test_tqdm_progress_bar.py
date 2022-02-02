@@ -158,7 +158,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert trainer.num_sanity_val_batches == expected_sanity_steps
     assert bar.val_progress_bar.total_values == expected_sanity_steps
     assert bar.val_progress_bar.n_values == list(range(1, num_sanity_val_steps + 1)) * num_dl
-    assert bar.val_progress_bar.descriptions == [f"Validation Sanity Check DataLoader {i}: " for i in range(num_dl)]
+    assert bar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
     # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -182,7 +182,6 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     # validate
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.validate(model)
-    assert bar.val_progress_bar.leave
     assert trainer.num_val_batches == m
     assert bar.val_progress_bar.total_values == m
     assert bar.val_progress_bar.n_values == list(range(1, m[0] + 1)) * num_dl
