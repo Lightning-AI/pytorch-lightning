@@ -33,9 +33,9 @@ else:
 
 
 class TPUSpawnLauncher(DDPSpawnLauncher):
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer")
-        context = mp.get_context(self.start_method or "fork")
+        context = mp.get_context(trainer.strategy.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapped_function,

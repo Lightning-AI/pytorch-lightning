@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class DDPSpawnLauncher(Launcher):
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer")
         os.environ["MASTER_PORT"] = str(trainer.strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
@@ -52,7 +52,7 @@ class DDPSpawnLauncher(Launcher):
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
-    ):
+    ) -> None:
         trainer.strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
         results = self._collect_rank_zero_results(trainer, results)

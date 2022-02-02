@@ -15,11 +15,12 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
 
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.strategies.launchers.base import Launcher
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 
@@ -29,19 +30,19 @@ if _HYDRA_AVAILABLE:
 
 
 class DDPSubprocessLauncher(Launcher):
-    def __init__(self, cluster_environment, num_processes, num_nodes):
+    def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
         self.interactive_ddp_procs = []
 
-    def launch(self, function, *args, **kwargs):
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         kwargs.pop("trainer")
         self._call_children_scripts()
         return function(*args, **kwargs)
 
-    def _call_children_scripts(self):
+    def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
 
@@ -101,7 +102,7 @@ class DDPSubprocessLauncher(Launcher):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-    def _check_can_spawn_children(self):
+    def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:
             raise RuntimeError(
                 "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
