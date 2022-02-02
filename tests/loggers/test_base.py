@@ -181,22 +181,22 @@ def test_trainer_loggers_property(tmpdir):
     logger2 = CustomLogger()
 
     # trainer.loggers should be a copy of the input list
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=[logger1, logger2], default_root_dir=tmpdir)
+    trainer = Trainer(logger=[logger1, logger2])
 
     assert trainer.loggers == [logger1, logger2]
 
     # trainer.loggers should create a list of size 1
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger1, default_root_dir=tmpdir)
+    trainer = Trainer(logger=logger1)
 
     assert trainer.loggers == [logger1]
 
     # trainer.loggers should be an empty list
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=False, default_root_dir=tmpdir)
+    trainer = Trainer(logger=False)
 
     assert trainer.loggers == []
 
     # trainer.loggers should be a list of size 1 holding the default logger
-    trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=True, default_root_dir=tmpdir)
+    trainer = Trainer(logger=True)
 
     assert trainer.loggers == [trainer.logger]
     assert type(trainer.loggers[0]) == TensorBoardLogger
