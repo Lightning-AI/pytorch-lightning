@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple, ReduceLROnPlateau, Stateful
+from pytorch_lightning.utilities.types import _Stateful, LRSchedulerConfig, LRSchedulerTypeTuple, ReduceLROnPlateau
 
 
 def do_nothing_closure() -> None:
@@ -331,7 +331,7 @@ def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig
 def _validate_scheduler_api(lr_schedulers: List[LRSchedulerConfig], model: "pl.LightningModule") -> None:
     for config in lr_schedulers:
         scheduler = config.scheduler
-        if not isinstance(scheduler, Stateful):
+        if not isinstance(scheduler, _Stateful):
             raise TypeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` is invalid."
                 " It should have `state_dict` and `load_state_dict` methods defined."

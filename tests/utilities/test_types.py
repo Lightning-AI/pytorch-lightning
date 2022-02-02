@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.types import Stateful
+from pytorch_lightning.utilities.types import _Stateful
 
 
 def test_stateful_protocol():
@@ -22,16 +22,16 @@ def test_stateful_protocol():
         def load_state_dict(self, state_dict):
             pass
 
-    assert isinstance(StatefulClass(), Stateful)
+    assert isinstance(StatefulClass(), _Stateful)
 
     class NotStatefulClass:
         def state_dict(self):
             pass
 
-    assert not isinstance(NotStatefulClass(), Stateful)
+    assert not isinstance(NotStatefulClass(), _Stateful)
 
     class NotStateful2Class:
         def load_state_dict(self, state_dict):
             pass
 
-    assert not isinstance(NotStateful2Class(), Stateful)
+    assert not isinstance(NotStateful2Class(), _Stateful)
