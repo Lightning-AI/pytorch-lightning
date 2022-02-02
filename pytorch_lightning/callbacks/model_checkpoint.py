@@ -641,12 +641,11 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
+        # set the last model path before saving because it will be part of the state.
+        previous, self.last_model_path = self.last_model_path, filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
-
-        if self.last_model_path and self.last_model_path != filepath:
-            trainer.strategy.remove_checkpoint(self.last_model_path)
-
-        self.last_model_path = filepath
+        if previous and previous != filepath:
+            trainer.strategy.remove_checkpoint(previous)
 
     def _save_top_k_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.monitor is None or self.save_top_k == 0:
@@ -666,12 +665,11 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
+        # set the best model path before saving because it will be part of the state.
+        previous, self.best_model_path = self.best_model_path, filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
-
-        if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
-            trainer.strategy.remove_checkpoint(self.best_model_path)
-
-        self.best_model_path = filepath
+        if self.save_top_k == 1 and previous and previous != filepath:
+            trainer.strategy.remove_checkpoint(previous)
 
     def _is_valid_monitor_key(self, metrics: Dict[str, _METRIC]) -> bool:
         return self.monitor in metrics or len(metrics) == 0

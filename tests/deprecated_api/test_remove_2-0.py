@@ -40,6 +40,7 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
         trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path  # last `fit` replaced the `best_model_path`
     assert callback.state == 111
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
