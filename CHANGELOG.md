@@ -460,6 +460,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the format of the configuration saved automatically by the CLI's `SaveConfigCallback` ([#11532](https://github.com/PyTorchLightning/pytorch-lightning/pull/11532))
 
 
+- Fixed bug that forced overriding `configure_optimizers` with the CLI ([#11672](https://github.com/PyTorchLightning/pytorch-lightning/pull/11672))
+
+
 - Fixed type promotion when tensors of higher category than float are logged ([#11401](https://github.com/PyTorchLightning/pytorch-lightning/pull/11401))
 
 
