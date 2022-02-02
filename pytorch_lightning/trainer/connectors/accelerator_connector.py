@@ -767,11 +767,17 @@ class AcceleratorConnector:
 
     @property
     def tpu_cores(self) -> int:
-        return self.devices
+        if isinstance(self.accelerator, TPUAccelerator):
+            return self.devices
+        else:
+            return 0
 
     @property
-    def ipus(self) -> int:
-        return self.devices
+    def num_ipus(self) -> int:
+        if isinstance(self.accelerator, IPUAccelerator):
+            return self.devices
+        else:
+            return 0
 
     @property
     def num_gpus(self) -> int:
