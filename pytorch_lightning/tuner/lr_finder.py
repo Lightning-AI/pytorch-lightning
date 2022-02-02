@@ -125,7 +125,7 @@ class _LRFinder:
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_schedulers = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
             _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
