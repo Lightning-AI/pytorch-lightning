@@ -32,8 +32,8 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.executors.ddp import DDPSubprocessExecutor
-from pytorch_lightning.strategies.executors.single_process import SingleProcessExecutor
+from pytorch_lightning.strategies.launchers.ddp import DDPSubprocessLauncher
+from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -136,11 +136,11 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def execute(self, trainer, function, *args, **kwargs):
-        executor = (
-            SingleProcessExecutor if self.cluster_environment.creates_processes_externally else DDPSubprocessExecutor
+    def launch(self, trainer, function, *args, **kwargs):
+        launcher = (
+            SingleProcessLauncher if self.cluster_environment.creates_processes_externally else DDPSubprocessLauncher
         )(self)
-        return executor.execute(trainer, function, *args, **kwargs)
+        return launcher.launch(trainer, function, *args, **kwargs)
 
     def setup_environment(self) -> None:
         self.setup_distributed()

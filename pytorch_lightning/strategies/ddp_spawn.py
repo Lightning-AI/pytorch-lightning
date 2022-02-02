@@ -26,7 +26,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.executors.ddp_spawn import DDPSpawnExecutor
+from pytorch_lightning.strategies.launchers.ddp_spawn import DDPSpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
@@ -140,9 +140,9 @@ class DDPSpawnStrategy(ParallelStrategy):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def execute(self, trainer, function, *args, **kwargs):
-        executor = DDPSpawnExecutor(self)
-        return executor.execute(trainer, function, *args, **kwargs)
+    def launch(self, trainer, function, *args, **kwargs):
+        launcher = DDPSpawnLauncher(self)
+        return launcher.launch(trainer, function, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

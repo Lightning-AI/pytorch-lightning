@@ -24,7 +24,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.executors.single_process import SingleProcessExecutor
+from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
@@ -126,9 +126,9 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
-    def execute(self, trainer, function, *args, **kwargs):
-        executor = SingleProcessExecutor(self)
-        return executor.execute(trainer, function, *args, **kwargs)
+    def launch(self, trainer, function, *args, **kwargs):
+        launcher = SingleProcessLauncher(self)
+        return launcher.launch(trainer, function, *args, **kwargs)
 
     def teardown(self) -> None:
         self.cluster_environment.teardown()

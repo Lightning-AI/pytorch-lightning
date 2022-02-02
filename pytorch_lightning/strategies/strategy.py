@@ -140,8 +140,8 @@ class Strategy(ABC):
         self.lr_schedulers = schedulers
 
     @abstractmethod
-    def execute(self, trainer, function, *args, **kwargs):
-        """Executes the proceses using an Executor."""
+    def launch(self, trainer, function, *args, **kwargs):
+        """Launch the proceses using a Launcher."""
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the appropriate device if needed."""

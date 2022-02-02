@@ -24,7 +24,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.executors.tpu_spawn import TPUSpawnExecutor
+from pytorch_lightning.strategies.launchers.tpu_spawn import TPUSpawnLauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.data import has_len
@@ -212,9 +212,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             "start_method": self.start_method,
         }
 
-    def execute(self, trainer, fn, *args, **kwargs):
-        executor = TPUSpawnExecutor(self)
-        return executor.execute(trainer, fn, *args, **kwargs)
+    def launch(self, trainer, fn, *args, **kwargs):
+        launcher = TPUSpawnLauncher(self)
+        return launcher.launch(trainer, fn, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

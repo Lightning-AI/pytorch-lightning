@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.strategies.executors.base import Executor
+from pytorch_lightning.strategies.launchers.base import Launcher
 
 
-class SingleProcessExecutor(Executor):
-    def execute(self, trainer, function, *args, **kwargs):
+class SingleProcessLauncher(Launcher):
+    def launch(self, trainer, function, *args, **kwargs):
         return function(*args, **kwargs)

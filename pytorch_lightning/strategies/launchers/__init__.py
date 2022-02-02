@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
+from pytorch_lightning.strategies.launchers.base import Launcher
+from pytorch_lightning.strategies.launchers.ddp import DDPSubprocessLauncher
+from pytorch_lightning.strategies.launchers.ddp_spawn import DDPSpawnLauncher
+from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
+from pytorch_lightning.strategies.launchers.tpu_spawn import TPUSpawnLauncher
 
-
-class Executor(ABC):
-    def __init__(self, strategy):
-        self.strategy = strategy
-
-    @abstractmethod
-    def execute(self, trainer, fn, *args, **kwargs) -> bool:
-        """Executes the proceses."""
+__all__ = [
+    "DDPSpawnLauncher",
+    "DDPSubprocessLauncher",
+    "Launcher",
+    "SingleProcessLauncher",
+    "TPUSpawnLauncher",
+]

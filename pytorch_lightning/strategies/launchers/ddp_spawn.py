@@ -20,7 +20,7 @@ import torch
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.executors.base import Executor
+from pytorch_lightning.strategies.launchers.base import Launcher
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import rank_zero_debug
@@ -28,8 +28,8 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
 
-class DDPSpawnExecutor(Executor):
-    def execute(self, trainer, function, *args, **kwargs):
+class DDPSpawnLauncher(Launcher):
+    def launch(self, trainer, function, *args, **kwargs):
         os.environ["MASTER_PORT"] = str(self.strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()

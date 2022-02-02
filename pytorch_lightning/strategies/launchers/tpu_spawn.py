@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.executors.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnExecutor
+from pytorch_lightning.strategies.launchers.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -32,8 +32,8 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnExecutor(DDPSpawnExecutor):
-    def execute(self, trainer, function, *args, **kwargs):
+class TPUSpawnLauncher(DDPSpawnLauncher):
+    def launch(self, trainer, function, *args, **kwargs):
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())

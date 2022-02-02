@@ -20,7 +20,7 @@ from typing import Optional
 import __main__
 import numpy as np
 
-from pytorch_lightning.strategies.executors.base import Executor
+from pytorch_lightning.strategies.launchers.base import Launcher
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 
 if _HYDRA_AVAILABLE:
@@ -30,12 +30,12 @@ if _HYDRA_AVAILABLE:
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class DDPSubprocessExecutor(Executor):
+class DDPSubprocessLauncher(Launcher):
     def __init__(self, strategy):
         super().__init__(strategy=strategy)
         self.interactive_ddp_procs = []
 
-    def execute(self, trainer, function, *args, **kwargs):
+    def launch(self, trainer, function, *args, **kwargs):
         self._call_children_scripts()
         return function(*args, **kwargs)
 
