@@ -148,7 +148,7 @@ class LightningModule(
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
         if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers.values())
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -158,7 +158,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -166,11 +166,11 @@ class LightningModule(
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
             schedulers were returned in :meth:`configure_optimizers`.
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_scheduler_configs:
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+        lr_schedulers = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -199,10 +199,7 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
-        """The current epoch in the Trainer.
-
-        If no Trainer is attached, this propery is 0.
-        """
+        """The current epoch in the ``Trainer``, or 0 if not attached."""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property

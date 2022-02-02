@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import gc
-from typing import Any
 from unittest.mock import DEFAULT, patch
 
 import pytest
@@ -46,6 +44,27 @@ def test_lightning_optimizer(tmpdir, auto):
 
     lightning_opt = model.optimizers()
     assert str(lightning_opt) == "Lightning" + str(lightning_opt.optimizer)
+
+
+def test_init_optimizers_resets_lightning_optimizers(tmpdir):
+    """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
+
+    def compare_optimizers():
+        assert trainer.strategy._lightning_optimizers[0].optimizer is trainer.optimizers[0]
+
+    model = BoringModel()
+    model.lr = 0.2
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
+
+    trainer.tune(model)
+    compare_optimizers()
+
+    trainer.fit(model)
+    compare_optimizers()
+
+    trainer.fit_loop.max_epochs = 2  # simulate multiple fit calls
+    trainer.fit(model)
+    compare_optimizers()
 
 
 def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir):
@@ -128,7 +147,9 @@ def test_state(tmpdir):
     assert isinstance(lightning_optimizer, Optimizer)
 
     lightning_dict = {
-        k: v for k, v in lightning_optimizer.__dict__.items() if k not in {"_optimizer", "_optimizer_idx", "_trainer"}
+        k: v
+        for k, v in lightning_optimizer.__dict__.items()
+        if k not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module"}
     }
 
     assert lightning_dict == optimizer.__dict__
@@ -287,25 +308,9 @@ class OptimizerWithHooks(Optimizer):
 
 
 def test_lightning_optimizer_keeps_hooks(tmpdir):
-    class TestModel(BoringModel):
-        count_on_train_batch_start = 0
-        count_on_train_batch_end = 0
-
-        def configure_optimizers(self):
-            return OptimizerWithHooks(self)
-
-        def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-            self.count_on_train_batch_start += 1
-            optimizer = self.optimizers(use_pl_optimizer=False)
-            assert len(optimizer._fwd_handles) == 1
-
-        def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int) -> None:
-            self.count_on_train_batch_end += 1
-            del self.trainer._lightning_optimizers
-            gc.collect()  # not necessary, just in case
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=4, limit_val_batches=1, max_epochs=1)
-    model = TestModel()
-    trainer.fit(model)
-    assert model.count_on_train_batch_start == 4
-    assert model.count_on_train_batch_end == 4
+    model = BoringModel()
+    optimizer = OptimizerWithHooks(model)
+    lightning_optimizer = LightningOptimizer(optimizer)
+    assert len(optimizer._fwd_handles) == 1
+    del lightning_optimizer
+    assert len(optimizer._fwd_handles) == 1

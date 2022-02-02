@@ -218,11 +218,13 @@ class CheckpointConnector:
             return
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
+        if state_dict is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
@@ -305,8 +307,8 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler["scheduler"].load_state_dict(lrs_state)
+        for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
+            config.scheduler.load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -368,8 +370,8 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            for scheduler in self.trainer.lr_schedulers:
-                lr_schedulers.append(scheduler["scheduler"].state_dict())
+            for config in self.trainer.lr_scheduler_configs:
+                lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)

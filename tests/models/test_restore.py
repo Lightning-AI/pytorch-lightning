@@ -168,24 +168,26 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _check_optimizers(self):
             return all(
-                self._is_equal(self.trainer.optimizers[i].state_dict(), state_dict["optimizer_states"][i])
-                for i in range(len(self.trainer.optimizers))
+                self._is_equal(optimizer.state_dict(), state)
+                for optimizer, state in zip(self.trainer.optimizers, state_dict["optimizer_states"])
             )
 
         def _check_schedulers(self):
             return all(
-                self._is_equal(self.trainer.lr_schedulers[i]["scheduler"].state_dict(), state_dict["lr_schedulers"][i])
-                for i in range(len(self.trainer.lr_schedulers))
+                self._is_equal(config.scheduler.state_dict(), state)
+                for config, state in zip(self.trainer.lr_scheduler_configs, state_dict["lr_schedulers"])
             )
 
         def _check_model_state_dict(self):
-            for k in self.state_dict():
-                yield self._is_equal(self.state_dict()[k], state_dict["state_dict"][k])
+            return all(
+                self._is_equal(actual, expected)
+                for actual, expected in zip(self.state_dict(), state_dict["state_dict"])
+            )
 
         def _test_on_val_test_predict_tune_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
             assert self.trainer.global_step == state_dict["global_step"]
-            assert all(self._check_model_state_dict())
+            assert self._check_model_state_dict()
 
             # no optimizes and schedulers are loaded otherwise
             if self.trainer.state.fn != TrainerFn.TUNING:
@@ -200,7 +202,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             else:
                 assert self.trainer.current_epoch == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
-                assert all(self._check_model_state_dict())
+                assert self._check_model_state_dict()
                 assert self._check_optimizers()
                 assert self._check_schedulers()
 
@@ -218,6 +220,75 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
         trainer = Trainer(**trainer_args)
         trainer_fn = getattr(trainer, fn)
         trainer_fn(model, datamodule=dm, ckpt_path=resume_ckpt)
+
+
+def test_correct_step_and_epoch(tmpdir):
+    model = BoringModel()
+    first_max_epochs = 2
+    train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=first_max_epochs, limit_train_batches=train_batches, limit_val_batches=0
+    )
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 0
+
+    trainer.fit(model)
+    # TODO(@carmocca): should not need `-1`
+    assert trainer.current_epoch == first_max_epochs - 1
+    assert trainer.global_step == first_max_epochs * train_batches
+
+    # save checkpoint after loop ends, training end called, epoch count increased
+    ckpt_path = str(tmpdir / "model.ckpt")
+    trainer.save_checkpoint(ckpt_path)
+
+    ckpt = torch.load(ckpt_path)
+    assert ckpt["epoch"] == first_max_epochs
+    # TODO(@carmocca): should not need `+1`
+    assert ckpt["global_step"] == first_max_epochs * train_batches + 1
+
+    max_epochs = first_max_epochs + 2
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=train_batches, limit_val_batches=0
+    )
+    # the ckpt state is not loaded at this point
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 0
+
+    class TestModel(BoringModel):
+        def on_pretrain_routine_end(self) -> None:
+            assert self.trainer.current_epoch == first_max_epochs
+            # TODO(@carmocca): should not need `+1`
+            assert self.trainer.global_step == first_max_epochs * train_batches + 1
+
+    trainer.fit(TestModel(), ckpt_path=ckpt_path)
+    # TODO(@carmocca): should not need `-1`
+    assert trainer.current_epoch == max_epochs - 1
+    # TODO(@carmocca): should not need `+1`
+    assert trainer.global_step == max_epochs * train_batches + 1
+
+
+def test_fit_twice(tmpdir):
+    epochs = []
+
+    class TestModel(BoringModel):
+        def on_train_epoch_end(self, *_):
+            epochs.append(self.current_epoch)
+
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        default_root_dir=tmpdir,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(TestModel())
+    trainer.fit_loop.max_epochs = 4
+    trainer.fit(TestModel())
+    # TODO(@carmocca): 1 should not be duplicated
+    assert epochs == [0, 1, 1, 2, 3]
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
