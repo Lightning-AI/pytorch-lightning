@@ -194,11 +194,12 @@ class AcceleratorConnector:
             self._strategy_flag,
             self._accelerator_flag,
             self._precision_flag,
-            self._cluster_environment,
+            self._precision_plugin_flag,
+            self._cluster_environment_flag,
             self.checkpoint_io,
             self._amp_level_flag,
             self._amp_type_flag,
-        ) = (None, None, None, None, None, amp_type, amp_level)
+        ) = (None, None, None, None, None, None, amp_type, amp_level)
         if plugins:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
@@ -266,13 +267,6 @@ class AcceleratorConnector:
                     f"Allowed precision values: {PrecisionType.supported_types()}"
                 )
             self._precision_flag = precision
-            # handle duplications and conflict
-            # [RFC] current logic doesn't handle precision_plugin duplication
-            # if plugins:
-            #     for plugin in plugins:
-            #         if isinstance(plugin, PrecisionPlugin):
-            #             self._precision_flag = precision
-            # raise MisconfigurationException("precision set in both precision flag and plugin flag")
 
         if plugins:
             for plugin in plugins:
@@ -283,14 +277,14 @@ class AcceleratorConnector:
                         f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
                     )
 
-                elif isinstance(plugin, PrecisionPlugin) or (
-                    isinstance(plugin, str) and plugin in self._supported_precision
-                ):
+                elif isinstance(plugin, PrecisionPlugin):
+                    self._precision_plugin_flag = plugin
+                elif isinstance(plugin, str) and plugin in self._supported_precision:
                     self._precision_flag = plugin
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
                 elif isinstance(plugin, ClusterEnvironment):
-                    self._cluster_environment = plugin
+                    self._cluster_environment_flag = plugin
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected a precision or training type plugin."
@@ -306,13 +300,11 @@ class AcceleratorConnector:
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
             if self._strategy_flag._precision_plugin:
-                # precision has default value 32, we can not tell whether user set it or not
-                # [RFC] remove default from trainer?
-                # if self._precision_flag:
-                #     raise MisconfigurationException("precision set through both strategy class and flags,
-                #     choose one place to set")
-                # else:
-                self._precision_flag = self._strategy_flag._precision_plugin
+                # [RFC] handle precision plugin set up conflict?
+                if self._precision_plugin_flag:
+                    raise MisconfigurationException("precision set through both strategy class and plugins, choose one")
+                else:
+                    self._precision_plugin_flag = self._strategy_flag._precision_plugin
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise MisconfigurationException(
@@ -321,12 +313,12 @@ class AcceleratorConnector:
                 else:
                     self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
-                if self._cluster_environment:
+                if self._cluster_environment_flag:
                     raise MisconfigurationException(
                         "cluster_environment set through both strategy class and plugins, choose one"
                     )
                 else:
-                    self._cluster_environment = getattr(self._strategy_flag, "cluster_environment")
+                    self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
             # RFC existing accel_conn doesn't handle this, should we add conflict check?
             # eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
@@ -451,9 +443,11 @@ class AcceleratorConnector:
                 self._device_flag = GPUAccelerator.auto_device_count()
             if isinstance(self._device_flag, int) or isinstance(self._device_flag, str):
                 self._device_flag = int(self._device_flag)
-                self._parallel_devices = [
-                    torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)
-                ]
+                self._parallel_devices = (
+                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)]
+                    if self._device_flag != 0
+                    else []
+                )
             else:
                 self._parallel_devices = [torch.device("cuda", i) for i in self._device_flag]
 
@@ -473,8 +467,8 @@ class AcceleratorConnector:
 
     def _choose_and_init_cluster_environment(self):
         self.cluster_environment = LightningEnvironment()
-        if isinstance(self._cluster_environment, ClusterEnvironment):
-            self.cluster_environment = self._cluster_environment
+        if isinstance(self._cluster_environment_flag, ClusterEnvironment):
+            self.cluster_environment = self._cluster_environment_flag
         elif self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             self.cluster_environment = SLURMEnvironment()
@@ -587,9 +581,8 @@ class AcceleratorConnector:
 
     def _check_capatibility_and_init_precision(self):
         self._precision_misconfig_check()
-        if isinstance(self._precision_flag, PrecisionPlugin):
-            return self._precision_flag
-        self.precision_plugin = None
+        if isinstance(self._precision_plugin_flag, PrecisionPlugin):
+            return self._precision_plugin_flag
 
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)
@@ -655,11 +648,12 @@ class AcceleratorConnector:
             )
         if (
             isinstance(self.accelerator, TPUAccelerator)
-            and isinstance(self._precision_flag, PrecisionPlugin)
-            and not isinstance(self._precision_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin))
+            and self._precision_plugin_flag
+            and not isinstance(self._precision_plugin_flag, (TPUPrecisionPlugin, TPUBf16PrecisionPlugin))
         ):
             raise ValueError(
-                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`," f" found: {self._precision_flag}."
+                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
+                f" found: {self._precision_plugin_flag}."
             )
         if (
             self._precision_flag == 16
