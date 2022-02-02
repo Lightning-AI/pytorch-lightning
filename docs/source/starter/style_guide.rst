@@ -31,7 +31,7 @@ A system defines how a collection of models interact with each other with user-d
 * GANs
 * Seq2Seq
 * BERT
-* etc...
+* etc.
 
 A LightningModule can define both a system and a model:
 
