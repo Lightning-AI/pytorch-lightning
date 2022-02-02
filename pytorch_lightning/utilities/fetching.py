@@ -210,8 +210,6 @@ class DataFetcher(AbstractDataFetcher):
     """
 
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
-        if prefetch_batches < 1:
-            raise MisconfigurationException("`prefetch_batches` should at least be 1.")
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
