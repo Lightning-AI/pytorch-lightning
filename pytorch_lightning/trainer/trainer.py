@@ -684,14 +684,13 @@ class Trainer(
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
+                # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
             self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
             self._call_callback_hooks("on_exception", exception)
-            # shutdown workers
-            self._data_connector.teardown()
+            self._teardown()
+            # teardown might access the stage so we reset it after
+            self.state.stage = None
             raise
 
     def fit(
@@ -1173,6 +1172,7 @@ class Trainer(
         self.checkpoint_connector.resume_end()
 
         results = self._run_stage()
+
         log.detail(f"{self.__class__.__name__}: trainer tearing down")
         self._teardown()
 
@@ -1187,8 +1187,7 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: calling teardown hooks")
         self._call_teardown_hook()
 
-        if self.state.status != TrainerStatus.INTERRUPTED:
-            self.state.status = TrainerStatus.FINISHED
+        self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
         if isinstance(self.strategy, DDPSpawnStrategy):
@@ -1239,7 +1238,10 @@ class Trainer(
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
         self._data_connector.teardown()
-        self._active_loop.teardown()
+        loop = self._active_loop
+        # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
+        if loop is not None:
+            loop.teardown()
         self.logger_connector.teardown()
         self._signal_connector.teardown()
 
@@ -2014,7 +2016,7 @@ class Trainer(
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
-        return self.strategy.lr_schedulers
+        return self.strategy.lr_scheduler_configs
 
     @property
     def lr_schedulers(self) -> List[Dict[str, Any]]:
@@ -2025,7 +2027,7 @@ class Trainer(
         )
         from dataclasses import asdict
 
-        return [asdict(config) for config in self.strategy.lr_schedulers]
+        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:

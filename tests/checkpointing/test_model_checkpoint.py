@@ -1234,3 +1234,30 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
             assert getattr(cb_restore, key) == val
         else:
             assert getattr(cb_restore, key) != val
+
+
+def test_save_last_saves_correct_last_model_path(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    mc.CHECKPOINT_NAME_LAST = "{foo}-last"
+    trainer = Trainer(callbacks=mc)
+    trainer.strategy.connect(BoringModel())
+
+    mc._save_last_checkpoint(trainer, {"foo": 1})
+    expected = "foo=1-last.ckpt"
+    assert os.listdir(tmpdir) == [expected]
+    full_path = str(tmpdir / expected)
+    ckpt = torch.load(full_path)
+    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
+
+
+def test_none_monitor_saves_correct_best_model_path(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir, monitor=None)
+    trainer = Trainer(callbacks=mc)
+    trainer.strategy.connect(BoringModel())
+
+    mc._save_none_monitor_checkpoint(trainer, {})
+    expected = "epoch=0-step=0.ckpt"
+    assert os.listdir(tmpdir) == [expected]
+    full_path = str(tmpdir / expected)
+    ckpt = torch.load(full_path)
+    assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
