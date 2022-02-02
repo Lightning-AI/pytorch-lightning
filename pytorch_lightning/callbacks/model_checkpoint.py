@@ -366,16 +366,14 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
         behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
         """
-        epoch = trainer.current_epoch
-        global_step = trainer.global_step
-
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
+        global_step = trainer.global_step
         self._last_global_step_saved = global_step
 
         # what can be monitored
-        monitor_candidates = self._monitor_candidates(trainer, epoch=epoch, step=global_step)
+        monitor_candidates = self._monitor_candidates(trainer, epoch=trainer.current_epoch, step=global_step)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
