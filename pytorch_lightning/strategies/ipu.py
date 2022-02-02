@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+else:
+    poptorch = None
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
@@ -332,10 +334,6 @@ class IPUStrategy(ParallelStrategy):
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
-
-    @property
-    def on_gpu(self) -> bool:
-        return False
 
     @property
     def root_device(self) -> torch.device:

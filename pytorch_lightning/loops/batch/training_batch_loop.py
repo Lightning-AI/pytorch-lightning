@@ -35,7 +35,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self.accumulated_loss = TensorRunningAccum(window_length=20)
         self.running_loss = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx: Optional[int] = None
+        self.split_idx: int = 0
         self.optimizer_loop = OptimizerLoop()
         self.manual_loop = ManualOptimization()
 

@@ -349,7 +349,8 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_train_batches=2,
         limit_val_batches=2,
         callbacks=[ckpt],
-        gpus=1 if device == "cuda" else 0,
+        accelerator="gpu" if device == "cuda" else "cpu",
+        devices=1,
     )
     trainer.fit(model)
 
@@ -371,15 +372,13 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(**kwargs):
+def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
 
     if not _fault_tolerant_training():
         pytest.skip("Fault tolerant not available")
-
-    num_processes = kwargs.get("gpus", 1)
 
     class CustomException(Exception):
         pass
@@ -415,7 +414,7 @@ def result_collection_reload(**kwargs):
                 # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
                 # The shift indicates we failed while the state was `shift=sign(is_global_zero > 0) * [0..3]`
                 shift = 0
-                if num_processes == 2:
+                if devices == 2:
                     shift = 3 if self.trainer.is_global_zero else -3
                 expected = sum(range(batch_idx + 1)) + shift
                 assert expected == value == value_2
@@ -440,7 +439,7 @@ def result_collection_reload(**kwargs):
 
         def on_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
-                total = sum(range(5)) * num_processes
+                total = sum(range(5)) * devices
                 metrics = self.results.metrics(on_step=False)
                 assert self.results["training_step.tracking"].value == total
                 assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
@@ -449,7 +448,13 @@ def result_collection_reload(**kwargs):
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
-    trainer_kwargs = {"max_epochs": 1, "limit_train_batches": 5, "limit_val_batches": 0}
+    trainer_kwargs = {
+        "max_epochs": 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 0,
+        "accelerator": accelerator,
+        "devices": devices,
+    }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
 
@@ -459,7 +464,7 @@ def result_collection_reload(**kwargs):
 
     tmpdir = (
         trainer.strategy.broadcast(trainer_kwargs["default_root_dir"], 0)
-        if num_processes >= 2
+        if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
@@ -477,13 +482,13 @@ def test_result_collection_reload(tmpdir):
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=1)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
 
 
 @RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", gpus=2)
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
 def test_metric_collections(tmpdir):
@@ -588,6 +593,26 @@ def test_metric_result_respects_dtype(floating_dtype):
 
     # restore to avoid impacting other tests
     torch.set_default_dtype(torch.float)
+
+
+@pytest.mark.parametrize("reduce_fx", ("mean", sum))
+def test_metric_result_dtype_promotion(reduce_fx):
+    metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
+    metadata.sync = _Sync()
+    rm = _ResultMetric(metadata, is_tensor=True)
+    assert rm.value.dtype == torch.float
+
+    # log a double
+    rm.update(torch.tensor(0, dtype=torch.double), 1)
+    # `rm.value.dtype` is promoted
+    assert rm.value.dtype == torch.double
+    # log a float
+    rm.update(torch.tensor(0, dtype=torch.float), 1)
+    # the previous dtype stays
+    assert rm.value.dtype == torch.double
+
+    total = rm.compute()
+    assert total.dtype == torch.double
 
 
 @pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
