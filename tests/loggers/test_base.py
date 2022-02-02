@@ -228,6 +228,10 @@ def test_trainer_logger_setters():
     assert trainer.loggers == [logger1, logger2]
     assert trainer.logger == logger_collection
 
+    trainer.loggers = [logger1]
+    assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger == logger1
+
     trainer.loggers = logger_collection
     assert trainer.loggers == [logger1, logger2]
     assert trainer.logger == logger_collection

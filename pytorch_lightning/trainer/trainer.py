@@ -2499,7 +2499,10 @@ class Trainer(
     def loggers(self, new_loggers: Union[Iterable[LightningLoggerBase], None]) -> None:
         if new_loggers:
             self._loggers = [_logger for _logger in new_loggers]
-            self._logger = LoggerCollection(self._loggers)
+            if len(self._loggers) == 1:
+                self._logger = self._loggers[0]
+            else:
+                self._logger = LoggerCollection(self._loggers)
         else:
             self._logger = None
             self._loggers = []

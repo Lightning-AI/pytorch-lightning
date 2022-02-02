@@ -82,16 +82,12 @@ class LoggerConnector:
                 default_logger = TensorBoardLogger(
                     save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
                 )
-                self.trainer.logger = default_logger
                 self.trainer.loggers = [default_logger]
             else:
-                self.trainer.logger = None
                 self.trainer.loggers = []
         elif isinstance(logger, Iterable):
-            self.trainer.logger = LoggerCollection(logger)
-            self.trainer.loggers = list(logger)
+            self.trainer.loggers = logger
         else:
-            self.trainer.logger = logger
             self.trainer.loggers = [logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
