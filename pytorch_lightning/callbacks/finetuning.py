@@ -98,7 +98,7 @@ class BaseFinetuning(Callback):
         if self._restarting:
             named_parameters = dict(pl_module.named_parameters())
             for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self.__apply_mapping_to_param_groups(
+                param_groups = self._apply_mapping_to_param_groups(
                     self._internal_optimizer_metadata[opt_idx], named_parameters
                 )
                 optimizer.param_groups = param_groups
@@ -244,7 +244,7 @@ class BaseFinetuning(Callback):
         self.freeze_before_training(pl_module)
 
     @staticmethod
-    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+    def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
         output = []
         for g in param_groups:
             # skip params to save memory
@@ -262,13 +262,13 @@ class BaseFinetuning(Callback):
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
         if opt_idx not in self._internal_optimizer_metadata:
-            self._internal_optimizer_metadata[opt_idx] = self.__apply_mapping_to_param_groups(
+            self._internal_optimizer_metadata[opt_idx] = self._apply_mapping_to_param_groups(
                 current_param_groups, mapping
             )
         elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
             self._internal_optimizer_metadata[opt_idx].extend(
-                self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
+                self._apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
