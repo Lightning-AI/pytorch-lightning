@@ -173,7 +173,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
-    
+
     assert args.gpus == expected_parsed
     trainer = Trainer.from_argparse_args(args)
     assert trainer.data_parallel_device_ids == expected_device_ids
