@@ -280,7 +280,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated function `pytorch_lightning.callbacks.device_stats_monitor.prefix_metric_keys` ([#11254](https://github.com/PyTorchLightning/pytorch-lightning/pull/11254))
 
-- Deprecated `on_before_accelerator_backend_setup` callback ([#11568](https://github.com/PyTorchLightning/pytorch-lightning/pull/11568))
+- Deprecated `on_before_accelerator_backend_setup` callback hook in favour of `setup` ([#11568](https://github.com/PyTorchLightning/pytorch-lightning/pull/11568))
 
 ### Removed
 
