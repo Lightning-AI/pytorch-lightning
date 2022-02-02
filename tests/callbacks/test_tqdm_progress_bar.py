@@ -123,7 +123,7 @@ def test_tqdm_progress_bar_totals(tmpdir):
     k = bar.total_test_batches
     assert sum(len(loader) for loader in trainer.test_dataloaders) == k
     assert bar.test_progress_bar.total == k
-    assert bar.val_progress_bar.leave
+    assert bar.test_progress_bar.leave
 
     # test progress bar should have reached the end
     assert bar.test_progress_bar.n == k
