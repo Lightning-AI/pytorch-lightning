@@ -98,11 +98,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def done(self) -> bool:
-        """Returns whether the training should be stopped.
-
-        The criteria are that the number of steps reached the max steps, the last batch is reached or the trainer
-        signals to stop (e.g. by early stopping).
-        """
+        """Evaluates when to leave the loop."""
         return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
 
     def connect(  # type: ignore[override]
