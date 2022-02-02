@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, List, Optional, Union, Dict
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
