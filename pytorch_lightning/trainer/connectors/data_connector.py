@@ -27,10 +27,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import (
-    _teardown_dataloader_get_iterators,
-    _validate_fault_tolerant_automatic,
-)
+from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dataloader_init_method,
@@ -486,9 +483,6 @@ class DataConnector:
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
-
-    def teardown(self) -> None:
-        _teardown_dataloader_get_iterators()
 
 
 @dataclass

@@ -228,7 +228,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -251,7 +251,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_epoch_end(self, *_):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
+            assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)

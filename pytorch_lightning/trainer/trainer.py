@@ -1237,7 +1237,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
