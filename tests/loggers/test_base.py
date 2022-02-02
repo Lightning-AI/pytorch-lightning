@@ -176,7 +176,7 @@ def test_multiple_loggers(tmpdir):
     assert logger2.finalized_status == "success"
 
 
-def test_trainer_loggers_property(tmpdir):
+def test_trainer_loggers_property():
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
