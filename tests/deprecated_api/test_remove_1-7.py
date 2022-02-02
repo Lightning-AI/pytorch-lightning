@@ -425,6 +425,7 @@ def test_v1_7_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
     trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path  # last `fit` replaced the `best_model_path`
     assert callback.state == 111
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path is None
