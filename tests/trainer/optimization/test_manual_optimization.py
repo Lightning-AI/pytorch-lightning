@@ -67,9 +67,9 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"gpus": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
+        pytest.param({"devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
-            {"gpus": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
+            {"devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),
         ),
     ],
@@ -118,6 +118,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        accelerator="gpu",
         **kwargs,
     )
 
@@ -209,7 +210,8 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         precision=16,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
@@ -296,7 +298,8 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         precision=16,
         amp_backend="native",
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
 
@@ -383,7 +386,8 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend="native",
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
     )
     trainer.fit(model)
 
@@ -466,7 +470,8 @@ def test_multiple_optimizers_step(tmpdir):
         enable_model_summary=False,
         precision=16,
         amp_backend="native",
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         track_grad_norm=2,
     )
 
@@ -830,7 +835,8 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
     )
 
@@ -1074,7 +1080,8 @@ def test_multiple_optimizers_logging(precision, tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         precision=precision,
     )
 

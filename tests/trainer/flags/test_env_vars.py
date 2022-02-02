@@ -52,5 +52,5 @@ def test_passing_env_variables_gpus(cuda_available_mock, device_count_mock):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     assert trainer.gpus == 2
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     assert trainer.gpus == 1

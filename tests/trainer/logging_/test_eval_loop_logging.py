@@ -707,7 +707,7 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
             assert self.trainer.callback_metrics["foo"].device.type == "cpu"
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="gpu", devices=1)
     trainer.validate(model, verbose=False)
 
 

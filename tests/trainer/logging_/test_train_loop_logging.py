@@ -467,7 +467,8 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         max_epochs=2,
         enable_model_summary=False,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         profiler="pytorch",
     )
     trainer.fit(model)
@@ -589,7 +590,8 @@ def test_metric_are_properly_reduced(tmpdir):
     model = TestingModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         max_epochs=2,
         limit_train_batches=5,
         limit_val_batches=32,
@@ -710,7 +712,8 @@ def test_move_metrics_to_cpu(tmpdir):
         amp_backend="native",
         precision=16,
         move_metrics_to_cpu=True,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
     )
     trainer.fit(TestModel())
 
