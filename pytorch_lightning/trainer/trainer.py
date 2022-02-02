@@ -2480,16 +2480,8 @@ class Trainer(
 
     @logger.setter
     def logger(self, new_logger: Optional[LightningLoggerBase]) -> None:
-        if new_logger:
-            if isinstance(new_logger, LoggerCollection):
-                self._logger = new_logger
-                self._loggers = list(new_loggers)
-            else:
-                self._logger = new_logger
-                self._loggers = [new_logger]
-        else:
-            self._logger = None
-            self._loggers = []
+        self._logger = new_logger
+        self.loggers = [new_logger] if new_logger and not isinstance(new_logger, LoggerCollection) else new_logger
 
     @property
     def loggers(self) -> List[LightningLoggerBase]:
@@ -2499,10 +2491,7 @@ class Trainer(
     def loggers(self, new_loggers: Optional[Iterable[LightningLoggerBase]]) -> None:
         if new_loggers:
             self._loggers = list(new_loggers)
-            if len(self._loggers) == 1:
-                self._logger = self._loggers[0]
-            else:
-                self._logger = LoggerCollection(self._loggers)
+            self._logger = self._loggers[0] if len(self._loggers) == 1 else LoggerCollection(self._loggers)
         else:
             self._logger = None
             self._loggers = []

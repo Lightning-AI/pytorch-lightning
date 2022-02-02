@@ -217,7 +217,7 @@ def test_trainer_logger_setters():
     assert trainer.loggers == [logger1]
 
     trainer.logger = logger_collection
-    assert trainer.logger == logger_collection
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
     trainer.logger = None
