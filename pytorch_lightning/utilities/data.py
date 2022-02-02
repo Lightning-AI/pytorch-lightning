@@ -118,7 +118,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.TrainingTypePlugin",
+    training_type: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
@@ -228,7 +228,11 @@ def _get_dataloader_init_kwargs(
 
     # kwargs to re-construct the dataloader
     dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-    dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+    if isinstance(dl_kwargs["dataset"], IterableDataset):
+        dl_kwargs["batch_sampler"] = None
+        dl_kwargs["sampler"] = None
+    else:
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
 
     required_args = {
         p.name
@@ -262,10 +266,6 @@ def _get_dataloader_init_kwargs(
                 "manually add the `DistributedSampler` as: "
                 f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
             )
-
-    if isinstance(dl_kwargs["dataset"], IterableDataset):
-        dl_kwargs["batch_sampler"] = None
-        dl_kwargs["sampler"] = None
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
         dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)

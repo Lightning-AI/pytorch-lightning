@@ -307,10 +307,10 @@ class CombinedDataset:
 
 
 class CombinedLoader:
-    """Combines different dataloaders and allows sampling in parallel. Supported modes are 'min_size', which raises
-    StopIteration after the shortest loader (the one with the lowest number of batches) is done, and
-    'max_size_cycle` which raises StopIteration after the longest loader (the one with most batches) is done, while
-    cycling through the shorter loaders.
+    """Combines different dataloaders and allows sampling in parallel. Supported modes are ``"min_size"``, which
+    raises StopIteration after the shortest loader (the one with the lowest number of batches) is done, and
+    ``"max_size_cycle"`` which raises StopIteration after the longest loader (the one with most batches) is done,
+    while cycling through the shorter loaders.
 
     Examples:
         >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4),

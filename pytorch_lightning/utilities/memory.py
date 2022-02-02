@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities related to memory."""
 
 import gc
 import os
@@ -163,9 +164,7 @@ def get_gpu_memory_map() -> Dict[str, float]:
     result = subprocess.run(
         [nvidia_smi_path, "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
-        # capture_output=True,          # valid for python version >=3.7
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+        capture_output=True,
         check=True,
     )
 

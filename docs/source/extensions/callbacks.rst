@@ -46,22 +46,14 @@ Example:
 
 
     class MyPrintingCallback(Callback):
-        def on_init_start(self, trainer):
-            print("Starting to initialize the trainer!")
-
-        def on_init_end(self, trainer):
-            print("trainer is initialized now")
+        def on_train_start(self, trainer, pl_module):
+            print("Training is starting")
 
         def on_train_end(self, trainer, pl_module):
-            print("do something when training ends")
+            print("Training is ending")
 
 
     trainer = Trainer(callbacks=[MyPrintingCallback()])
-
-.. testoutput::
-
-    Starting to initialize the trainer!
-    trainer is initialized now
 
 We successfully extended functionality without polluting our super clean
 :doc:`lightning module <../common/lightning_module>` research code.
@@ -72,10 +64,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -86,7 +78,7 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/index.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/stable/index.html>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
@@ -196,7 +188,7 @@ The following are best practices when using/designing callbacks.
 
 -----------
 
-.. _hooks:
+.. _callback_hooks:
 
 Callback API
 ------------

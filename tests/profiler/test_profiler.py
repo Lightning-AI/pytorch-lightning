@@ -16,13 +16,14 @@ import os
 import platform
 import time
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
+from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
 from pytorch_lightning.loggers.base import LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
@@ -168,7 +169,13 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -191,6 +198,76 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
         trainer.test(model)
 
     assert caplog.text.count("Profiler Report") == 2
+
+
+@pytest.mark.parametrize("extended", [True, False])
+@patch("time.monotonic", return_value=70)
+def test_simple_profiler_summary(tmpdir, extended):
+    """Test the summary of `SimpleProfiler`."""
+    profiler = SimpleProfiler(extended=extended)
+    profiler.start_time = 63.0
+    hooks = [
+        "on_train_start",
+        "on_train_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_before_batch_transfer",
+        "on_fit_start",
+    ]
+    sometime = 0.773434
+    sep = os.linesep
+    max_action_len = len("on_before_batch_transfer")
+
+    for hook in hooks:
+        with profiler.profile(hook):
+            pass
+
+        profiler.recorded_durations[hook] = [sometime]
+
+    if extended:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Num calls':<15}\t|"
+            f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep}|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep_lines}{sep}"
+        )
+    else:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
+            f"{sep_lines}"
+            f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_end                 |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_start         |  0.77343              |  0.77343              |"
+            f"{sep}|  on_train_epoch_end           |  0.77343              |  0.77343              |"
+            f"{sep}|  on_before_batch_transfer     |  0.77343              |  0.77343              |"
+            f"{sep}|  on_fit_start                 |  0.77343              |  0.77343              |"
+            f"{sep_lines}{sep}"
+        )
+
+    summary = profiler.summary().expandtabs()
+    assert expected_text == summary
 
 
 @pytest.fixture
@@ -307,13 +384,16 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         limit_val_batches=5,
         profiler=pytorch_profiler,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
-
-    expected = {"validation_step"}
+    expected = {"[Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
-        expected |= {"training_step_and_backward", "training_step", "backward"}
+        expected |= {
+            "[Strategy]DDPStrategy.training_step",
+            "[Strategy]DDPStrategy.backward",
+        }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -330,10 +410,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
-        assert any(f"{local_rank}-validation_step" in f for f in files)
+        assert any(f"{local_rank}-[Strategy]DDPStrategy.validation_step" in f for f in files)
 
 
-@RunIf(standalone=True)
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
 def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
@@ -343,7 +422,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "validation_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name == "[Strategy]SingleDeviceStrategy.validation_step" for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -351,8 +430,6 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 @pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
@@ -365,7 +442,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=2, profiler=pytorch_profiler)
     getattr(trainer, fn)(model)
 
-    assert sum(e.name == f"{step_name}_step" for e in pytorch_profiler.function_events)
+    assert sum(e.name.endswith(f"{step_name}_step") for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -373,8 +450,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     if _KINETO_AVAILABLE:
         files = sorted(file for file in os.listdir(tmpdir) if file.endswith(".json"))
         assert any(f"{fn}-{pytorch_profiler.filename}" in f for f in files)
-        path = pytorch_profiler.dirpath / f"{fn}-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_nested(tmpdir):
@@ -418,11 +493,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-
     # Wrap the logger in a list so it becomes a LoggerCollection
     logger = [TensorBoardLogger(save_dir=tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
     assert look_for_trace(tmpdir)
@@ -434,7 +507,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, gpus=1)
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
     trainer.fit(model)
 
 
@@ -552,3 +625,25 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
         getattr(trainer, trainer_fn)(model)
         assert trainer.profiler._schedule is None
         warning_cache.clear()
+
+
+def test_profile_callbacks(tmpdir):
+    """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
+
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=1,
+        profiler=pytorch_profiler,
+        callbacks=[EarlyStopping("val_loss"), EarlyStopping("train_loss")],
+    )
+    trainer.fit(model)
+    assert sum(
+        e.name == "[Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )
+    assert sum(
+        e.name == "[Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        for e in pytorch_profiler.function_events
+    )

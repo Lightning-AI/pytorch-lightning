@@ -14,15 +14,17 @@
 """
 Convention:
  - Do not include any `_TYPE` suffix
- - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
+ - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Sequence, Type, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
+from typing_extensions import Protocol, runtime_checkable
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, torch.Tensor, _NUMBER]
@@ -43,7 +45,73 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
+_DEVICE = Union[torch.device, str, int]
+
+
+@runtime_checkable
+class _SupportsStateDict(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
+# Inferred from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+@runtime_checkable
+class _LRScheduler(_SupportsStateDict, Protocol):
+    optimizer: Optimizer
+
+    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
+        ...
+
+
+# Inferred from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
+@runtime_checkable
+class ReduceLROnPlateau(_SupportsStateDict, Protocol):
+    in_cooldown: bool
+    optimizer: Optimizer
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        mode: str = ...,
+        factor: float = ...,
+        patience: int = ...,
+        verbose: bool = ...,
+        threshold: float = ...,
+        threshold_mode: str = ...,
+        cooldown: int = ...,
+        min_lr: float = ...,
+        eps: float = ...,
+    ) -> None:
+        ...
+
+
 # todo: improve LRSchedulerType naming/typing
-LRSchedulerTypeTuple = (_LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
+LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+
+
+@dataclass
+class LRSchedulerConfig:
+    scheduler: Union[_LRScheduler, ReduceLROnPlateau]
+    # no custom name
+    name: Optional[str] = None
+    # after epoch is over
+    interval: str = "epoch"
+    # every epoch/batch
+    frequency: int = 1
+    # most often not ReduceLROnPlateau scheduler
+    reduce_on_plateau: bool = False
+    # value to monitor for ReduceLROnPlateau
+    monitor: Optional[str] = None
+    # enforce that the monitor exists for ReduceLROnPlateau
+    strict: bool = True
+    # opt_idx assigned internally if not assigned by user
+    opt_idx: Optional[int] = None

@@ -168,24 +168,26 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _check_optimizers(self):
             return all(
-                self._is_equal(self.trainer.optimizers[i].state_dict(), state_dict["optimizer_states"][i])
-                for i in range(len(self.trainer.optimizers))
+                self._is_equal(optimizer.state_dict(), state)
+                for optimizer, state in zip(self.trainer.optimizers, state_dict["optimizer_states"])
             )
 
         def _check_schedulers(self):
             return all(
-                self._is_equal(self.trainer.lr_schedulers[i]["scheduler"].state_dict(), state_dict["lr_schedulers"][i])
-                for i in range(len(self.trainer.lr_schedulers))
+                self._is_equal(config.scheduler.state_dict(), state)
+                for config, state in zip(self.trainer.lr_scheduler_configs, state_dict["lr_schedulers"])
             )
 
         def _check_model_state_dict(self):
-            for k in self.state_dict():
-                yield self._is_equal(self.state_dict()[k], state_dict["state_dict"][k])
+            return all(
+                self._is_equal(actual, expected)
+                for actual, expected in zip(self.state_dict(), state_dict["state_dict"])
+            )
 
         def _test_on_val_test_predict_tune_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
             assert self.trainer.global_step == state_dict["global_step"]
-            assert all(self._check_model_state_dict())
+            assert self._check_model_state_dict()
 
             # no optimizes and schedulers are loaded otherwise
             if self.trainer.state.fn != TrainerFn.TUNING:
@@ -200,7 +202,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             else:
                 assert self.trainer.current_epoch == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
-                assert all(self._check_model_state_dict())
+                assert self._check_model_state_dict()
                 assert self._check_optimizers()
                 assert self._check_schedulers()
 
@@ -246,10 +248,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
             default_root_dir=tmpdir,
-            max_steps=1,
+            limit_train_batches=1,
+            limit_val_batches=2,
+            max_epochs=1,
             logger=False,
             callbacks=[checkpoint, callback_capture],
-            limit_val_batches=2,
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -268,8 +271,15 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     for before, after in zip(callbacks_before_resume, callback_capture.callbacks):
         if isinstance(before, ModelCheckpoint):
-            assert before.best_model_path == after.best_model_path
-            assert before.best_model_score == after.best_model_score
+            for attribute in (
+                "best_model_path",
+                "best_model_score",
+                "best_k_models",
+                "kth_best_model_path",
+                "kth_value",
+                "last_model_path",
+            ):
+                assert getattr(before, attribute) == getattr(after, attribute)
 
 
 def test_callbacks_references_fit_ckpt_path(tmpdir):
@@ -345,7 +355,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
+        tpipes.run_model_prediction(pretrained_model, dataloader)
 
 
 @RunIf(min_gpus=2)
@@ -393,7 +403,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_model_prediction(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -514,7 +524,11 @@ def test_dp_resume(tmpdir):
     # HPC LOAD/SAVE
     # ---------------------------
     # save
-    trainer.checkpoint_connector.hpc_save(tmpdir, logger)
+    # save logger to make sure we get all the metrics
+    if logger:
+        logger.finalize("finished")
+    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(tmpdir)
+    trainer.save_checkpoint(hpc_save_path)
 
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
@@ -539,7 +553,7 @@ def test_dp_resume(tmpdir):
             new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = dm.train_dataloader()
-            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
+            tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
             self.on_pretrain_routine_end_called = True
 
     # new model

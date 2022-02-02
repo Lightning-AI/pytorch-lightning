@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities that can be used with distributed training."""
 
 import logging
 import os
@@ -19,6 +20,7 @@ from platform import python_version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
+from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -43,6 +45,8 @@ log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn: Callable) -> Callable:
+    """Function that can be used as a decorator to enable a function/method being called only on rank 0."""
+
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
         if rank_zero_only.rank == 0:
@@ -80,11 +84,13 @@ def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
 
 @rank_zero_only
 def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log debug-level messages only on rank 0."""
     _debug(*args, stacklevel=stacklevel, **kwargs)
 
 
 @rank_zero_only
 def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log info-level messages only on rank 0."""
     _info(*args, stacklevel=stacklevel, **kwargs)
 
 
@@ -123,8 +129,8 @@ def distributed_available() -> bool:
 def sync_ddp_if_available(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """
-    Function to reduce a tensor across worker processes during distributed training
+    """Function to reduce a tensor across worker processes during distributed training.
+
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
@@ -264,54 +270,58 @@ def register_ddp_comm_hook(
         DDP communication wrapper needs pytorch version at least 1.9.0
         Post-localSGD hook needs pytorch version at least 1.9.0
 
-    Example:
+    Examples:
 
-        from torch.distributed.algorithms.ddp_comm_hooks import (
-            default_hooks as default,
-            powerSGD_hook as powerSGD,
-            post_localSGD_hook as post_localSGD,
-        )
-
-        # fp16_compress_hook for compress gradients
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_hook=default.fp16_compress_hook,
-        )
-
-        # powerSGD_hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-        )
-
-        # post_localSGD_hook
-        subgroup, _ = torch.distributed.new_subgroups()
-        register_comm_hook(
-            model=ddp_model,
-            state=post_localSGD.PostLocalSGDState(
-                process_group=None,
-                subgroup=subgroup,
-                start_localSGD_iter=1_000,
-            ),
-            ddp_comm_hook=post_localSGD.post_localSGD_hook,
-        )
-
-        # fp16_compress_wrapper combined with other communication hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-            ddp_comm_wrapper=default.fp16_compress_wrapper,
-        )
+        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
+        ...     default_hooks as default,
+        ...     powerSGD_hook as powerSGD,
+        ...     post_localSGD_hook as post_localSGD,
+        ... )
+        >>>
+        >>> # fp16_compress_hook for compress gradients
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_hook=default.fp16_compress_hook,
+        ... )
+        >>>
+        >>> # powerSGD_hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ... )
+        >>>
+        >>> # post_localSGD_hook
+        >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     state=post_localSGD.PostLocalSGDState(
+        ...         process_group=None,
+        ...         subgroup=subgroup,
+        ...         start_localSGD_iter=1_000,
+        ...     ),
+        ...     ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        ... )
+        >>>
+        >>> # fp16_compress_wrapper combined with other communication hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ... )
     """
     from pytorch_lightning.utilities import rank_zero_warn
 
@@ -399,3 +409,37 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     if not distributed_available():
         return {0: state}
     return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
+
+
+class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
+    def _check_input_dim(self, input: torch.Tensor) -> None:
+        # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
+        # is this method that is overwritten by the subclass.
+        # Here, we are bypassing some tensor sanity checks and trusting that the user
+        # provides the right input dimensions at inference.
+        return
+
+
+def _revert_sync_batchnorm(module: Module) -> Module:
+    # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
+    # Original author: Kapil Yedidi (@kapily)
+    converted_module = module
+    if isinstance(module, torch.nn.modules.batchnorm.SyncBatchNorm):
+        # Unfortunately, SyncBatchNorm does not store the original class - if it did
+        # we could return the one that was originally created.
+        converted_module = _BatchNormXd(
+            module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats
+        )
+        if module.affine:
+            with torch.no_grad():
+                converted_module.weight = module.weight
+                converted_module.bias = module.bias
+        converted_module.running_mean = module.running_mean
+        converted_module.running_var = module.running_var
+        converted_module.num_batches_tracked = module.num_batches_tracked
+        if hasattr(module, "qconfig"):
+            converted_module.qconfig = module.qconfig
+    for name, child in module.named_children():
+        converted_module.add_module(name, _revert_sync_batchnorm(child))
+    del module
+    return converted_module
