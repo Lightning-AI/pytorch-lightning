@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from dataclasses import asdict
 from functools import lru_cache
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -74,16 +74,16 @@ class EvaluationEpochLoop(Loop):
             self.batch_progress.reset_on_run()
 
     def on_run_start(  # type: ignore[override]
-        self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: int
+        self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict
     ) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:
             data_fetcher: the current data_fetcher wrapping the dataloader
-            dataloader_idx: index of the current dataloader
             dl_max_batches: maximum number of batches the dataloader can produce
+            kwargs: the kwargs passed down to the hooks.
         """
-        void(dataloader_idx)
+        void(kwargs)
         self._dl_max_batches = dl_max_batches
         self._data_fetcher = data_fetcher
 
@@ -91,14 +91,17 @@ class EvaluationEpochLoop(Loop):
         self._dataloader_iter = iter(data_fetcher)
 
     def advance(  # type: ignore[override]
-        self, data_fetcher: AbstractDataFetcher, dataloader_idx: Optional[int], dl_max_batches: int
+        self,
+        data_fetcher: AbstractDataFetcher,
+        dl_max_batches: int,
+        kwargs: OrderedDict,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
         Args:
             data_fetcher: iterator over the dataloader
-            dataloader_idx: index of the current dataloader
             dl_max_batches: maximum number of batches the dataloader can produce
+            kwargs: the kwargs passed down to the hooks.
 
         Raises:
             StopIteration: If the current batch is None
@@ -111,8 +114,7 @@ class EvaluationEpochLoop(Loop):
             raise StopIteration
 
         # configure step_kwargs
-        # TODO: each loop should construct its own kwargs, so we avoid the dataloader_idx reference here
-        kwargs = self._build_kwargs(batch, self.batch_progress.current.ready, dataloader_idx)
+        kwargs = self._build_kwargs(kwargs, batch)
 
         self.batch_progress.increment_ready()
 
@@ -122,7 +124,6 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_started()
 
         # lightning module methods
-
         output = self._evaluation_step(**kwargs)
         output = self._evaluation_step_end(output)
 
@@ -270,22 +271,20 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> Dict[str, Union[Any, int]]:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any) -> OrderedDict:
         """Helper function to build the arguments for the current step.
 
         Args:
-            batch: The current batch to run through the step
-            batch_idx: the index of the current batch
-            dataloader_idx: the index of the dataloader producing the current batch
+            kwargs: The kwargs passed down to the hooks.
+            batch: The current batch to run through the step.
 
         Returns:
-            the keyword arguments to pass to the step function
+            The kwargs passed down to the hooks.
         """
-        # make dataloader_idx arg in validation_step optional
-        step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
-        if dataloader_idx is not None:
-            step_kwargs["dataloader_idx"] = dataloader_idx
-        return step_kwargs
+        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
+        kwargs.move_to_end("batch_idx", last=False)
+        kwargs.move_to_end("batch", last=False)
+        return kwargs
 
     @lru_cache(1)
     def _should_track_batch_outputs_for_epoch_end(self) -> bool:
