@@ -636,7 +636,7 @@ class Trainer(
             self.limit_val_batches = 0
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
-        # self._log_device_info()
+        self._log_device_info()
 
         self.should_stop = False
         self.state = TrainerState()
