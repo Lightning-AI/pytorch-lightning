@@ -336,7 +336,6 @@ class Trainer(
                 To enable infinite training, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
             max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
@@ -459,7 +458,7 @@ class Trainer(
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
-        self.signal_connector = SignalConnector(self)
+        self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
         min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
@@ -1242,7 +1241,7 @@ class Trainer(
         self._data_connector.teardown()
         self._active_loop.teardown()
         self.logger_connector.teardown()
-        self.signal_connector.teardown()
+        self._signal_connector.teardown()
 
     def run_stage(self) -> None:
         rank_zero_deprecation(
@@ -1267,7 +1266,7 @@ class Trainer(
         self.strategy.barrier("setup_training")
 
         # register signals
-        self.signal_connector.register_signal_handlers()
+        self._signal_connector.register_signal_handlers()
 
         # --------------------------
         # Pre-train
@@ -2349,7 +2348,8 @@ class Trainer(
 
     @property
     def current_epoch(self) -> int:
-        return self.fit_loop.current_epoch
+        """The current epoch, updated after the epoch end hooks are run."""
+        return self.fit_loop.epoch_progress.current.completed
 
     @property
     def max_epochs(self) -> int:

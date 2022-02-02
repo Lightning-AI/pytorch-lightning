@@ -331,7 +331,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.fit_loop.current_epoch = i
+        trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
         trainer.fit_loop.global_step = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
@@ -1544,13 +1544,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 @pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
-@patch("torch.cuda.device_count", return_value=2)
-@patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("accelerator", ("cpu", "gpu"))
-def test_spawn_predict_return_predictions(_, __, accelerator):
+def test_spawn_predict_return_predictions(tmpdir):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)

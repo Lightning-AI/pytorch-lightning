@@ -487,7 +487,7 @@ def _next_data_wrapper(
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fetcher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.AbstractDataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
     """Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is

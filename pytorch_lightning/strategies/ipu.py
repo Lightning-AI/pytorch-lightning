@@ -336,10 +336,6 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
     def root_device(self) -> torch.device:
         pass
 

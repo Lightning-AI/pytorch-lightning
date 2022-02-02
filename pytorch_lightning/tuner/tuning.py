@@ -41,6 +41,8 @@ class Tuner:
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
         result = {}
 
+        self.trainer.strategy.connect(model)
+
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, str):
