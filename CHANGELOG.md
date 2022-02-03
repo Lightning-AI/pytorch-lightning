@@ -504,7 +504,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue in `RichProgressbar` to display the metrics logged only on main progress bar ([#11690](https://github.com/PyTorchLightning/pytorch-lightning/pull/11690))
 
-  
+
 - Fixed `RichProgressBar` progress with uneven refresh rate ([#11668](https://github.com/PyTorchLightning/pytorch-lightning/pull/11668))
 
 
