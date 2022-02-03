@@ -252,7 +252,8 @@ class PrecisionPlugin(CheckpointHooks):
         return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin state_dict.
+        """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
+        state_dict.
 
         Args:
             state_dict: the precision plugin state returned by ``state_dict``.
