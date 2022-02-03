@@ -252,9 +252,14 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self):
+    def logger(self) -> Optional[LightningLoggerBase]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
+
+    @property
+    def loggers(self) -> Optional[List[LightningLoggerBase]]:
+        """Reference to the loggers object in the Trainer."""
+        return self.trainer.loggers if self.trainer else None
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
