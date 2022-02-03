@@ -406,7 +406,7 @@ class WandbLogger(LightningLoggerBase):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: List[Any], step: Optional[int]=None, **kwargs: str) -> None:
+    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: str) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
