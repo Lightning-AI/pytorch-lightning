@@ -620,8 +620,8 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     assert pbar.calls["test"] == []
 
 
-@mock.patch("pytorch_lightning.strategies.strategy.Strategy.global_rank", new_callable=PropertyMock, return_value=1)
-def test_tqdm_progress_bar_disabled_when_not_rank_zero(global_rank):
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
+def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     """Test that the progress bar is disabled when not in global rank zero."""
     progress_bar = TQDMProgressBar()
     model = BoringModel()
@@ -635,13 +635,13 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(global_rank):
     assert progress_bar.is_disabled
 
     progress_bar.enable()
+    trainer.predict(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
     trainer.validate(model)
     assert progress_bar.is_disabled
 
     progress_bar.enable()
     trainer.test(model)
-    assert progress_bar.is_disabled
-
-    progress_bar.enable()
-    trainer.predict(model)
     assert progress_bar.is_disabled
