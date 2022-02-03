@@ -984,7 +984,7 @@ The current logger being used (tensorboard or other supported logger)
         tensorboard_logger = self.logger.experiment
 
 loggers
-~~~~~~
+~~~~~~~
 
 The list of loggers currently being used (tensorboard or other supported loggers)
 

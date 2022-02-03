@@ -1747,7 +1747,7 @@ The current logger being used. Here's an example using tensorboard
 
 
 loggers (p)
-**********
+***********
 
 The list of loggers currently being used. Here's an example using tensorboard
 
