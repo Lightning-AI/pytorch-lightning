@@ -580,7 +580,10 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        dict(strategy="ddp_spawn"),
+        # dict(strategy="ddp_spawn")
+        # !! old accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
+        # this test never worked with DDPSpawnStrategy
+        dict(strategy="single_device"),
         dict(strategy="ddp"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),
