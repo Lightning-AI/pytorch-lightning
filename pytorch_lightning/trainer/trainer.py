@@ -457,7 +457,7 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
+        self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
@@ -1077,12 +1077,12 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
-        self.checkpoint_connector.resume_start(checkpoint_path)
-        self.checkpoint_connector.restore_model()
-        self.checkpoint_connector.restore_datamodule()
+        self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector.restore_model()
+        self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
             # restore callback states
-            self.checkpoint_connector.restore_callbacks()
+            self._checkpoint_connector.restore_callbacks()
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
@@ -1167,9 +1167,9 @@ class Trainer(
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
-        self.checkpoint_connector.restore_training_state()
+        self._checkpoint_connector.restore_training_state()
 
-        self.checkpoint_connector.resume_end()
+        self._checkpoint_connector.resume_end()
 
         results = self._run_stage()
 
@@ -2207,7 +2207,7 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self._checkpoint_connector.resume_from_checkpoint_fit_path
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
@@ -2226,7 +2226,7 @@ class Trainer(
             weights_only: If ``True``, will only save the model weights.
 
         """
-        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """
     Parsing properties

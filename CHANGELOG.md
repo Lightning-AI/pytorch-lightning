@@ -195,6 +195,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked the `ResultCollection`, `ResultMetric`, and `ResultMetricCollection` classes as protected ([#11130](https://github.com/PyTorchLightning/pytorch-lightning/pull/11130))
 
 
+- Marked `trainer.checkpoint_connector` as protected ([#11550](https://github.com/PyTorchLightning/pytorch-lightning/pull/11550))
+
+
 - The epoch start/end hooks are now called by the `FitLoop` instead of the `TrainingEpochLoop` ([#11201](https://github.com/PyTorchLightning/pytorch-lightning/pull/11201))
 
 

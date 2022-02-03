@@ -236,7 +236,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
+    trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
