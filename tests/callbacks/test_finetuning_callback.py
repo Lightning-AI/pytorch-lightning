@@ -268,16 +268,16 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     configure_optimizers function call."""
 
     class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer, pl_module):
-            pl_module.on_before_accelerator_backend_setup_called = True
+        def setup(self, trainer, pl_module, stage=None) -> None:
+            pl_module.setup_called = True
 
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.on_before_accelerator_backend_setup_called = False
+            self.setup_called = False
 
         def configure_optimizers(self):
-            assert self.on_before_accelerator_backend_setup_called
+            assert self.setup_called
             return super().configure_optimizers()
 
     model = TestModel()

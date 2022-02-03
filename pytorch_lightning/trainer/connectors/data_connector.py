@@ -19,7 +19,6 @@ from typing import Any, Collection, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
@@ -35,6 +34,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _is_dataloader_shuffled,
     _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
@@ -329,7 +329,10 @@ class DataConnector:
             and not has_iterable_dataset(dataloader)
         )
 
-    def _prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+    # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
+    def _prepare_dataloader(
+        self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
+    ) -> Any:
         """This function handles to following functionalities:
 
         - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
@@ -360,6 +363,11 @@ class DataConnector:
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
             or self.trainer._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
+            if shuffle is None:
+                # for training, set to True always
+                # for evaluation, decide based on existing sampler
+                shuffle = True if mode == RunningStage.TRAINING else _is_dataloader_shuffled(dataloader)
+
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
@@ -435,7 +443,7 @@ class DataConnector:
             )
 
         # add samplers
-        dataloaders = [self._prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
+        dataloaders = [self._prepare_dataloader(dl, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(
@@ -531,11 +539,7 @@ class DataConnector:
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
-        if (
-            hasattr(dataloader, "sampler")
-            and not isinstance(dataloader.sampler, SequentialSampler)
-            and not isinstance(dataloader.dataset, IterableDataset)
-        ):
+        if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
