@@ -252,12 +252,12 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self):
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
 
     @property
-    def loggers(self) -> Optional[List[LightningLoggerBase]]:
+    def loggers(self):
         """Reference to the loggers object in the Trainer."""
         return self.trainer.loggers if self.trainer else None
 
