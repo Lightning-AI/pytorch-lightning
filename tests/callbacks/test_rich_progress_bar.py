@@ -195,16 +195,12 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
 def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
-
-    model = BoringModel()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=4,
         callbacks=RichProgressBar(refresh_rate=0),
     )
-
-    trainer.fit(model)
+    trainer.fit(BoringModel())
     assert progress_update.call_count == 0
 
 
@@ -276,8 +272,8 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     trainer.fit(model)
 
     fit_main_progress_bar = progress_bar.progress.tasks[1]
-    assert fit_main_progress_bar.completed == 19  # 7 + 3*4
-    assert fit_main_progress_bar.total == 19  # 7 + 3*4
+    assert fit_main_progress_bar.completed == 7 + 3 * 4
+    assert fit_main_progress_bar.total == 7 + 3 * 4
 
     fit_val_bar = progress_bar.progress.tasks[2]
     assert fit_val_bar.completed == 4
