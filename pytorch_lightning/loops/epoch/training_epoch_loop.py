@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 from collections import defaultdict
 from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
@@ -129,6 +130,16 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+
+            trainer = self.trainer
+            if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
+                expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
+                if self.global_step % expected_steps != 0:
+                    rank_zero_warn(
+                        "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
+                        "results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
+                        "fault-tolerant training."
+                    )
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
