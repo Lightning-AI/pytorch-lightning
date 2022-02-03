@@ -34,7 +34,7 @@ else:
 
 class TPUSpawnLauncher(DDPSpawnLauncher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        trainer = kwargs.pop("trainer")
+        trainer = kwargs.pop("trainer", None)
         context = mp.get_context(trainer.strategy.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(
@@ -43,6 +43,9 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
             **trainer.strategy.get_mp_spawn_kwargs()
         )
         spawn_output = return_queue.get()
+        if trainer is None:
+            return spawn_output
+
         self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 

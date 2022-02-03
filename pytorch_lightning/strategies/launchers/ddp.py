@@ -39,7 +39,7 @@ class DDPSubprocessLauncher(Launcher):
         self.interactive_ddp_procs: List[Popen] = []
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        kwargs.pop("trainer")
+        kwargs.pop("trainer", None)
         self._call_children_scripts()
         return function(*args, **kwargs)
 

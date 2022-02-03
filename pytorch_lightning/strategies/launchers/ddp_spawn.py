@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.types import _PATH
 
 class DDPSpawnLauncher(Launcher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        trainer = kwargs.pop("trainer")
+        trainer = kwargs.pop("trainer", None)
         os.environ["MASTER_PORT"] = str(trainer.strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
@@ -41,6 +41,9 @@ class DDPSpawnLauncher(Launcher):
             nprocs=trainer.strategy.num_processes,
         )
         spawn_output = return_queue.get()
+        if trainer is None:
+            return spawn_output
+
         self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
