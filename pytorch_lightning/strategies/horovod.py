@@ -101,7 +101,7 @@ class HorovodStrategy(ParallelStrategy):
                 param_group["lr"] *= self.world_size
 
         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
-        lr_scheduler_configs = self.lr_schedulers
+        lr_scheduler_configs = self.lr_scheduler_configs
         for config in lr_scheduler_configs:
             scheduler = config.scheduler
             scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]

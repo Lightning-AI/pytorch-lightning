@@ -31,6 +31,8 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 
 log = logging.getLogger(__name__)
 
@@ -186,7 +188,7 @@ class TensorBoardLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
 
-        params = self._convert_params(params)
+        params = _convert_params(params)
 
         # store params to output
         if _OMEGACONF_AVAILABLE and isinstance(params, Container):
@@ -195,7 +197,7 @@ class TensorBoardLogger(LightningLoggerBase):
             self.hparams.update(params)
 
         # format params into the suitable for tensorboard
-        params = self._flatten_dict(params)
+        params = _flatten_dict(params)
         params = self._sanitize_params(params)
 
         if metrics is None:
@@ -216,7 +218,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
@@ -229,7 +231,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     self.experiment.add_scalar(k, v, step)
                 # todo: specify the possible exception
                 except Exception as ex:
-                    m = f"\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor."
+                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     raise ValueError(m) from ex
 
     @rank_zero_only
@@ -311,7 +313,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        params = LightningLoggerBase._sanitize_params(params)
+        params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
