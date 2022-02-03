@@ -142,7 +142,6 @@ class AcceleratorConnector:
         # --Parsing_flags------------------------------------------------------
         # Get registered strategies, existing accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
-        # print(self._existing_strategies_str)
         self._existing_accelerator_type = ["tpu", "ipu", "gpu", "cpu"]
         self._supported_precision = PrecisionType.supported_types()
 
@@ -158,7 +157,7 @@ class AcceleratorConnector:
         # --Accelerator-------------------------------------------------------------
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
-            self._choose_accelerator()
+            self._accelerator_flag = self._choose_accelerator()
         # else:
         #     # [RFC] move to XAccelerator class init?
         #     self._check_device_availibility()
@@ -390,20 +389,20 @@ class AcceleratorConnector:
                 self._accelerator_flag = "cpu"
 
     def _choose_accelerator(self):
+        if _TPU_AVAILABLE:
+            return "tpu"
+        if _IPU_AVAILABLE:
+            return "ipu"
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
-                self._accelerator_flag = "tpu"
-            elif _IPU_AVAILABLE:
-                self._accelerator_flag = "ipu"
-            elif torch.cuda.is_available() and torch.cuda.device_count() > 0:
-                self._accelerator_flag = "gpu"
+            if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+                return "gpu"
             else:
-                self._accelerator_flag = "cpu"
                 if self._device_flag == "auto":
                     self._device_flag = 1
+                return "cpu"
         # [RFC] this is current logic, if accelerator not set, default cpu?
         else:
-            self._accelerator_flag = "cpu"
+            return "cpu"
 
     # TODO move this to xAccelerator
     # def _check_device_availibility(self):
@@ -492,8 +491,8 @@ class AcceleratorConnector:
         return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self):
-        if self._accelerator_flag == "ipu":
-            self._strategy_flag = "ipu"
+        if self._accelerator_flag == "ipu_strategy":
+            self._strategy_flag = "ipu_strategy"
         elif self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 self._strategy_flag = "tpu_spawn"
@@ -762,29 +761,31 @@ class AcceleratorConnector:
             return 1
         elif isinstance(self.strategy, ParallelStrategy):
             return len(self.strategy.parallel_devices)
-        else:
-            return 0
+        return 0
 
     @property
     def tpu_cores(self) -> int:
         if isinstance(self.accelerator, TPUAccelerator):
             return self.devices
-        else:
-            return 0
+        return 0
+
+    @property
+    def tpu_id(self) -> Optional[int]:
+        if isinstance(self.accelerator, TPUAccelerator):
+            return self.parallel_devices[0]
+        return None
 
     @property
     def num_ipus(self) -> int:
         if isinstance(self.accelerator, IPUAccelerator):
             return self.devices
-        else:
-            return 0
+        return 0
 
     @property
     def num_gpus(self) -> int:
         if isinstance(self.accelerator, GPUAccelerator):
             return self.devices
-        else:
-            return 0
+        return 0
 
     # def parallel_device_ids():
     @property

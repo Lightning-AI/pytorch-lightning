@@ -62,7 +62,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 
-    distributed_backend = "ipu"
+    distributed_backend = "ipu_strategy"
 
     def __init__(
         self,
