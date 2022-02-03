@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage
@@ -78,17 +78,17 @@ class LoggerConnector:
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
             # default logger
-            if logger:
-                default_logger = TensorBoardLogger(
+            self.trainer.logger = (
+                TensorBoardLogger(
                     save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
                 )
-                self.trainer.loggers = [default_logger]
-            else:
-                self.trainer.loggers = []
+                if logger
+                else None
+            )
         elif isinstance(logger, Iterable):
-            self.trainer.loggers = list(logger)
+            self.trainer.logger = LoggerCollection(logger)
         else:
-            self.trainer.loggers = [logger]
+            self.trainer.logger = logger
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses

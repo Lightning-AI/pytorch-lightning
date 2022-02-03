@@ -44,7 +44,7 @@ def test_trainer_loggers_property():
     assert type(trainer.loggers[0]) == TensorBoardLogger
 
 
-def test_trainer_logger_setters():
+def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
