@@ -440,7 +440,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
 
     @classmethod
-    def register_strategies(cls, strategies_registry) -> None:
+    def register_strategies(cls, strategy_registry) -> None:
         if cls.distributed_backend:
             strategy_registry.register(
                 cls.distributed_backend,
