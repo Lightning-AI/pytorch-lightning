@@ -1745,6 +1745,17 @@ The current logger being used. Here's an example using tensorboard
         logger = self.trainer.logger
         tensorboard = logger.experiment
 
+loggers (p)
+**********
+
+The list of loggers currently being used. Here's an example using tensorboard
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loggers = self.trainer.loggers
+        tensorboard = loggers[0].experiment
+
 
 logged_metrics
 **************
