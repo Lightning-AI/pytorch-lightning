@@ -920,9 +920,9 @@ expected3 = """
         pytest.param(inputs3, expected3, id="case3"),
     ],
 )
-@RunIf(rich=True)
+@RunIf(rich=True, skip_windows=True)
 def test_rich_print_results(inputs, expected):
     out = StringIO()
     EvaluationLoop._print_results(*inputs, file=out)
     expected = expected[1:]  # remove the initial line break from the """ string
-    assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
+    assert out.getvalue() == expected.lstrip()
