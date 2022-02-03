@@ -215,7 +215,7 @@ Of course, nothing is stopping you from using ``forward`` from within the ``trai
 
     def training_step(self, batch, batch_idx):
         ...
-        embeddings = self.encoded(batch)
+        embeddings = self.encoder(batch)
         output = self.decoder(embeddings)
 
 It really comes down to your application. We do, however, recommend that you keep both intents separate.

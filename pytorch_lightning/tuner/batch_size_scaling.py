@@ -86,7 +86,7 @@ def scale_batch_size(
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
+    trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     __scale_batch_restore_params(trainer, params)
 
