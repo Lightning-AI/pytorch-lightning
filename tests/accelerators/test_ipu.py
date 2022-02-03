@@ -116,7 +116,7 @@ def test_accelerator_selected(tmpdir):
 @RunIf(ipu=True)
 def test_warning_if_ipus_not_used(tmpdir):
     with pytest.warns(UserWarning, match="IPU available but not used. Set the `ipus` flag in your trainer"):
-        Trainer(default_root_dir=tmpdir)
+        Trainer(default_root_dir=tmpdir, accelerator="cpu")
 
 
 @RunIf(ipu=True)

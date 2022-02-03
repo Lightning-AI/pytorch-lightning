@@ -463,6 +463,7 @@ class AcceleratorConnector:
                 )
 
         self._gpus = self._device_flag if not self._gpus else self._gpus
+        self._tpu_cores = self._device_flag if not self._tpu_cores else self._tpu_cores
 
     def _choose_and_init_cluster_environment(self):
         self.cluster_environment = LightningEnvironment()
@@ -491,7 +492,7 @@ class AcceleratorConnector:
         return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self):
-        if self._accelerator_flag == "ipu_strategy":
+        if self._accelerator_flag == "ipu":
             self._strategy_flag = "ipu_strategy"
         elif self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
@@ -764,15 +765,15 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def tpu_cores(self) -> int:
+    def tpu_cores(self):
         if isinstance(self.accelerator, TPUAccelerator):
-            return self.devices
+            return self._tpu_cores
         return 0
 
     @property
     def tpu_id(self) -> Optional[int]:
         if isinstance(self.accelerator, TPUAccelerator):
-            return self.parallel_devices[0]
+            return self.tpu_cores[0]
         return None
 
     @property
