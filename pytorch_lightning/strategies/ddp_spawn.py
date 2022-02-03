@@ -37,7 +37,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, move_dat
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
@@ -85,10 +84,6 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def num_nodes(self) -> int:
         return self._num_nodes
-
-    @property
-    def num_processes(self):
-        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @num_nodes.setter
     def num_nodes(self, num_nodes: int) -> None:
