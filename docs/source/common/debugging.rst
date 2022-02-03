@@ -227,7 +227,7 @@ If you are having a hard time debugging DDP on your remote machine you can debug
 To inspect your code, you can use `pdb <https://docs.python.org/3/library/pdb.html>`_ or `breakpoint() <https://docs.python.org/3/library/functions.html#breakpoint>`_
 or use regular print statements.
 
-.. code-block:: python
+.. testcode::
 
     class LitModel(LightningModule):
         def training_step(self, batch, batch_idx):
