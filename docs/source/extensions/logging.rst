@@ -219,12 +219,6 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
             return "MyLogger"
 
         @property
-        @rank_zero_experiment
-        def experiment(self):
-            # Return the experiment object associated with this logger.
-            pass
-
-        @property
         def version(self):
             # Return the experiment version, int or str.
             return "0.1"

@@ -559,6 +559,8 @@ def test_get_progress_bar_metrics(tmpdir: str):
 
 
 def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
+    """TQDM counterpart to test_rich_progress_bar::test_rich_progress_bar_correct_value_epoch_end."""
+
     class MockedProgressBar(TQDMProgressBar):
         calls = defaultdict(list)
 
