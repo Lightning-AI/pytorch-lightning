@@ -218,7 +218,9 @@ class CheckpointConnector:
             return
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")

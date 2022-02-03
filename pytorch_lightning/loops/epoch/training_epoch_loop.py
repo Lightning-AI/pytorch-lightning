@@ -98,11 +98,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def done(self) -> bool:
-        """Returns whether the training should be stopped.
-
-        The criteria are that the number of steps reached the max steps, the last batch is reached or the trainer
-        signals to stop (e.g. by early stopping).
-        """
+        """Evaluates when to leave the loop."""
         return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
 
     def connect(  # type: ignore[override]
@@ -483,6 +479,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
+
+        # while restarting with no fault-tolerant, batch_progress.current.ready is -1
+        if batch_idx == -1:
+            return False
+
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
