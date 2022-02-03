@@ -42,7 +42,9 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
             args=(trainer, function, args, kwargs, return_queue),
             **trainer.strategy.get_mp_spawn_kwargs()
         )
-        return return_queue.get()
+        spawn_output = return_queue.get()
+        self._recover_results_in_main_process(spawn_output, trainer)
+        return spawn_output.trainer_results
 
     def _wrapped_function(
         self,
