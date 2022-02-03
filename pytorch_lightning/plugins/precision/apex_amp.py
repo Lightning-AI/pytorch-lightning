@@ -96,5 +96,4 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        if state_dict:
-            amp.load_state_dict(state_dict)
+        amp.load_state_dict(state_dict)

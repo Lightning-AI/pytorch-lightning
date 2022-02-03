@@ -109,7 +109,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
+        else:
+            return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        if self.scaler is not None and state_dict:
+        if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

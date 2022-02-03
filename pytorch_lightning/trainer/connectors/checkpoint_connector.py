@@ -194,8 +194,8 @@ class CheckpointConnector:
         # restore precision plugin (scaler etc.)
         prec_plugin = self.trainer.precision_plugin
         prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
-        if prec_plugin.__class__.__name__ in self._loaded_checkpoint:
-            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__name__])
+        if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
 
         # old checkpoints compatibility
         # should we raise error and force user to run utilities/upgrade_checkpoint instead?
@@ -384,7 +384,10 @@ class CheckpointConnector:
 
             # precision plugin
             prec_plugin = self.trainer.precision_plugin
-            checkpoint[prec_plugin.__class__.__name__] = self.trainer.precision_plugin.state_dict()
+            prec_plugin_state_dict = prec_plugin.state_dict()
+            if prec_plugin_state_dict:
+                checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
+            prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
@@ -401,8 +404,6 @@ class CheckpointConnector:
         model.on_save_checkpoint(checkpoint)
         if self.trainer.datamodule is not None:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
-        if not weights_only:
-            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment
