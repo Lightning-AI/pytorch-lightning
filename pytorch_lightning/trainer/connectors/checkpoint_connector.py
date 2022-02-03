@@ -333,7 +333,7 @@ class CheckpointConnector:
                 CHECKPOINT_HYPER_PARAMS_KEY:
                 CHECKPOINT_HYPER_PARAMS_TYPE:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
-                LightningDataModule.__class__.__name__: pl DataModule's state
+                LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
         """
 
