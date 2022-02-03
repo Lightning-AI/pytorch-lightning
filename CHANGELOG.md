@@ -514,6 +514,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue to avoid validation loop run on restart ([#11552](https://github.com/PyTorchLightning/pytorch-lightning/pull/11552))
 
+- Fixed an issue to make the `step` argument in WandbLogger.log_image work ([#11716](https://github.com/PyTorchLightning/pytorch-lightning/pull/11716))
+
 
 ## [1.5.8] - 2022-01-05
 
