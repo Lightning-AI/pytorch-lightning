@@ -51,7 +51,9 @@ There are a few ways to pass multiple Datasets to Lightning:
 
 1. Create a DataLoader that iterates over multiple Datasets under the hood.
 2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
-   will automatically combine the batches from different DataLoaders.
+   will automatically combine the batches from different DataLoaders. You can control the way how dataloaders of different length
+   are combined by the flag `multiple_trainloader_mode` of the :class:`~pytorch_lightning.trainer.Trainer`. Alternatively, you can provide
+   dataloaders via :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
 3. In the validation, test or prediction you have the option to either return multiple DataLoaders as list/tuple, which Lightning will call sequentially,
    or combine the dataloaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
    automatically combine the batches from different DataLoaders.
@@ -184,6 +186,25 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
+Alternatively, you can also pass in a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` containing multiple DataLoaders.
+
+.. testcode::
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+
+    def train_dataloader(self):
+        loader_a = DataLoader()
+        loader_b = DataLoader()
+        loaders = {"a": loader_a, "b": loader_b}
+        combined_loader = CombinedLoader(loaders, mode="max_size_cycle")
+        return combined_loader
+
+
+    def training_step(self, batch, batch_idx):
+        batch_a = batch["a"]
+        batch_b = batch["b"]
+
 
 Multiple Validation/Test/Predict DataLoaders
 ============================================
@@ -213,9 +234,7 @@ See the following for more details for the default sequential option:
         ...
 
 
-To combine batches of multiple DataLoaders simultaneously, one
-needs to wrap the DataLoaders with :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
-Here you don't need to add any additional ``dataloader_idx`` argument.
+Evaluation dataloaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collections of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using in the same way as the provided structure:
 
 .. testcode::
 
@@ -252,9 +271,51 @@ set is not available at the time your model was declared. Simply pass the test s
 
 --------------
 
+********************************************
+Accessing DataLoaders within LightningModule
+********************************************
+
+In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
+
+.. testcode::
+
+    from pytorch_lightning import LightningModule
+
+
+    class Model(LightningModule):
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            test_dl = self.trainer.test_dataloaders[dataloader_idx]
+            test_dataset = test_dl.dataset
+            test_sampler = test_dl.sampler
+            ...
+            # extract metadata, etc. from the dataset:
+            ...
+
+If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of dataloaders dataloader simultaneously which supports collections of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using the same collection structure:
+
+.. code-block:: python
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+    test_dl1 = ...
+    test_dl2 = ...
+
+    # If you provided a list of dataloaders:
+
+    combined_loader = CombinedLoader([test_dl1, test_dl2])
+    list_of_loaders = combined_loader.loaders
+    test_dl1 = list_of_loaders.loaders[0]
+
+
+    # If you provided dictionary of dataloaders:
+
+    combined_loader = CombinedLoader({"dl1": test_dl1, "dl2": test_dl2})
+    dictionary_of_loaders = combined_loader.loaders
+    test_dl1 = dictionary_of_loaders["dl1"]
+
+--------------
 
 .. _sequential-data:
-
 
 ***************
 Sequential Data

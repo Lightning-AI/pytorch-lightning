@@ -64,10 +64,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -78,7 +78,7 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/index.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/stable/index.html>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
@@ -188,7 +188,7 @@ The following are best practices when using/designing callbacks.
 
 -----------
 
-.. _hooks:
+.. _callback_hooks:
 
 Callback API
 ------------
@@ -340,18 +340,6 @@ on_epoch_end
 ~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
-    :noindex:
-
-on_batch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_start
-    :noindex:
-
-on_batch_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_end
     :noindex:
 
 on_validation_batch_start

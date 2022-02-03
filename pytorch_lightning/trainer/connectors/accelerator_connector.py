@@ -752,15 +752,13 @@ class AcceleratorConnector:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
-            plugin = SingleDeviceStrategy(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.use_gpu else "cpu"))
+            plugin = SingleDeviceStrategy(device=single_gpu_ordinal if self.use_gpu else "cpu")
         return plugin
 
     def resolve_strategy(self, training_type: Strategy) -> Strategy:
         # necessary for when the user has passed in a plugin
         if hasattr(training_type, "parallel_devices") and getattr(training_type, "parallel_devices") is None:
             training_type.parallel_devices = self.parallel_devices
-            if hasattr(training_type, "num_processes"):
-                training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, "cluster_environment") and getattr(training_type, "cluster_environment") is None:
             # transfer ownership of the cluster environment to the training type

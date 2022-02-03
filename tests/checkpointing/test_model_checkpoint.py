@@ -162,9 +162,9 @@ def test_model_checkpoint_score_and_ckpt(
     for epoch in range(max_epochs):
         score = model.scores[epoch]
         expected_score = getattr(model, f"{monitor}s")[epoch].mean().item()
-        expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         assert math.isclose(score, expected_score, rel_tol=1e-4)
 
+        expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
@@ -396,7 +396,8 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     model_checkpoint = ModelCheckpointTestInvocations(monitor="early_stop_on", expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
         strategy="ddp_spawn",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
@@ -461,7 +462,6 @@ class ModelCheckpointExtensionTest(ModelCheckpoint):
 
 def test_model_checkpoint_file_extension(tmpdir):
     """Test ModelCheckpoint with different file extension."""
-
     model = LogInTwoMethods()
     model_checkpoint = ModelCheckpointExtensionTest(
         monitor="early_stop_on", dirpath=tmpdir, save_top_k=1, save_last=True
@@ -612,7 +612,7 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     )
     trainer.fit(model)
 
-    # check that the correct ckpts were created
+    # check that the correct ckpts were created, the modulo condition is checked in `ModelCheckpoint`
     expected = [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
@@ -966,15 +966,13 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_checkpoint_content(ckpt_dir)
 
         # load from checkpoint
-        trainer_config["callbacks"] = [ModelCheckpoint(dirpath=ckpt_dir, save_top_k=-1)]
         trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
 
         trainer.test(model)
-        assert trainer.global_step == 0
-        assert trainer.current_epoch == 0
+        assert_trainer_init(trainer)
 
         trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
@@ -1119,7 +1117,7 @@ def test_hparams_type(tmpdir, use_omegaconf):
     hp = OmegaConf.create(hp) if use_omegaconf else Namespace(**hp)
     model = TestModel(hp)
     trainer.fit(model)
-    ckpt = trainer.checkpoint_connector.dump_checkpoint()
+    ckpt = trainer._checkpoint_connector.dump_checkpoint()
     if use_omegaconf:
         assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], Container)
     else:
@@ -1236,3 +1234,30 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
             assert getattr(cb_restore, key) == val
         else:
             assert getattr(cb_restore, key) != val
+
+
+def test_save_last_saves_correct_last_model_path(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    mc.CHECKPOINT_NAME_LAST = "{foo}-last"
+    trainer = Trainer(callbacks=mc)
+    trainer.strategy.connect(BoringModel())
+
+    mc._save_last_checkpoint(trainer, {"foo": 1})
+    expected = "foo=1-last.ckpt"
+    assert os.listdir(tmpdir) == [expected]
+    full_path = str(tmpdir / expected)
+    ckpt = torch.load(full_path)
+    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
+
+
+def test_none_monitor_saves_correct_best_model_path(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir, monitor=None)
+    trainer = Trainer(callbacks=mc)
+    trainer.strategy.connect(BoringModel())
+
+    mc._save_none_monitor_checkpoint(trainer, {})
+    expected = "epoch=0-step=0.ckpt"
+    assert os.listdir(tmpdir) == [expected]
+    full_path = str(tmpdir / expected)
+    ckpt = torch.load(full_path)
+    assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path

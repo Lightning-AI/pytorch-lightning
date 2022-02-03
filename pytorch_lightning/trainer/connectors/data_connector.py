@@ -19,12 +19,12 @@ from typing import Any, Collection, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
-from torch.utils.data.dataset import IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -34,6 +34,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
+    _is_dataloader_shuffled,
     _replace_dataloader_init_method,
     _update_dataloader,
     has_iterable_dataset,
@@ -126,33 +127,28 @@ class DataConnector:
         self.trainer._is_data_prepared = False
 
     def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if self.trainer.sanity_checking:
+        if not self.trainer.training:
             return DataFetcher()
 
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        if self.trainer.training and is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
             rank_zero_warn(
                 "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
                 "this signature is experimental and the behavior is subject to change."
             )
             return DataLoaderIterDataFetcher()
-
-        elif self.trainer.training and os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-            # note: this is an experimental feature
-            if not self.trainer.strategy.on_gpu:
+        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+            if not isinstance(self.trainer.accelerator, GPUAccelerator):
                 raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
             return InterBatchParallelDataFetcher()
-
         return DataFetcher()
 
-    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int = 0) -> Iterable:
+    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int) -> Iterable:
         stage: str = self.trainer.state.stage.value
         data_fetcher = getattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
         data_fetcher.setup(
             dataloader,
-            stage=stage,
-            batch_to_device=partial(self.trainer.strategy.batch_to_device, dataloader_idx=dataloader_idx),
-            profiler=self.trainer.profiler,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         setattr(self, f"{stage}_data_fetcher", data_fetcher)
         return data_fetcher
@@ -333,7 +329,10 @@ class DataConnector:
             and not has_iterable_dataset(dataloader)
         )
 
-    def _prepare_dataloader(self, dataloader: Any, shuffle: bool, mode: Optional[RunningStage] = None) -> Any:
+    # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
+    def _prepare_dataloader(
+        self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
+    ) -> Any:
         """This function handles to following functionalities:
 
         - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
@@ -364,6 +363,11 @@ class DataConnector:
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
             or self.trainer._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
         ):
+            if shuffle is None:
+                # for training, set to True always
+                # for evaluation, decide based on existing sampler
+                shuffle = True if mode == RunningStage.TRAINING else _is_dataloader_shuffled(dataloader)
+
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
@@ -382,13 +386,26 @@ class DataConnector:
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp=False` if you want to use your custom sampler."
                 )
-            return self._get_distributed_sampler(
+            sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
                 mode=mode,
                 overfit_batches=self.trainer.overfit_batches,
                 **self.trainer.distributed_sampler_kwargs,
             )
+
+            # update docs too once this is resolved
+            trainer_fn = self.trainer.state.fn
+            if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
+                rank_zero_warn(
+                    f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`,"
+                    " it is recommended to use `Trainer(devices=1)` to ensure each sample/batch gets evaluated"
+                    " exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates"
+                    " some samples to make sure all devices have same batch size in case of uneven inputs.",
+                    category=PossibleUserWarning,
+                )
+
+            return sampler
 
         return dataloader.sampler
 
@@ -439,7 +456,7 @@ class DataConnector:
             )
 
         # add samplers
-        dataloaders = [self._prepare_dataloader(dl, False, mode=mode) for dl in dataloaders if dl is not None]
+        dataloaders = [self._prepare_dataloader(dl, mode=mode) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(
@@ -535,11 +552,7 @@ class DataConnector:
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
-        if (
-            hasattr(dataloader, "sampler")
-            and not isinstance(dataloader.sampler, SequentialSampler)
-            and not isinstance(dataloader.dataset, IterableDataset)
-        ):
+        if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",

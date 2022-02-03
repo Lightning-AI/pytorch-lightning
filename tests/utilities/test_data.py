@@ -3,7 +3,9 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
+    _get_dataloader_init_kwargs,
     _replace_dataloader_init_method,
     _update_dataloader,
     extract_batch_size,
@@ -14,8 +16,8 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from tests.helpers.utils import no_warning_call
 
 
 def test_extract_batch_size():
@@ -172,3 +174,16 @@ def test_replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
         assert dataloader.attribute1 == "attribute1"
         assert dataloader.attribute2 == "attribute2"
+
+
+@pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
+def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
+    """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
+    dataset = RandomIterableDataset(7, 100)
+    dataloader = DataLoader(dataset, batch_size=32)
+    dl_kwargs = _get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
+    assert dl_kwargs["sampler"] is None
+    assert dl_kwargs["batch_sampler"] is None
+    assert dl_kwargs["batch_size"] is dataloader.batch_size
+    assert dl_kwargs["dataset"] is dataloader.dataset
+    assert dl_kwargs["collate_fn"] is dataloader.collate_fn

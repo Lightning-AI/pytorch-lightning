@@ -385,3 +385,13 @@ Custom Checkpoint IO Plugin
 .. note::
 
     Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers.
+
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.

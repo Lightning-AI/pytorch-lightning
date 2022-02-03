@@ -17,7 +17,7 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY, call, PropertyMock
 
 import pytest
 import torch
@@ -90,10 +90,12 @@ def test_tqdm_progress_bar_totals(tmpdir):
     m = bar.total_val_batches
     assert len(trainer.train_dataloader) == n
     assert bar.main_progress_bar.total == n + m
+    assert bar.main_progress_bar.leave
 
     # check val progress bar total
     assert sum(len(loader) for loader in trainer.val_dataloaders) == m
     assert bar.val_progress_bar.total == m
+    assert not bar.val_progress_bar.leave
 
     # main progress bar should have reached the end (train batches + val batches)
     assert bar.main_progress_bar.n == n + m
@@ -105,13 +107,15 @@ def test_tqdm_progress_bar_totals(tmpdir):
 
     # check that the test progress bar is off
     assert 0 == bar.total_test_batches
-    assert bar.test_progress_bar is None
+    with pytest.raises(TypeError, match="test_progress_bar` .* not been set"):
+        assert bar.test_progress_bar is None
 
     trainer.validate(model)
 
     assert bar.val_progress_bar.total == m
     assert bar.val_progress_bar.n == m
     assert bar.val_batch_idx == m
+    assert bar.val_progress_bar.leave
 
     trainer.test(model)
 
@@ -119,6 +123,7 @@ def test_tqdm_progress_bar_totals(tmpdir):
     k = bar.total_test_batches
     assert sum(len(loader) for loader in trainer.test_dataloaders) == k
     assert bar.test_progress_bar.total == k
+    assert bar.test_progress_bar.leave
 
     # test progress bar should have reached the end
     assert bar.test_progress_bar.n == k
@@ -407,7 +412,7 @@ class PrintModel(BoringModel):
         return super().predict_step(*args, **kwargs)
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
+@mock.patch("tqdm.tqdm.write")
 def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar."""
     model = PrintModel()
@@ -425,16 +430,15 @@ def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
-    assert tqdm_write.call_count == 4
     assert tqdm_write.call_args_list == [
-        call("training_step", end="", file=None, nolock=False),
-        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
-        call("test_step", end=os.linesep, file=None, nolock=False),
-        call("predict_step", end=os.linesep, file=None, nolock=False),
+        call("training_step", end=""),
+        call("validation_step", file=sys.stderr),
+        call("test_step"),
+        call("predict_step"),
     ]
 
 
-@mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm.write")
+@mock.patch("tqdm.tqdm.write")
 def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
     """Test that printing in the LightningModule redirects arguments to the progress bar without training."""
     model = PrintModel()
@@ -452,11 +456,10 @@ def test_tqdm_progress_bar_print_no_train(tqdm_write, tmpdir):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
-    assert tqdm_write.call_count == 3
     assert tqdm_write.call_args_list == [
-        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
-        call("test_step", end=os.linesep, file=None, nolock=False),
-        call("predict_step", end=os.linesep, file=None, nolock=False),
+        call("validation_step", file=sys.stderr),
+        call("test_step"),
+        call("predict_step"),
     ]
 
 
@@ -560,6 +563,8 @@ def test_get_progress_bar_metrics(tmpdir: str):
 
 
 def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
+    """TQDM counterpart to test_rich_progress_bar::test_rich_progress_bar_correct_value_epoch_end."""
+
     class MockedProgressBar(TQDMProgressBar):
         calls = defaultdict(list)
 
@@ -619,3 +624,30 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
+
+
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
+def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
+    """Test that the progress bar is disabled when not in global rank zero."""
+    progress_bar = TQDMProgressBar()
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[progress_bar],
+        fast_dev_run=True,
+    )
+
+    progress_bar.enable()
+    trainer.fit(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.predict(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.validate(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.test(model)
+    assert progress_bar.is_disabled

@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from functools import wraps
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
 import torch
@@ -24,16 +24,12 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.optimizer import (
-    _get_default_scheduler_config,
-    _init_optimizers_and_lr_schedulers,
-    _set_scheduler_opt_idx,
-)
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -127,13 +123,11 @@ class _LRFinder:
 
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-            sched_config = _get_default_scheduler_config()
-            sched_config.update({"scheduler": scheduler, "interval": "step", "opt_idx": 0})
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_schedulers = [sched_config]
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
-            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_schedulers)
+            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
         return func
 
@@ -208,35 +202,24 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
-    save_path = os.path.join(trainer.default_root_dir, f"lr_find_temp_model_{uuid.uuid4()}.ckpt")
+    # Save initial model, that is loaded after learning rate is found
+    ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
+    trainer.fit_loop.epoch_progress.current.completed -= 1
+    trainer.fit_loop.global_step -= 1
+    trainer.save_checkpoint(ckpt_path)
+    trainer.fit_loop.epoch_progress.current.completed += 1
+    trainer.fit_loop.global_step += 1
+    params = __lr_finder_dump_params(trainer)
 
-    __lr_finder_dump_params(trainer, model)
-
-    # Prevent going into infinite loop
-    trainer.auto_lr_find = False
+    # Set to values that are required by the algorithm
+    __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
 
     # Initialize lr finder object (stores results)
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
-    # Use special lr logger callback
-    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
-
-    # No logging
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
-
-    # Max step set to number of iterations
-    trainer.fit_loop.max_steps = num_training
-
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
-
-    # Required for saving the model
-    trainer.optimizers, trainer.lr_schedulers = [], []
-    trainer.model = model
-
-    # Dump model checkpoint
-    trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
     trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)
@@ -252,15 +235,11 @@ def lr_find(
     lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    # Reset model state
-    if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path))
-        fs = get_filesystem(str(save_path))
-        if fs.exists(save_path):
-            fs.rm(save_path)
+    # Restore initial state of model
+    trainer._checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
+    __lr_finder_restore_params(trainer, params)
 
-    # Finish by resetting variables so trainer is ready to fit model
-    __lr_finder_restore_params(trainer, model)
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
 
@@ -275,27 +254,31 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer, model):
-    # Prevent going into infinite loop
-    trainer.__dumped_params = {
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+    return {
         "auto_lr_find": trainer.auto_lr_find,
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
-        "global_step": trainer.global_step,
-        "max_steps": trainer.max_steps,
-        "checkpoint_callback": trainer.checkpoint_callback,
-        "current_epoch": trainer.current_epoch,
+        "max_steps": trainer.fit_loop.max_steps,
     }
 
 
-def __lr_finder_restore_params(trainer, model):
-    trainer.auto_lr_find = trainer.__dumped_params["auto_lr_find"]
-    trainer.logger = trainer.__dumped_params["logger"]
-    trainer.callbacks = trainer.__dumped_params["callbacks"]
-    trainer.fit_loop.global_step = trainer.__dumped_params["global_step"]
-    trainer.fit_loop.max_steps = trainer.__dumped_params["max_steps"]
-    trainer.fit_loop.current_epoch = trainer.__dumped_params["current_epoch"]
-    del trainer.__dumped_params
+def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+    # avoid lr find being called multiple times
+    trainer.auto_lr_find = False
+    # Use special lr logger callback
+    trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
+    # No logging
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    # Max step set to number of iterations
+    trainer.fit_loop.max_steps = num_training
+
+
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+    trainer.auto_lr_find = params["auto_lr_find"]
+    trainer.callbacks = params["callbacks"]
+    trainer.logger = params["logger"]
+    trainer.fit_loop.max_steps = params["max_steps"]
 
 
 class _LRCallback(Callback):
@@ -331,7 +314,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -339,7 +322,7 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc="Finding best initial lr", total=self.num_training)
 
-        self.lrs.append(trainer.lr_schedulers[0]["scheduler"].lr[0])
+        self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         """Called when the training batch ends, logs the calculated loss."""

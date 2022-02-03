@@ -154,6 +154,12 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
         _ = trainer.should_rank_save_checkpoint
 
 
+def test_v1_8_0_deprecated_lr_scheduler():
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
+        assert trainer.lr_schedulers == []
+
+
 def test_v1_8_0_trainer_optimizers_mixin():
     trainer = Trainer()
     model = BoringModel()
@@ -326,7 +332,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
             " Use `.*SingleDeviceStrategy` instead."
         )
     ):
-        SingleDevicePlugin(Mock())
+        SingleDevicePlugin("cpu")
 
 
 @RunIf(tpu=True)
@@ -337,3 +343,63 @@ def test_v1_8_0_deprecated_single_tpu_plugin_class():
         )
     ):
         SingleTPUPlugin(0)
+
+
+def test_v1_8_0_deprecated_lightning_optimizers():
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
+    ):
+        assert trainer.lightning_optimizers == {}
+
+
+def test_v1_8_0_remove_on_batch_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_batch_start(self, *args, **kwargs):
+            print("on_batch_start")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_batch_end(self, *args, **kwargs):
+            print("on_batch_end")
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_on_configure_sharded_model(tmpdir):
+    class TestCallback(Callback):
+        def on_configure_sharded_model(self, trainer, model):
+            print("Configuring sharded model")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
