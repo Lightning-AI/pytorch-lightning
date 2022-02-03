@@ -241,7 +241,7 @@ class BaseFinetuning(Callback):
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self.freeze_before_training(pl_module)
 
     @staticmethod
