@@ -24,8 +24,6 @@ from fsspec.implementations.local import AbstractFileSystem
 
 from pytorch_lightning.utilities.types import _PATH
 
-from pytorch_lightning.utilities.types import _PATH
-
 
 def load(
     path_or_url: Union[IO, _PATH],
