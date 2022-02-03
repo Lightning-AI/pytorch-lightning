@@ -141,11 +141,11 @@ class DDPStrategy(ParallelStrategy):
             launcher = SingleProcessLauncher()
         else:
             launcher = DDPSubprocessLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+            self._rank_0_has_called_call_children_scripts = True
 
         return launcher.launch(function, *args, **kwargs)
 
     def setup_environment(self) -> None:
-        self._rank_0_has_called_call_children_scripts = not self.cluster_environment.creates_processes_externally
         self.setup_distributed()
         super().setup_environment()
 
