@@ -67,9 +67,9 @@ class ManualOptModel(BoringModel):
     "kwargs",
     [
         {},
-        pytest.param({"devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
+        pytest.param({"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)),
         pytest.param(
-            {"devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
+            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
             marks=RunIf(amp_apex=True, min_gpus=1),
         ),
     ],
@@ -118,7 +118,6 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
-        accelerator="gpu",
         **kwargs,
     )
 
