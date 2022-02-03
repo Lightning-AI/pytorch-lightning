@@ -991,7 +991,7 @@ The list of loggers currently being used (tensorboard or other supported loggers
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # the list of generic logger (same no matter if tensorboard or other supported loggers)
+        # the list of generic loggers (same no matter if tensorboard or other supported loggers)
         self.loggers
 
         # the particular logger
