@@ -1745,6 +1745,7 @@ The current logger being used. Here's an example using tensorboard
         logger = self.trainer.logger
         tensorboard = logger.experiment
 
+
 loggers (p)
 **********
 
