@@ -40,6 +40,7 @@ class DDPSubprocessLauncher(Launcher):
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         kwargs.pop("trainer", None)
+        kwargs.pop("strategy")
         self._call_children_scripts()
         return function(*args, **kwargs)
 

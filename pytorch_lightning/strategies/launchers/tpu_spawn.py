@@ -20,6 +20,7 @@ import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnLauncher
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -35,12 +36,13 @@ else:
 class TPUSpawnLauncher(DDPSpawnLauncher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer", None)
-        context = mp.get_context(trainer.strategy.start_method or "fork")
+        strategy = kwargs.pop("strategy")
+        context = mp.get_context(strategy.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapped_function,
-            args=(trainer, function, args, kwargs, return_queue),
-            **trainer.strategy.get_mp_spawn_kwargs()
+            args=(strategy, trainer, function, args, kwargs, return_queue),
+            **strategy.get_mp_spawn_kwargs()
         )
         spawn_output = return_queue.get()
         if trainer is None:
@@ -52,24 +54,28 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
     def _wrapped_function(
         self,
         process_idx: int,
-        trainer: "pl.Trainer",
+        strategy: Strategy,
+        trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        trainer.strategy._worker_setup(process_idx)
+        strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
-        results = self._collect_rank_zero_results(trainer, results)
-        if trainer.strategy.local_rank == 0:
+
+        if trainer is not None:
+            results = self._collect_rank_zero_results(trainer, results)
+
+        if strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        trainer.strategy.barrier("end-process")
+        strategy.barrier("end-process")
 
         # Ensure that the rank 0 process is the one exiting last
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if trainer.strategy.local_rank == 0:
+        if strategy.local_rank == 0:
             time.sleep(2)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:

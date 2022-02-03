@@ -19,4 +19,5 @@ from pytorch_lightning.strategies.launchers.base import Launcher
 class SingleProcessLauncher(Launcher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         kwargs.pop("trainer", None)
+        kwargs.pop("strategy")
         return function(*args, **kwargs)

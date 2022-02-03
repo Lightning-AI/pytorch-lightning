@@ -669,6 +669,7 @@ class Trainer(
         """
         try:
             kwargs["trainer"] = self
+            kwargs["strategy"] = self.strategy
             return self.strategy.launch(trainer_fn, *args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:

@@ -22,6 +22,7 @@ import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import Launcher
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import rank_zero_debug
@@ -32,13 +33,14 @@ from pytorch_lightning.utilities.types import _PATH
 class DDPSpawnLauncher(Launcher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer", None)
-        os.environ["MASTER_PORT"] = str(trainer.strategy.cluster_environment.main_port)
+        strategy = kwargs.pop("strategy")
+        os.environ["MASTER_PORT"] = str(strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
         mp.spawn(
             self._wrapped_function,
-            args=(trainer, function, args, kwargs, return_queue),
-            nprocs=trainer.strategy.num_processes,
+            args=(strategy, trainer, function, args, kwargs, return_queue),
+            nprocs=strategy.num_processes,
         )
         spawn_output = return_queue.get()
         if trainer is None:
@@ -50,16 +52,20 @@ class DDPSpawnLauncher(Launcher):
     def _wrapped_function(
         self,
         process_idx: int,
-        trainer: "pl.Trainer",
+        strategy: Strategy,
+        trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        trainer.strategy._worker_setup(process_idx)
+        strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
-        results = self._collect_rank_zero_results(trainer, results)
-        if trainer.strategy.local_rank == 0:
+
+        if trainer is not None:
+            results = self._collect_rank_zero_results(trainer, results)
+
+        if strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
