@@ -18,6 +18,8 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.boring_model import RandomDataset
 
@@ -67,6 +69,22 @@ def test_dataloader_source_request_from_module():
     module.foo.assert_not_called()
     assert isinstance(source.dataloader(), DataLoader)
     module.foo.assert_called_once()
+
+
+def test_eval_distributed_sampler_warning(tmpdir):
+    """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
+
+    model = BoringModel()
+    trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer._data_connector.attach_data(model)
+
+    trainer.state.fn = TrainerFn.VALIDATING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+        trainer.reset_val_dataloader(model)
+
+    trainer.state.fn = TrainerFn.TESTING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+        trainer.reset_test_dataloader(model)
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
