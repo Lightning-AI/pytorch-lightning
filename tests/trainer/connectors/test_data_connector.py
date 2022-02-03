@@ -21,6 +21,7 @@ from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSourc
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.boring_model import RandomDataset
 
 
 class NoDataLoaderModel(BoringModel):
@@ -84,3 +85,19 @@ def test_eval_distributed_sampler_warning(tmpdir):
     trainer.state.fn = TrainerFn.TESTING
     with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_test_dataloader(model)
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
+    """Test that shuffle is not changed if set to True."""
+
+    class CustomModel(BoringModel):
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), shuffle=shuffle)
+
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp")
+    model = CustomModel()
+    trainer._data_connector.attach_data(model)
+    trainer.reset_val_dataloader(model)
+    assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
+

@@ -206,6 +206,7 @@ class Loop(ABC, Generic[T]):
                 self._restarting = False
             except StopIteration:
                 break
+        self._restarting = False
 
         output = self.on_run_end()
         return output
