@@ -251,12 +251,18 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.Image.assert_called_with("2.jpg")
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
+    # test log_image with step
+    wandb.init().log.reset_mock()
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
+    wandb.Image.assert_called_with("2.jpg")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()], 'trainer/global_step': 5})
+
     # test log_image with captions
     wandb.init().log.reset_mock()
     wandb.Image.reset_mock()
-    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"], step=5)
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
     wandb.Image.assert_called_with("2.jpg", caption="caption 2")
-    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()], 'trainer/global_step': 5})
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
     # test log_image without a list
     with pytest.raises(TypeError, match="""Expected a list as "images", found <class 'str'>"""):
