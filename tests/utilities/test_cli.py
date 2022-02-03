@@ -659,6 +659,33 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
 
 
+def test_cli_no_need_configure_optimizers():
+    class BoringModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def training_step(self, *_):
+            ...
+
+        def train_dataloader(self):
+            ...
+
+        # did not define `configure_optimizers`
+
+    from pytorch_lightning.trainer.configuration_validator import __verify_train_val_loop_configuration
+
+    with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
+        "pytorch_lightning.Trainer._run_train"
+    ) as run, mock.patch(
+        "pytorch_lightning.trainer.configuration_validator.__verify_train_val_loop_configuration",
+        wraps=__verify_train_val_loop_configuration,
+    ) as verify:
+        cli = LightningCLI(BoringModel)
+    run.assert_called_once()
+    verify.assert_called_once_with(cli.trainer, cli.model)
+
+
 def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
