@@ -28,6 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
@@ -232,8 +233,8 @@ class CometLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
     @rank_zero_only
@@ -246,7 +247,7 @@ class CometLogger(LightningLoggerBase):
                 metrics_without_epoch[key] = val.cpu().detach()
 
         epoch = metrics_without_epoch.pop("epoch", None)
-        metrics_without_epoch = self._add_prefix(metrics_without_epoch)
+        metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):

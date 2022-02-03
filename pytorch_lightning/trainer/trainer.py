@@ -457,7 +457,7 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
+        self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
@@ -684,14 +684,13 @@ class Trainer(
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
+                # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
             self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
             self._call_callback_hooks("on_exception", exception)
-            # shutdown workers
-            self._data_connector.teardown()
+            self._teardown()
+            # teardown might access the stage so we reset it after
+            self.state.stage = None
             raise
 
     def fit(
@@ -1078,12 +1077,12 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
-        self.checkpoint_connector.resume_start(checkpoint_path)
-        self.checkpoint_connector.restore_model()
-        self.checkpoint_connector.restore_datamodule()
+        self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector.restore_model()
+        self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
             # restore callback states
-            self.checkpoint_connector.restore_callbacks()
+            self._checkpoint_connector.restore_callbacks()
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
@@ -1168,11 +1167,12 @@ class Trainer(
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
-        self.checkpoint_connector.restore_training_state()
+        self._checkpoint_connector.restore_training_state()
 
-        self.checkpoint_connector.resume_end()
+        self._checkpoint_connector.resume_end()
 
         results = self._run_stage()
+
         log.detail(f"{self.__class__.__name__}: trainer tearing down")
         self._teardown()
 
@@ -1187,8 +1187,7 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: calling teardown hooks")
         self._call_teardown_hook()
 
-        if self.state.status != TrainerStatus.INTERRUPTED:
-            self.state.status = TrainerStatus.FINISHED
+        self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
         if isinstance(self.strategy, DDPSpawnStrategy):
@@ -1239,7 +1238,10 @@ class Trainer(
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
         self._data_connector.teardown()
-        self._active_loop.teardown()
+        loop = self._active_loop
+        # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
+        if loop is not None:
+            loop.teardown()
         self.logger_connector.teardown()
         self._signal_connector.teardown()
 
@@ -2014,7 +2016,7 @@ class Trainer(
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
-        return self.strategy.lr_schedulers
+        return self.strategy.lr_scheduler_configs
 
     @property
     def lr_schedulers(self) -> List[Dict[str, Any]]:
@@ -2025,7 +2027,7 @@ class Trainer(
         )
         from dataclasses import asdict
 
-        return [asdict(config) for config in self.strategy.lr_schedulers]
+        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
@@ -2205,7 +2207,7 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self._checkpoint_connector.resume_from_checkpoint_fit_path
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
@@ -2224,7 +2226,7 @@ class Trainer(
             weights_only: If ``True``, will only save the model weights.
 
         """
-        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """
     Parsing properties
