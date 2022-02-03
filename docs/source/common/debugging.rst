@@ -57,7 +57,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 Shorten Epochs
 ==============
 
-Sometimes it's helpful to only use a percentage of your training, val, test or predict data (or a set number of batches).
+Sometimes it's helpful to only use a fraction of your training, val, test, or predict data (or a set number of batches).
 For example, you can use 20% of the training set and 1% of the validation set.
 
 On larger datasets like Imagenet, this can help you debug or test a few things faster than waiting for a full epoch.
@@ -117,7 +117,7 @@ Optimization
 Inspect Gradient Norms
 ======================
 
-Logs (to a logger), the norm of the gradients.
+Logs the norm of the gradients to the logger.
 
 (See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.track_grad_norm`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
@@ -134,7 +134,7 @@ Detect Anomaly
 You can enable anomaly detection for the autograd engine. It uses PyTorch's built-in
 `Anomaly Detection Context-manager <https://pytorch.org/docs/stable/autograd.html#anomaly-detection>`_.
 
-To enable it within Lightning, use:
+To enable it within Lightning, use Trainer's flag:
 
 .. testcode::
 
