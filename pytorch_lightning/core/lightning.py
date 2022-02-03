@@ -1544,24 +1544,28 @@ class LightningModule(
         on_tpu: bool = False,
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
-    ) -> None:
+    ) -> Any:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer. This method (and ``zero_grad()``) won't be called during the
-        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
+        each optimizer.
+
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        This method (and ``zero_grad()``) won't be called during the accumulation phase when
+        ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+            optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
+
+        Returns:
+            The output from the step call, which is generally the output of the closure execution.
 
         Examples::
 
@@ -1615,7 +1619,7 @@ class LightningModule(
                         pg["lr"] = lr_scale * self.learning_rate
 
         """
-        optimizer.step(closure=optimizer_closure)
+        return optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
