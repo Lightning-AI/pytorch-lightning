@@ -11,21 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in vX.Y.Z."""
-import sys
-from contextlib import contextmanager
-from typing import Optional
-
-from tests.helpers.utils import no_warning_call
+from pytorch_lightning.utilities.types import _Stateful
 
 
-def _soft_unimport_module(str_module):
-    # once the module is imported  e.g with parsing with pytest it lives in memory
-    if str_module in sys.modules:
-        del sys.modules[str_module]
+def test_stateful_protocol():
+    class StatefulClass:
+        def state_dict(self):
+            pass
 
+        def load_state_dict(self, state_dict):
+            pass
 
-@contextmanager
-def no_deprecated_call(match: Optional[str] = None):
-    with no_warning_call(expected_warning=DeprecationWarning, match=match):
-        yield
+    assert isinstance(StatefulClass(), _Stateful)
+
+    class NotStatefulClass:
+        def state_dict(self):
+            pass
+
+    assert not isinstance(NotStatefulClass(), _Stateful)
+
+    class NotStateful2Class:
+        def load_state_dict(self, state_dict):
+            pass
+
+    assert not isinstance(NotStateful2Class(), _Stateful)

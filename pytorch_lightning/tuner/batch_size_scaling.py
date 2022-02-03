@@ -60,10 +60,10 @@ def scale_batch_size(
 
     # Save initial model, that is loaded after batch size is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
-    trainer.fit_loop.current_epoch -= 1
+    trainer.fit_loop.epoch_progress.current.completed -= 1
     trainer.fit_loop.global_step -= 1
     trainer.save_checkpoint(ckpt_path)
-    trainer.fit_loop.current_epoch += 1
+    trainer.fit_loop.epoch_progress.current.completed += 1
     trainer.fit_loop.global_step += 1
     params = __scale_batch_dump_params(trainer)
 
@@ -110,7 +110,6 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
 def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []  # not needed before full run
