@@ -614,9 +614,7 @@ class Trainer(
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
-            if self.logger is not None:
-                dummy_logger = DummyLogger()
-                self.loggers = [dummy_logger]
+            self.logger = DummyLogger() if self.logger is not None else None
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
