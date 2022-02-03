@@ -2480,7 +2480,7 @@ class Trainer(
 
     @logger.setter
     def logger(self, new_logger: Optional[LightningLoggerBase]) -> None:
-        self.loggers = [new_logger] if new_logger else None
+        self.loggers = [new_logger] if new_logger else []
 
     @property
     def loggers(self) -> List[LightningLoggerBase]:
