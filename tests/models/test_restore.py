@@ -17,6 +17,7 @@ import os
 import pickle
 from copy import deepcopy
 from typing import Generic, Mapping, TypeVar
+from unittest import mock
 
 import cloudpickle
 import pytest
@@ -32,6 +33,7 @@ from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import no_warning_call
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -776,3 +778,46 @@ def test_model_pickle(tmpdir):
     model = BoringModel()
     pickle.dumps(model)
     cloudpickle.dumps(model)
+
+
+@pytest.mark.parametrize("stop_batch_idx", [4, 7])
+def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
+    """Test that a warning is raised if training is restarted from mid-epoch."""
+
+    class CustomModel(BoringModel):
+        def __init__(self, stop_batch_idx):
+            super().__init__()
+            self.stop_batch_idx = stop_batch_idx
+
+        def training_step(self, batch, batch_idx):
+            if (batch_idx + 1) == self.stop_batch_idx:
+                self.trainer.should_stop = True
+
+            return super().training_step(batch, batch_idx)
+
+    limit_train_batches = 7
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": limit_train_batches,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+    }
+    trainer = Trainer(max_epochs=1, **trainer_kwargs)
+    model = CustomModel(stop_batch_idx)
+    trainer.fit(model)
+
+    ckpt_path = str(tmpdir / "resume.ckpt")
+    trainer.save_checkpoint(ckpt_path)
+
+    trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
+
+    warning_raised = limit_train_batches != stop_batch_idx
+    context_manager = pytest.warns if warning_raised else no_warning_call
+    with context_manager(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
+        trainer.fit(model, ckpt_path=ckpt_path)
+
+    if warning_raised:
+        with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
+            trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
+            with no_warning_call(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
+                trainer.fit(model, ckpt_path=ckpt_path)
