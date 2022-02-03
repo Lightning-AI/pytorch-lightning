@@ -983,6 +983,20 @@ The current logger being used (tensorboard or other supported logger)
         # the particular logger
         tensorboard_logger = self.logger.experiment
 
+loggers
+~~~~~~
+
+The list of loggers currently being used (tensorboard or other supported loggers)
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        # the list of generic logger (same no matter if tensorboard or other supported loggers)
+        self.loggers
+
+        # the particular logger
+        tensorboard_logger = self.loggers[0].experiment
+
 local_rank
 ~~~~~~~~~~~
 
