@@ -1309,12 +1309,10 @@ def test_trainer_subclassing():
 
 
 @RunIf(omegaconf=True)
-@pytest.mark.parametrize(
-    "trainer_params",
-    [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
-)
+@pytest.mark.parametrize("trainer_params", [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}])
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=1)
-def test_trainer_omegaconf(_, trainer_params):
+def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)
 
