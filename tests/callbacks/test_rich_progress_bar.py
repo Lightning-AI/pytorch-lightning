@@ -211,9 +211,7 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 @RunIf(rich=True)
 @pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 7), (4, 7), (7, 4)]))
 def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count):
-
     model = BoringModel()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -265,7 +263,6 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
 @RunIf(rich=True)
 def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     """Test the completed and total counter for rich progress bar when using val_check_interval."""
-
     progress_bar = RichProgressBar()
     model = BoringModel()
     trainer = Trainer(
@@ -279,10 +276,10 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     trainer.fit(model)
 
     fit_main_progress_bar = progress_bar.progress.tasks[1]
-    fit_val_bar = progress_bar.progress.tasks[2]
     assert fit_main_progress_bar.completed == 19  # 7 + 3*4
     assert fit_main_progress_bar.total == 19  # 7 + 3*4
 
+    fit_val_bar = progress_bar.progress.tasks[2]
     assert fit_val_bar.completed == 4
     assert fit_val_bar.total == 4
 
