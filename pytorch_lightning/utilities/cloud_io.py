@@ -19,7 +19,10 @@ from typing import Any, Callable, Dict, IO, Optional, Union
 
 import fsspec
 import torch
-from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
+from fsspec.core import url_to_fs
+from fsspec.implementations.local import AbstractFileSystem
+
+from pytorch_lightning.utilities.types import _PATH
 
 from pytorch_lightning.utilities.types import _PATH
 
@@ -46,13 +49,9 @@ def load(
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
-    path = str(path)
-    if "://" in path:
-        # use the fileystem from the protocol specified
-        return fsspec.filesystem(path.split(":", 1)[0])
-    # use local filesystem
-    return LocalFileSystem()
+def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
+    fs, _ = url_to_fs(str(path), **kwargs)
+    return fs
 
 
 def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
