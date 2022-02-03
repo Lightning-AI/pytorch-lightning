@@ -199,10 +199,7 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
-        """The current epoch in the Trainer.
-
-        If no Trainer is attached, this propery is 0.
-        """
+        """The current epoch in the ``Trainer``, or 0 if not attached."""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
