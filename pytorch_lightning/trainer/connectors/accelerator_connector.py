@@ -759,8 +759,6 @@ class AcceleratorConnector:
         # necessary for when the user has passed in a plugin
         if hasattr(training_type, "parallel_devices") and getattr(training_type, "parallel_devices") is None:
             training_type.parallel_devices = self.parallel_devices
-            if hasattr(training_type, "num_processes"):
-                training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, "cluster_environment") and getattr(training_type, "cluster_environment") is None:
             # transfer ownership of the cluster environment to the training type

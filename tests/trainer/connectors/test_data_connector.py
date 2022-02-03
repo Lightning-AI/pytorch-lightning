@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.boring_model import RandomDataset
 
 
 class NoDataLoaderModel(BoringModel):
@@ -66,3 +67,18 @@ def test_dataloader_source_request_from_module():
     module.foo.assert_not_called()
     assert isinstance(source.dataloader(), DataLoader)
     module.foo.assert_called_once()
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
+    """Test that shuffle is not changed if set to True."""
+
+    class CustomModel(BoringModel):
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), shuffle=shuffle)
+
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp")
+    model = CustomModel()
+    trainer._data_connector.attach_data(model)
+    trainer.reset_val_dataloader(model)
+    assert trainer.val_dataloaders[0].sampler.shuffle == shuffle

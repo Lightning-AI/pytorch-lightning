@@ -178,9 +178,6 @@ class EvaluationLoop(DataLoaderLoop):
             max_batches = self.trainer.num_test_batches
         else:
             if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
-                ]
                 max_batches = self.trainer.num_sanity_val_batches
             else:
                 max_batches = self.trainer.num_val_batches

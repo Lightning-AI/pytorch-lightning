@@ -331,7 +331,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.fit_loop.current_epoch = i
+        trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
         trainer.fit_loop.global_step = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
@@ -384,7 +384,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match="checkpoint contains only the model"):
-        trainer.checkpoint_connector.restore(new_weights_path)
+        trainer._checkpoint_connector.restore(new_weights_path)
 
 
 def test_model_freeze_unfreeze():
