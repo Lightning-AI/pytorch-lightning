@@ -663,7 +663,7 @@ def test_benchmark_option(tmpdir):
 def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            self.log("foo", -batch_idx)
+            self.log("foo", -float(batch_idx))
             return super().validation_step(batch, batch_idx)
 
         def test_step(self, *args):

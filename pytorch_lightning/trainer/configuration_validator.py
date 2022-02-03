@@ -16,7 +16,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, rank_zero_deprecation, rank_zero_warn
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -112,7 +112,8 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         rank_zero_warn(
             "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
             " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
-            " (rather, they are called on every optimization step)."
+            " (rather, they are called on every optimization step).",
+            category=PossibleUserWarning,
         )
 
     # -----------------------------------

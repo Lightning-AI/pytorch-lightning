@@ -33,7 +33,7 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
@@ -602,7 +602,7 @@ class ModelCheckpoint(Callback):
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
-            rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+            rank_zero_info(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _validate_monitor_key(self, trainer: "pl.Trainer") -> None:
         metrics = trainer.callback_metrics
