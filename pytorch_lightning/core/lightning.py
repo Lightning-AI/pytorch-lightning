@@ -1544,7 +1544,7 @@ class LightningModule(
         on_tpu: bool = False,
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
-    ) -> Any:
+    ) -> None:
         r"""
         Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
         each optimizer.
@@ -1563,9 +1563,6 @@ class LightningModule(
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
-
-        Returns:
-            The output from the step call, which is generally the output of the closure execution.
 
         Examples::
 
@@ -1619,7 +1616,7 @@ class LightningModule(
                         pg["lr"] = lr_scale * self.learning_rate
 
         """
-        return optimizer.step(closure=optimizer_closure)
+        optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
