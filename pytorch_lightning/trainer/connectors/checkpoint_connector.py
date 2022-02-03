@@ -390,7 +390,9 @@ class CheckpointConnector:
         # dump stateful datamodule
         datamodule = self.trainer.datamodule
         if datamodule is not None:
-            checkpoint[datamodule.__class__.__qualname__] = datamodule.state_dict()
+            datamodule_state_dict = datamodule.state_dict()
+            if datamodule_state_dict:
+                checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
         model.on_save_checkpoint(checkpoint)
