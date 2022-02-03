@@ -596,7 +596,7 @@ class AcceleratorConnector:
                         f" is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
-        if self._strategy_flag == "deepspeed" or isinstance(self._strategy_flag, DeepSpeedStrategy):
+        if isinstance(self._strategy_flag, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
         if self._precision_flag == 32:
@@ -773,7 +773,8 @@ class AcceleratorConnector:
     @property
     def tpu_id(self) -> Optional[int]:
         if isinstance(self.accelerator, TPUAccelerator):
-            return self.tpu_cores[0]
+            if isinstance(self._tpu_cores, list):
+                return self._tpu_cores[0]
         return None
 
     @property

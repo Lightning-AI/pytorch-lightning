@@ -26,7 +26,6 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
