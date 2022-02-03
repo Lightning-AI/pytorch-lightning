@@ -29,6 +29,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
@@ -356,16 +357,16 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
-        params = self._sanitize_callable_params(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
+        params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None:
             self.experiment.log({**metrics, "trainer/global_step": step})
         else:

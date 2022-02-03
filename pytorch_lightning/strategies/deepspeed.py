@@ -487,7 +487,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 lr_scheduler = LRSchedulerConfig(deepspeed_scheduler)
             else:
                 lr_scheduler.scheduler = deepspeed_scheduler
-            self.lr_schedulers = [lr_scheduler]
+            self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager
@@ -578,7 +578,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers and frequencies
         self.optimizers = []
-        self.lr_schedulers = []
+        self.lr_scheduler_configs = []
         self.optimizer_frequencies = []
 
     @property
