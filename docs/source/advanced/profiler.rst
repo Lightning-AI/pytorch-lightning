@@ -63,23 +63,21 @@ The profiler's results will be printed at the completion of a training ``trainer
     -----------------------------------------------------------------------------------------------
     |  Action                                          |  Mean duration (s)	|  Total time (s) |
     -----------------------------------------------------------------------------------------------
-    |  [LightningModule]BoringModel.prepare_data       |  2.112e-06      	|  2.112e-06      |
-    |  [LightningModule]BoringModel.setup              |  1.513e-06      	|  1.513e-06      |
-    |  [LightningModule]BoringModel.on_fit_start       |  1.542e-06      	|  1.542e-06      |
-    |  [LightningModule]BoringModel.on_epoch_start     |  1.051e-06      	|  1.051e-06      |
-    |  fetch_next_train_batch                          |  0.0003097      	|  0.00061939     |
-    |  get_train_batch                                 |  0.0003287      	|  0.00065739     |
-    |  on_train_batch_start                            |  7.578e-05      	|  7.578e-05      |
-    |  [LightningModule]BoringModel.training_step_end  |  1.556e-06      	|  1.556e-06      |
-    |  model_forward                                   |  0.00028337     	|  0.00028337     |
-    |  [LightningModule]BoringModel.optimizer_step     |  0.0011853      	|  0.0011853      |
-    |  run_training_batch                              |  0.0016311      	|  0.0016311      |
-    |  on_train_batch_end                              |  7.6117e-05     	|  7.6117e-05     |
-    |  run_training_epoch                              |  0.0036915      	|  0.0036915      |
-    |  [LightningModule]BoringModel.on_epoch_end       |  1.079e-06      	|  1.079e-06      |
-    |  [LightningModule]BoringModel.on_train_end       |  1.509e-06      	|  1.509e-06      |
-    |  [LightningModule]BoringModel.on_fit_end         |  3.127e-06      	|  3.127e-06      |
-    |  [LightningModule]BoringModel.teardown           |  2.581e-06      	|  2.581e-06      |
+    |  run_training_epoch                              |  6.1558         	|  6.1558         |
+    |  run_training_batch                              |  0.0022506      	|  0.015754       |
+    |  [LightningModule]BoringModel.optimizer_step     |  0.0017477      	|  0.012234       |
+    |  model_forward                                   |  0.00055868     	|  0.0039108      |
+    |  [LightningModule]BoringModel.val_dataloader     |  0.00024388     	|  0.00024388     |
+    |  on_train_batch_start                            |  0.00014637     	|  0.0010246      |
+    |  [LightningModule]BoringModel.teardown           |  2.15e-06       	|  2.15e-06       |
+    |  [LightningModule]BoringModel.prepare_data       |  1.955e-06      	|  1.955e-06      |
+    |  [LightningModule]BoringModel.on_epoch_end       |  1.8373e-06     	|  5.512e-06      |
+    |  [LightningModule]BoringModel.on_train_start     |  1.644e-06      	|  1.644e-06      |
+    |  [LightningModule]BoringModel.on_train_end       |  1.516e-06      	|  1.516e-06      |
+    |  [LightningModule]BoringModel.on_fit_end         |  1.426e-06      	|  1.426e-06      |
+    |  [LightningModule]BoringModel.setup              |  1.403e-06      	|  1.403e-06      |
+    |  [LightningModule]BoringModel.on_epoch_start     |  1.2883e-06     	|  3.865e-06      |
+    |  [LightningModule]BoringModel.on_fit_start       |  1.226e-06      	|  1.226e-06      |
     -----------------------------------------------------------------------------------------------
 
 .. note:: Note that there are a lot more actions that will be present in the final report along with percentage and call count for each action.

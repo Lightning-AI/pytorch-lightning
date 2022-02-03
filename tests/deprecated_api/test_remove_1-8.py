@@ -382,3 +382,24 @@ def test_v1_8_0_remove_on_batch_start_end(tmpdir):
         match="The `Callback.on_batch_end` hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+
+def test_v1_8_0_on_configure_sharded_model(tmpdir):
+    class TestCallback(Callback):
+        def on_configure_sharded_model(self, trainer, model):
+            print("Configuring sharded model")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)

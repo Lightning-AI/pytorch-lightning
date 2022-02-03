@@ -18,6 +18,7 @@ from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional
 
 from deprecate import void
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BatchProgress
@@ -195,7 +196,7 @@ class EvaluationEpochLoop(Loop):
                 "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
                 " in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             )
-        assert dataloader is not None
+        assert isinstance(dataloader, DataLoader)
         _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
         self._dataloader_state_dict = {}
 

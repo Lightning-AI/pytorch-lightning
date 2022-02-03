@@ -59,6 +59,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_hpc_hooks(model)
     # TODO: Delete on_batch_start/on_batch_end hooks in v1.8
     _check_on_batch_start_end(trainer, model)
+    # TODO: Remove this in v1.8
+    _check_on_configure_sharded_model(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -337,3 +339,12 @@ def _check_on_batch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule"
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
+
+
+def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
+            rank_zero_deprecation(
+                "The `on_configure_sharded_model` callback hook was deprecated in"
+                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+            )
