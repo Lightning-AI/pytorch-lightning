@@ -80,6 +80,7 @@ class LightningModule(
             "global_rank",
             "local_rank",
             "logger",
+            "loggers",
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
