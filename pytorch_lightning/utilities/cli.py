@@ -633,7 +633,7 @@ class LightningCLI:
             "fit": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
             "validate": {"model", "dataloaders", "datamodule"},
             "test": {"model", "dataloaders", "datamodule"},
-            "predict": {"model", "dataloaders", "datamodule"},
+            "predict": {"model", "dataloaders", "datamodule", "return_predictions"},
             "tune": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
         }
 
