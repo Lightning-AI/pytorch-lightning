@@ -56,7 +56,7 @@ class _LiteOptimizer:
 
     def step(self, closure: Optional[Callable] = None) -> None:
         closure = closure or _do_nothing_closure
-        self._strategy.optimizer_step(
+        return self._strategy.optimizer_step(
             self.optimizer,
             opt_idx=0,
             closure=closure,
