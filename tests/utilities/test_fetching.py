@@ -180,7 +180,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            fetcher = trainer._data_connector.train_data_fetcher
+            fetcher = trainer.fit_loop._data_fetcher
             assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
             assert fetcher.prefetch_batches == 1
 
