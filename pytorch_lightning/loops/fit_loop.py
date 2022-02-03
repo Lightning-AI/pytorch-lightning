@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import math
 import os
 from functools import partial
 from typing import Optional, Type
@@ -25,7 +26,8 @@ from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -35,6 +37,7 @@ from pytorch_lightning.utilities.fetching import (
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -195,6 +198,23 @@ class FitLoop(Loop[None]):
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls()
+
+        ft_enabled = _FaultTolerantMode.detect_current_mode().is_enabled
+        if not ft_enabled and self.restarting and self.trainer.num_training_batches not in (0, float("inf")):
+            self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
+                self.trainer.current_epoch
+            )
+            expected_steps = math.ceil(self.trainer.num_training_batches / self.trainer.accumulate_grad_batches)
+
+            # global_step is incremented during checkpointing (#11555)
+            if (self.trainer.global_step - 1) % expected_steps != 0:
+                rank_zero_warn(
+                    "You're resuming from a checkpoint that ended mid-epoch."
+                    " Training will start from the beginning of the next epoch."
+                    " This can cause unreliable results if further training is done,"
+                    " consider using an end of epoch checkpoint or use fault-tolerant training"
+                    " to restart as if training did not stop."
+                )
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
 from unittest import mock
 from unittest.mock import DEFAULT, Mock
 
@@ -223,3 +224,90 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
 
     trainer.fit(model)
     assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_metric_display_task_id(tmpdir):
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            res = super().training_step(*args, **kwargs)
+            self.log("train_loss", res["loss"], prog_bar=True)
+            return res
+
+    progress_bar = RichProgressBar()
+    model = CustomModel()
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
+
+    trainer.fit(model)
+    main_progress_bar_id = progress_bar.main_progress_bar_id
+    val_progress_bar_id = progress_bar.val_progress_bar_id
+    rendered = progress_bar.progress.columns[-1]._renderable_cache
+
+    for key in ("loss", "v_num", "train_loss"):
+        assert key in rendered[main_progress_bar_id][1]
+        assert key not in rendered[val_progress_bar_id][1]
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
+    """Rich counterpart to test_tqdm_progress_bar::test_tqdm_progress_bar_correct_value_epoch_end."""
+
+    class MockedProgressBar(RichProgressBar):
+        calls = defaultdict(list)
+
+        def get_metrics(self, trainer, pl_module):
+            items = super().get_metrics(trainer, model)
+            del items["v_num"]
+            del items["loss"]
+            # this is equivalent to mocking `set_postfix` as this method gets called every time
+            self.calls[trainer.state.fn].append(
+                (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)
+            )
+            return items
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("a", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            self.log("b", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, batch, batch_idx):
+            self.log("c", self.global_step, prog_bar=True, on_step=False, on_epoch=True, reduce_fx=max)
+            return super().test_step(batch, batch_idx)
+
+    model = MyModel()
+    pbar = MockedProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=2,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        log_every_n_steps=1,
+        callbacks=pbar,
+    )
+
+    trainer.fit(model)
+    assert pbar.calls["fit"] == [
+        ("sanity_check", 0, 0, {"b": 0}),
+        ("train", 0, 0, {}),
+        ("train", 0, 1, {}),
+        ("validate", 0, 1, {"b": 1}),  # validation end
+        # epoch end over, `on_epoch=True` metrics are computed
+        ("train", 0, 2, {"a": 1, "b": 1}),  # training epoch end
+        ("train", 1, 2, {"a": 1, "b": 1}),
+        ("train", 1, 3, {"a": 1, "b": 1}),
+        ("validate", 1, 3, {"a": 1, "b": 3}),  # validation end
+        ("train", 1, 4, {"a": 3, "b": 3}),  # training epoch end
+    ]
+
+    trainer.validate(model, verbose=False)
+    assert pbar.calls["validate"] == []
+
+    trainer.test(model, verbose=False)
+    assert pbar.calls["test"] == []

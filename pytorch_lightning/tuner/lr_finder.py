@@ -125,7 +125,7 @@ class _LRFinder:
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_schedulers = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
             _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
@@ -236,7 +236,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
+    trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
