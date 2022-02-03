@@ -100,4 +100,3 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     trainer._data_connector.attach_data(model)
     trainer.reset_val_dataloader(model)
     assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
-
