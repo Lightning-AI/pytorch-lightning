@@ -344,6 +344,7 @@ def _check_on_epoch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule"
                 f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
             )
 
+
 # TODO: Remove on_batch_start/on_batch_end hooks in v1.8
 def _check_on_batch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     hooks = (["on_batch_start", "on_train_batch_start"], ["on_batch_end", "on_train_batch_end"])
