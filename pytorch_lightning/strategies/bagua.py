@@ -79,13 +79,10 @@ class BaguaStrategy(DDPStrategy):
         """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
         distributed training algorithms and system optimizations.
 
-        This strategy requires the `bagua` package to be installed. Install it with
+        This strategy requires the `bagua` package to be installed. See
+        `installation guide <https://tutorials.baguasys.com/installation>`_ for more information.
 
-        .. code-block:: bash
-
-            pip install bagua
-
-        The BaguaStrategy is only supported on GPU and on Linux systems.
+        The :class:`BaguaStrategy` is only supported on GPU and on Linux systems.
 
         Arguments:
             algorithm: Distributed algorithm used to do the actual communication and update. Built-in algorithms
@@ -154,7 +151,6 @@ class BaguaStrategy(DDPStrategy):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)  # type: ignore[union-attr]
         os.environ["RANK"] = str(self.global_rank)
         os.environ["NODE_RANK"] = str(self.node_rank)
-        os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 

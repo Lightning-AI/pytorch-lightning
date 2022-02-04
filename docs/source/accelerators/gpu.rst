@@ -583,13 +583,6 @@ Below, find examples using ``bagua.distributed.launch`` which follows ``torch.di
     # start training with 8 GPUs on a single node
     python -m bagua.distributed.launch --nproc_per_node=8 train.py
 
-    # Run on node1 to start training on two nodes (node1 and node2), 8 GPUs per node
-    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=hostname1 --master_port=port1 train.py
-
-    # Run on node2 to start training on two nodes (node1 and node2), 8 GPUs per node
-    python -m bagua.distributed.launch --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=hostname1 --master_port=port1 train.py
-
-
 If the ssh service is available with passwordless login on each node, you can launch the distributed job on a
 single node with ``baguarun`` which has a similar syntax as ``mpirun``. When staring the job, ``baguarun`` will
 automatically spawn new processes on each of your training node provided by ``--host_list`` option and each node in it
