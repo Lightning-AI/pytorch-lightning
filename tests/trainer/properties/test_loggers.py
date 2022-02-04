@@ -76,6 +76,10 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1]
     assert trainer.logger == logger1
 
+    trainer.loggers = [logger_collection]
+    assert trainer.loggers == [logger1, logger2]
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+
     trainer.loggers = []
     assert trainer.loggers == []
     assert trainer.logger is None
