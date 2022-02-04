@@ -5,7 +5,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
 
 jobs:
-  check:
+  validate-schema:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -13,11 +13,11 @@ jobs:
 
       - name: Install pkg
         run: |
-          pip install check-jsonschema
+          pip install "check-jsonschema>=0.10"
 
       - name: GH Workflows
         run: |
-          check-jsonschema .github/workflows/*.yml --schemafile "https://json.schemastore.org/github-workflow"
+          check-jsonschema .github/workflows/*.yml --builtin-schema "github-workflows"
 
       - name: Azure Pipelines
         run: |
