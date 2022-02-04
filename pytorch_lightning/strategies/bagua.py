@@ -79,6 +79,14 @@ class BaguaStrategy(DDPStrategy):
         """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
         distributed training algorithms and system optimizations.
 
+        This strategy requires the `bagua` package to be installed. Install it with
+
+        .. code-block:: bash
+
+            pip install bagua
+
+        The BaguaStrategy is only supported on GPU and on Linux systems.
+
         Arguments:
             algorithm: Distributed algorithm used to do the actual communication and update. Built-in algorithms
                 include "gradient_allreduce", "bytegrad", "decentralized", "low_precision_decentralized", "qadam" and
@@ -113,13 +121,6 @@ class BaguaStrategy(DDPStrategy):
             model = model.module
         return unwrap_lightning_module(model)  # type: ignore[arg-type]
 
-    def setup_environment(self) -> None:
-        # start the other scripts
-        if not self.cluster_environment.creates_processes_externally:  # type: ignore[union-attr]
-            self._call_children_scripts()
-
-        self.setup_distributed()
-
     def setup_distributed(self) -> None:
         reset_seed()
 
@@ -129,7 +130,6 @@ class BaguaStrategy(DDPStrategy):
         self._init_bagua_distributed()
 
     def _init_bagua_distributed(self) -> None:
-
         self._set_node_environment_variables()
         log.info(
             "Initializing Bagua Distributed: "
@@ -138,21 +138,27 @@ class BaguaStrategy(DDPStrategy):
         )
 
         # need to set device first before initialize Bagua distributed environment
+        # Note: setup_environment calls super().setup_distributed after calling init_distributed()
         torch.cuda.set_device(self.local_rank)
 
         if not is_initialized():
             bagua.init_process_group()
 
     def _set_node_environment_variables(self) -> None:
+        """Set the environment variables as required by the :func:`bagua.init_process_group` call.
+
+        This enables the use of other cluster environments which don't set these exact variables, e.g.,
+        Bagua can be launched with ``torch.distributed.run``.
+        """
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address  # type: ignore[union-attr]
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)  # type: ignore[union-attr]
         os.environ["RANK"] = str(self.global_rank)
         os.environ["NODE_RANK"] = str(self.node_rank)
+        os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     def _check_qadam_optimizer(self) -> None:
-
         has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])
 
         if not has_qadam_optimizer or len(self.optimizers) > 1 or len(self.lr_schedulers) > 1:
