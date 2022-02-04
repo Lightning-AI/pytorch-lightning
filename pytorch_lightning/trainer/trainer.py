@@ -1282,9 +1282,6 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         self._run_sanity_check()
 
         # enable train mode
@@ -1296,9 +1293,6 @@ class Trainer(
             self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         assert self.evaluating
 
         # reload dataloaders
@@ -1350,6 +1344,9 @@ class Trainer(
 
             # reload dataloaders
             val_loop._reload_evaluation_dataloaders()
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # run eval step
             with torch.no_grad():
@@ -1774,7 +1771,6 @@ class Trainer(
             self.train_dataloader,
             (DataLoader, CombinedLoader),
             self._data_connector._prepare_dataloader,
-            shuffle=True,
             mode=RunningStage.TRAINING,
         )
         loaders = (

@@ -18,12 +18,12 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 
 - on_epoch_start
 - on_epoch_end
-- on_batch_start
+- on_train_batch_start
 - model_forward
 - model_backward
 - on_after_backward
 - optimizer_step
-- on_batch_end
+- on_train_batch_end
 - training_step_end
 - on_training_end
 - etc...

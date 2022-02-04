@@ -159,10 +159,22 @@ class Callback:
         """Called when either of train/val/test epoch ends."""
 
     def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_start`` instead.
+
+        Called when the training batch begins.
+        """
 
     def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_end`` instead.
+
+        Called when the training batch ends.
+        """
 
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
