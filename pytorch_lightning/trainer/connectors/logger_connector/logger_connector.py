@@ -88,7 +88,9 @@ class LoggerConnector:
                 else []
             )
         elif isinstance(logger, Iterable) and not isinstance(logger, LoggerCollection):
-            self.trainer.loggers = list(logger)
+            logger_list = list(logger)
+            # Special case for when iterable is length 1 - self.trainer.logger needs to be a LoggerCollection
+            self.trainer.loggers = [LoggerCollection(logger_list)] if len(logger_list) == 1 else logger_list
         else:
             # Handles when logger is a LightningLoggerBase (single logger or LoggerCollection)
             self.trainer.loggers = [logger]
