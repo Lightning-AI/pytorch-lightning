@@ -76,6 +76,17 @@ def test_property_logger(tmpdir):
     assert model.logger == logger
 
 
+def test_property_loggers(tmpdir):
+    """Test that loggers in LightningModule is accessible via the Trainer."""
+    model = BoringModel()
+    assert model.loggers == []
+
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=logger)
+    model.trainer = trainer
+    assert model.loggers == [logger]
+
+
 def test_params_groups_and_state_are_accessible(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):

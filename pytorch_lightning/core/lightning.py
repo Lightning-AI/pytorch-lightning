@@ -37,6 +37,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import (
     _IS_WINDOWS,
@@ -253,12 +254,12 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self):
+    def logger(self) -> Optional[LightningLoggerBase]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
 
     @property
-    def loggers(self):
+    def loggers(self) -> Optional[List[LightningLoggerBase]]:
         """Reference to the loggers object in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
