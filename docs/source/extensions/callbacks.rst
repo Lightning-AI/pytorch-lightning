@@ -333,18 +333,6 @@ on_predict_epoch_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
     :noindex:
 
-on_batch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_start
-    :noindex:
-
-on_batch_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_end
-    :noindex:
-
 on_validation_batch_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -38,6 +38,7 @@ from pytorch_lightning.plugins import (
     TPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import (
+    BaguaEnvironment,
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
@@ -46,6 +47,7 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import (
+    BaguaStrategy,
     DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
@@ -515,6 +517,7 @@ class AcceleratorConnector:
     @property
     def use_ddp(self) -> bool:
         return self._strategy_type in (
+            _StrategyType.BAGUA,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
             _StrategyType.DDP_SHARDED,
@@ -535,6 +538,10 @@ class AcceleratorConnector:
     @property
     def use_deepspeed(self) -> bool:
         return self._strategy_type == _StrategyType.DEEPSPEED
+
+    @property
+    def use_bagua(self) -> bool:
+        return self._strategy_type == _StrategyType.BAGUA
 
     @property
     def _is_sharded_training_type(self) -> bool:
@@ -703,6 +710,8 @@ class AcceleratorConnector:
             plugin = DeepSpeedStrategy(
                 cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
+        elif self.use_ddp and self.use_bagua:
+            plugin = BaguaStrategy(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self._is_slurm_managing_tasks()
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.detect()
@@ -759,8 +768,6 @@ class AcceleratorConnector:
         # necessary for when the user has passed in a plugin
         if hasattr(training_type, "parallel_devices") and getattr(training_type, "parallel_devices") is None:
             training_type.parallel_devices = self.parallel_devices
-            if hasattr(training_type, "num_processes"):
-                training_type.num_processes = len(self.parallel_devices)
 
         if hasattr(training_type, "cluster_environment") and getattr(training_type, "cluster_environment") is None:
             # transfer ownership of the cluster environment to the training type
@@ -807,7 +814,7 @@ class AcceleratorConnector:
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
 
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
                 return env_type()
 

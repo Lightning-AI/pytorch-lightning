@@ -84,7 +84,7 @@ def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
     model = BoringModel()
 
     class InterruptCallback(Callback):
-        def on_batch_start(self, trainer, pl_module):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
             raise KeyboardInterrupt
 
     trainer = Trainer(callbacks=[InterruptCallback()], default_root_dir=tmpdir, **extra_params)

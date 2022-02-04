@@ -288,16 +288,6 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_batch_start(self, _, pl_module, *__):
-            self.make_logging(
-                pl_module, "on_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
-        def on_batch_end(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
         def on_train_batch_start(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
@@ -350,8 +340,6 @@ def test_log_works_in_train_callback(tmpdir):
         "on_train_epoch_start": 1,
         "on_train_batch_start": 2,
         "on_train_batch_end": 2,
-        "on_batch_start": 2,
-        "on_batch_end": 2,
         "on_train_epoch_end": 1,
         "on_epoch_end": 1,
     }
@@ -533,8 +521,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
-        def on_batch_end(self, trainer, pl_module):
-            self.log("on_batch_end", 4)
+        def on_epoch_end(self, trainer, pl_module):
+            self.log("on_epoch_end", 4)
 
         def on_train_epoch_end(self, trainer, pl_module):
             self.log("on_train_epoch_end", 5)
@@ -554,7 +542,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         "on_train_start": 1,
         "on_train_epoch_start": 2,
         "on_train_batch_end": 3,
-        "on_batch_end": 4,
+        "on_epoch_end": 4,
         "on_train_epoch_end": 5,
     }
     assert trainer.callback_metrics == expected

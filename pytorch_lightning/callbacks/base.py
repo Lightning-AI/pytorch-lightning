@@ -57,7 +57,12 @@ class Callback:
         return f"{self.__class__.__qualname__}{repr(kwargs)}"
 
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called before configure sharded model."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use `setup()` instead.
+
+        Called before configure sharded model.
+        """
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called before accelerator is being setup."""
@@ -166,10 +171,22 @@ class Callback:
         """
 
     def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch begins."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_start`` instead.
+
+        Called when the training batch begins.
+        """
 
     def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch ends."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_end`` instead.
+
+        Called when the training batch ends.
+        """
 
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
