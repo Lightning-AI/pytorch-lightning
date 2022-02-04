@@ -43,6 +43,7 @@ Strategy API
     :nosignatures:
     :template: classtemplate.rst
 
+    BaguaStrategy
     DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
