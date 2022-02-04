@@ -91,8 +91,9 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
     # test HPC saving
     # save logger to make sure we get all the metrics
-    if trainer.logger:
-        trainer.logger.finalize("finished")
+    if trainer.loggers:
+        for logger in trainer.loggers:
+            logger.finalize("finished")
     hpc_save_path = trainer._checkpoint_connector.hpc_save_path(ckpt_path)
     trainer.save_checkpoint(hpc_save_path)
     # test HPC loading

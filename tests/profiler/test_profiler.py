@@ -496,7 +496,8 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     # Wrap the logger in a list so it becomes a LoggerCollection
     logger = [TensorBoardLogger(save_dir=tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-    assert isinstance(trainer.logger, LoggerCollection)
+    for logger in trainer.loggers:
+        assert isinstance(logger, LoggerCollection)
     trainer.fit(model)
     assert look_for_trace(tmpdir)
 

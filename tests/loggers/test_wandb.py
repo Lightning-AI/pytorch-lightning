@@ -109,8 +109,9 @@ def test_wandb_pickle(wandb, tmpdir):
     trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ["WANDB_MODE"] == "dryrun"
-    assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-    assert trainer2.logger.experiment, "missing experiment"
+    for logger in trainer2.loggers:
+        assert logger.__class__.__name__ == WandbLogger.__name__
+        assert logger.experiment, "missing experiment"
 
     wandb.init.assert_called()
     assert "id" in wandb.init.call_args[1]

@@ -35,7 +35,8 @@ def test_passing_no_env_variables():
 def test_passing_env_variables_only():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
-    assert trainer.logger is None
+    for logger in trainer.loggers:
+        assert logger is None
     assert trainer.max_steps == 7
 
 
@@ -43,7 +44,8 @@ def test_passing_env_variables_only():
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments."""
     trainer = Trainer(False, max_steps=42)
-    assert trainer.logger is None
+    for logger in trainer.loggers:
+        assert logger is None
     assert trainer.max_steps == 42
 
 
