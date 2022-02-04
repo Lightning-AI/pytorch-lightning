@@ -43,7 +43,8 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         def training_step(self, batch, batch_idx):
             self.log("some_metric", torch.tensor(7.0))
-            self.logger.experiment.dummy_log("some_distribution", torch.randn(7) + batch_idx)
+            for logger in self.loggers:
+                logger.experiment.dummy_log("some_distribution", torch.randn(7) + batch_idx)
             self.training_step_call_count += 1
             return super().training_step(batch, batch_idx)
 
@@ -92,7 +93,8 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
         assert trainer.check_val_every_n_epoch == 1
 
         # there should be no logger with fast_dev_run
-        assert isinstance(trainer.logger, DummyLogger)
+        for logger in trainer.loggers:
+            assert isinstance(logger, DummyLogger)
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback

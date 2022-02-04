@@ -56,7 +56,8 @@ class TestModel(BoringModel):
         self.log(self.log_name.format(rank=self.local_rank), 0)
 
     def on_train_end(self):
-        assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
+        for logger in self.loggers:
+            assert self.log_name.format(rank=self.local_rank) in logger.logs, "Expected rank to be logged"
 
 
 @RunIf(skip_windows=True, skip_49370=True)
@@ -107,12 +108,14 @@ def test_first_logger_call_in_subprocess(tmpdir):
         def setup(self, trainer, pl_module, stage):
             # this hook is executed after Strategy has setup the environment
             # logger should not write any logs until this point
-            assert not trainer.logger.method_calls
-            assert not os.listdir(trainer.logger.save_dir)
+            for logger in trainer.loggers:
+                assert not logger.method_calls
+                assert not os.listdir(logger.save_dir)
 
         def on_train_start(self, trainer, pl_module):
-            assert trainer.logger.method_call
-            trainer.logger.log_graph.assert_called_once()
+            for logger in trainer.loggers:
+                assert logger.method_call
+                logger.log_graph.assert_called_once()
 
     logger = Mock()
     logger.version = "0"
@@ -164,16 +167,20 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
 
     class LoggerCallsObserver(Callback):
         def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            trainer.logger.log_metrics({"fit": 1})
+            for logger in trainer.loggers:
+                logger.log_metrics({"fit": 1})
 
         def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            trainer.logger.log_metrics({"validate": 1})
+            for logger in trainer.loggers:
+                logger.log_metrics({"validate": 1})
 
         def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            trainer.logger.log_metrics({"predict": 1})
+            for logger in trainer.loggers:
+                logger.log_metrics({"predict": 1})
 
         def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            trainer.logger.log_metrics({"test": 1})
+            for logger in trainer.loggers:
+                logger.log_metrics({"test": 1})
 
     model = BoringModel()
     trainer = Trainer(
@@ -185,10 +192,14 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
         callbacks=[LoggerCallsObserver()],
     )
 
-    assert not trainer.logger.logs
+    for logger in trainer.loggers:
+        assert not logger.logs
     trainer.fit(model)
-    assert trainer.logger.logs == {"fit": 1, "validate": 1}
+    for logger in trainer.loggers:
+        assert logger.logs == {"fit": 1, "validate": 1}
     trainer.test(model)
-    assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1}
+    for logger in trainer.loggers:
+        assert logger.logs == {"fit": 1, "validate": 1, "test": 1}
     trainer.predict(model)
-    assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}
+    for logger in trainer.loggers:
+        assert logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}

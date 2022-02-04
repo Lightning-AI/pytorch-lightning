@@ -95,9 +95,10 @@ def test_gcs_save_hparams_to_yaml_file(tmpdir):
     dir_path = gcs_path_join(tmpdir)
 
     model = BoringModel()
-    logger = TensorBoardLogger(save_dir=dir_path, default_hp_metric=False)
-    trainer = Trainer(max_steps=1, default_root_dir=dir_path, logger=logger)
-    assert trainer.log_dir == trainer.logger.log_dir
+    tensorboard_logger = TensorBoardLogger(save_dir=dir_path, default_hp_metric=False)
+    trainer = Trainer(max_steps=1, default_root_dir=dir_path, logger=tensorboard_logger)
+    for logger in trainer.loggers:
+        assert trainer.log_dir == logger.log_dir
     trainer.fit(model)
 
     hparams_file = "hparams.yaml"
