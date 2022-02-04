@@ -17,9 +17,10 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
-from tests.helpers.runif import RunIf
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
+
 
 def test_v2_0_0_deprecated_num_processes(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
