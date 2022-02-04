@@ -2501,7 +2501,7 @@ class Trainer(
             if len(self._loggers) == 1:
                 new_logger = self._loggers[0]
                 self._logger = new_logger
-                if(isinstance(new_logger, LoggerCollection)):
+                if isinstance(new_logger, LoggerCollection):
                     self._loggers = list(new_logger)
             else:
                 self._logger = LoggerCollection(self._loggers)
