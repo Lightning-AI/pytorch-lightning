@@ -307,7 +307,8 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
     max_epochs = 2
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
+    for logger in trainer.loggers:
+        assert checkpoint.dirpath == tmpdir / logger.name / "version_0" / "checkpoints"
 
     if save_top_k == -1:
         ckpt_files = os.listdir(checkpoint.dirpath)
