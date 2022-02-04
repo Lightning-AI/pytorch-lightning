@@ -344,6 +344,14 @@ def _check_on_epoch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule"
                 f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
             )
 
+    for hook, alternative_hook in hooks:
+        for callback in trainer.callbacks:
+            if is_overridden(method_name=hook, instance=callback):
+                rank_zero_deprecation(
+                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
+                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+                )
+
 
 # TODO: Remove on_batch_start/on_batch_end hooks in v1.8
 def _check_on_batch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
