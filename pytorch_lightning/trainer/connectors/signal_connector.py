@@ -66,8 +66,9 @@ class SignalConnector:
         rank_zero_info("handling SIGUSR1")
 
         # save logger to make sure we get all the metrics
-        if self.trainer.logger:
-            self.trainer.logger.finalize("finished")
+        if self.trainer.loggers:
+            for logger in self.trainer.loggers:
+                logger.finalize("finished")
         hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
         self.trainer.save_checkpoint(hpc_save_path)
 
