@@ -147,8 +147,8 @@ class BaguaStrategy(DDPStrategy):
     def _set_node_environment_variables(self) -> None:
         """Set the environment variables as required by the :func:`bagua.init_process_group` call.
 
-        This enables the use of other cluster environments which don't set these exact variables, e.g.,
-        Bagua can be launched with ``torch.distributed.run``.
+        This enables the use of other cluster environments which don't set these exact variables, e.g., Bagua can be
+        launched with ``torch.distributed.run``.
         """
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address  # type: ignore[union-attr]
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)  # type: ignore[union-attr]
