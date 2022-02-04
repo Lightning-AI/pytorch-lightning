@@ -186,10 +186,9 @@ def test_multiple_loggers_pickle(tmpdir):
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0}, 0)
-
-    assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
-    assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
+    for logger in trainer2.loggers:
+        logger.log_metrics({"acc": 1.0}, 0)
+        assert logger.metrics_logged == {"acc": 1.0}
 
 
 def test_adding_step_key(tmpdir):
@@ -206,12 +205,14 @@ def test_adding_step_key(tmpdir):
 
     class CustomModel(BoringModel):
         def training_epoch_end(self, outputs):
-            self.logger.logged_step += 1
-            self.log_dict({"step": self.logger.logged_step, "train_acc": self.logger.logged_step / 10})
+            for logger in self.loggers:
+                logger.logged_step += 1
+                self.log_dict({"step": logger.logged_step, "train_acc": logger.logged_step / 10})
 
         def validation_epoch_end(self, outputs):
-            self.logger.logged_step += 1
-            self.log_dict({"step": self.logger.logged_step, "val_acc": self.logger.logged_step / 10})
+            for logger in self.loggers:
+                logger.logged_step += 1
+                self.log_dict({"step": logger.logged_step, "val_acc": logger.logged_step / 10})
 
     model = CustomModel()
     trainer = Trainer(

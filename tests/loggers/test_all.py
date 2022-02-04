@@ -219,7 +219,8 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
-    assert trainer.logger.save_dir == save_dir
+    for logger in trainer.loggers:
+        assert logger.save_dir == save_dir
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "name" / "version" / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
@@ -282,11 +283,12 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     pkl_bytes = pickle.dumps(trainer)
 
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0})
+    for logger in trainer2.loggers:
+        logger.log_metrics({"acc": 1.0})
 
-    # make sure we restord properly
-    assert trainer2.logger.name == logger.name
-    assert trainer2.logger.save_dir == logger.save_dir
+        # make sure we restord properly
+        assert logger.name == logger.name
+        assert logger.save_dir == logger.save_dir
 
 
 @pytest.mark.parametrize(
@@ -307,10 +309,10 @@ def test_logger_reset_correctly(tmpdir, extra_params):
     tutils.reset_seed()
     model = CustomModel()
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
-    logger1 = trainer.logger
+    logger1 = trainer.loggers[0]
     trainer.tune(model)
-    logger2 = trainer.logger
-    logger3 = model.logger
+    logger2 = trainer.loggers[0]
+    logger3 = model.loggers[0]
 
     assert logger1 == logger2, "Finder altered the logger of trainer"
     assert logger2 == logger3, "Finder altered the logger of model"
@@ -321,12 +323,14 @@ class RankZeroLoggerCheck(Callback):
     # due to the way ddp process is launched
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
-        is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
+        for logger in trainer.loggers:
+            is_dummy = isinstance(logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
             assert not is_dummy
         else:
             assert is_dummy
-            assert pl_module.logger.experiment.something(foo="bar") is None
+            for logger in pl_module.loggers:
+                assert logger.experiment.something(foo="bar") is None
 
 
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
