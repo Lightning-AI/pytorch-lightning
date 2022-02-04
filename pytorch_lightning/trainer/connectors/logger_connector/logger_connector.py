@@ -78,17 +78,20 @@ class LoggerConnector:
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
             # default logger
-            self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
+            self.loggers = (
+                [
+                    TensorBoardLogger(
+                        save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
+                    )
+                ]
                 if logger
-                else None
+                else []
             )
-        elif isinstance(logger, Iterable):
-            self.trainer.logger = LoggerCollection(logger)
+        elif isinstance(logger, Iterable) and not isinstance(logger, LoggerCollection):
+            self.trainer.loggers = list(logger)
         else:
-            self.trainer.logger = logger
+            # Handles when logger is a LightningLoggerBase (single logger or LoggerCollection)
+            self.trainer.loggers = [logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
@@ -99,7 +102,7 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        if self.trainer.logger is None or not metrics:
+        if not self.trainer.loggers or not metrics:
             return
 
         self._logged_metrics.update(metrics)
@@ -116,8 +119,9 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-        self.trainer.logger.save()
+        for logger in self.trainer.loggers:
+            logger.agg_and_log_metrics(scalar_metrics, step=step)
+            logger.save()
 
     """
     Evaluation metric updates
