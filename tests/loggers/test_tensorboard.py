@@ -45,10 +45,12 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
     model = CustomModel()
-    assert trainer.log_dir == trainer.logger.log_dir
+    for logger in trainer.loggers:
+        assert trainer.log_dir == logger.log_dir
     trainer.fit(model)
 
-    assert trainer.log_dir == trainer.logger.log_dir
+    for logger in trainer.loggers:
+        assert trainer.log_dir == logger.log_dir
     folder_path = trainer.log_dir
 
     # make sure yaml is there
@@ -141,19 +143,22 @@ def test_tensorboard_log_sub_dir(tmpdir):
     save_dir = tmpdir / "logs"
     logger = TestLogger(save_dir)
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version")
+    for logger in trainer.loggers:
+        assert logger.log_dir == os.path.join(save_dir, "name", "version")
 
     # sub_dir specified
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(save_dir, "name", "version", "sub_dir")
+    for logger in trainer.loggers:
+        assert logger.log_dir == os.path.join(save_dir, "name", "version", "sub_dir")
 
     # test home dir (`~`) handling
     save_dir = "~/tmp"
     explicit_save_dir = os.path.expanduser(save_dir)
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    for logger in trainer.loggers:
+        assert logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
     # test env var (`$`) handling
     test_env_dir = "some_directory"
@@ -162,7 +167,8 @@ def test_tensorboard_log_sub_dir(tmpdir):
     explicit_save_dir = f"{test_env_dir}/tmp"
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    for logger in trainer.loggers:
+        assert logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
@@ -299,7 +305,8 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     model = BoringModel()
     logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
-    assert trainer.log_dir == trainer.logger.log_dir
+    for logger in trainer.loggers:
+        assert trainer.log_dir == logger.log_dir
     trainer.fit(model)
 
     hparams_file = "hparams.yaml"

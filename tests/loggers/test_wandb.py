@@ -103,7 +103,8 @@ def test_wandb_pickle(wandb, tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
     # Access the experiment to ensure it's created
-    assert trainer.logger.experiment, "missing experiment"
+    for logger in trainer.loggers:
+        assert logger.experiment, "missing experiment"
     assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
