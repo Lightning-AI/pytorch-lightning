@@ -20,7 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.ddp_spawn import DDPSpawnLauncher
+from pytorch_lightning.strategies.launchers.spawn import SpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -83,7 +83,7 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     assert model.test_val == "test_val"
 
 
-class CustomDDPSpawnLauncher(DDPSpawnLauncher):
+class CustomSpawnLauncher(SpawnLauncher):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
@@ -94,9 +94,9 @@ class CustomDDPSpawnLauncher(DDPSpawnLauncher):
 
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
-    def launch(self, function, *args, **kwargs):
-        launcher = CustomDDPSpawnLauncher()
-        return launcher.launch(function, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._launcher = CustomSpawnLauncher(self)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
@@ -155,14 +155,13 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPSpawnStrategy()
-    launcher = DDPSpawnLauncher()
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
     temp_file = Path(tmpdir, ".temp.ckpt")
 
     assert not temp_file.exists()
-    spawn_output = launcher._collect_rank_zero_results(trainer, {})
+    spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
 
     model.state_dict.assert_called_once()
     if trainer_fn == TrainerFn.FITTING:
@@ -173,6 +172,6 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
         assert not temp_file.exists()
 
     # <-- here would normally be the multiprocessing boundary
-    launcher._recover_results_in_main_process(spawn_output, trainer)
+    strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
     assert not temp_file.exists()

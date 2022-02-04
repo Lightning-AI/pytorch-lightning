@@ -13,14 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.types import _DEVICE
 
@@ -40,10 +39,6 @@ class SingleDeviceStrategy(Strategy):
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
-
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        launcher = SingleProcessLauncher()
-        return launcher.launch(function, *args, **kwargs)
 
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only

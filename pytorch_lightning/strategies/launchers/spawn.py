@@ -30,17 +30,19 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
 
-class DDPSpawnLauncher(Launcher):
+class SpawnLauncher(Launcher):
+    def __init__(self, strategy: Strategy):
+        self._strategy = strategy
+
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer", None)
-        strategy = kwargs.pop("strategy")
-        os.environ["MASTER_PORT"] = str(strategy.cluster_environment.main_port)
+        os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
         mp.spawn(
             self._wrapped_function,
-            args=(strategy, trainer, function, args, kwargs, return_queue),
-            nprocs=strategy.num_processes,
+            args=(trainer, function, args, kwargs, return_queue),
+            nprocs=self._strategy.num_processes,
         )
         spawn_output = return_queue.get()
         if trainer is None:
@@ -52,20 +54,19 @@ class DDPSpawnLauncher(Launcher):
     def _wrapped_function(
         self,
         process_idx: int,
-        strategy: Strategy,
         trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        strategy._worker_setup(process_idx)
+        self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if strategy.local_rank == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
@@ -76,11 +77,11 @@ class DDPSpawnLauncher(Launcher):
         # TODO: pass also best score
         # load last weights
         if spawn_output.weights_path is not None:
-            ckpt = trainer.strategy.checkpoint_io.load_checkpoint(
+            ckpt = self._strategy.checkpoint_io.load_checkpoint(
                 spawn_output.weights_path, map_location=(lambda storage, loc: storage)
             )
             trainer.lightning_module.load_state_dict(ckpt)
-            trainer.strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
+            self._strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         trainer.state = spawn_output.trainer_state
 
@@ -99,14 +100,14 @@ class DDPSpawnLauncher(Launcher):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
 
-        if trainer.strategy.global_rank != 0:
+        if self._strategy.global_rank != 0:
             return
 
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
-            trainer.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
+            self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()

@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -26,7 +26,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.ddp_spawn import DDPSpawnLauncher
+from pytorch_lightning.strategies.launchers.spawn import SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
@@ -82,6 +82,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self.set_world_ranks()
+        self._launcher = SpawnLauncher(self)
 
     @property
     def num_nodes(self) -> int:
@@ -139,10 +140,6 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
-
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        launcher = DDPSpawnLauncher()
-        return launcher.launch(function, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

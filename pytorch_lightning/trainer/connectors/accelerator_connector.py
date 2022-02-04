@@ -775,6 +775,9 @@ class AcceleratorConnector:
             # set sync_batchnorm for training_type from trainer setting
             training_type.sync_batchnorm = self.sync_batchnorm
 
+        if isinstance(training_type, DDPStrategy):
+            training_type.configure_multi_process_launcher()
+
         return training_type
 
     def select_accelerator(self) -> Accelerator:

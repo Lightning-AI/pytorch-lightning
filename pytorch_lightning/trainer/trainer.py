@@ -668,9 +668,11 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            kwargs["trainer"] = self
-            kwargs["strategy"] = self.strategy
-            return self.strategy.launch(trainer_fn, *args, **kwargs)
+            if self.strategy.launcher is not None:
+                kwargs["trainer"] = self
+                return self.strategy.launcher.launch(trainer_fn, *args, **kwargs)
+            else:
+                return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")

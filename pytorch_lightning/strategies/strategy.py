@@ -27,6 +27,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.launchers.base import Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -48,6 +49,7 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
+        self._launcher = None
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
@@ -61,6 +63,10 @@ class Strategy(ABC):
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
             )
+
+    @property
+    def launcher(self) -> Optional[Launcher]:
+        return self._launcher
 
     @property
     def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
@@ -138,10 +144,6 @@ class Strategy(ABC):
         self.model = model
         self.optimizers = optimizers
         self.lr_schedulers = schedulers
-
-    @abstractmethod
-    def launch(self, function: Any, *args: Any, **kwargs: Any) -> Any:
-        """Launch the proceses using a Launcher."""
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the appropriate device if needed."""

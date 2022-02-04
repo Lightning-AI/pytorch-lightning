@@ -24,7 +24,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.tpu_spawn import TPUSpawnLauncher
+from pytorch_lightning.strategies.launchers.xla_spawn import XLASpawnLauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.data import has_len
@@ -67,6 +67,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = "fork"
+        self._launcher = XLASpawnLauncher(self)
 
     @property
     def global_rank(self) -> int:
@@ -211,10 +212,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method,
         }
-
-    def launch(self, function: Any, *args: Any, **kwargs: Any) -> Any:
-        launcher = TPUSpawnLauncher()
-        return launcher.launch(function, *args, **kwargs)
 
     def _worker_setup(self, process_idx: int):
         reset_seed()

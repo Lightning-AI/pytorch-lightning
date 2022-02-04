@@ -402,8 +402,11 @@ class LightningLite(ABC):
         # apply sharded context to prevent OOM
         run_method = partial(self._run_with_sharded_context, run_method)
         run_method = partial(self._wrapped_run_method, run_method)
-        kwargs["strategy"] = self._strategy
-        return self._strategy.launch(run_method, *args, **kwargs)
+
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(run_method, *args, **kwargs)
+        else:
+            return run_method(*args, **kwargs)
 
     def _wrapped_run_method(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()

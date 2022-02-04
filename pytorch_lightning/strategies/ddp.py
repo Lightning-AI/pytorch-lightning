@@ -18,7 +18,7 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -32,8 +32,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.ddp import DDPSubprocessLauncher
-from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
+from pytorch_lightning.strategies.launchers.multi_process import MultiProcessLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -106,7 +105,7 @@ class DDPStrategy(ParallelStrategy):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
-        self._rank_0_has_called_call_children_scripts: bool = False
+        self._rank_0_will_call_children_scripts: bool = False
         self.set_world_ranks()
 
     @property
@@ -136,14 +135,10 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        if self.cluster_environment.creates_processes_externally:
-            launcher = SingleProcessLauncher()
-        else:
-            launcher = DDPSubprocessLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
-            self._rank_0_has_called_call_children_scripts = True
-
-        return launcher.launch(function, *args, **kwargs)
+    def configure_multi_process_launcher(self):
+        if self.launcher is None and not self.cluster_environment.creates_processes_externally:
+            self._launcher = MultiProcessLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+            self._rank_0_will_call_children_scripts = True
 
     def setup_environment(self) -> None:
         self.setup_distributed()
@@ -152,7 +147,7 @@ class DDPStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         super().setup(trainer)
         # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
@@ -365,7 +360,7 @@ class DDPStrategy(ParallelStrategy):
         By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
         parent process to perform the process termination, external to Lightning.
         """
-        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_has_called_call_children_scripts
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_will_call_children_scripts
 
     def _share_information_to_prevent_deadlock(self) -> None:
         self._share_pids()

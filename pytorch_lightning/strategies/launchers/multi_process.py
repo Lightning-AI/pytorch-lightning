@@ -30,7 +30,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
-class DDPSubprocessLauncher(Launcher):
+class MultiProcessLauncher(Launcher):
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
@@ -40,7 +40,6 @@ class DDPSubprocessLauncher(Launcher):
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         kwargs.pop("trainer", None)
-        kwargs.pop("strategy")
         self._call_children_scripts()
         return function(*args, **kwargs)
 

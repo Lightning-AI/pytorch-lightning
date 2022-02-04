@@ -19,8 +19,7 @@ from typing import Any, Callable, Optional
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnLauncher
-from pytorch_lightning.strategies.strategy import Strategy
+from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnOutput, SpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -33,16 +32,15 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnLauncher(DDPSpawnLauncher):
+class XLASpawnLauncher(SpawnLauncher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         trainer = kwargs.pop("trainer", None)
-        strategy = kwargs.pop("strategy")
-        context = mp.get_context(strategy.start_method or "fork")
+        context = mp.get_context(self._strategy.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapped_function,
-            args=(strategy, trainer, function, args, kwargs, return_queue),
-            **strategy.get_mp_spawn_kwargs()
+            args=(trainer, function, args, kwargs, return_queue),
+            **self._strategy.get_mp_spawn_kwargs()
         )
         spawn_output = return_queue.get()
         if trainer is None:
@@ -54,28 +52,27 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
     def _wrapped_function(
         self,
         process_idx: int,
-        strategy: Strategy,
         trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        strategy._worker_setup(process_idx)
+        self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if strategy.local_rank == 0:
+        if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        strategy.barrier("end-process")
+        self._strategy.barrier("end-process")
 
         # Ensure that the rank 0 process is the one exiting last
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if strategy.local_rank == 0:
+        if self._strategy.local_rank == 0:
             time.sleep(2)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
@@ -90,10 +87,10 @@ class TPUSpawnLauncher(DDPSpawnLauncher):
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
-            trainer.strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
+            self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
-        if trainer.strategy.local_rank != 0:
+        if self._strategy.local_rank != 0:
             return
 
         # adds the `callback_metrics` to the queue

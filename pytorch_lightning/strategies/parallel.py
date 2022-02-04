@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Callable, List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -24,7 +24,6 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.single_process import SingleProcessLauncher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
@@ -125,10 +124,6 @@ class ParallelStrategy(Strategy, ABC):
                 yield None
         else:
             yield None
-
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        launcher = SingleProcessLauncher()
-        return launcher.launch(function, *args, **kwargs)
 
     def teardown(self) -> None:
         self.cluster_environment.teardown()
