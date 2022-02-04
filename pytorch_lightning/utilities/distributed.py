@@ -15,8 +15,6 @@
 
 import logging
 import os
-from functools import wraps
-from platform import python_version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -25,6 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_only  # noqa: F401
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -42,56 +41,6 @@ else:
 
 
 log = logging.getLogger(__name__)
-
-
-def rank_zero_only(fn: Callable) -> Callable:
-    """Function that can be used as a decorator to enable a function/method being called only on rank 0."""
-
-    @wraps(fn)
-    def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
-        if rank_zero_only.rank == 0:
-            return fn(*args, **kwargs)
-        return None
-
-    return wrapped_fn
-
-
-# TODO: this should be part of the cluster environment
-def _get_rank() -> int:
-    rank_keys = ("RANK", "SLURM_PROCID", "LOCAL_RANK")
-    for key in rank_keys:
-        rank = os.environ.get(key)
-        if rank is not None:
-            return int(rank)
-    return 0
-
-
-# add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
-
-
-def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.info(*args, **kwargs)
-
-
-def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.debug(*args, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log debug-level messages only on rank 0."""
-    _debug(*args, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log info-level messages only on rank 0."""
-    _info(*args, stacklevel=stacklevel, **kwargs)
 
 
 def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:

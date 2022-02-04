@@ -14,41 +14,17 @@
 """Warning-related utilities."""
 
 import warnings
-from functools import partial
-from typing import Any, Union
+from typing import Any
 
-from pytorch_lightning.utilities.distributed import rank_zero_only
-
-
-def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
-    if type(stacklevel) is type and issubclass(stacklevel, Warning):
-        rank_zero_deprecation(
-            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
-            f" Please, use `category={stacklevel.__name__}`."
-        )
-        kwargs["category"] = stacklevel
-        stacklevel = kwargs.pop("stacklevel", 2)
-    warnings.warn(message, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log warn-level messages only on rank 0."""
-    _warn(message, stacklevel=stacklevel, **kwargs)
-
-
-class PossibleUserWarning(UserWarning):
-    """Warnings that could be false positives."""
-
-
-class LightningDeprecationWarning(DeprecationWarning):
-    """Deprecation warnings raised by PyTorch Lightning."""
-
+from pytorch_lightning.utilities.rank_zero import (  # noqa: F401
+    LightningDeprecationWarning,
+    rank_zero_deprecation,
+    rank_zero_only,
+    rank_zero_warn,
+)
 
 # enable our warnings
 warnings.simplefilter("default", category=LightningDeprecationWarning)
-
-rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
 class WarningCache(set):
