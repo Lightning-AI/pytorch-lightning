@@ -208,7 +208,7 @@ class RunIf:
             kwargs["slow"] = True
 
         if bagua:
-            conditions.append(not _BAGUA_AVAILABLE)
+            conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
