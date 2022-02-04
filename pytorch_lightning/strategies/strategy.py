@@ -28,15 +28,11 @@ from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import (
-    _FAIRSCALE_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_deprecation,
-    rank_zero_only,
-)
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
@@ -167,7 +163,7 @@ class Strategy(ABC):
         if (_TORCH_GREATER_EQUAL_1_10 and isinstance(optimizer, ZeroRedundancyOptimizer)) or (
             _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS)
         ):
-            optimizer.consolidate_state_dict(to=0)
+            optimizer.consolidate_state_dict()
             # only call state_dict on the rank where the states were consolidated
             return self._rank_zero_only_optim_state_dict(optimizer)
         else:

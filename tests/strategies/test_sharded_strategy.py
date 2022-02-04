@@ -8,12 +8,13 @@ import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
+    from fairscale.optim import OSS
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
@@ -278,3 +279,27 @@ def test_block_backward_sync(tmpdir):
         with strategy.block_backward_sync():
             pass
     model.no_sync.assert_called_once()
+
+
+class BoringFairScaleOptimizerModel(BoringModel):
+    def configure_optimizers(self):
+        base_optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
+
+
+@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
+@pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
+def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
+    """Test to ensure that checkpoint is saved correctly when using fairscale optimizers."""
+    model = BoringFairScaleOptimizerModel()
+    trainer = Trainer(gpus=2, max_epochs=2, strategy="ddp_sharded_spawn")
+
+    trainer.fit(model)
+
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer.save_checkpoint(checkpoint_path)
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(ddp_param.to("cpu"), shard_param)

@@ -593,6 +593,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `DDPStrategy` and `DDPSpawnStrategy` to initialize optimizers only after moving the module to the device ([#11886](https://github.com/PyTorchLightning/pytorch-lightning/pull/11886))
 
 
+- Fixed `Strategy` to support FairScale OSS optimizer and ZeRO optimizer outside of DPP sharded strategy ([#11867](https://github.com/PyTorchLightning/pytorch-lightning/pull/11867))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed

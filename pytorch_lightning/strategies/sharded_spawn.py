@@ -24,7 +24,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -69,11 +68,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
         return self._reinit_optimizers_with_oss(optimizers)
 
-    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if isinstance(optimizer, OSS):
-            optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
-
     @contextmanager
     def block_backward_sync(self) -> Generator:
         """Blocks syncing gradients behaviour on backwards pass.
@@ -86,14 +80,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
                 yield None
         else:
             yield None
-
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
