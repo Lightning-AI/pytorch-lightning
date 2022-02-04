@@ -986,16 +986,13 @@ The current logger being used (tensorboard or other supported logger)
 loggers
 ~~~~~~~
 
-The list of loggers currently being used (tensorboard or other supported loggers)
+The list of loggers currently being used.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # the list of generic loggers (same no matter if tensorboard or other supported loggers)
+        # List of LightningLoggerBase objects
         self.loggers
-
-        # the particular logger
-        tensorboard_logger = self.loggers[0].experiment
 
 local_rank
 ~~~~~~~~~~~

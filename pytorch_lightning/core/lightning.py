@@ -260,7 +260,7 @@ class LightningModule(
     @property
     def loggers(self):
         """Reference to the loggers object in the Trainer."""
-        return self.trainer.loggers if self.trainer else None
+        return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0

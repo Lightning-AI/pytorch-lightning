@@ -1749,13 +1749,15 @@ The current logger being used. Here's an example using tensorboard
 loggers (p)
 ***********
 
-The list of loggers currently being used. Here's an example using tensorboard
+The list of loggers currently being used.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        loggers = self.trainer.loggers
-        tensorboard = loggers[0].experiment
+        # List of LightningLoggerBase objects
+        loggers = trainer.loggers
+        for logger in loggers:
+            logger.log_metrics({"foo": 1.0})
 
 
 logged_metrics
