@@ -40,6 +40,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
 
 
 if _BAGUA_AVAILABLE:
+    # Convert a reduce op to its equivalent `bagua.torch_api.ReduceOp`
     _bagua_reduce_ops = {
         ReduceOp.SUM: BaguaReduceOp.SUM,
         ReduceOp.PRODUCT: BaguaReduceOp.PRODUCT,
@@ -54,12 +55,6 @@ if _BAGUA_AVAILABLE:
     }
 else:
     _bagua_reduce_ops = {}
-
-
-def _from_reduce_op(reduce_op: Union[ReduceOp, str]) -> Optional[BaguaReduceOp]:
-    """Convert a reduce op to its equivalent `bagua.torch_api.ReduceOp`."""
-    global _bagua_reduce_ops
-    return _bagua_reduce_ops.get(reduce_op, None)
 
 
 class BaguaStrategy(DDPStrategy):
@@ -232,7 +227,7 @@ class BaguaStrategy(DDPStrategy):
         if reduce_op is None:
             op = BaguaReduceOp.AVG
         else:
-            op = _from_reduce_op(reduce_op)
+            op = _bagua_reduce_ops.get(reduce_op, None)
             if op is None:
                 raise ValueError(f"Unrecognized `reduce_op` for `BaguaStrategy`: {reduce_op}")
 
