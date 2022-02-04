@@ -305,8 +305,7 @@ class EvaluationLoop(DataLoaderLoop):
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output
-        term_size = shutil.get_terminal_size(fallback=(120, 30)).columns
-        term_size = term_size or 120
+        term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
         max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
 
         rows: List[List[Any]] = [[] for _ in metrics]
