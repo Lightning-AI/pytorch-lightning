@@ -121,8 +121,6 @@ def test_logdir_logger_collection(tmpdir):
     )
     assert isinstance(trainer.logger, LoggerCollection)
     assert trainer.log_dir == default_root_dir
-    # Figure out what to do for this test
-    assert False
 
     trainer.fit(model)
     assert trainer.log_dir == default_root_dir
