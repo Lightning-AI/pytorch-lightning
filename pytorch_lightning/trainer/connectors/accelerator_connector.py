@@ -520,32 +520,32 @@ class AcceleratorConnector:
 
     def _strategy_check_and_fallbacks(self):
         # current logic, fallback only apply to user pass in str config not object config
-        _strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
+        strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if _strategy_flag == "ddp_cpu":
+        if strategy_flag == "ddp_cpu":
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
             if self._device_flag == 1 and self._num_nodes_flag > 1:
-                _strategy_flag = "ddp"
+                strategy_flag = "ddp"
             else:
-                _strategy_flag = "ddp_spawn"
+                strategy_flag = "ddp_spawn"
             if self._accelerator_flag == "gpu":
                 rank_zero_warn(
                     "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
                 )
-        if _strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
+        if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
-            _strategy_flag = "ddp"
-        if _strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
-            rank_zero_warn(f"{_strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
-            _strategy_flag = "ddp"
+            strategy_flag = "ddp"
+        if strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
+            rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
+            strategy_flag = "ddp"
 
-        if _strategy_flag:
-            self._strategy_flag = _strategy_flag
+        if strategy_flag:
+            self._strategy_flag = strategy_flag
 
     def handle_horovod(self):
         if self._num_nodes_flag > 1:
@@ -596,7 +596,7 @@ class AcceleratorConnector:
                         f" is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
-        if isinstance(self._strategy_flag, DeepSpeedStrategy):
+        if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
         if self._precision_flag == 32:
