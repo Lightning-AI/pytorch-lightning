@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Any, List, Optional
@@ -26,7 +25,13 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    all_gather_ddp_if_available,
+    get_default_process_group_backend_for_device,
+    ReduceOp,
+)
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -123,3 +128,14 @@ class ParallelStrategy(Strategy, ABC):
     def teardown(self) -> None:
         self.cluster_environment.teardown()
         super().teardown()
+
+    @property
+    def torch_distributed_backend(self) -> str:
+        """Deprecated property."""
+        rank_zero_deprecation(
+            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
+        )
+        pg_backend = _get_process_group_backend_from_env()
+        if pg_backend:
+            return pg_backend
+        return get_default_process_group_backend_for_device(self.root_device)

@@ -37,6 +37,7 @@ from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
