@@ -82,7 +82,7 @@ def test_property_loggers(tmpdir):
     assert model.loggers == []
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(logger=logger)
+    trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
 
