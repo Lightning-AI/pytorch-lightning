@@ -27,6 +27,10 @@ from pytorch_lightning.utilities.rank_zero import (  # noqa: F401
 warnings.simplefilter("default", category=LightningDeprecationWarning)
 
 
+class PossibleUserWarning(UserWarning):
+    """Warnings that could be false positives."""
+
+
 class WarningCache(set):
     def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
         if message not in self:

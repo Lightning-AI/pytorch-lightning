@@ -90,10 +90,6 @@ def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: 
     _warn(message, stacklevel=stacklevel, **kwargs)
 
 
-class PossibleUserWarning(UserWarning):
-    """Warnings that could be false positives."""
-
-
 class LightningDeprecationWarning(DeprecationWarning):
     """Deprecation warnings raised by PyTorch Lightning."""
 
