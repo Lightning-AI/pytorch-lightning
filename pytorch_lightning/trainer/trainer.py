@@ -2087,7 +2087,7 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        # TODO: Figure out what to do here
+        # TODO: Figure out how to incorporate trainer.loggers
         if self.logger is None:
             dirpath = self.default_root_dir
         elif isinstance(self.logger, TensorBoardLogger):
