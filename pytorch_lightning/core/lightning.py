@@ -259,7 +259,7 @@ class LightningModule(
         return self.trainer.logger if self.trainer else None
 
     @property
-    def loggers(self) -> Optional[List[LightningLoggerBase]]:
+    def loggers(self) -> List[LightningLoggerBase]:
         """Reference to the loggers object in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
