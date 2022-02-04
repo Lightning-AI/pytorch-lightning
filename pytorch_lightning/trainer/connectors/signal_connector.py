@@ -68,7 +68,7 @@ class SignalConnector:
         # save logger to make sure we get all the metrics
         if self.trainer.logger:
             self.trainer.logger.finalize("finished")
-        hpc_save_path = self.trainer.checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
+        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
         self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:

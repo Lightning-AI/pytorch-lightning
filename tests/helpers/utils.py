@@ -15,7 +15,7 @@ import functools
 import os
 import traceback
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Type
 
 import pytest
 
@@ -114,15 +114,22 @@ def pl_multi_process_test(func):
 
 
 @contextmanager
-def no_warning_call(warning_type, match: Optional[str] = None):
+def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Optional[str] = None):
     with pytest.warns(None) as record:
         yield
 
+    if match is None:
         try:
-            w = record.pop(warning_type)
-            if not (match and match in str(w.message)):
-                return
+            w = record.pop(expected_warning)
         except AssertionError:
             # no warning raised
             return
-        raise AssertionError(f"`{warning_type}` was raised: {w}")
+    else:
+        for w in record.list:
+            if w.category is expected_warning and match in w.message.args[0]:
+                break
+        else:
+            return
+
+    msg = "A warning" if expected_warning is None else f"`{expected_warning.__name__}`"
+    raise AssertionError(f"{msg} was raised: {w}")
