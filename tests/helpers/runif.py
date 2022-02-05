@@ -136,7 +136,14 @@ class RunIf:
             reasons.append("NVIDIA Apex")
 
         if bf16_cuda:
-            conditions.append(not (_TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported()))
+            try:
+                cond = not (_TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+            except AssertionError as e:
+                if "Torch not compiled with CUDA enabled" not in str(e):
+                    raise e
+                cond = True
+
+            conditions.append(cond)
             reasons.append("CUDA device bf16")
 
         if skip_windows:
