@@ -197,8 +197,10 @@ class HorovodStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         super().teardown()
-        self._exit_stack.__exit__(None, None, None)
-        self._exit_stack = None
+        # teardown may be called before `_exit_stack` is set
+        if self._exit_stack:
+            self._exit_stack.__exit__(None, None, None)
+            self._exit_stack = None
         # Make sure all workers have finished training before returning to the user
         self.join()
         if self.root_device.type == "cuda":
