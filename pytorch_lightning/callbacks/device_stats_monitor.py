@@ -81,7 +81,7 @@ class DeviceStatsMonitor(Callback):
 
         if not trainer.logger_connector.should_update_logs:
             return
-        
+
         device = trainer.strategy.root_device
         device_stats = trainer.accelerator.get_device_stats(device)
         separator = trainer.logger.group_separator
