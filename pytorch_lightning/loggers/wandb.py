@@ -330,7 +330,7 @@ class WandbLogger(LightningLoggerBase):
 
         .. code-block:: python
 
-            self.logger.experiment.some_wandb_function()
+            self.loggers[logger_index].experiment.some_wandb_function()
 
         """
         if self._experiment is None:

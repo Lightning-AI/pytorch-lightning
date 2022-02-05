@@ -65,10 +65,10 @@ class TestTubeLogger(LightningLoggerBase):
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example
-                self.logger.experiment.whatever_method_summary_writer_supports(...)
+                self.loggers[logger_index].experiment.whatever_method_summary_writer_supports(...)
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.add_histogram(...)
+                self.loggers[logger_index].experiment.add_histogram(...)
 
     Args:
         save_dir: Save directory

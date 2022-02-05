@@ -155,7 +155,7 @@ class PrecisionPlugin(CheckpointHooks):
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
             return
-        kwargs = {"group_separator": trainer.logger.group_separator} if trainer.logger is not None else {}
+        kwargs = {"group_separator": trainer.loggers[0].group_separator} if trainer.loggers else {}
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
         if grad_norm_dict:
             prev_fx = trainer.lightning_module._current_fx_name

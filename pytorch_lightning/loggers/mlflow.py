@@ -80,10 +80,10 @@ class MLFlowLogger(LightningLoggerBase):
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # example
-                self.logger.experiment.whatever_ml_flow_supports(...)
+                self.loggers[logger_index].experiment.whatever_ml_flow_supports(...)
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.whatever_ml_flow_supports(...)
+                self.loggers[logger_index].experiment.whatever_ml_flow_supports(...)
 
     Args:
         experiment_name: The name of the experiment
@@ -145,7 +145,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         Example::
 
-            self.logger.experiment.some_mlflow_function()
+            self.loggers[logger_index].experiment.some_mlflow_function()
 
         """
         if self._experiment_id is None:

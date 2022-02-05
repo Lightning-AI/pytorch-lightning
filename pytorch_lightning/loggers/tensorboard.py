@@ -163,7 +163,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         Example::
 
-            self.logger.experiment.some_tensorboard_function()
+            self.loggers[logger_index].experiment.some_tensorboard_function()
 
         """
         if self._experiment is not None:

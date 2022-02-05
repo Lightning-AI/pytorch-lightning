@@ -360,7 +360,7 @@ class DummyExperiment:
         return self.nop
 
     def __getitem__(self, idx) -> "DummyExperiment":
-        # enables self.logger.experiment[0].add_image(...)
+        # enables self.loggers[logger_index].experiment[0].add_image(...)
         return self
 
     def __setitem__(self, *args, **kwargs) -> None:
@@ -399,7 +399,7 @@ class DummyLogger(LightningLoggerBase):
         return ""
 
     def __getitem__(self, idx) -> "DummyLogger":
-        # enables self.logger[0].experiment.add_image(...)
+        # enables self.loggers[logger_index][0].experiment.add_image(...)
         return self
 
     def __iter__(self):

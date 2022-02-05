@@ -194,7 +194,7 @@ class CometLogger(LightningLoggerBase):
 
         Example::
 
-            self.logger.experiment.some_comet_function()
+            self.loggers[logger_index].experiment.some_comet_function()
 
         """
         if self._experiment is not None:
