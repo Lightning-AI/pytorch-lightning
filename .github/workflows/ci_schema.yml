@@ -5,7 +5,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
 
 jobs:
-  validate-schema:
+  check:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
