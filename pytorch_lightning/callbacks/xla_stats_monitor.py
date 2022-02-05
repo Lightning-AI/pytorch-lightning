@@ -77,7 +77,8 @@ class XLAStatsMonitor(Callback):
                 f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."
             )
 
-        memory_info = xm.get_memory_info(pl_module.device)
+        device = trainer.strategy.root_device
+        memory_info = xm.get_memory_info(device)
         total_memory = trainer.strategy.reduce(memory_info["kb_total"]) * 0.001
         rank_zero_info(f"Average Total memory: {total_memory:.2f} MB")
 
@@ -88,7 +89,8 @@ class XLAStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
-        memory_info = xm.get_memory_info(pl_module.device)
+        device = trainer.strategy.root_device
+        memory_info = xm.get_memory_info(device)
         epoch_time = time.time() - self._start_time
 
         free_memory = memory_info["kb_free"]
