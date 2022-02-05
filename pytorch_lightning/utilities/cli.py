@@ -23,7 +23,6 @@ from unittest import mock
 
 import torch
 import yaml
-from pytorh_lightning.utilities.rank_zero import rank_zero_warn
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -32,6 +31,7 @@ from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, warnings
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
