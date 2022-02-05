@@ -20,7 +20,8 @@ import pytorch_lightning as pl
 
 
 class SyncBatchNormPlugin:
-    """A plugin that wraps all batch normalization layers of a model with synchronization logic for multiprocessing.
+    """A plugin that wraps all batch normalization layers of a model with synchronization logic for
+    multiprocessing.
 
     This plugin has no effect in single-device operation.
     """
