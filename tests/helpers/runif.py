@@ -30,6 +30,7 @@ from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _TPU_AVAILABLE,
 )
 
@@ -60,6 +61,7 @@ class RunIf:
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
+        bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
         horovod: bool = False,
@@ -85,6 +87,7 @@ class RunIf:
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
             amp_apex: Require that NVIDIA/apex is installed.
+            bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
             horovod: Require that Horovod is installed.
@@ -131,6 +134,10 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+
+        if bf16_cuda:
+            conditions.append(not (_TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported()))
+            reasons.append("CUDA device bf16")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")
