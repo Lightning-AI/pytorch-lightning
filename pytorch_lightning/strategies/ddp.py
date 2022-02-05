@@ -37,6 +37,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins.sync_batchnorm import SyncBatchNormPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -48,7 +49,7 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_10,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -105,7 +106,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self.interactive_ddp_procs = []
         self._num_nodes = 1
-        self.sync_batchnorm = False
+        self.sync_batchnorm: Optional[SyncBatchNormPlugin] = None
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -515,7 +516,7 @@ class DDPStrategy(ParallelStrategy):
             self.model = self.lightning_module
 
         if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+            self.model = self.sync_batchnorm.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown

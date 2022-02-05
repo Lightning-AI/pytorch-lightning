@@ -30,11 +30,12 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins.sync_batchnorm import SyncBatchNormPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import (
     init_dist_connection,
@@ -80,7 +81,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._num_nodes = 1
-        self.sync_batchnorm = False
+        self.sync_batchnorm: Optional[SyncBatchNormPlugin] = None
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -127,7 +128,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.model_to_device()
 
         if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+            self.model = self.sync_batchnorm.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
@@ -379,7 +380,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.model = self.lightning_module
 
         if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+            self.model = self.sync_batchnorm.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown

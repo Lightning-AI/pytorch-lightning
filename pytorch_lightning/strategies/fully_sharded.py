@@ -139,7 +139,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self._move_optimizer_state()
 
         if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+            self.model = self.sync_batchnorm.apply(self.model)
 
         self.configure_ddp()
         self.barrier()

@@ -46,6 +46,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.sync_batchnorm import SyncBatchNormPlugin
 from pytorch_lightning.strategies import (
     BaguaStrategy,
     DataParallelStrategy,
@@ -100,7 +101,7 @@ class AcceleratorConnector:
         gpus,
         gpu_ids,
         num_nodes,
-        sync_batchnorm,
+        sync_batchnorm: bool,
         benchmark,
         replace_sampler_ddp,
         deterministic: bool,
@@ -128,7 +129,7 @@ class AcceleratorConnector:
         self.tpu_cores = tpu_cores
         self.ipus = ipus
         self.num_nodes = num_nodes
-        self.sync_batchnorm = sync_batchnorm
+        self.sync_batchnorm: Optional[SyncBatchNormPlugin] = SyncBatchNormPlugin() if sync_batchnorm else None
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         if not PrecisionType.supported_type(precision):
@@ -379,6 +380,8 @@ class AcceleratorConnector:
                     raise MisconfigurationException(
                         "You can only specify one cluster environment. Found more than 1 cluster environment plugin"
                     )
+            elif isinstance(plug, SyncBatchNormPlugin):
+                self.sync_batchnorm = plug
             else:
                 raise MisconfigurationException(
                     f"Found invalid type for plugin {plug}. Expected a precision or training type plugin."
