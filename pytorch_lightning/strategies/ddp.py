@@ -57,7 +57,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -210,13 +210,6 @@ class DDPStrategy(ParallelStrategy):
             command = [sys.executable] + command
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
-
-        # the visible devices tell us how many GPUs we want to use.
-        # when the trainer script was called the device has already been scoped by the time
-        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
-        # but forward the GPUs selected via environment variables
-        if self.parallel_devices is None:
-            raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
