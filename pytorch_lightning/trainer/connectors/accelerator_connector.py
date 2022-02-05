@@ -142,66 +142,67 @@ class AcceleratorConnector:
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
 
-        # --Parsing_flags------------------------------------------------------
-        # Get registered strategies, existing accelerators and precision plugins
+        # 1. Parsing flags
+        # Get registered strategies, built-in accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
         self._existing_accelerator_type = ["tpu", "ipu", "gpu", "cpu"]
         self._supported_precision = PrecisionType.supported_types()
 
-        # raise misconfig exceptions if their is conflict between flags
-        # set the valid flag to self._x_flag after validation
-        # for example: if accelerator is strategy class, set self._strategy_flag = accelerator
-        # for devices: assign gpus ipus and etcs to accelerator_flag and devices_flag
+        # Raise an exception if there are conflicts between flags
+        # Set each valid flag to `self._x_flag` after validation
+        # Example: If accelerator is set to a strategy type, set `self._strategy_flag = accelerator`.
+        # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._config_check_and_set_final_flags(strategy, accelerator, precision, plugins, amp_type, amp_level)
         self._device_config_check_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
 
-        # --Accelerator-------------------------------------------------------------
+        # 2. Instantiate Accelerator
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_accelerator()
         # else:
-        #     # [RFC] move to XAccelerator class init?
+        #     # TODO: [RFC] move to XAccelerator class init?
         #     self._check_device_availibility()
         self._set_parallel_devices_and_init_accelerator()
 
-        # --Cluster_environment-----------------------------------------------------
+        # 3. Instantiate ClusterEnvironment
         self._choose_and_init_cluster_environment()
 
-        # --Strategy Part 1 : choose strategy and init strategy ---------------------------------------
+        # 4. Instantiate Strategy - Part 1
         if self._strategy_flag is None:
             self._choose_strategy()
-        # Reset strategy even user has specificed one
+        # In specific cases, ignore user selection and fall back to a different strategy
         self._strategy_check_and_fallbacks()
         self._init_strategy()
 
-        # --Precision----------------------------------------------------------------
+        # 5. Instantiate Precision Plugin
         self.precision_plugin = self._check_capatibility_and_init_precision()
 
-        # --Strategy Part 2 : init Strategy and set Strategy properties -------------
+        # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
     def _config_check_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level):
         """This method checks:
 
-        1. strategy flag: strategy, accelerator and plugin can all set strategies
-        2. accelerator: if accelerator flag is Accelerator related flag or class, set self._acceelrator_flag;
-            If accelerator is strategy related, logic handled in 1 above
-        3. precision could be set by precision and plugins flag
-        4. plugins could be duplicated in strategy (handled by 1), precision (handled by 3),
-            set checkpoint_io and cluster_environment
+            1. strategy: strategy, accelerator and plugin can all be set to strategies
+            2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
+                set self._acceelrator_flag accordingly. If the value is strategy related (instance or string),
+                it gets handled by 1.
+            3. precision: The final value of the precision flag may be determined either by the precision argument or
+                by a plugin instance.
+            4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
+                argument (handled by 3). We also extract the CheckpointIO and ClusterEnvironment plugins.
         """
-        (
-            self._strategy_flag,
-            self._accelerator_flag,
-            self._precision_flag,
-            self._precision_plugin_flag,
-            self._cluster_environment_flag,
-            self.checkpoint_io,
-            self._amp_level_flag,
-            self._amp_type_flag,
-        ) = (None, None, None, None, None, None, amp_type, amp_level)
+        self._strategy_flag = None
+        self._accelerator_flag = None
+        self._precision_flag = None
+        self._precision_plugin_flag = None
+        self._cluster_environment_flag = None
+        self.checkpoint_io = None
+        self._amp_level_flag = amp_type
+        self._amp_type_flag = amp_level
+
         if plugins:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
@@ -292,7 +293,8 @@ class AcceleratorConnector:
                         f"Found invalid type for plugin {plugin}. Expected a precision or training type plugin."
                     )
 
-        # if user pass in a strategy class which has accelerator, precision, checkpoint or cluster env set up
+        # handle the case when the user passes in a strategy instance which has an accelerator, precision,
+        # checkpoint io or cluster env set up
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
