@@ -192,7 +192,7 @@ If you want to log anything that is not a scalar, like histograms, text, images,
     def training_step(self):
         ...
         # the logger you used (in this case tensorboard)
-        tensorboard = self.logger.experiment
+        tensorboard = self.loggers[logger_index].experiment
         tensorboard.add_image()
         tensorboard.add_histogram(...)
         tensorboard.add_figure(...)
@@ -378,7 +378,8 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
 
         # Using custom or multiple metrics (default_hp_metric=False)
         def on_train_start(self):
-            self.logger.log_hyperparams(self.hparams, {"hp/metric_1": 0, "hp/metric_2": 0})
+            for logger in self.loggers:
+                logger.log_hyperparams(self.hparams, {"hp/metric_1": 0, "hp/metric_2": 0})
 
 
         def validation_step(self, batch, batch_idx):

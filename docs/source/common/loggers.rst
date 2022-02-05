@@ -64,7 +64,7 @@ The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
+            self.loggers[logger_index].experiment.add_image("generated_images", some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.CometLogger` docs.
@@ -135,9 +135,9 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
         def any_lightning_module_function_or_hook(self):
             # generic recipe for logging custom metadata (neptune specific)
             metadata = ...
-            self.logger.experiment["your/metadata/structure"].log(metadata)
+            self.loggers[logger_index].experiment["your/metadata/structure"].log(metadata)
 
-Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+Note that syntax: ``self.loggers[logger_index].experiment["your/metadata/structure"].log(metadata)``
 is specific to Neptune and it extends logger capabilities.
 Specifically, it allows you to log various types of metadata like scores, files,
 images, interactive visuals, CSVs, etc. Refer to the
@@ -173,7 +173,7 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
+            self.loggers[logger_index].experiment.add_image("generated_images", some_img, 0)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
@@ -213,9 +213,9 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
             # Option 1
-            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            self.loggers[logger_index].experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
             # Option 2 for specifically logging images
-            self.logger.log_image(key="generated_images", images=[some_img])
+            self.loggers[logger_index].log_image(key="generated_images", images=[some_img])
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
@@ -247,6 +247,7 @@ The loggers are available as a list anywhere except ``__init__`` in your
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
             # Option 1
+            # TODO: Figure out how this changes with the loggers property
             self.logger.experiment[0].add_image("generated_images", some_img, 0)
             # Option 2
-            self.logger[0].experiment.add_image("generated_images", some_img, 0)
+            self.loggers[logger_index].experiment.add_image("generated_images", some_img, 0)

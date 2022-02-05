@@ -432,7 +432,7 @@ as described above:
 .. tip::
 
     ``--trainer.logger`` also supports shorthand notation and a ``LOGGER_REGISTRY`` is available to register custom
-    Loggers.
+    Loggers. #TODO: Figure out what to do here
 
 
 Multiple models and/or datasets

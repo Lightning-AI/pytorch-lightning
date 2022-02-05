@@ -492,7 +492,7 @@ You can also use any method of your logger directly:
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        tensorboard = self.logger.experiment
+        tensorboard = self.loggers[logger_index].experiment
         tensorboard.any_summary_writer_method_you_want()
 
 Once your training starts, you can view the logs by using your favorite logger or booting up the Tensorboard logs:

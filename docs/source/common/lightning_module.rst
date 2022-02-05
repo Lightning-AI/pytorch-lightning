@@ -952,7 +952,7 @@ The current step (does not reset each epoch)
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.logger.experiment.log_image(..., step=self.global_step)
+        self.loggers[logger_index].experiment.log_image(..., step=self.global_step)
 
 hparams
 ~~~~~~~
