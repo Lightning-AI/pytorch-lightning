@@ -146,6 +146,16 @@ def test_v1_8_0_trainer_verbose_evaluate():
         trainer.verbose_evaluate = False
 
 
+@pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
+def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
+    test_attr = f"{fn_prefix}_ckpt_path"
+    trainer = Trainer()
+    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
+        _ = getattr(trainer, test_attr)
+    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
+        setattr(trainer, test_attr, "v")
+
+
 def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(
@@ -351,3 +361,55 @@ def test_v1_8_0_deprecated_lightning_optimizers():
         match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
     ):
         assert trainer.lightning_optimizers == {}
+
+
+def test_v1_8_0_remove_on_batch_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_batch_start(self, *args, **kwargs):
+            print("on_batch_start")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_batch_end(self, *args, **kwargs):
+            print("on_batch_end")
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_on_configure_sharded_model(tmpdir):
+    class TestCallback(Callback):
+        def on_configure_sharded_model(self, trainer, model):
+            print("Configuring sharded model")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)

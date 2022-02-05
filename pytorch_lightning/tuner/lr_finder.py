@@ -125,7 +125,7 @@ class _LRFinder:
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_schedulers = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
             _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
@@ -204,10 +204,10 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
-    trainer.fit_loop.current_epoch -= 1
+    trainer.fit_loop.epoch_progress.current.completed -= 1
     trainer.fit_loop.global_step -= 1
     trainer.save_checkpoint(ckpt_path)
-    trainer.fit_loop.current_epoch += 1
+    trainer.fit_loop.epoch_progress.current.completed += 1
     trainer.fit_loop.global_step += 1
     params = __lr_finder_dump_params(trainer)
 
@@ -236,7 +236,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
+    trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
@@ -314,7 +314,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
