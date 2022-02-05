@@ -60,6 +60,7 @@ class RunIf:
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
+        bf16: bool = False,
         tpu: bool = False,
         ipu: bool = False,
         horovod: bool = False,
@@ -85,6 +86,7 @@ class RunIf:
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
             amp_apex: Require that NVIDIA/apex is installed.
+            bf16: Require hardware supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
             horovod: Require that Horovod is installed.
@@ -131,6 +133,10 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+
+        if bf16:
+            conditions.append(not torch.cuda.is_bf16_supported())
+            reasons.append("bf16")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")
