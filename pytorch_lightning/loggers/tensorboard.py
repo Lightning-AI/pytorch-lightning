@@ -73,8 +73,8 @@ class TensorBoardLogger(LightningLoggerBase):
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
-            logs are saved in ``/save_dir/version/``.
+            then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/name/version/``.
         \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -113,10 +113,10 @@ class TensorBoardLogger(LightningLoggerBase):
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
-        checkpoint will be saved in "save_dir/version_dir"
+        If the experiment name parameter is the empty string, no experiment subdirectory is used and the checkpoint will
+        be saved in "save_dir/version_dir"
         """
-        if self.name is None or len(self.name) == 0:
+        if not self.name:
             return self.save_dir
         return os.path.join(self.save_dir, self.name)
 
