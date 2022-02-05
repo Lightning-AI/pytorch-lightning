@@ -34,7 +34,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
-    TPUPrecisionPlugin,
+    TPUPrecisionPlugin, PLUGIN_INPUT,
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
@@ -84,25 +84,28 @@ if _HOROVOD_AVAILABLE:
 class AcceleratorConnector:
     def __init__(
         self,
-        devices,
-        num_nodes,
-        accelerator,  # reduce typing
-        strategy: Optional[Union[str, Strategy]],
-        plugins,
-        precision,
-        amp_type,
-        amp_level,
-        sync_batchnorm,
-        benchmark,
-        replace_sampler_ddp,
-        deterministic: bool,
-        num_processes,  # deprecated
-        tpu_cores,  # deprecated
-        ipus,  # deprecated
-        gpus,  # deprecated
-        gpu_ids,
+        devices: Optional[Union[List[int], str, int]] = None,
+        num_nodes: int = 1,
+        accelerator: Optional[Union[str, Accelerator]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        precision: Union[int, str] = 32,
+        amp_type: str = "native",
+        amp_level: Optional[str] = None,
+        sync_batchnorm: bool = False,
+        benchmark: bool = False,
+        replace_sampler_ddp: bool = True,
+        deterministic: bool = False,  # TODO: why is it unused?
+        num_processes: int = None,  # deprecated
+        tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
+        ipus: Optional[int] = None,  # deprecated
+        gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
+        gpu_ids: Optional[List[int]] = None,  # TODO: why is it unused?
     ):
-        """
+        """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
+        components such as the Accelerator and Precision plugin.
+
+
             A. accelerator flag could be:
                 1. strategy class (deprecated in 1.5 will be removed in 1.7)
                 2. strategy str (deprecated in 1.5 will be removed in 1.7)
