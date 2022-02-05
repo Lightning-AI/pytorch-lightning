@@ -143,9 +143,9 @@ class NeptuneLogger(LightningLoggerBase):
                 metadata = ...
                 self.loggers[logger_index].experiment["your/metadata/structure"].log(metadata)
 
-    Note that syntax: ``self.loggers[logger_index].experiment["your/metadata/structure"].log(metadata)`` is specific to Neptune
-    and it extends logger capabilities. Specifically, it allows you to log various types of metadata
-    like scores, files, images, interactive visuals, CSVs, etc.
+    Note that syntax: ``self.loggers[logger_index].experiment["your/metadata/structure"].log(metadata)``
+    is specific to Neptune and it extends logger capabilities. Specifically, it allows you to
+    log various types of metadata like scores, files, images, interactive visuals, CSVs, etc.
     Refer to the `Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
     for more detailed explanations.
     You can also use regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger
