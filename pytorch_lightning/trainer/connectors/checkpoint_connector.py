@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import logging
 import os
 import re
@@ -280,10 +281,13 @@ class CheckpointConnector:
             # move optimizer to GPU 1 weight at a time
             # avoids OOM
             if self.trainer.root_gpu is not None:
-                for state in optimizer.state.values():
-                    for k, v in state.items():
-                        if isinstance(v, torch.Tensor):
-                            state[k] = v.cuda(self.trainer.root_gpu)
+                for param, state in optimizer.state.items():
+                    if isinstance(state, collections.Mapping):
+                        for k, v in state.items():
+                            if isinstance(v, torch.Tensor):
+                                state[k] = v.cuda(self.trainer.root_gpu)
+                    elif isinstance(state, torch.Tensor):
+                        optimizer.state[param] = state.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
         """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
