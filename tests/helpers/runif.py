@@ -29,8 +29,8 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
-    _TORCH_QUANTIZE_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
+    _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
 
