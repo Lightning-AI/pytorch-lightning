@@ -2232,7 +2232,7 @@ class Trainer(
 
     @property
     def ckpt_path(self) -> Optional[str]:
-        """Set to the path/URL of checkpoints loaded via :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`,
+        """Set to the path/URL of a checkpoint loaded via :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`,
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`,
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
@@ -2242,7 +2242,7 @@ class Trainer(
     def validated_ckpt_path(self) -> Optional[str]:
         rank_zero_deprecation(
             "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
             " `Trainer.ckpt_path` instead.",
             stacklevel=5,
         )
@@ -2252,8 +2252,8 @@ class Trainer(
     def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
         rank_zero_deprecation(
             "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the read-only"
-            " `Trainer.ckpt_path`.",
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path`.",
             stacklevel=5,
         )
         self._validated_ckpt_path = ckpt_path
@@ -2262,7 +2262,7 @@ class Trainer(
     def tested_ckpt_path(self) -> Optional[str]:
         rank_zero_deprecation(
             "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
             " `Trainer.ckpt_path` instead.",
             stacklevel=5,
         )
@@ -2272,8 +2272,8 @@ class Trainer(
     def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
         rank_zero_deprecation(
             "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the read-only"
-            " `Trainer.ckpt_path` instead.",
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
             stacklevel=5,
         )
         self._tested_ckpt_path = ckpt_path
@@ -2282,7 +2282,7 @@ class Trainer(
     def predicted_ckpt_path(self) -> Optional[str]:
         rank_zero_deprecation(
             "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
             " `Trainer.ckpt_path` instead.",
             stacklevel=5,
         )
@@ -2292,8 +2292,8 @@ class Trainer(
     def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
         rank_zero_deprecation(
             "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of checkpoints loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the read-only"
-            " `Trainer.ckpt_path` instead.",
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
             stacklevel=5,
         )
         self._predicted_ckpt_path = ckpt_path
