@@ -316,7 +316,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False)
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
 
     num_processes = 2 if ddp else 1
-    strategy = "ddp_spawn" if ddp else None
+    strategy = "ddp_spawn_find_unused_parameters_false" if ddp else None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
