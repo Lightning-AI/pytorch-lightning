@@ -208,7 +208,7 @@ def test_horovod_gather(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
+@RunIf(min_gpus=1, skip_windows=True, horovod=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
         def training_step(self, batch, *args, **kwargs):
