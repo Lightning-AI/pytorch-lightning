@@ -785,7 +785,7 @@ class LightningModule(
                 # or generated text... or whatever
                 sample_imgs = x[:6]
                 grid = torchvision.utils.make_grid(sample_imgs)
-                self.logger.experiment.add_image('example_images', grid, 0)
+                self.loggers[logger_index].experiment.add_image('example_images', grid, 0)
 
                 # calculate acc
                 labels_hat = torch.argmax(out, dim=1)
@@ -962,7 +962,7 @@ class LightningModule(
                 # or generated text... or whatever
                 sample_imgs = x[:6]
                 grid = torchvision.utils.make_grid(sample_imgs)
-                self.logger.experiment.add_image('example_images', grid, 0)
+                self.loggers[logger_index].experiment.add_image('example_images', grid, 0)
 
                 # calculate acc
                 labels_hat = torch.argmax(out, dim=1)

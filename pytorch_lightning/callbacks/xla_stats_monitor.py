@@ -68,7 +68,7 @@ class XLAStatsMonitor(Callback):
         self._verbose = verbose
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
         if trainer._device_type != _AcceleratorType.TPU:
@@ -85,7 +85,7 @@ class XLAStatsMonitor(Callback):
         self._start_time = time.time()
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
         memory_info = xm.get_memory_info(pl_module.device)
@@ -98,10 +98,11 @@ class XLAStatsMonitor(Callback):
         peak_memory = trainer.strategy.reduce(peak_memory) * 0.001
         epoch_time = trainer.strategy.reduce(epoch_time)
 
-        trainer.logger.log_metrics(
-            {"avg. free memory (MB)": float(free_memory), "avg. peak memory (MB)": float(peak_memory)},
-            step=trainer.current_epoch,
-        )
+        for logger in trainer.loggers:
+            logger.log_metrics(
+                {"avg. free memory (MB)": float(free_memory), "avg. peak memory (MB)": float(peak_memory)},
+                step=trainer.current_epoch,
+            )
 
         if self._verbose:
             rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")

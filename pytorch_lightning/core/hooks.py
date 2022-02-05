@@ -275,7 +275,7 @@ class ModelHooks:
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     for k, v in self.named_parameters():
-                        self.logger.experiment.add_histogram(
+                        self.loggers[logger_index].experiment.add_histogram(
                             tag=k, values=v.grad, global_step=self.trainer.global_step
                         )
         """

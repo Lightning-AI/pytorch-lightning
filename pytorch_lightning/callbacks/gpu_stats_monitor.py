@@ -123,7 +123,7 @@ class GPUStatsMonitor(Callback):
         self._gpu_ids: List[str] = []  # will be assigned later in setup()
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use GPUStatsMonitor callback with Trainer that has no logger.")
 
         if trainer._device_type != _AcceleratorType.GPU:
@@ -161,8 +161,9 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
-        assert trainer.logger is not None
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        assert trainer.loggers
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
     def on_train_batch_end(
@@ -186,8 +187,9 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
             logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
-        assert trainer.logger is not None
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        assert trainer.loggers
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.global_step)
 
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:
