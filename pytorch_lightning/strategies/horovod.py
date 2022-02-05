@@ -178,7 +178,7 @@ class HorovodStrategy(ParallelStrategy):
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
-        for optimizer in self.lightning_module.trainer.optimizers:
+        for optimizer in self.optimizers:
             optimizer.synchronize()
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
