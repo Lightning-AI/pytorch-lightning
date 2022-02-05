@@ -287,34 +287,36 @@ def test_on_before_accelerator_backend_setup(tmpdir):
     trainer.fit(model)
 
 
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3)
+        self.act = nn.ReLU()
+        self.bn = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.act(x)
+        return self.bn(x)
+
+
+class ConvBlockParam(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
+        # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
+        self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
+        self.bn = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        x = self.module_dict["conv"](x)
+        x = self.module_dict["act"](x)
+        return self.bn(x)
+
+
 def test_complex_nested_model():
     """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters."""
-
-    class ConvBlock(nn.Module):
-        def __init__(self, in_channels, out_channels):
-            super().__init__()
-            self.conv = nn.Conv2d(in_channels, out_channels, 3)
-            self.act = nn.ReLU()
-            self.bn = nn.BatchNorm2d(out_channels)
-
-        def forward(self, x):
-            x = self.conv(x)
-            x = self.act(x)
-            return self.bn(x)
-
-    class ConvBlockParam(nn.Module):
-        def __init__(self, in_channels, out_channels):
-            super().__init__()
-            self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
-            # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
-            self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
-            self.bn = nn.BatchNorm2d(out_channels)
-
-        def forward(self, x):
-            x = self.module_dict["conv"](x)
-            x = self.module_dict["act"](x)
-            return self.bn(x)
 
     model = nn.Sequential(
         OrderedDict(
