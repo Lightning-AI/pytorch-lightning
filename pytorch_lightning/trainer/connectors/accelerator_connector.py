@@ -101,7 +101,7 @@ class AcceleratorConnector:
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpu_ids: Optional[List[int]] = None,  # TODO: why is it unused?
-    ):
+    ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugin.
 
@@ -152,8 +152,8 @@ class AcceleratorConnector:
         # Set each valid flag to `self._x_flag` after validation
         # Example: If accelerator is set to a strategy type, set `self._strategy_flag = accelerator`.
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
-        self._config_check_and_set_final_flags(strategy, accelerator, precision, plugins, amp_type, amp_level)
-        self._device_config_check_and_set_final_flags(
+        self._check_config_and_set_final_flags(strategy, accelerator, precision, plugins, amp_type, amp_level)
+        self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
 
@@ -173,16 +173,16 @@ class AcceleratorConnector:
         if self._strategy_flag is None:
             self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
-        self._strategy_check_and_fallbacks()
+        self._check_strategy_and_fallback()
         self._init_strategy()
 
         # 5. Instantiate Precision Plugin
-        self.precision_plugin = self._check_capatibility_and_init_precision()
+        self.precision_plugin = self._check_and_init_precision()
 
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _config_check_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level):
+    def _check_config_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level) -> None:
         """This method checks:
 
             1. strategy: strategy, accelerator and plugin can all be set to strategies
@@ -295,6 +295,7 @@ class AcceleratorConnector:
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
+        # TODO: @awaelchli imporve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
@@ -323,8 +324,9 @@ class AcceleratorConnector:
                     )
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
-            # RFC existing accel_conn doesn't handle this, should we add conflict check?
-            # eg: parallel_device is torch.device(cpu) but accelerator=gpu
+
+            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
+            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
@@ -341,36 +343,37 @@ class AcceleratorConnector:
             )
         self._amp_level_flag = amp_level
 
-    def _device_config_check_and_set_final_flags(self, devices, num_nodes, num_processes, gpus, ipus, tpu_cores):
+    def _check_device_config_and_set_final_flags(self, devices, num_nodes, num_processes, gpus, ipus, tpu_cores) -> None:
         if num_nodes == "auto":
             self._num_nodes_flag = 1
         else:
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
 
         self._device_flag = devices
-        # Delete when remove num_processes, gpus, ipus and tpu_cores
+
+        # TODO: Delete this parsing section when num_processes, gpus, ipus and tpu_cores get removed
         self._gpus = gpus
         self._tpu_cores = tpu_cores
         gpus = device_parser.parse_gpu_ids(gpus)
         tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
-            self._mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+            self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
                 devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
             )
-        # Delete end
-        if self._device_flag == "auto":
-            if self._accelerator_flag is None:
-                raise MisconfigurationException(
-                    f"You passed `devices={devices}` but haven't specified"
-                    " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
-                )
 
-    def _mapping_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+        if self._device_flag == "auto" and self._accelerator_flag is None:
+            raise MisconfigurationException(
+                f"You passed `devices={devices}` but haven't specified"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
+            )
+
+    def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
         self, devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
-    ):
-        # set devices base on num_processes, gpus, ipus, tpu_cores
+    ) -> None:
+        """Sets the `device_flag` based on num_processes, gpus, ipus, tpu_cores."""
         if devices:
+            # TODO: @awaelchli improve error message
             rank_zero_warn(
                 f"The flag `devices={devices}` will be ignored, "
                 f"instand the device specific number {deprecated_devices_specific_flag} will be used"
@@ -379,11 +382,12 @@ class AcceleratorConnector:
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
             True
         ) > 1:
+            # TODO: @awaelchli improve error message
             rank_zero_warn("more than one device specifc flag has been set")
         self._device_flag = deprecated_devices_specific_flag
 
         if not self._accelerator_flag:
-            # set accelerator type base on num_processes, gpus, ipus, tpu_cores
+            # set accelerator type based on num_processes, gpus, ipus, tpu_cores
             if ipus:
                 self._accelerator_flag = "ipu"
             if tpu_cores:
@@ -393,7 +397,8 @@ class AcceleratorConnector:
             if num_processes:
                 self._accelerator_flag = "cpu"
 
-    def _choose_accelerator(self):
+    def _choose_accelerator(self) -> str:
+        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if _TPU_AVAILABLE:
             return "tpu"
         if _IPU_AVAILABLE:
@@ -421,7 +426,7 @@ class AcceleratorConnector:
     #                     f"You choice {accelerator_flag} accelerator, but {accelerator_flag} is not available"
     #                 )
 
-    def _set_parallel_devices_and_init_accelerator(self):
+    def _set_parallel_devices_and_init_accelerator(self) -> None:
         self._parallel_devices = []
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator = self._accelerator_flag
@@ -470,7 +475,7 @@ class AcceleratorConnector:
         self._gpus = self._device_flag if not self._gpus else self._gpus
         self._tpu_cores = self._device_flag if not self._tpu_cores else self._tpu_cores
 
-    def _choose_and_init_cluster_environment(self):
+    def _choose_and_init_cluster_environment(self) -> None:
         self.cluster_environment = LightningEnvironment()
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             self.cluster_environment = self._cluster_environment_flag
@@ -481,7 +486,6 @@ class AcceleratorConnector:
             for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
                 if env_type.detect():
                     self.cluster_environment = env_type()
-
 
     @property
     def _is_sharded_training_type(self) -> bool:
@@ -496,14 +500,14 @@ class AcceleratorConnector:
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
 
-    def _choose_strategy(self):
+    def _choose_strategy(self) -> None:
         if self._accelerator_flag == "ipu":
             self._strategy_flag = "ipu_strategy"
         elif self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 self._strategy_flag = "tpu_spawn"
             else:
-                # TODO lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
+                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 self._strategy_flag = SingleTPUStrategy(device=self._parallel_devices[0])
         elif _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
             self._strategy_flag = "horovod"
@@ -516,14 +520,16 @@ class AcceleratorConnector:
                     if self._accelerator_flag == "gpu"
                     else "cpu"
                 )
-                # TODO lazy initialized device, then here could be self._strategy_flag = "single_device"
+                # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
                 self._strategy_flag = SingleDeviceStrategy(device=device)
             elif len(self._parallel_devices) > 1:
                 self._strategy_flag = "ddp_spawn"
             else:
                 self._strategy_flag = "ddp"
 
-    def _strategy_check_and_fallbacks(self):
+    def _check_strategy_and_fallback(self) -> None:
+        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a different
+        choice depending on other parameters or the environment."""
         # current logic, fallback only apply to user pass in str config not object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
@@ -552,7 +558,7 @@ class AcceleratorConnector:
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
-    def handle_horovod(self):
+    def _handle_horovod(self) -> None:
         if self._num_nodes_flag > 1:
             raise MisconfigurationException(
                 "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
@@ -572,11 +578,12 @@ class AcceleratorConnector:
         else:
             self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 
-    def _init_strategy(self):
+    def _init_strategy(self) -> None:
+        """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
         if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
             # handle horovod has to happen before initialize strategy because HorovodStrategy needs hvd.init() first.
             # TODO lazy initialized and setup horovod strategy `global_rank`
-            self.handle_horovod()
+            self._handle_horovod()
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
@@ -584,8 +591,8 @@ class AcceleratorConnector:
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
-    def _check_capatibility_and_init_precision(self):
-        self._precision_misconfig_check()
+    def _check_and_init_precision(self) -> PrecisionPlugin:
+        self._validate_precision_choice()
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
             return self._precision_plugin_flag
 
@@ -638,8 +645,9 @@ class AcceleratorConnector:
 
         raise RuntimeError("No precision set")
 
-    def _precision_misconfig_check(self):
-        # TODO change exception type to ImpactableConfigurationException
+    def _validate_precision_choice(self) -> None:
+        """Validate the combination of choices for precision, AMP type, and accelerator."""
+        # TODO: change exception type to ImpactableConfigurationException
         if isinstance(self.accelerator, IPUAccelerator):
             if self._precision_flag not in (16, 32):
                 raise MisconfigurationException(
@@ -681,7 +689,7 @@ class AcceleratorConnector:
                 )
 
     def _lazy_init_strategy(self):
-        # set strategy properties
+        """Lazily set missing attributes on the previously instantiated strategy."""
         self.strategy.accelerator = self.accelerator
         if self.precision_plugin:
             self.strategy.precision_plugin = self.precision_plugin
@@ -714,7 +722,7 @@ class AcceleratorConnector:
                 " creation inside the worker function."
             )
 
-        # TODO should be moved to _strategy_check_and_fallbacks().
+        # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order
         if isinstance(self.accelerator, TPUAccelerator) and not isinstance(
             self.strategy, (SingleTPUStrategy, TPUSpawnStrategy)
@@ -724,18 +732,16 @@ class AcceleratorConnector:
                 f" found {self.strategy}."
             )
 
-    ##############################################################################
-    # the following logic should be deprecated/removed, and these information should be
-    # retrive from strategies and accelerators
-    # Added here to keep backward compabilities
+    """The following properties are here for backward-compatibility and will be deprecated and removed in favor
+    of accessing this information through the strategy/accelerator directly."""
+    # TODO: deprecate all properties below
 
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         return self._parallel_devices
 
-    # def _distrib_type():
     @property
-    def device_type(self):
+    def device_type(self) -> str:
         if isinstance(self.accelerator, CPUAccelerator):
             return "cpu"
         if isinstance(self.accelerator, GPUAccelerator):
@@ -746,11 +752,11 @@ class AcceleratorConnector:
             return "ipu"
 
     @property
-    def num_nodes(self):
+    def num_nodes(self) -> int:
         return self._num_nodes_flag
 
     @property
-    def num_processes(self):
+    def num_processes(self) -> int:
         return self.devices if self.devices is not None else 1
 
     @property
@@ -762,7 +768,7 @@ class AcceleratorConnector:
         )
 
     @property
-    def devices(self):
+    def devices(self) -> int:
         if isinstance(self.strategy, SingleDeviceStrategy):
             return 1
         elif isinstance(self.strategy, ParallelStrategy):
@@ -770,7 +776,7 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def tpu_cores(self):
+    def tpu_cores(self) -> int:
         if isinstance(self.accelerator, TPUAccelerator):
             return self._tpu_cores
         return 0
@@ -794,18 +800,16 @@ class AcceleratorConnector:
             return self.devices
         return 0
 
-    # def parallel_device_ids():
     @property
-    def gpus(self):
+    def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
-        # if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
-    def parallel_device_ids(self):
+    def parallel_device_ids(self) -> Optional[List[int]]:
         return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
@@ -827,19 +831,19 @@ class AcceleratorConnector:
         return is_distributed
 
     @property
-    def has_ipu(self):
+    def has_ipu(self) -> bool:
         return isinstance(self.accelerator, IPUAccelerator)
 
     @property
-    def use_ipu(self):
+    def use_ipu(self) -> bool:
         return self.has_ipu
 
     @property
-    def has_tpu(self):
+    def has_tpu(self) -> bool:
         return isinstance(self.accelerator, TPUAccelerator)
 
     @property
-    def use_dp(self):
+    def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
 
     @property
