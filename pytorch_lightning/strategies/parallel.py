@@ -105,21 +105,6 @@ class ParallelStrategy(Strategy, ABC):
             torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
         return torch_backend
 
-    @staticmethod
-    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
-        """Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-
     @contextmanager
     def block_backward_sync(self):
         """Blocks ddp sync gradients behaviour on backwards pass.
