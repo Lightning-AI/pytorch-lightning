@@ -85,7 +85,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     # todo: make it work also with strict loading
     qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
     quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
-    assert torch.allclose(org_score, quant2_score, atol=0.45)
+    assert torch.allclose(org_score, quant2_score, atol=0.47)
 
 
 @RunIf(quantization=True)
