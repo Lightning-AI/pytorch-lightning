@@ -309,7 +309,7 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
+def _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
     model = SwaTestModel(crash_after_epoch=crash_after_epoch)
     swa_start = 3
     max_epochs = 5
@@ -360,14 +360,14 @@ def swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
 
 @pytest.mark.parametrize("crash_after_epoch", [2, 4])
 def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
-    swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=crash_after_epoch)
+    _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=crash_after_epoch)
 
 
 @RunIf(skip_windows=True, min_torch="1.8")
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     # Requires PyTorch >= 1.8 to include this segfault fix:
     # https://github.com/pytorch/pytorch/pull/50998
-    swa_resume_training_from_checkpoint(tmpdir, ddp=True)
+    _swa_resume_training_from_checkpoint(tmpdir, ddp=True)
 
 
 def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy, gpus=None):
