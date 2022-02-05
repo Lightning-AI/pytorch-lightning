@@ -43,7 +43,7 @@ def test_loops_state_dict():
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
-    state_dict = trainer.checkpoint_connector._get_loops_state_dict()
+    state_dict = trainer._checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
             "state_dict": {},

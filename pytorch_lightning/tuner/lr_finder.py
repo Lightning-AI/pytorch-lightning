@@ -236,7 +236,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
     # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
+    trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
@@ -314,7 +314,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return

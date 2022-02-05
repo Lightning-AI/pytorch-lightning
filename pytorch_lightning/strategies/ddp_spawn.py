@@ -82,7 +82,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._num_nodes = 1
         self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -106,6 +105,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):

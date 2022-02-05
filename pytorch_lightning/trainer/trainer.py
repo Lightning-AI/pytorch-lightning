@@ -457,7 +457,7 @@ class Trainer(
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
+        self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
@@ -1077,12 +1077,12 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
-        self.checkpoint_connector.resume_start(checkpoint_path)
-        self.checkpoint_connector.restore_model()
-        self.checkpoint_connector.restore_datamodule()
+        self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector.restore_model()
+        self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
             # restore callback states
-            self.checkpoint_connector.restore_callbacks()
+            self._checkpoint_connector.restore_callbacks()
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
@@ -1167,9 +1167,9 @@ class Trainer(
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
-        self.checkpoint_connector.restore_training_state()
+        self._checkpoint_connector.restore_training_state()
 
-        self.checkpoint_connector.resume_end()
+        self._checkpoint_connector.resume_end()
 
         results = self._run_stage()
 
@@ -1282,9 +1282,6 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         self._run_sanity_check()
 
         # enable train mode
@@ -1296,9 +1293,6 @@ class Trainer(
             self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         assert self.evaluating
 
         # reload dataloaders
@@ -1350,6 +1344,9 @@ class Trainer(
 
             # reload dataloaders
             val_loop._reload_evaluation_dataloaders()
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # run eval step
             with torch.no_grad():
@@ -1772,24 +1769,29 @@ class Trainer(
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
             self.train_dataloader,
-            DataLoader,
+            (DataLoader, CombinedLoader),
             self._data_connector._prepare_dataloader,
-            shuffle=True,
             mode=RunningStage.TRAINING,
+        )
+        loaders = (
+            self.train_dataloader.loaders
+            if isinstance(self.train_dataloader, CombinedLoader)
+            else self.train_dataloader
         )
 
         # check the workers recursively
-        apply_to_collection(self.train_dataloader, DataLoader, self._data_connector._worker_check, "train_dataloader")
+        apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
+        apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
-            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
+            apply_to_collection(loaders, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
+        if not isinstance(self.train_dataloader, CombinedLoader):
+            self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
         self.num_training_batches = (
@@ -2207,7 +2209,7 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self._checkpoint_connector.resume_from_checkpoint_fit_path
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
@@ -2226,7 +2228,7 @@ class Trainer(
             weights_only: If ``True``, will only save the model weights.
 
         """
-        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """
     Parsing properties

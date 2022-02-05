@@ -106,7 +106,6 @@ class DDPStrategy(ParallelStrategy):
         self.interactive_ddp_procs = []
         self._num_nodes = 1
         self.sync_batchnorm = False
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -134,6 +133,10 @@ class DDPStrategy(ParallelStrategy):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
