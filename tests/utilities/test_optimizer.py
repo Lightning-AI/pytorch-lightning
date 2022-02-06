@@ -6,9 +6,13 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device
 
 
 def test_optimizer_to_device():
-    """Ensure that after the initial seed everything, the seed stays the same for the same run."""
+    class TestOptimizer(torch.optim.SGD):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.state["dummy"] = torch.tensor(0)
+
     layer = torch.nn.Linear(32, 2)
-    opt = torch.optim.SGD(layer.parameters(), lr=0.1)
+    opt = TestOptimizer(layer.parameters(), lr=0.1)
     optimizer_to_device(opt, "cpu")
     if torch.cuda.is_available():
         optimizer_to_device(opt, "cuda")
