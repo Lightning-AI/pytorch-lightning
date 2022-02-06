@@ -32,12 +32,12 @@ class WarningCache(set):
     def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
         if message not in self:
             self.add(message)
-            rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
+            new_rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
 
     def deprecation(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
         if message not in self:
             self.add(message)
-            rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
+            new_rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
 
 
 def rank_zero_warn(*args: Any, **kwargs: Any) -> Any:
