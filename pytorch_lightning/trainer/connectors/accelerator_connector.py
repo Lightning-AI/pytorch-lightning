@@ -200,8 +200,8 @@ class AcceleratorConnector:
         self._precision_plugin_flag = None
         self._cluster_environment_flag = None
         self.checkpoint_io = None
-        self._amp_level_flag = amp_type
-        self._amp_type_flag = amp_level
+        self._amp_level_flag = amp_level
+        self._amp_type_flag = amp_type
 
         if plugins:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
