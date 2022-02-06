@@ -116,8 +116,6 @@ class TensorBoardLogger(LightningLoggerBase):
         If the experiment name parameter is the empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
-        if not self.name:
-            return self.save_dir
         return os.path.join(self.save_dir, self.name)
 
     @property
