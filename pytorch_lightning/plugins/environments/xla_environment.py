@@ -11,13 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
+    import torch_xla.core.xla_model as xm
+
+log = logging.getLogger(__name__)
 
 
 class XLAEnvironment(ClusterEnvironment):
@@ -26,6 +31,14 @@ class XLAEnvironment(ClusterEnvironment):
     A list of environment variables set by XLA can be found
     `here <https://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py>`_.
     """
+
+    def __init__(self):
+        super().__init__()
+        if not _TPU_AVAILABLE:
+            raise MisconfigurationException(
+                "The `XLAEnvironment` can only be used on a machine with TPU devices and with the `torch_xla` library"
+                " installed."
+            )
 
     @property
     def creates_processes_externally(self) -> bool:
@@ -44,19 +57,19 @@ class XLAEnvironment(ClusterEnvironment):
         return _TPU_AVAILABLE
 
     def world_size(self) -> int:
-        return int(os.environ.get(xenv.WORLD_SIZE, 1))
+        return xm.xrt_world_size()
 
     def set_world_size(self, size: int) -> None:
-        pass
+        log.debug("XLAEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     def global_rank(self) -> int:
-        return int(os.environ.get(xenv.ORDINAL, 0))
+        return xm.get_ordinal()
 
     def set_global_rank(self, rank: int) -> None:
-        pass
+        log.debug("XLAEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self) -> int:
-        return int(os.environ.get(xenv.LOCAL_ORDINAL, 0))
+        return xm.get_local_ordinal()
 
     def node_rank(self) -> int:
         return int(os.environ.get(xenv.HOST_ORDINAL, 0))
