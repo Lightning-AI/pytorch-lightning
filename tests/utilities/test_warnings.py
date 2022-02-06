@@ -41,6 +41,9 @@ if standalone:
         cache.deprecation("test7")
 
     output = stderr.getvalue()
+    import logging
+
+    logging.error(output)
     assert "test_warnings.py:30: UserWarning: test1" in output
     assert "test_warnings.py:31: DeprecationWarning: test2" in output
 
@@ -53,7 +56,7 @@ if standalone:
     assert "test_warnings.py:40: LightningDeprecationWarning: test7" in output
 
     # check that logging is properly configured
-    import logging
+    # import logging
 
     from pytorch_lightning import _DETAIL
 
