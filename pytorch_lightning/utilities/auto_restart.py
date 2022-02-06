@@ -36,13 +36,13 @@ from torch.utils.data.dataloader import (
     DataLoader,
     IterableDataset,
 )
-from typing_extensions import Protocol, runtime_checkable
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _Stateful
 
 
 class FastForwardSampler(Sampler):
@@ -487,7 +487,7 @@ def _next_data_wrapper(
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fetcher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.AbstractDataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
     """Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is
@@ -576,23 +576,22 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
 def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
     # therefore, we need to reload the states manually.
-
     latest_worker_id = state_dict["latest_worker_id"]
     num_workers = state_dict["state"][latest_worker_id]["num_workers"]
     sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
     if sampler_state:
         # `sampler_state` keys contain all the DataLoader attribute names
-        # which matched `_SupportsStateDict` API interface while collecting the `state_dict`.
+        # which matched `_Stateful` API interface while collecting the `state_dict`.
         for dataloader_attr_name in sampler_state:
             obj = getattr(dataloader, dataloader_attr_name)
-            if not isinstance(obj, _SupportsStateDict):
+            if not isinstance(obj, _Stateful):
                 raise MisconfigurationException(
                     f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
                 )
 
             obj.load_state_dict(sampler_state[dataloader_attr_name])
 
-    if not isinstance(dataloader.dataset, _SupportsStateDict):
+    if not isinstance(dataloader.dataset, _Stateful):
         return
 
     dataset_state = {
@@ -635,17 +634,6 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
 
 
-@runtime_checkable
-class _SupportsStateDict(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
-
-    def state_dict(self) -> Dict[str, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
-
-
 class _StatefulDataLoaderIter:
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
@@ -657,9 +645,7 @@ class _StatefulDataLoaderIter:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict()
-            for k, v in self._loader.__dict__.items()
-            if isinstance(v, _SupportsStateDict) and k != "dataset"
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if isinstance(v, _Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 

@@ -40,31 +40,31 @@ def test_prefetch_iterator(use_combined_loader):
             yield 2
             yield 3
 
-    for prefetch_batches in range(0, 4):
+    for prefetch_batches in range(5):
+        iterator = DataFetcher(prefetch_batches=prefetch_batches)
+        assert iterator.prefetch_batches == prefetch_batches
+
         if use_combined_loader:
             loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
-            expected = [
-                ([tensor([1]), tensor([1])], False),
-                ([tensor([2]), tensor([2])], False),
-                ([tensor([3]), tensor([3])], True),
-            ]
         else:
             loader = DataLoader(IterDataset())
-            expected = [(1, False), (2, False), (3, True)]
-        iterator = DataFetcher(prefetch_batches=prefetch_batches)
-        prefetch_batches += 1
-        assert iterator.prefetch_batches == prefetch_batches
         iterator.setup(loader)
 
         def generate():
-            generated = []
-            for idx, data in enumerate(iterator, 1):
-                if iterator.done:
-                    assert iterator.fetched == 3
-                else:
-                    assert iterator.fetched == (idx + prefetch_batches)
-                generated.append(data)
+            generated = [(iterator.fetched, *data) for i, data in enumerate(iterator, prefetch_batches + 1)]
+            assert iterator.fetched == 3
+            assert iterator.done
             return generated
+
+        is_last_batch = [False, False, prefetch_batches > 0]
+        fetched = list(range(prefetch_batches + 1, 4))
+        fetched += [3] * (3 - len(fetched))
+        if use_combined_loader:
+            batches = [[tensor(1), tensor(1)], [tensor(2), tensor(2)], [tensor(3), tensor(3)]]
+        else:
+            batches = [1, 2, 3]
+        expected = list(zip(fetched, batches, is_last_batch))
+        assert len(expected) == 3
 
         assert generate() == expected
         # validate reset works properly.
@@ -75,10 +75,10 @@ def test_prefetch_iterator(use_combined_loader):
         def __iter__(self):
             return iter([])
 
-    dataloader = DataLoader(EmptyIterDataset())
+    loader = DataLoader(EmptyIterDataset())
     iterator = DataFetcher()
-    iterator.setup(dataloader)
-    assert list(iterator) == []
+    iterator.setup(loader)
+    assert not list(iterator)
 
 
 def test_misconfiguration_error():
@@ -180,44 +180,44 @@ def test_trainer_num_prefetch_batches(tmpdir):
     model = RecommenderModel()
 
     class AssertFetcher(Callback):
-        def __init__(self, check_inter_batch: bool):
+        def __init__(self, check_inter_batch):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            if self._check_inter_batch:
-                assert isinstance(trainer._data_connector.train_data_fetcher, InterBatchParallelDataFetcher)
-            else:
-                assert isinstance(trainer._data_connector.train_data_fetcher, DataFetcher)
+            fetcher = trainer._data_connector.train_data_fetcher
+            assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
+            assert fetcher.prefetch_batches == 1
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         limit_train_batches=4,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        callbacks=[AssertFetcher(check_inter_batch=True)],
+        enable_progress_bar=0,
     )
 
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=True))
     with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
         t0 = time()
-        trainer = Trainer(**trainer_kwargs)
         trainer.fit(model)
         t1 = time()
-        global_step = trainer.global_step
+        inter_batch_duration = t1 - t0
+    global_step = trainer.global_step
 
     torch.cuda.synchronize()
 
-    trainer_kwargs["callbacks"] = [AssertFetcher(check_inter_batch=False)]
-
+    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=False))
     t2 = time()
-    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
     t3 = time()
+    regular_duration = t3 - t2
 
     assert global_step == trainer.global_step == 4
-    ratio = (t3 - t2) / (t1 - t0)
-    assert ratio > 1.1, ratio
+    ratio = regular_duration / inter_batch_duration
+    assert ratio > 1.1, (regular_duration, inter_batch_duration, ratio)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])

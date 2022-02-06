@@ -276,9 +276,9 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert isinstance(trainer.lr_schedulers[0]["scheduler"], torch.optim.lr_scheduler.StepLR)
+            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
             # check that the lr_scheduler config was preserved
-            assert trainer.lr_schedulers[0]["name"] == "Sean"
+            assert trainer.lr_scheduler_configs[0].name == "Sean"
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
@@ -314,7 +314,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
-            assert isinstance(trainer.lr_schedulers[0]["scheduler"], WarmupLR)
+            assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
 
     model = BoringModel()
     trainer = Trainer(
@@ -406,7 +406,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer, pl_module) -> None:
+        def setup(self, trainer, pl_module, stage=None) -> None:
             assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 
@@ -664,8 +664,8 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     )
     with pytest.warns(
         UserWarning,
-        match="A single checkpoint file has been given. This means optimizer states and "
-        "scheduler states can not be restored. If you'd like to restore these states, you must "
+        match="A single checkpoint file has been given. This means optimizer states cannot be restored. "
+        "If you'd like to restore these states, you must "
         "provide a path to the originally saved DeepSpeed checkpoint.",
     ):
         trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
@@ -673,7 +673,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
-    """Test to ensure with Stage 3 and multiple GPUs that we can resume training."""
+    """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
 
@@ -688,6 +688,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         gpus=1,
         precision=16,
         callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     initial_trainer.fit(initial_model, datamodule=dm)
 
@@ -713,6 +715,11 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
             # assert epoch has correctly been restored
             assert trainer.current_epoch == 1
 
+            # assert lr-scheduler states are loaded correctly
+            original_lr_scheduler = initial_trainer.lr_scheduler_configs[0].scheduler
+            current_lr_scheduler = trainer.lr_scheduler_configs[0].scheduler
+            assert original_lr_scheduler.state_dict() == current_lr_scheduler.state_dict()
+
     model = ModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -721,6 +728,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         gpus=1,
         precision=16,
         callbacks=TestCallback(),
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model, datamodule=dm, ckpt_path=ck.best_model_path)
 

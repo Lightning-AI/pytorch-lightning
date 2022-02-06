@@ -47,7 +47,7 @@ def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_opt
         load_optimizer_state_dict_called = False
 
         @property
-        def lightning_restore_optimizer_and_schedulers(self) -> bool:
+        def lightning_restore_optimizer(self) -> bool:
             return restore_optimizer_and_schedulers
 
         def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:

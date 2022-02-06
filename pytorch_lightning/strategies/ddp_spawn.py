@@ -82,7 +82,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._num_nodes = 1
         self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -106,6 +105,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
@@ -200,7 +203,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device:
+        if _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -362,11 +365,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "ddp_spawn_find_unused_parameters_false",
             cls,
-            description="DDPSpawn Plugin with `find_unused_parameters` as False",
+            description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
 
@@ -378,7 +381,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         if self.sync_batchnorm:
             self.model = _revert_sync_batchnorm(self.model)
 
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

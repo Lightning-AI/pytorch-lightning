@@ -122,7 +122,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     torch.Size([1, 10])
 
 
-Now we add the training_step which has all our training loop logic
+Now we add the ``training_step`` which has all our training loop logic:
 
 .. testcode::
 
@@ -133,11 +133,12 @@ Now we add the training_step which has all our training loop logic
             loss = F.nll_loss(logits, y)
             return loss
 
+
 Optimizer
 ---------
 
-Next, we choose which optimizer to use for training our model.
-In PyTorch, the optimizer is created as follows:
+Next we choose which optimizer to use for training our system.
+In PyTorch, we do it as follows:
 
 .. code-block:: python
 
@@ -146,7 +147,7 @@ In PyTorch, the optimizer is created as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
+In Lightning, the same code is re-organized within the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` method.
 
 .. testcode::
 
@@ -154,7 +155,7 @@ In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
-.. note:: The LightningModule is subclassing :class:`~torch.nn.Module` and therefore, you can access its children parameters directly with ``self.parameters()``.
+.. note:: The ``LightningModule`` is subclassing :class:`~torch.nn.Module` and therefore, you can access its children parameters directly with ``self.parameters()``.
 
 If you have multiple optimizers, you can configure them as follows:
 
@@ -162,7 +163,24 @@ If you have multiple optimizers, you can configure them as follows:
 
     class LitMNIST(LightningModule):
         def configure_optimizers(self):
-            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
+            return Adam(self.generator.parameters(), lr=1e-3), Adam(self.discriminator.parameters(), lr=1e-3)
+
+If you have LR Schedulers you can return them too:
+
+.. testcode::
+
+    from torch.optim.lr_scheduler import CosineAnnealingLR
+
+
+    class LitMNIST(LightningModule):
+        def configure_optimizers(self):
+            opt = Adam(self.parameters(), lr=1e-3)
+            scheduler = CosineAnnealingLR(opt, T_max=10)
+            return [opt], [scheduler]
+
+
+For more available configurations, please checkout the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` method.
+
 
 Data
 ----
@@ -402,8 +420,8 @@ Training
 So far we defined 4 key ingredients in pure PyTorch but organized the code with the LightningModule.
 
 1. Model.
-2. Training data.
-3. Optimizer.
+2. Optimizer.
+3. Training data.
 4. What happens in the training loop.
 
 |
@@ -544,7 +562,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
-Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
+Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
 
 Train on TPUs
 ^^^^^^^^^^^^^
@@ -972,6 +990,10 @@ And pass the callbacks into the trainer
     See full list of 12+ hooks in the :doc:`callbacks <../extensions/callbacks>`.
 
 ----------------
+
+*************
+Child Modules
+*************
 
 .. include:: ../common/child_modules.rst
 

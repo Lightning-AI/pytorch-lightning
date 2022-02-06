@@ -25,18 +25,42 @@ from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
-def _module_available(module_path: str) -> bool:
-    """Check if a path is available in your environment.
+def _package_available(package_name: str) -> bool:
+    """Check if a package is available in your environment.
 
-    >>> _module_available('os')
+    >>> _package_available('os')
     True
-    >>> _module_available('bla.bla')
+    >>> _package_available('bla')
     False
     """
     try:
-        return find_spec(module_path) is not None
+        return find_spec(package_name) is not None
     except ModuleNotFoundError:
         return False
+
+
+def _module_available(module_path: str) -> bool:
+    """Check if a module path is available in your environment.
+
+    >>> _module_available('os')
+    True
+    >>> _module_available('os.bla')
+    False
+    >>> _module_available('bla.bla')
+    False
+    """
+    module_names = module_path.split(".")
+    if not _package_available(module_names[0]):
+        return False
+    try:
+        module = importlib.import_module(module_names[0])
+    except ImportError:
+        return False
+    for name in module_names[1:]:
+        if not hasattr(module, name):
+            return False
+        module = getattr(module, name)
+    return True
 
 
 def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
@@ -72,26 +96,27 @@ _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 # _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_DEEPSPEED_AVAILABLE = _module_available("deepspeed")
+_BAGUA_AVAILABLE = _package_available("bagua")
+_DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
-_HYDRA_AVAILABLE = _module_available("hydra")
+_HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
+_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
-_NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
-_OMEGACONF_AVAILABLE = _module_available("omegaconf")
-_POPTORCH_AVAILABLE = _module_available("poptorch")
-_RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+_OMEGACONF_AVAILABLE = _package_available("omegaconf")
+_POPTORCH_AVAILABLE = _package_available("poptorch")
+_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHTEXT_AVAILABLE = _module_available("torchtext")
+_TORCHTEXT_AVAILABLE = _package_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
-_TORCHVISION_AVAILABLE = _module_available("torchvision")
-_XLA_AVAILABLE: bool = _module_available("torch_xla")
+_TORCHVISION_AVAILABLE = _package_available("torchvision")
+_XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 

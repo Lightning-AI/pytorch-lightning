@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -51,8 +51,9 @@ class Strategy(ABC):
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
-        self.optimizers: List[Optimizer] = []
-        self.lr_schedulers: List[LRSchedulerConfig] = []
+        self._optimizers: List[Optimizer] = []
+        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
+        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
@@ -84,6 +85,17 @@ class Strategy(ABC):
     def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
         self._precision_plugin = precision_plugin
 
+    @property
+    def optimizers(self) -> List[Optimizer]:
+        return self._optimizers
+
+    @optimizers.setter
+    def optimizers(self, optimizers: List[Optimizer]) -> None:
+        self._optimizers = optimizers
+        self._lightning_optimizers = {
+            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
+        }
+
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
@@ -104,7 +116,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
 
@@ -121,10 +133,12 @@ class Strategy(ABC):
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_scheduler_configs
+        )
         self.model = model
         self.optimizers = optimizers
-        self.lr_schedulers = schedulers
+        self.lr_scheduler_configs = lr_scheduler_configs
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the appropriate device if needed."""
@@ -214,16 +228,6 @@ class Strategy(ABC):
         if model is not None:
             return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
         return move_data_to_device(batch, device)
-
-    @property
-    @abstractmethod
-    def on_gpu(self) -> bool:
-        """Returns whether the current process is done on GPU."""
-
-    @property
-    @abstractmethod
-    def on_tpu(self) -> bool:
-        """Returns whether the current process is done on TPU."""
 
     @property
     @abstractmethod
@@ -381,7 +385,7 @@ class Strategy(ABC):
         return False
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+    def lightning_restore_optimizer(self) -> bool:
         """Override to disable Lightning restoring optimizers/schedulers.
 
         This is useful for plugins which manage restoring optimizers/schedulers.
@@ -436,7 +440,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
 
     @classmethod
-    def register_plugins(cls, plugin_registry) -> None:
+    def register_strategies(cls, strategies_registry) -> None:
         pass
 
     def on_train_start(self) -> None:
@@ -478,6 +482,16 @@ class Strategy(ABC):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.precision_plugin.dispatch(trainer)
+
+    def __getstate__(self) -> Dict:
+        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
+        state = dict(vars(self))  # copy
+        state["_lightning_optimizers"] = {}
+        return state
+
+    def __setstate__(self, state: Dict) -> None:
+        self.__dict__ = state
+        self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
 
     def post_dispatch(self, trainer: "pl.Trainer") -> None:
         r"""

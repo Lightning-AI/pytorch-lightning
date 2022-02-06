@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import re
 from typing import Any, Dict, Optional
@@ -23,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -35,11 +36,14 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
 
 
+log: logging.Logger = logging.getLogger(__name__)
+
+
 class CheckpointConnector:
     def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
         self.trainer = trainer
         self.resume_checkpoint_path: Optional[_PATH] = None
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
@@ -74,6 +78,7 @@ class CheckpointConnector:
         self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
+            log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
@@ -100,7 +105,7 @@ class CheckpointConnector:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
             elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
-        # TODO: remove resume_from_checkpoint_fit_path in v1.7
+        # TODO: remove resume_from_checkpoint_fit_path in v2.0
         if (
             self.trainer.state.fn == TrainerFn.FITTING
             and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
@@ -213,11 +218,13 @@ class CheckpointConnector:
             return
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
+        if state_dict is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
@@ -241,33 +248,25 @@ class CheckpointConnector:
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
             )
 
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-            self.trainer.current_epoch
-        )
-        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-        expected_steps = self.trainer.num_training_batches / n_accum
-        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch."
-                " Training will start from the beginning of the next epoch."
-                " This can cause unreliable results if further training is done,"
-                " consider using an end of epoch checkpoint."
-            )
-
     def restore_optimizers_and_schedulers(self) -> None:
         """Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint."""
-        if not self._loaded_checkpoint or not self.trainer.strategy.lightning_restore_optimizer_and_schedulers:
+        if not self._loaded_checkpoint:
             return
 
-        # validation
-        if "optimizer_states" not in self._loaded_checkpoint or "lr_schedulers" not in self._loaded_checkpoint:
+        if self.trainer.strategy.lightning_restore_optimizer:
+            # validation
+            if "optimizer_states" not in self._loaded_checkpoint:
+                raise KeyError(
+                    "Trying to restore optimizer state but checkpoint contains only the model."
+                    " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
+                )
+            self.restore_optimizers()
+
+        if "lr_schedulers" not in self._loaded_checkpoint:
             raise KeyError(
-                "Trying to restore training state but checkpoint contains only the model."
+                "Trying to restore learning rate scheduler state but checkpoint contains only the model."
                 " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
             )
-        self.restore_optimizers()
         self.restore_lr_schedulers()
 
     def restore_optimizers(self) -> None:
@@ -293,8 +292,8 @@ class CheckpointConnector:
 
         # restore the lr schedulers
         lr_schedulers = self._loaded_checkpoint["lr_schedulers"]
-        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler["scheduler"].load_state_dict(lrs_state)
+        for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
+            config.scheduler.load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -356,8 +355,8 @@ class CheckpointConnector:
 
             # dump lr schedulers
             lr_schedulers = []
-            for scheduler in self.trainer.lr_schedulers:
-                lr_schedulers.append(scheduler["scheduler"].state_dict())
+            for config in self.trainer.lr_scheduler_configs:
+                lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
             self.trainer.precision_plugin.on_save_checkpoint(checkpoint)

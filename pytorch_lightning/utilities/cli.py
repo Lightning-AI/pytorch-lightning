@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for LightningCLI."""
+
 import inspect
 import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
@@ -62,9 +64,16 @@ class _Registry(dict):
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
-        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
-            if issubclass(cls, base_cls) and cls != base_cls:
-                self(cls=cls, override=override)
+        for cls in self.get_members(module, base_cls):
+            self(cls=cls, override=override)
+
+    @staticmethod
+    def get_members(module: ModuleType, base_cls: Type) -> Generator[Type, None, None]:
+        return (
+            cls
+            for _, cls in inspect.getmembers(module, predicate=inspect.isclass)
+            if issubclass(cls, base_cls) and cls != base_cls
+        )
 
     @property
     def names(self) -> List[str]:
@@ -102,6 +111,9 @@ MODEL_REGISTRY = _Registry()
 
 DATAMODULE_REGISTRY = _Registry()
 
+LOGGER_REGISTRY = _Registry()
+LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
@@ -113,7 +125,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
@@ -300,7 +312,7 @@ class LightningArgumentParser(ArgumentParser):
             init_args_key = f"{argv_key}.init_args"
             init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
             config = str({"class_path": class_path, "init_args": init_args})
-        elif argv_class.startswith("{"):
+        elif argv_class.startswith("{") or argv_class in ("None", "True", "False"):
             # the user passed a config as a dict
             config = argv_class
         else:
@@ -483,7 +495,10 @@ class LightningCLI:
             save_config_multifile: When input is multiple config files, saved config preserves this structure.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
-            trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
+            trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
+                this argument will not be configurable from a configuration file and will always be present for
+                this particular CLI. Alternatively, configurable callbacks can be added as explained in
+                :ref:`the CLI docs <common/lightning_cli:Configurable callbacks>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -574,6 +589,7 @@ class LightningCLI:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
+        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
@@ -694,8 +710,8 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser,
-                self.config,
+                self._parser(self.subcommand),
+                self.config.get(str(self.subcommand), self.config),
                 self.save_config_filename,
                 overwrite=self.save_config_overwrite,
                 multifile=self.save_config_multifile,
@@ -787,15 +803,13 @@ class LightningCLI:
         optimizer = instantiate_class(self.model.parameters(), optimizer_init)
         lr_scheduler = instantiate_class(optimizer, lr_scheduler_init) if lr_scheduler_init else None
         fn = partial(self.configure_optimizers, optimizer=optimizer, lr_scheduler=lr_scheduler)
-        update_wrapper(fn, self.model.configure_optimizers)  # necessary for `is_overridden`
+        update_wrapper(fn, self.configure_optimizers)  # necessary for `is_overridden`
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
-        if self.subcommand is not None:
-            return config[self.subcommand].get(key, default)
-        return config.get(key, default)
+        return config.get(str(self.subcommand), config).get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
         """Run the chosen subcommand."""

@@ -403,7 +403,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
+    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -734,7 +734,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -1103,7 +1103,7 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <multi_gpu>`
+- :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Apex <amp>`
 
@@ -1376,7 +1376,7 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
     Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
@@ -1430,9 +1430,9 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`.
     - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^

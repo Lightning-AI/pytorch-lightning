@@ -25,7 +25,6 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -48,14 +47,6 @@ class ParallelStrategy(Strategy, ABC):
     @abstractmethod
     def root_device(self) -> torch.device:
         """Return the root device."""
-
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
@@ -82,6 +73,14 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
+    def parallel_devices(self):
+        return self._parallel_devices
+
+    @parallel_devices.setter
+    def parallel_devices(self, parallel_devices):
+        self._parallel_devices = parallel_devices
+
+    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -94,7 +93,7 @@ class ParallelStrategy(Strategy, ABC):
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
@@ -103,7 +102,7 @@ class ParallelStrategy(Strategy, ABC):
     def torch_distributed_backend(self):
         torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
         if torch_backend is None:
-            torch_backend = "nccl" if self.on_gpu else "gloo"
+            torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
         return torch_backend
 
     @staticmethod

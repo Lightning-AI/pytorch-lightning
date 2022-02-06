@@ -16,6 +16,7 @@ import os
 import platform
 import time
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -110,10 +111,10 @@ def test_simple_profiler_deepcopy(tmpdir):
     assert deepcopy(simple_profiler)
 
 
-def test_simple_profiler_log_dir(tmpdir):
+def test_simple_profiler_dirpath(tmpdir):
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
@@ -121,7 +122,7 @@ def test_simple_profiler_log_dir(tmpdir):
 
     expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -130,7 +131,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -141,7 +142,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
     assert expected.exists()
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -150,7 +151,6 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
-    assert profiler._log_dir is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -168,7 +168,13 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -191,6 +197,76 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
         trainer.test(model)
 
     assert caplog.text.count("Profiler Report") == 2
+
+
+@pytest.mark.parametrize("extended", [True, False])
+@patch("time.monotonic", return_value=70)
+def test_simple_profiler_summary(tmpdir, extended):
+    """Test the summary of `SimpleProfiler`."""
+    profiler = SimpleProfiler(extended=extended)
+    profiler.start_time = 63.0
+    hooks = [
+        "on_train_start",
+        "on_train_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_before_batch_transfer",
+        "on_fit_start",
+    ]
+    sometime = 0.773434
+    sep = os.linesep
+    max_action_len = len("on_before_batch_transfer")
+
+    for i, hook in enumerate(hooks):
+        with profiler.profile(hook):
+            pass
+
+        profiler.recorded_durations[hook] = [sometime + i]
+
+    if extended:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Num calls':<15}\t|"
+            f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  1                    |  5.7734               |  82.478               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  1                    |  4.7734               |  68.192               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  1                    |  3.7734               |  53.906               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  1                    |  2.7734               |  39.62                |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  1.7734               |  1                    |  1.7734               |  25.335               |"  # noqa: E501
+            f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep_lines}{sep}"
+        )
+    else:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
+            f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  5.7734               |"
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  4.7734               |"
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  3.7734               |"
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  2.7734               |"
+            f"{sep}|  on_train_end                 |  1.7734               |  1.7734               |"
+            f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
+            f"{sep_lines}{sep}"
+        )
+
+    summary = profiler.summary().expandtabs()
+    assert expected_text == summary
 
 
 @pytest.fixture
@@ -307,7 +383,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         limit_val_batches=5,
         profiler=pytorch_profiler,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
     expected = {"[Strategy]DDPStrategy.validation_step"}
@@ -429,7 +506,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, gpus=1)
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
     trainer.fit(model)
 
 

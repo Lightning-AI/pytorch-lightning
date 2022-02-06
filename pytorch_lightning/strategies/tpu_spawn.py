@@ -206,14 +206,14 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return obj
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op="sum")
         decision = bool(decision == self.world_size)
         return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.lightning_module.device)
+            output = torch.tensor(output, device=self.root_device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
@@ -333,7 +333,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         os.environ.pop("PT_XLA_DEBUG", None)
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
         )

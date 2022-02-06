@@ -24,10 +24,9 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -41,7 +40,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerTypeTuple, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -133,7 +132,7 @@ class DeepSpeedStrategy(DDPStrategy):
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
+        lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed`.
 
         .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
@@ -399,7 +398,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
-        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[_LRScheduler] = None
+        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ):
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -445,15 +444,15 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[Union[LRSchedulerTypeTuple]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
-        if len(optimizers) > 1 or len(schedulers) > 1:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+        optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else _get_default_scheduler_config(),
+            lr_schedulers[0] if lr_schedulers else None,
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -462,28 +461,33 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
 
     def _initialize_deepspeed_train(self, model):
+        optimizer, scheduler = None, None
         if "optimizer" in self.config:
-            optimizer, lr_scheduler = None, _get_default_scheduler_config()
-        else:
             rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
+                "You have specified an optimizer and/or scheduler within the DeepSpeed config."
+                " It is recommended to define it in `LightningModule.configure_optimizers`."
             )
+            lr_scheduler = None
+        else:
             optimizer, lr_scheduler, _ = self._init_optimizers()
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
 
-        scheduler = lr_scheduler["scheduler"]
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
-        self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+        self.optimizers = [deepspeed_optimizer]
 
         deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
-            lr_scheduler["scheduler"] = deepspeed_scheduler
-            self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
+            if lr_scheduler is None:
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler)
+            else:
+                lr_scheduler.scheduler = deepspeed_scheduler
+            self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager
@@ -524,11 +528,10 @@ class DeepSpeedStrategy(DDPStrategy):
                 " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
-            scheduler = lr_scheduler["scheduler"]
-        inference_config = {
-            # todo: this is required for DeepSpeed throughput timers
-            "train_micro_batch_size_per_gpu": 1
-        }
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
+        # todo: this is required for DeepSpeed throughput timers
+        inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
         if self.zero_stage_3:
@@ -575,7 +578,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers and frequencies
         self.optimizers = []
-        self.lr_schedulers = []
+        self.lr_scheduler_configs = []
         self.optimizer_frequencies = []
 
     @property
@@ -587,7 +590,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed"
+                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
@@ -757,7 +760,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
         _, client_state = self.deepspeed_engine.load_checkpoint(
-            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
+            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
         if client_state is None:
             raise MisconfigurationException(
@@ -767,13 +770,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return client_state
 
     @property
-    def lightning_restore_optimizer_and_schedulers(self) -> bool:
+    def lightning_restore_optimizer(self) -> bool:
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states and "
-                "scheduler states can not be restored. If you'd like to restore these states, you must "
-                "provide a path to the originally saved DeepSpeed checkpoint."
+                "A single checkpoint file has been given. This means optimizer states cannot be restored."
+                " If you'd like to restore these states, you must provide a path to the originally saved DeepSpeed"
+                " checkpoint. When using ZeRO 3, the original path should be a directory."
             )
         return False
 
@@ -832,19 +835,19 @@ class DeepSpeedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
-        plugin_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
-        plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
+        strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
+        strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        strategy_registry.register(
             "deepspeed_stage_2_offload",
             cls,
             description="DeepSpeed ZeRO Stage 2 and CPU Offload",
             stage=2,
             offload_optimizer=True,
         )
-        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
-        plugin_registry.register(
+        strategy_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
+        strategy_registry.register(
             "deepspeed_stage_3_offload",
             cls,
             description="DeepSpeed ZeRO Stage 3 and CPU Offload",
@@ -852,7 +855,7 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer=True,
             offload_parameters=True,
         )
-        plugin_registry.register(
+        strategy_registry.register(
             "deepspeed_stage_3_offload_nvme",
             cls,
             description="DeepSpeed ZeRO Stage 3 and NVMe Offload",

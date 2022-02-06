@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from typing import Dict, Generator, List, Optional
 
 import torch
@@ -29,6 +30,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
+
+log = logging.getLogger(__name__)
 
 
 class DDPFullyShardedStrategy(DDPStrategy):
@@ -123,9 +126,9 @@ class DDPFullyShardedStrategy(DDPStrategy):
         return self._process_group
 
     def setup_distributed(self) -> None:
-        if not self.on_gpu:
+        if not self.root_device.type == "cuda":
             raise MisconfigurationException(
-                "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
+                "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
 
@@ -144,6 +147,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
+        log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
         precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
@@ -165,7 +169,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
         ):
             yield
 
+        log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
+
     def configure_ddp(self) -> None:
+        log.detail(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
@@ -177,6 +184,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
@@ -200,7 +208,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         pass
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
         )

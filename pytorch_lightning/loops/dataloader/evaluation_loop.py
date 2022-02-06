@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Sequence, Union
+import os
+import shutil
+from collections import OrderedDict
+from typing import Any, IO, Iterable, List, Optional, Sequence, Union
 
 import torch
 from deprecate.utils import void
@@ -20,8 +23,14 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+
+if _RICH_AVAILABLE:
+    from rich.console import Console
+    from rich.table import Column, Table
 
 
 class EvaluationLoop(DataLoaderLoop):
@@ -115,9 +124,10 @@ class EvaluationLoop(DataLoaderLoop):
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader, dataloader_idx if self.num_dataloaders > 1 else None, dl_max_batches
-        )
+        kwargs = OrderedDict()
+        if self.num_dataloaders > 1:
+            kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(dataloader, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
@@ -176,9 +186,6 @@ class EvaluationLoop(DataLoaderLoop):
             max_batches = self.trainer.num_test_batches
         else:
             if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
-                ]
                 max_batches = self.trainer.num_sanity_val_batches
             else:
                 max_batches = self.trainer.num_val_batches
@@ -188,7 +195,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary."""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_val_dl:
+        elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
             self.trainer.reset_val_dataloader()
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
@@ -271,17 +278,81 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-    def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
-        # TODO: this could be updated to look nicer
-        from pprint import pprint
+    @staticmethod
+    def _get_keys(data: dict) -> Iterable[str]:
+        if any(isinstance(v, dict) for v in data.values()):
+            for v in data.values():
+                yield from apply_to_collection(v, dict, dict.keys)
+        else:
+            yield from data.keys()
 
-        print("-" * 80)
-        for i, metrics_dict in enumerate(results):
-            print(f"DATALOADER:{i} {stage.upper()} RESULTS")
-            pprint(
-                {
-                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    for k, v in metrics_dict.items()
-                }
-            )
-            print("-" * 80)
+    @staticmethod
+    def _find_value(data: dict, target: str) -> Iterable[Any]:
+        for k, v in data.items():
+            if k == target:
+                yield v
+            elif isinstance(v, dict):
+                yield from EvaluationLoop._find_value(v, target)
+
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # remove the dl idx suffix
+        results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
+        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        headers = [f"DataLoader {i}" for i in range(len(results))]
+
+        # fallback is useful for testing of printed output
+        term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
+        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+
+        rows: List[List[Any]] = [[] for _ in metrics]
+
+        for result in results:
+            for metric, row in zip(metrics, rows):
+                v = list(EvaluationLoop._find_value(result, metric))
+                if v:
+                    val = v[0]
+                    if isinstance(val, torch.Tensor):
+                        val = val.item() if val.numel() == 1 else val.tolist()
+                    row.append(f"{val}")
+                else:
+                    row.append(" ")
+
+        # keep one column with max length for metrics
+        num_cols = int((term_size - max_length) / max_length)
+
+        for i in range(0, len(headers), num_cols):
+            table_headers = headers[i : (i + num_cols)]
+            table_rows = [row[i : (i + num_cols)] for row in rows]
+
+            table_headers.insert(0, f"{stage} Metric".capitalize())
+
+            if _RICH_AVAILABLE:
+                console = Console(file=file)
+
+                columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
+                columns[0].style = "cyan"
+
+                table = Table(*columns)
+                for metric, row in zip(metrics, table_rows):
+                    row.insert(0, metric)
+                    table.add_row(*row)
+                console.print(table)
+            else:
+                row_format = f"{{:^{max_length}}}" * len(table_headers)
+                half_term_size = int(term_size / 2)
+
+                bar = "─" * term_size
+                lines = [bar, row_format.format(*table_headers).rstrip(), bar]
+                for metric, row in zip(metrics, table_rows):
+                    # deal with column overflow
+                    if len(metric) > half_term_size:
+                        while len(metric) > half_term_size:
+                            row_metric = metric[:half_term_size]
+                            metric = metric[half_term_size:]
+                            lines.append(row_format.format(row_metric, *row).rstrip())
+                        lines.append(row_format.format(metric, " ").rstrip())
+                    else:
+                        lines.append(row_format.format(metric, *row).rstrip())
+                lines.append(bar)
+                print(os.linesep.join(lines), file=file)

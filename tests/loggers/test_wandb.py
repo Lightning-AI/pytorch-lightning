@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
@@ -252,6 +251,12 @@ def test_wandb_log_media(wandb, tmpdir):
     wandb.Image.assert_called_with("2.jpg")
     wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
+    # test log_image with step
+    wandb.init().log.reset_mock()
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
+    wandb.Image.assert_called_with("2.jpg")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()], "trainer/global_step": 5})
+
     # test log_image with captions
     wandb.init().log.reset_mock()
     wandb.Image.reset_mock()
@@ -277,36 +282,6 @@ def test_wandb_log_media(wandb, tmpdir):
         dataframe=df,
     )
     wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
-
-
-def test_wandb_sanitize_callable_params(tmpdir):
-    """Callback function are not serializiable.
-
-    Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
-    """
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
-
-    def return_something():
-        return "something"
-
-    params.something = return_something
-
-    def wrapper_something():
-        return return_something
-
-    params.wrapper_something_wo_name = lambda: lambda: "1"
-    params.wrapper_something = wrapper_something
-
-    params = WandbLogger._convert_params(params)
-    params = WandbLogger._flatten_dict(params)
-    params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] == "None"
-    assert params["something"] == "something"
-    assert params["wrapper_something"] == "wrapper_something"
-    assert params["wrapper_something_wo_name"] == "<lambda>"
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")

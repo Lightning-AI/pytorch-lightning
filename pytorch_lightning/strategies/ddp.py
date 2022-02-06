@@ -31,7 +31,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -57,7 +57,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.enums import _StrategyType
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -102,10 +102,10 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
+        log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self.interactive_ddp_procs = []
         self._num_nodes = 1
         self.sync_batchnorm = False
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -133,6 +133,10 @@ class DDPStrategy(ParallelStrategy):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
@@ -171,7 +175,9 @@ class DDPStrategy(ParallelStrategy):
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
+        device_ids = self.determine_ddp_device_ids()
+        log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
@@ -205,13 +211,6 @@ class DDPStrategy(ParallelStrategy):
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
-        # the visible devices tell us how many GPUs we want to use.
-        # when the trainer script was called the device has already been scoped by the time
-        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
-        # but forward the GPUs selected via environment variables
-        if self.parallel_devices is None:
-            raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
         self.interactive_ddp_procs = []
@@ -243,6 +242,7 @@ class DDPStrategy(ParallelStrategy):
         self._rank_0_has_called_call_children_scripts = True
 
     def setup_distributed(self):
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
         # determine which process we are and world size
@@ -288,10 +288,11 @@ class DDPStrategy(ParallelStrategy):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
+        log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
         if _TORCH_GREATER_EQUAL_1_9 or (
-            _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
+            _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device
         ):
             register_ddp_comm_hook(
                 model=self.model,
@@ -307,6 +308,7 @@ class DDPStrategy(ParallelStrategy):
                     self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
+        log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         optimizers = self.lightning_module.trainer.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
@@ -345,11 +347,10 @@ class DDPStrategy(ParallelStrategy):
             )
             optimizers[x] = post_localSGD_optimizer
             del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        _convert_to_lightning_optimizers(trainer)
+        self.optimizers = optimizers
 
     def configure_ddp(self) -> None:
+        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
@@ -380,6 +381,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
@@ -424,8 +426,8 @@ class DDPStrategy(ParallelStrategy):
             self.model.require_backward_grad_sync = True
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register(
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
             "ddp_find_unused_parameters_false",
             cls,
             description="DDP Strategy with `find_unused_parameters` as False",
@@ -500,6 +502,7 @@ class DDPStrategy(ParallelStrategy):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
+        log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
@@ -507,8 +510,9 @@ class DDPStrategy(ParallelStrategy):
         if self.sync_batchnorm:
             self.model = _revert_sync_batchnorm(self.model)
 
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()

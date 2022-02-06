@@ -336,7 +336,9 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
-        pass
+        @staticmethod
+        def auto_device_count() -> int:
+            return 1
 
     class Prec(PrecisionPlugin):
         pass
@@ -565,12 +567,12 @@ def test_devices_with_cpu_only_supports_integer():
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
-def test_unsupported_distrib_types_on_cpu(training_type):
+def test_unsupported_strategy_types_on_cpu(training_type):
 
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
 
-    assert trainer._distrib_type == _StrategyType.DDP
+    assert trainer._strategy_type == _StrategyType.DDP
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):

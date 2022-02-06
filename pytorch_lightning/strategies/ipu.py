@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+else:
+    poptorch = None
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
@@ -114,6 +116,8 @@ class IPUStrategy(ParallelStrategy):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
+        self._update_dataloader_original: Optional[Callable] = None
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
         self._handle_gradient_accumulation_steps()
@@ -121,8 +125,8 @@ class IPUStrategy(ParallelStrategy):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-        self._update_dataloader_original = pl.trainer.data_loading._update_dataloader
-        pl.trainer.data_loading._update_dataloader = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
+        pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
 
@@ -277,8 +281,9 @@ class IPUStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         super().teardown()
-        # undo dataloader patching
-        pl.trainer.data_loading._update_dataloader = self._update_dataloader_original
+        if self._update_dataloader_original is not None:
+            # undo dataloader patching
+            pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -332,10 +337,6 @@ class IPUStrategy(ParallelStrategy):
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
-
-    @property
-    def on_gpu(self) -> bool:
-        return False
 
     @property
     def root_device(self) -> torch.device:

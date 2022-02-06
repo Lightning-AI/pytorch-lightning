@@ -17,13 +17,18 @@ import os
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from pytorch_lightning.profiler.base import BaseProfiler
 
 log = logging.getLogger(__name__)
+
+_TABLE_ROW_EXTENDED = Tuple[str, float, int, float, float]
+_TABLE_DATA_EXTENDED = List[_TABLE_ROW_EXTENDED]
+_TABLE_ROW = Tuple[str, float, float]
+_TABLE_DATA = List[_TABLE_ROW]
 
 
 class SimpleProfiler(BaseProfiler):
@@ -44,6 +49,9 @@ class SimpleProfiler(BaseProfiler):
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.
                 The ``.txt`` extension will be used automatically.
+
+            extended: If ``True``, adds extra columns representing number of calls and percentage of total time spent on
+                respective action.
 
         Raises:
             ValueError:
@@ -69,11 +77,20 @@ class SimpleProfiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def _make_report(self) -> Tuple[list, float]:
+    def _make_report_extended(self) -> Tuple[_TABLE_DATA_EXTENDED, float, float]:
         total_duration = time.monotonic() - self.start_time
-        report = [[a, d, 100.0 * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
-        report.sort(key=lambda x: x[2], reverse=True)
-        return report, total_duration
+        report = [
+            (a, np.mean(d), len(d), np.sum(d), 100.0 * np.sum(d) / total_duration)
+            for a, d in self.recorded_durations.items()
+        ]
+        report.sort(key=lambda x: x[4], reverse=True)
+        total_calls = sum(x[2] for x in report)
+        return report, total_calls, total_duration
+
+    def _make_report(self) -> _TABLE_DATA:
+        report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
+        report.sort(key=lambda x: x[1], reverse=True)
+        return report
 
     def summary(self) -> str:
         sep = os.linesep
@@ -88,33 +105,40 @@ class SimpleProfiler(BaseProfiler):
                 max_key = max(len(k) for k in self.recorded_durations.keys())
 
                 def log_row(action, mean, num_calls, total, per):
-                    row = f"{sep}{action:<{max_key}s}\t|  {mean:<15}\t|"
-                    row += f"{num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
+                    row = f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|"
+                    row += f"  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
                     return row
 
-                output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
-                output_string_len = len(output_string)
-                output_string += f"{sep}{'-' * output_string_len}"
-                report, total_duration = self._make_report()
-                output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
-                output_string += f"{sep}{'-' * output_string_len}"
-                for action, durations, duration_per in report:
+                header_string = log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
+                output_string_len = len(header_string.expandtabs())
+                sep_lines = f"{sep}{'-' * output_string_len}"
+                output_string += sep_lines + header_string + sep_lines
+                report, total_calls, total_duration = self._make_report_extended()
+                output_string += log_row("Total", "-", f"{total_calls:}", f"{total_duration:.5}", "100 %")
+                output_string += sep_lines
+                for action, mean_duration, num_calls, total_duration, duration_per in report:
                     output_string += log_row(
                         action,
-                        f"{np.mean(durations):.5}",
-                        f"{len(durations):}",
-                        f"{np.sum(durations):.5}",
+                        f"{mean_duration:.5}",
+                        f"{num_calls}",
+                        f"{total_duration:.5}",
                         f"{duration_per:.5}",
                     )
+                output_string += sep_lines
         else:
+            max_key = max(len(k) for k in self.recorded_durations)
 
             def log_row(action, mean, total):
-                return f"{sep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
+                return f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|  {total:<15}\t|"
 
-            output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
-            output_string += f"{sep}{'-' * 65}"
+            header_string = log_row("Action", "Mean duration (s)", "Total time (s)")
+            output_string_len = len(header_string.expandtabs())
+            sep_lines = f"{sep}{'-' * output_string_len}"
+            output_string += sep_lines + header_string + sep_lines
+            report = self._make_report()
 
-            for action, durations in self.recorded_durations.items():
-                output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}")
+            for action, mean_duration, total_duration in report:
+                output_string += log_row(action, f"{mean_duration:.5}", f"{total_duration:.5}")
+            output_string += sep_lines
         output_string += sep
         return output_string
