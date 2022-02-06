@@ -23,7 +23,10 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_only  # noqa: F401
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
+from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -396,3 +399,21 @@ def _revert_sync_batchnorm(module: Module) -> Module:
         converted_module.add_module(name, _revert_sync_batchnorm(child))
     del module
     return converted_module
+
+
+def rank_zero_info(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_info(*args, **kwargs)
+
+
+def rank_zero_debug(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_debug(*args, **kwargs)
