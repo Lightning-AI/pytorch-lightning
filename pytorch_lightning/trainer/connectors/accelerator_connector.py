@@ -34,7 +34,8 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
-    TPUPrecisionPlugin, PLUGIN_INPUT,
+    TPUPrecisionPlugin,
+    PLUGIN_INPUT,
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
@@ -96,7 +97,7 @@ class AcceleratorConnector:
         benchmark: bool = False,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,  # TODO: why is it unused?
-        num_processes: int = None,  # deprecated
+        num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -182,17 +183,25 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _check_config_and_set_final_flags(self, strategy, accelerator, precision, plugins, amp_type, amp_level) -> None:
+    def _check_config_and_set_final_flags(
+        self,
+        strategy: Optional[Union[str, Strategy]],
+        accelerator: Optional[Union[str, Accelerator]],
+        precision: Union[int, str],
+        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
+        amp_type: str,
+        amp_level: Optional[str],
+    ) -> None:
         """This method checks:
 
-            1. strategy: strategy, accelerator and plugin can all be set to strategies
-            2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
-                set self._acceelrator_flag accordingly. If the value is strategy related (instance or string),
-                it gets handled by 1.
-            3. precision: The final value of the precision flag may be determined either by the precision argument or
-                by a plugin instance.
-            4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
-                argument (handled by 3). We also extract the CheckpointIO and ClusterEnvironment plugins.
+        1. strategy: strategy, accelerator and plugin can all be set to strategies
+        2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
+            set self._acceelrator_flag accordingly. If the value is strategy related (instance or string),
+            it gets handled by 1.
+        3. precision: The final value of the precision flag may be determined either by the precision argument or
+            by a plugin instance.
+        4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
+            argument (handled by 3). We also extract the CheckpointIO and ClusterEnvironment plugins.
         """
         self._strategy_flag = None
         self._accelerator_flag = None
@@ -203,7 +212,7 @@ class AcceleratorConnector:
         self._amp_level_flag = amp_level
         self._amp_type_flag = amp_type
 
-        if plugins:
+        if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
         if strategy:
@@ -231,6 +240,7 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     "strategy str already set through strategy flag, but have also passed in through accelerator"
                 )
+
             if plugins:
                 for plugin in plugins:
                     if isinstance(plugin, Strategy):
@@ -343,7 +353,15 @@ class AcceleratorConnector:
             )
         self._amp_level_flag = amp_level
 
-    def _check_device_config_and_set_final_flags(self, devices, num_nodes, num_processes, gpus, ipus, tpu_cores) -> None:
+    def _check_device_config_and_set_final_flags(
+        self,
+        devices: Optional[Union[List[int], str, int]],
+        num_nodes: int,
+        num_processes: Optional[int],
+        gpus: Optional[Union[List[int], str, int]],
+        ipus: Optional[int],
+        tpu_cores: Optional[Union[List[int], int]],
+    ) -> None:
         if num_nodes == "auto":
             self._num_nodes_flag = 1
         else:
@@ -369,7 +387,13 @@ class AcceleratorConnector:
             )
 
     def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
-        self, devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
+        self,
+        devices: Optional[Union[List[int], str, int]],
+        deprecated_devices_specific_flag: Union[int, List[int]],
+        num_processes: Optional[int],
+        gpus: Optional[List[int]],
+        ipus: Optional[int],
+        tpu_cores: Optional[Union[int, List[int]]],
     ) -> None:
         """Sets the `device_flag` based on num_processes, gpus, ipus, tpu_cores."""
         if devices:
@@ -429,7 +453,7 @@ class AcceleratorConnector:
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         self._parallel_devices = []
         if isinstance(self._accelerator_flag, Accelerator):
-            self.accelerator = self._accelerator_flag
+            self.accelerator: Accelerator = self._accelerator_flag
         elif self._accelerator_flag == "tpu":
             self.accelerator = TPUAccelerator()
             if self._device_flag == "auto" or not self._device_flag:
@@ -476,7 +500,7 @@ class AcceleratorConnector:
         self._tpu_cores = self._device_flag if not self._tpu_cores else self._tpu_cores
 
     def _choose_and_init_cluster_environment(self) -> None:
-        self.cluster_environment = LightningEnvironment()
+        self.cluster_environment: ClusterEnvironment = LightningEnvironment()
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             self.cluster_environment = self._cluster_environment_flag
         elif self._is_slurm_managing_tasks():
@@ -688,7 +712,7 @@ class AcceleratorConnector:
                     "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                 )
 
-    def _lazy_init_strategy(self):
+    def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
         self.strategy.accelerator = self.accelerator
         if self.precision_plugin:
@@ -776,7 +800,7 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def tpu_cores(self) -> int:
+    def tpu_cores(self) -> Optional[Union[List[int], int]]:
         if isinstance(self.accelerator, TPUAccelerator):
             return self._tpu_cores
         return 0
