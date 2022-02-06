@@ -114,7 +114,7 @@ class TensorBoardLogger(LightningLoggerBase):
         """Parent directory for all tensorboard checkpoint subdirectories.
 
         If the experiment name parameter is the empty string, no experiment subdirectory is used and the checkpoint will
-        be saved in "save_dir/version_dir"
+        be saved in "save_dir/version"
         """
         if not self.name:
             return self.save_dir
