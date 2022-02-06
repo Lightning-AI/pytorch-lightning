@@ -110,7 +110,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._kwargs = kwargs
 
     @property
-    def root_dir(self) -> str:
+    def _root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
         If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
@@ -129,9 +129,9 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        if isinstance(self.sub_dir, str):
-            log_dir = os.path.join(log_dir, self.sub_dir)
+        log_dir = os.path.join(self._root_dir, version)
+        if isinstance(self._sub_dir, str):
+            log_dir = os.path.join(log_dir, self._sub_dir)
         log_dir = os.path.expandvars(log_dir)
         log_dir = os.path.expanduser(log_dir)
         return log_dir
@@ -144,15 +144,6 @@ class TensorBoardLogger(LightningLoggerBase):
             The local path to the save directory where the TensorBoard experiments are saved.
         """
         return self._save_dir
-
-    @property
-    def sub_dir(self) -> Optional[str]:
-        """Gets the sub directory where the TensorBoard experiments are saved.
-
-        Returns:
-            The local path to the sub directory where the TensorBoard experiments are saved.
-        """
-        return self._sub_dir
 
     @property
     @rank_zero_experiment
@@ -170,8 +161,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return self._experiment
 
         assert rank_zero_only.rank == 0, "tried to init log dirs in non global_rank=0"
-        if self.root_dir:
-            self._fs.makedirs(self.root_dir, exist_ok=True)
+        if self._root_dir:
+            self._fs.makedirs(self._root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -291,7 +282,7 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._version
 
     def _get_next_version(self):
-        root_dir = self.root_dir
+        root_dir = self._root_dir
 
         try:
             listdir_info = self._fs.listdir(root_dir)

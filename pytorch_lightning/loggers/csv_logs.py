@@ -141,7 +141,7 @@ class CSVLogger(LightningLoggerBase):
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
-    def root_dir(self) -> str:
+    def _root_dir(self) -> str:
         """Parent directory for all checkpoint subdirectories.
 
         If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
@@ -160,7 +160,7 @@ class CSVLogger(LightningLoggerBase):
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
+        log_dir = os.path.join(self._root_dir, version)
         return log_dir
 
     @property
@@ -188,7 +188,7 @@ class CSVLogger(LightningLoggerBase):
         if self._experiment:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
@@ -234,7 +234,7 @@ class CSVLogger(LightningLoggerBase):
         return self._version
 
     def _get_next_version(self):
-        root_dir = os.path.join(self._save_dir, self.name)
+        root_dir = self._root_dir
 
         if not os.path.isdir(root_dir):
             log.warning("Missing logger folder: %s", root_dir)
