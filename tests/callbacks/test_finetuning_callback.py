@@ -263,30 +263,6 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
-def test_on_before_accelerator_backend_setup(tmpdir):
-    """`setup` hook is used by finetuning callbacks to freeze the model before before configure_optimizers function
-    call."""
-
-    class TestCallback(Callback):
-        def setup(self, trainer, pl_module, stage=None) -> None:
-            pl_module.setup_called = True
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.setup_called = False
-
-        def configure_optimizers(self):
-            assert self.setup_called
-            return super().configure_optimizers()
-
-    model = TestModel()
-    callback = TestCallback()
-
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[callback], fast_dev_run=True)
-    trainer.fit(model)
-
-
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
