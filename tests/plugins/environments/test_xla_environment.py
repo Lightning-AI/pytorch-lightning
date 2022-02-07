@@ -64,7 +64,7 @@ def test_attributes_from_environment_variables():
     env.set_global_rank(100)
     assert env.global_rank() == 0
     env.set_world_size(100)
-    assert env.world_size() == 0
+    assert env.world_size() == 1
 
 
 def test_detect(monkeypatch):

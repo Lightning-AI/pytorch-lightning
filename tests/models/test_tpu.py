@@ -315,7 +315,9 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     else:
         trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
         assert trainer._accelerator_connector.tpu_id == expected_tpu_id
-        assert isinstance(trainer.strategy.cluster_environment, XLAEnvironment)
+        assert not isinstance(trainer.strategy, TPUSpawnStrategy) or isinstance(
+            trainer.strategy.cluster_environment, XLAEnvironment
+        )
 
 
 @pytest.mark.parametrize(
