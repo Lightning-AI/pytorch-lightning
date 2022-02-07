@@ -243,7 +243,6 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
     trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     assert trainer._accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
-
     assert trainer.gpus == gpus
 
 
