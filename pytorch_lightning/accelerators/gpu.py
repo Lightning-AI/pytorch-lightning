@@ -37,8 +37,8 @@ class GPUAccelerator(Accelerator):
         """
         Raises:
             MisconfigurationException:
-                If torch.cuda isn't available
-                If no CUDA devices are found
+                If torch.cuda isn't available.
+                If no CUDA devices are found.
                 If the selected device is not GPU.
         """
         if not torch.cuda.is_available():
