@@ -351,6 +351,7 @@ def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
             )
 
+
 def _check_on_before_accelerator_backend_setup(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
