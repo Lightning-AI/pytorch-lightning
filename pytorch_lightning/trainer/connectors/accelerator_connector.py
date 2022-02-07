@@ -120,7 +120,7 @@ class AcceleratorConnector:
                    backend (registed these too, and _strategy_type could be deprecated)
 
             C. plugins flag could be:
-                1. List of str, which could contains:
+                1. List of str, which could contain:
                     i. strategy str
                     ii. precision str (Not supported in the old accelerator_connector version)
                     iii. checkpoint_io str (Not supported in the old accelerator_connector version)
