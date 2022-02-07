@@ -201,8 +201,11 @@ class Accelerator:
         model = self.lightning_module
         device = device or self.root_device
 
-        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
-            # no need to transfer batch to device in DP mode
+        # no need to transfer batch to device in DP mode
+        if isinstance(self.training_type_plugin, DataParallelPlugin):
+            return batch
+
+        if model is not None:
             return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
 
         return move_data_to_device(batch, device)
