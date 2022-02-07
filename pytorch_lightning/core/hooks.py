@@ -65,7 +65,7 @@ class ModelHooks:
         """Called at the beginning of the pretrain routine (between fit and train start).
 
         .. deprecated:: v1.6
-            :meth:`on_val_dataloader` is deprecated and will be removed in v1.8.0.
+            :meth:`on_pretrain_routine_start` is deprecated and will be removed in v1.8.0.
             Please use :meth:`on_fit_start` or :meth:`setup` directly.
         """
 
@@ -73,7 +73,7 @@ class ModelHooks:
         """Called at the end of the pretrain routine (between fit and train start).
 
         .. deprecated:: v1.6
-            :meth:`on_val_dataloader` is deprecated and will be removed in v1.8.0.
+            :meth:`on_pretrain_routine_end` is deprecated and will be removed in v1.8.0.
             Please use :meth:`on_fit_start` or :meth:`setup` directly.
         """
 
