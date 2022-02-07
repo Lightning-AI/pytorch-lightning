@@ -144,7 +144,7 @@ class CSVLogger(LightningLoggerBase):
     def root_dir(self) -> str:
         """Parent directory for all checkpoint subdirectories.
 
-        If the experiment name parameter is the empty string, no experiment subdirectory is used and the checkpoint will
+        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
         return os.path.join(self.save_dir, self.name)
