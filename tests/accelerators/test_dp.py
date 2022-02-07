@@ -196,3 +196,26 @@ def test_dp_training_step_dict(tmpdir):
         strategy="dp",
     )
     trainer.fit(model)
+    trainer.test(model)
+
+
+@RunIf(min_gpus=2)
+def test_dp_batch_not_moved_to_device_explictly(tmpdir):
+    """Test that with DP, batch is not moved to the device explictly."""
+
+    class CustomModel(BoringModel):
+        def on_train_batch_start(self, batch, *args, **kargs):
+            assert not batch.is_cuda
+
+        def training_step(self, batch, batch_idx):
+            assert batch.is_cuda
+            return super().training_step(batch, batch_idx)
+
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        gpus=2,
+        strategy="dp",
+    )
+
+    trainer.fit(CustomModel())
