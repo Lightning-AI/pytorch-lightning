@@ -213,7 +213,9 @@ class CheckpointConnector:
         # old checkpoints compatibility
         if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
             prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
-        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, NativeMixedPrecisionPlugin):
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(
+            prec_plugin, NativeMixedPrecisionPlugin
+        ):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_callbacks(self) -> None:
