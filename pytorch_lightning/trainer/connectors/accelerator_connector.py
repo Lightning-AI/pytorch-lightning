@@ -47,7 +47,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import (
-    BaguaStrategy,
     DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
@@ -161,9 +160,6 @@ class AcceleratorConnector:
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_accelerator()
-        # else:
-        #     # TODO: [RFC] move to XAccelerator class init?
-        #     self._check_device_availibility()
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment
@@ -229,7 +225,8 @@ class AcceleratorConnector:
             # handle duplications and conflict
             if isinstance(accelerator, Strategy) and strategy != accelerator:
                 raise MisconfigurationException(
-                    f"Incompatible values set in `strategy` and `accelerator` arguments. Received both strategy={strategy} and accelerator={accelerator}"
+                    f"Incompatible values set in `strategy` and `accelerator` arguments."
+                    f"Received both strategy={strategy} and accelerator={accelerator}"
                 )
             if (
                 isinstance(accelerator, str)
@@ -437,18 +434,6 @@ class AcceleratorConnector:
         else:
             return "cpu"
 
-    # TODO move this to xAccelerator
-    # def _check_device_availibility(self):
-    #     for accelerator_flag, available in zip(
-    #         self._existing_accelerator_type, [_TPU_AVAILABLE, _IPU_AVAILABLE, torch.cuda.is_available(), True]
-    #     ):
-    #         # only apply to gpu to keep backward compatibility
-    #         if self._accelerator_flag == accelerator_flag:
-    #             if not available:
-    #                 raise MisconfigurationException(
-    #                     f"You choice {accelerator_flag} accelerator, but {accelerator_flag} is not available"
-    #                 )
-
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         self._parallel_devices = []
         if isinstance(self._accelerator_flag, Accelerator):
@@ -506,7 +491,7 @@ class AcceleratorConnector:
             rank_zero_info("Multiprocessing is handled by SLURM.")
             self.cluster_environment = SLURMEnvironment()
         else:
-            for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+            for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
                 if env_type.detect():
                     self.cluster_environment = env_type()
 
