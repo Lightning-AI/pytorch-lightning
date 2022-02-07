@@ -34,6 +34,20 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.trainer.states import TrainerFn, TrainerState
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    _revert_sync_batchnorm,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -59,6 +73,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        pg_backend: Optional[str] = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -74,6 +89,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        self._pg_backend: Optional[str] = pg_backend
 
     @property
     def num_nodes(self) -> int:
@@ -141,9 +157,12 @@ class DDPSpawnStrategy(ParallelStrategy):
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-        init_dist_connection(
-            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        self._pg_backend = (
+            self._pg_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
         )
+        init_dist_connection(self.cluster_environment, self._pg_backend, self.global_rank, self.world_size)
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`

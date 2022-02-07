@@ -307,11 +307,12 @@ def get_default_process_group_backend_for_device(device: torch.device) -> str:
 
 def _get_process_group_backend_from_env() -> Optional[str]:
     torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-    # TODO: circular dependency if rank_zero_deprecation is called from here
-    # if torch_backend:
-    # Emit warning
-    # rank_zero_deprecation("Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-    # " was deprecated in v1.6 and will be removed in v1.8.")
+    if torch_backend:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `pg_backend` directly on the strategy constructor."
+        )
     return torch_backend
 
 
