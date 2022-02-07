@@ -33,7 +33,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
@@ -323,6 +323,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
+            optimizer_to_device(optimizer, self.root_device)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
