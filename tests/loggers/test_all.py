@@ -78,7 +78,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock):
         _test_loggers_fit_test(tmpdir, NeptuneLogger)
 
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.warns(FutureWarning)(
         match="TestTubeLogger is deprecated since v1.5"
     ):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
@@ -178,7 +178,7 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     ):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.warns(FutureWarning)(
         match="TestTubeLogger is deprecated since v1.5"
     ):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
@@ -252,7 +252,7 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     _patch_comet_atexit(monkeypatch)
     try:
         if logger_class is TestTubeLogger:
-            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
+            with pytest.warns(FutureWarning)(match="TestTubeLogger is deprecated since v1.5"):
                 _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
         else:
             _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
@@ -338,7 +338,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     _patch_comet_atexit(monkeypatch)
     try:
         if logger_class is TestTubeLogger:
-            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
+            with pytest.warns(FutureWarning)(match="TestTubeLogger is deprecated since v1.5"):
                 _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
         else:
             _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
@@ -400,7 +400,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # TestTube
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
+    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.warns(FutureWarning)(
         match="TestTubeLogger is deprecated since v1.5"
     ):
         logger = _instantiate_logger(TestTubeLogger, save_dir=tmpdir, prefix=prefix)

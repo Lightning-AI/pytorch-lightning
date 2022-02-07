@@ -487,7 +487,7 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()
-        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
+        with pytest.warns(FutureWarning)(match="prepare_data_per_node` with the trainer flag is deprecated"):
             trainer = Trainer(prepare_data_per_node=False)
         trainer.model = model
         trainer.datamodule = dm

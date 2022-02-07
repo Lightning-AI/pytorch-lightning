@@ -43,20 +43,20 @@ from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 def test_v1_8_0_deprecated_distributed_type_enum():
 
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.warns(FutureWarning)(match="has been deprecated in v1.6 and will be removed in v1.8."):
         _ = DistributedType.DDP
 
 
 def test_v1_8_0_deprecated_device_type_enum():
 
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.warns(FutureWarning)(match="has been deprecated in v1.6 and will be removed in v1.8."):
         _ = DeviceType.CPU
 
 
 @pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 def test_v1_8_0_deprecated_torchtext_batch():
 
-    with pytest.deprecated_call(match="is deprecated and Lightning will remove support for it in v1.8"):
+    with pytest.warns(FutureWarning)(match="is deprecated and Lightning will remove support for it in v1.8"):
         data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3)
         batch = next(iter(data_iterator))
         _ = move_data_to_device(batch=batch, device=torch.device("cpu"))
@@ -80,11 +80,11 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         logger=False,
         default_root_dir=tmpdir,
     )
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match="The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.validate(model)
@@ -98,12 +98,12 @@ def test_v1_8_0_deprecated_call_hook():
         enable_progress_bar=False,
         logger=False,
     )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
 
 
 def test_v1_8_0_deprecated_warning_positional_category():
-    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
+    with pytest.warns(FutureWarning)(match=r"use `category=FutureWarning."):
         rank_zero_warn("foo", FutureWarning)
 
 
@@ -120,11 +120,11 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
     load_model = TestModelLoad()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=True)
 
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(save_model)
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"Method `LightningModule.on_hpc_load` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(load_model)
@@ -133,22 +133,22 @@ def test_v1_8_0_deprecated_on_hpc_hooks(tmpdir):
 def test_v1_8_0_deprecated_run_stage():
     trainer = Trainer()
     trainer._run_stage = Mock()
-    with pytest.deprecated_call(match="`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.warns(FutureWarning)(match="`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8."):
         trainer.run_stage()
 
 
 def test_v1_8_0_trainer_verbose_evaluate():
     trainer = Trainer()
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
         assert trainer.verbose_evaluate
 
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
         trainer.verbose_evaluate = False
 
 
 def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
     trainer = Trainer()
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
     ):
         _ = trainer.should_rank_save_checkpoint
@@ -156,7 +156,7 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
 
 def test_v1_8_0_deprecated_lr_scheduler():
     trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.warns(FutureWarning)(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
         assert trainer.lr_schedulers == []
 
 
@@ -166,12 +166,12 @@ def test_v1_8_0_trainer_optimizers_mixin():
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
 
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.init_optimizers(model)
 
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
         "v1.8."
     ):
@@ -240,41 +240,41 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     trainer.fit(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn()
     for method_name in methods_with_stage:
         fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn(stage="test")
     for method_name in methods_with_batch_batch_idx_dataloader_idx:
         fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn(batch={}, batch_idx=0, dataloader_idx=0)
     for method_name in methods_with_outputs_batch_batch_idx_dataloader_idx:
         fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]), batch={}, batch_idx=0, dataloader_idx=0)
     for method_name in methods_with_checkpoint:
         fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn(checkpoint={})
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_predict_epoch_end(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_exception(exception=Exception)
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_before_backward(loss=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_before_optimizer_step(
             optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9), optimizer_idx=0
         )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_before_zero_grad(optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9))
 
 
 def test_v1_8_0_deprecated_training_type_plugin_property():
     trainer = Trainer()
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="in v1.6 and will be removed in v1.8"):
         trainer.training_type_plugin
 
 
@@ -284,11 +284,11 @@ def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     dm = BoringDataModule()
     trainer.fit(model, datamodule=dm)
 
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
     ):
         trainer.prepare_dataloader(dataloader=model.train_dataloader, shuffle=False)
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
     ):
         trainer.request_dataloader(stage=RunningStage.TRAINING)
@@ -297,7 +297,7 @@ def test_v1_8_0_deprecate_trainer_data_loading_mixin():
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
+    with pytest.warns(FutureWarning)(match="in v1.6 and will be removed in v1.8"):
         prefix_metric_keys({"foo": 1.0}, "bar")
 
 
@@ -319,14 +319,14 @@ def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
 def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
     old_name = cls.__name__
     new_name = old_name.replace("Plugin", "Strategy")
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=f"{old_name}` is deprecated in v1.6 and will be removed in v1.8. Use .*{new_name}` instead."
     ):
         cls()
 
 
 def test_v1_8_0_deprecated_single_device_plugin_class():
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=(
             "SingleDevicePlugin` is deprecated in v1.6 and will be removed in v1.8."
             " Use `.*SingleDeviceStrategy` instead."
@@ -337,7 +337,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
 
 @RunIf(tpu=True)
 def test_v1_8_0_deprecated_single_tpu_plugin_class():
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=(
             "SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8." " Use `.*SingleTPUStrategy` instead."
         )
@@ -347,7 +347,7 @@ def test_v1_8_0_deprecated_single_tpu_plugin_class():
 
 def test_v1_8_0_deprecated_lightning_optimizers():
     trainer = Trainer()
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
     ):
         assert trainer.lightning_optimizers == {}

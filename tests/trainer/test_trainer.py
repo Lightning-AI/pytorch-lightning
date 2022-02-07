@@ -915,7 +915,7 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="terminate_on_nan` was deprecated in v1.5"):
         trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
@@ -928,7 +928,7 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
 
 def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
+    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.warns(FutureWarning)(
         match="terminate_on_nan` was deprecated in v1.5"
     ):
         Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
@@ -952,7 +952,7 @@ def test_nan_params_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="terminate_on_nan` was deprecated in v1.5"):
         trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
 
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
@@ -1007,12 +1007,12 @@ def test_on_exception_hook(tmpdir):
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
         trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException), pytest.deprecated_call(
+    with pytest.raises(MisconfigurationException), pytest.warns(FutureWarning)(
         match="on_keyboard_interrupt` callback hook was deprecated in v1.5"
     ):
         trainer.test(model)
@@ -1265,7 +1265,7 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
     if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
         trainer = Trainer(**trainer_kwargs)
     else:
-        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
+        with pytest.warns(FutureWarning)(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
             trainer = Trainer(**trainer_kwargs)
     assert len(expected) == 4
     for k, v in expected.items():

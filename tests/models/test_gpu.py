@@ -330,7 +330,7 @@ def test_single_gpu_batch_parse():
 
     batch = Batch(data=examples, dataset=dataset)
 
-    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+    with pytest.warns(FutureWarning)(match="The `torchtext.legacy.Batch` object is deprecated"):
         batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
 
     assert batch.text.type() == "torch.cuda.LongTensor"

@@ -251,7 +251,7 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="on_train_dataloader` is deprecated in v1.5"):
         trainer.fit(model)
 
     not_supported.update(
@@ -265,7 +265,7 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="on_test_dataloader` is deprecated in v1.5"):
         trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
@@ -283,7 +283,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="on_predict_dataloader` is deprecated in v1.5"):
         trainer.predict(model)
 
 

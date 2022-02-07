@@ -28,9 +28,9 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     callback = OldStatefulCallback(state=222)
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
         trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback], resume_from_checkpoint=ckpt_path)
-    with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
         _ = trainer.resume_from_checkpoint
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
@@ -38,7 +38,7 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     assert callback.state == 222
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
     assert trainer.checkpoint_connector.resume_from_checkpoint_fit_path == ckpt_path
-    with pytest.deprecated_call(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match=r"trainer.resume_from_checkpoint` is deprecated in v1.5"):
         trainer.fit(model)
     assert callback.state == 111
     assert trainer.checkpoint_connector.resume_checkpoint_path is None
@@ -52,7 +52,7 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
 
     # test fit(ckpt_path=) precedence over Trainer(resume_from_checkpoint=) path
     model = BoringModel()
-    with pytest.deprecated_call(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match=r"Setting `Trainer\(resume_from_checkpoint=\)` is deprecated in v1.5"):
         trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
     with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")

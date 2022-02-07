@@ -52,7 +52,7 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     environment = trainer._accelerator_connector.cluster_environment
     assert isinstance(environment, SLURMEnvironment)
     assert environment.auto_requeue
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(model)
@@ -66,7 +66,7 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     # new training run, restore from hpc checkpoint file automatically
     assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    with pytest.deprecated_call(
+    with pytest.warns(FutureWarning)(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
         trainer.fit(model)

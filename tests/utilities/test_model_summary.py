@@ -145,7 +145,7 @@ def test_invalid_weights_summmary():
 
     with pytest.raises(
         MisconfigurationException, match="`weights_summary` can be None, .* got temp"
-    ), pytest.deprecated_call(match="weights_summary=temp)` is deprecated"):
+    ), pytest.warns(FutureWarning)(match="weights_summary=temp)` is deprecated"):
         Trainer(weights_summary="temp")
 
     with pytest.raises(ValueError, match="max_depth` can be .* got temp"):

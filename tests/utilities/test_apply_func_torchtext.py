@@ -29,7 +29,7 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
     data_iter = iter(data_iterator)
     batch = next(data_iter)
 
-    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
+    with pytest.warns(FutureWarning)(match="The `torchtext.legacy.Batch` object is deprecated"):
         batch_on_device = move_data_to_device(batch, device)
 
     if include_lengths:

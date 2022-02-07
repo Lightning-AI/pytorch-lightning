@@ -31,7 +31,7 @@ from tests.helpers.runif import RunIf
 def test_gpu_stats_monitor(tmpdir):
     """Test GPU stats are logged using a logger."""
     model = BoringModel()
-    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
     log_every_n_steps = 2
@@ -67,7 +67,7 @@ def test_gpu_stats_monitor(tmpdir):
 def test_gpu_stats_monitor_no_queries(tmpdir):
     """Test GPU logger doesn't fail if no "nvidia-smi" queries are to be performed."""
     model = BoringModel()
-    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor(
             memory_utilization=False,
             gpu_utilization=False,
@@ -97,7 +97,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """Test GPUStatsMonitor on CPU machine."""
-    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"), pytest.deprecated_call(
+    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"), pytest.warns(FutureWarning)(
         match="GPUStatsMonitor` callback was deprecated in v1.5"
     ):
         GPUStatsMonitor()
@@ -107,7 +107,7 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
 def test_gpu_stats_monitor_no_logger(tmpdir):
     """Test GPUStatsMonitor with no logger in Trainer."""
     model = BoringModel()
-    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(
@@ -122,7 +122,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
 def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     """Test GPUStatsMonitor raises a warning when not training on GPU device."""
     model = BoringModel()
-    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="GPUStatsMonitor` callback was deprecated in v1.5"):
         gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_steps=1, gpus=None)

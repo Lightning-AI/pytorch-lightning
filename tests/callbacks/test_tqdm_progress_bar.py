@@ -44,7 +44,7 @@ from tests.helpers.runif import RunIf
 def test_tqdm_progress_bar_on(tmpdir, kwargs):
     """Test different ways the progress bar can be turned on."""
     if "progress_bar_refresh_rate" in kwargs:
-        with pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated"):
+        with pytest.warns(FutureWarning)(match=r"progress_bar_refresh_rate=.*` is deprecated"):
             trainer = Trainer(default_root_dir=tmpdir, **kwargs)
     else:
         trainer = Trainer(default_root_dir=tmpdir, **kwargs)
@@ -58,7 +58,7 @@ def test_tqdm_progress_bar_on(tmpdir, kwargs):
 def test_tqdm_progress_bar_off(tmpdir, kwargs):
     """Test different ways the progress bar can be turned off."""
     if "progress_bar_refresh_rate" in kwargs:
-        pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
+        pytest.warns(FutureWarning)(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
     trainer = Trainer(default_root_dir=tmpdir, **kwargs)
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert not len(progress_bars)
@@ -186,7 +186,7 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
             self.test_batches_seen += 1
 
     progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=101\)` is deprecated"):
+    with pytest.warns(FutureWarning)(match=r"progress_bar_refresh_rate=101\)` is deprecated"):
         trainer = Trainer(
             default_root_dir=tmpdir,
             callbacks=[progress_bar],
@@ -267,7 +267,7 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
     assert trainer.progress_bar_callback.refresh_rate == 19
 
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=19\)` is deprecated"):
+    with pytest.warns(FutureWarning)(match=r"progress_bar_refresh_rate=19\)` is deprecated"):
         trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
     assert trainer.progress_bar_callback.refresh_rate == 19
 

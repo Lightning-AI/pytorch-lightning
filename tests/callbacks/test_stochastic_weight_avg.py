@@ -213,7 +213,7 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         "max_epochs": 2,
     }
     if stochastic_weight_avg:
-        with pytest.deprecated_call(match=r"stochastic_weight_avg=True\)` is deprecated in v1.5"):
+        with pytest.warns(FutureWarning)(match=r"stochastic_weight_avg=True\)` is deprecated in v1.5"):
             trainer = Trainer(**kwargs)
     else:
         trainer = Trainer(**kwargs)
