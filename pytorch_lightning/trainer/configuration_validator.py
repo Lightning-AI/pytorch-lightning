@@ -267,6 +267,7 @@ def _check_add_get_queue(model: "pl.LightningModule") -> None:
             "favor of `DDPSpawnStrategy.get_from_queue`"
         )
 
+
 # TODO: Delete _check_on_hpc_hooks in v1.8
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
@@ -329,7 +330,10 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
             )
-        for hook, alternative_hook in (["on_batch_start", "on_train_batch_start"], ["on_batch_end", "on_train_batch_end"]):
+        for hook, alternative_hook in (
+            ["on_batch_start", "on_train_batch_start"],
+            ["on_batch_end", "on_train_batch_end"],
+        ):
             if is_overridden(method_name=hook, instance=callback):
                 rank_zero_deprecation(
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
