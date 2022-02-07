@@ -20,8 +20,11 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource, _DataLoaderSource, warning_cache
-from tests.deprecated_api import no_warning_call
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.boring_model import RandomDataset
+from tests.deprecated_api import no_warning_call
 
 
 class NoDataLoaderModel(BoringModel):
@@ -178,3 +181,34 @@ def test_invalid_hook_passed_in_datahook_source():
     dh_source = _DataHookSource(BoringModel(), None)
     with pytest.raises(ValueError, match="is not a shared hook"):
         dh_source.get_hook("setup")
+
+
+def test_eval_distributed_sampler_warning(tmpdir):
+    """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
+
+    model = BoringModel()
+    trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer._data_connector.attach_data(model)
+
+    trainer.state.fn = TrainerFn.VALIDATING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+        trainer.reset_val_dataloader(model)
+
+    trainer.state.fn = TrainerFn.TESTING
+    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+        trainer.reset_test_dataloader(model)
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
+    """Test that shuffle is not changed if set to True."""
+
+    class CustomModel(BoringModel):
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), shuffle=shuffle)
+
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp")
+    model = CustomModel()
+    trainer._data_connector.attach_data(model)
+    trainer.reset_val_dataloader(model)
+    assert trainer.val_dataloaders[0].sampler.shuffle == shuffle

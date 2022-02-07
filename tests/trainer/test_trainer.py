@@ -331,7 +331,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.fit_loop.current_epoch = i
+        trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
         trainer.fit_loop.global_step = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
@@ -384,7 +384,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match="checkpoint contains only the model"):
-        trainer.checkpoint_connector.restore(new_weights_path)
+        trainer._checkpoint_connector.restore(new_weights_path)
 
 
 def test_model_freeze_unfreeze():
@@ -686,8 +686,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
-    assert getattr(trainer, path_attr) is None
+    assert getattr(trainer, "ckpt_path") is None
 
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
@@ -698,20 +697,20 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
         trainer_fn(model, ckpt_path=ckpt_path)
-        assert getattr(trainer, path_attr) is None
+        assert getattr(trainer, "ckpt_path") is None
 
         if save_top_k > 0:
             # ckpt_path is None with no model provided means load the best weights
             with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
                 trainer_fn(ckpt_path=ckpt_path)
-                assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+                assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -724,10 +723,10 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 ].absolute()
             )
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == ckpt_path
+            assert getattr(trainer, "ckpt_path") == ckpt_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == ckpt_path
+            assert getattr(trainer, "ckpt_path") == ckpt_path
 
 
 @pytest.mark.parametrize("enable_checkpointing", (False, True))
@@ -758,15 +757,14 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
-    assert getattr(trainer, path_attr) is None
+    assert getattr(trainer, "ckpt_path") is None
 
     if enable_checkpointing:
         trainer_fn(ckpt_path="best")
-        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
 
         trainer_fn(model, ckpt_path="best")
-        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     else:
         with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
             trainer_fn(ckpt_path="best")
@@ -1544,13 +1542,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 @pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
-@patch("torch.cuda.device_count", return_value=2)
-@patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("accelerator", ("cpu", "gpu"))
-def test_spawn_predict_return_predictions(_, __, accelerator):
+def test_spawn_predict_return_predictions(tmpdir):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)

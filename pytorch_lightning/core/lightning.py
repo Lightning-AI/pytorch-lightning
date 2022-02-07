@@ -39,20 +39,15 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import (
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_10,
-    GradClipAlgorithmType,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, rank_zero_debug, sync_ddp
+from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -200,10 +195,7 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
-        """The current epoch in the Trainer.
-
-        If no Trainer is attached, this propery is 0.
-        """
+        """The current epoch in the ``Trainer``, or 0 if not attached."""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
@@ -324,8 +316,10 @@ class LightningModule(
             value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
-            on_step: if ``True`` logs at this step.
-            on_epoch: if True logs epoch accumulated metrics.
+            on_step: if ``True`` logs at this step. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if ``True``, will not auto detach the graph.
             sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
@@ -459,19 +453,25 @@ class LightningModule(
         Args:
             dictionary: key value pairs.
                 The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            prog_bar: if ``True`` logs to the progress base.
+            logger: if ``True`` logs to the logger.
+            on_step: if ``True`` logs at this step.
+                ``None`` auto-logs for training_step but not validation/test_step.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics.
+                ``None`` auto-logs for val/test step but not ``training_step``.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+            enable_graph: if ``True``, will not auto-detach the graph
+            sync_dist: if ``True``, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
                 communication overhead.
-            sync_dist_group: the ddp group sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
-            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+            sync_dist_group: the ddp group to sync across.
+            add_dataloader_idx: if ``True``, appends the index of the current dataloader to
+                the name (when using multiple). If ``False``, user needs to give unique names for
+                each dataloader to not mix values.
+            batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
@@ -1674,7 +1674,7 @@ class LightningModule(
 
         Note:
             Called in the training loop after
-            :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
+            :meth:`~pytorch_lightning.callbacks.base.Callback.on_train_batch_start`
             if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """

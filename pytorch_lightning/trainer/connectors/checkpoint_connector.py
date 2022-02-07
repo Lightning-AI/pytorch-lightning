@@ -24,11 +24,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -218,11 +219,13 @@ class CheckpointConnector:
             return
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
-        if state_dict is not None and self.trainer.state.fn != TrainerFn.TUNING:
+        if state_dict is not None:
             if self.trainer.state.fn == TrainerFn.FITTING:
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
@@ -244,21 +247,6 @@ class CheckpointConnector:
             raise MisconfigurationException(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
-            )
-
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-            self.trainer.current_epoch
-        )
-        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-        expected_steps = self.trainer.num_training_batches / n_accum
-        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch."
-                " Training will start from the beginning of the next epoch."
-                " This can cause unreliable results if further training is done,"
-                " consider using an end of epoch checkpoint."
             )
 
     def restore_optimizers_and_schedulers(self) -> None:

@@ -32,9 +32,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
@@ -214,14 +215,14 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return obj
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op="sum")
         decision = bool(decision == self.world_size)
         return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.lightning_module.device)
+            output = torch.tensor(output, device=self.root_device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")

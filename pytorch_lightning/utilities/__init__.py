@@ -16,7 +16,7 @@
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
-from pytorch_lightning.utilities.distributed import AllGatherGrad, rank_zero_info, rank_zero_only  # noqa: F401
+from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
 from pytorch_lightning.utilities.enums import (  # noqa: F401
     _AcceleratorType,
     _StrategyType,
@@ -29,6 +29,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
+    _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -56,7 +57,12 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
 )
 from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn  # noqa: F401
+from pytorch_lightning.utilities.rank_zero import (  # noqa: F401
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

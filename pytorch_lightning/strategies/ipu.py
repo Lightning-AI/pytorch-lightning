@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -115,6 +115,8 @@ class IPUStrategy(ParallelStrategy):
                 self._fs.makedirs(self.autoreport_dir, exist_ok=True)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
+
+        self._update_dataloader_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
@@ -279,8 +281,9 @@ class IPUStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         super().teardown()
-        # undo dataloader patching
-        pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
+        if self._update_dataloader_original is not None:
+            # undo dataloader patching
+            pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -334,10 +337,6 @@ class IPUStrategy(ParallelStrategy):
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
-
-    @property
-    def on_gpu(self) -> bool:
-        return False
 
     @property
     def root_device(self) -> torch.device:

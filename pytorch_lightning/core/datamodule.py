@@ -50,17 +50,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             def teardown(self):
                 # clean up after fit or test
                 # called on every process in DDP
-
-    A DataModule implements 6 key methods:
-
-    * **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
-    * **setup**  (things to do on every accelerator in distributed mode).
-    * **train_dataloader** the training dataloader.
-    * **val_dataloader** the val dataloader(s).
-    * **test_dataloader** the test dataloader(s).
-    * **teardown** (things to do on every accelerator in distributed mode when finished)
-
-    This allows you to share a full dataset without explaining how to download, split, transform, and process the data
     """
 
     name: str = ...
