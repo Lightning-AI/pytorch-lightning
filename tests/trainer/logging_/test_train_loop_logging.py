@@ -682,6 +682,8 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
+# TODO(akihironitta): Remove the warning filter in a fix PR for #5558.
+@pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @RunIf(min_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
