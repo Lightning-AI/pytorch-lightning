@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Dict, List, Union
 
+import psutil
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -32,11 +33,13 @@ class CPUAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "cpu":
-            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
+            raise MisconfigurationException(
+                f"Device should be CPU, got {root_device} instead."
+            )
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """CPU device stats aren't supported yet."""
-        return {}
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
+        """Get CPU stats from psutil."""
+        return get_cpu_process_metrics()
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
@@ -67,3 +70,11 @@ class CPUAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+def get_cpu_process_metrics() -> Dict[str, float]:
+    metrics = {
+        f"vm_percent": psutil.virtual_memory().percent,
+        f"cpu_percent": psutil.cpu_percent(),
+        f"swap_percent": psutil.swap_memory().percent,
+    }
+    return metrics
