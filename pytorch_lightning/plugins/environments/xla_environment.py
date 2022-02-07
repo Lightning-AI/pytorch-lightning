@@ -26,19 +26,11 @@ log = logging.getLogger(__name__)
 
 
 class XLAEnvironment(ClusterEnvironment):
-    """XLAEnvironment.
+    """Cluster environment for training on a TPU Pod with the `PyTorch/XLA <https://pytorch.org/xla>`_ library.
 
     A list of environment variables set by XLA can be found
     `here <https://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py>`_.
     """
-
-    def __init__(self):
-        super().__init__()
-        if not _TPU_AVAILABLE:
-            raise MisconfigurationException(
-                "The `XLAEnvironment` can only be used on a machine with TPU devices and with the `torch_xla` library"
-                " installed."
-            )
 
     @property
     def creates_processes_externally(self) -> bool:
