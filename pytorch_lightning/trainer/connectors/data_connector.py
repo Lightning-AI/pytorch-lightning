@@ -53,7 +53,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_ze
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 warning_cache = WarningCache()
 

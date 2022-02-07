@@ -22,9 +22,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from tests.deprecated_api import no_warning_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.boring_model import RandomDataset
-from tests.deprecated_api import no_warning_call
 
 
 class NoDataLoaderModel(BoringModel):
