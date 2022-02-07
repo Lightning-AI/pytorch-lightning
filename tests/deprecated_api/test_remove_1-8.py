@@ -13,6 +13,8 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
 import time
+import os
+from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
@@ -826,3 +828,14 @@ def test_v1_8_0_lightning_module_use_amp():
         _ = model.use_amp
     with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
         model.use_amp = False
+
+
+@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
+def test_v1_8_0_torch_distributed_backend_env():
+    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+
+    with pytest.deprecated_call(
+        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+        " was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        _get_process_group_backend_from_env()
