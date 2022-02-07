@@ -308,7 +308,7 @@ class WandbLogger(LightningLoggerBase):
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         # start wandb run (to create an attach_id for distributed modes)
-        self.experiment
+        _ = self.experiment
 
     def __getstate__(self):
         state = self.__dict__.copy()
