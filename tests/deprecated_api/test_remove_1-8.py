@@ -451,8 +451,8 @@ def test_v1_8_0_rank_zero_imports():
 
 def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer):
-            print("Starting to init trainer!")
+        def on_before_accelerator_backend_setup(self, *args, **kwargs):
+            print("on_before_accelerator_backend called.")
 
     model = BoringModel()
 
