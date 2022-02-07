@@ -2087,16 +2087,12 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        # TODO: Figure out how to incorporate trainer.loggers
-        if self.logger is None:
+        if len(self.loggers) != 1 or isinstance(self.logger, LoggerCollection):
             dirpath = self.default_root_dir
-        elif isinstance(self.logger, TensorBoardLogger):
-            dirpath = self.logger.log_dir
-        elif isinstance(self.logger, LoggerCollection):
-            dirpath = self.default_root_dir
+        elif isinstance(self.loggers[0], TensorBoardLogger):
+            dirpath = self.loggers[0].log_dir
         else:
-            dirpath = self.logger.save_dir
-
+            dirpath = self.loggers[0].save_dir
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
 
