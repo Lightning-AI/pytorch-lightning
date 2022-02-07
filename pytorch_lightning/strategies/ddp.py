@@ -41,18 +41,13 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -97,7 +92,6 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
         self.sync_batchnorm = False
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -125,6 +119,10 @@ class DDPStrategy(ParallelStrategy):
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
@@ -228,7 +226,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
-        optimizers = self.lightning_module.trainer.optimizers
+        optimizers = self.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."

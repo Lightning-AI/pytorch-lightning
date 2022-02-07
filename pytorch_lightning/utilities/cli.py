@@ -18,7 +18,7 @@ import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
@@ -27,10 +27,11 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
-from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, rank_zero_warn, warnings
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
@@ -64,9 +65,16 @@ class _Registry(dict):
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
-        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
-            if issubclass(cls, base_cls) and cls != base_cls:
-                self(cls=cls, override=override)
+        for cls in self.get_members(module, base_cls):
+            self(cls=cls, override=override)
+
+    @staticmethod
+    def get_members(module: ModuleType, base_cls: Type) -> Generator[Type, None, None]:
+        return (
+            cls
+            for _, cls in inspect.getmembers(module, predicate=inspect.isclass)
+            if issubclass(cls, base_cls) and cls != base_cls
+        )
 
     @property
     def names(self) -> List[str]:
@@ -103,6 +111,9 @@ CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.callbacks.Callback)
 MODEL_REGISTRY = _Registry()
 
 DATAMODULE_REGISTRY = _Registry()
+
+LOGGER_REGISTRY = _Registry()
+LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -302,7 +313,7 @@ class LightningArgumentParser(ArgumentParser):
             init_args_key = f"{argv_key}.init_args"
             init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
             config = str({"class_path": class_path, "init_args": init_args})
-        elif argv_class.startswith("{"):
+        elif argv_class.startswith("{") or argv_class in ("None", "True", "False"):
             # the user passed a config as a dict
             config = argv_class
         else:
@@ -579,6 +590,7 @@ class LightningCLI:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
+        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
@@ -784,7 +796,7 @@ class LightningCLI:
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
         if is_overridden("configure_optimizers", self.model):
-            warnings._warn(
+            _warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.configure_optimizers`."
             )
@@ -792,7 +804,7 @@ class LightningCLI:
         optimizer = instantiate_class(self.model.parameters(), optimizer_init)
         lr_scheduler = instantiate_class(optimizer, lr_scheduler_init) if lr_scheduler_init else None
         fn = partial(self.configure_optimizers, optimizer=optimizer, lr_scheduler=lr_scheduler)
-        update_wrapper(fn, self.model.configure_optimizers)  # necessary for `is_overridden`
+        update_wrapper(fn, self.configure_optimizers)  # necessary for `is_overridden`
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 

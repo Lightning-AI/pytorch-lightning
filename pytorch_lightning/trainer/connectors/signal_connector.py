@@ -9,8 +9,8 @@ from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 # copied from signal.pyi
 _SIGNUM = Union[int, signal.Signals]
@@ -68,7 +68,7 @@ class SignalConnector:
         # save logger to make sure we get all the metrics
         if self.trainer.logger:
             self.trainer.logger.finalize("finished")
-        hpc_save_path = self.trainer.checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
+        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
         self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:

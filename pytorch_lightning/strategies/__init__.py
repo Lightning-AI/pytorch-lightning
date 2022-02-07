@@ -13,6 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 
+from pytorch_lightning.strategies.bagua import BaguaStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp import DDPStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp2 import DDP2Strategy  # noqa: F401
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
