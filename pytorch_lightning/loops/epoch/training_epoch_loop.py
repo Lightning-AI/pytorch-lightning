@@ -126,8 +126,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 if self.global_step % expected_steps != 0:
                     rank_zero_warn(
                         "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
-                        "results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
-                        "fault-tolerant training."
+                        " results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
+                        " fault-tolerant training."
                     )
         else:
             self.batch_progress.reset_on_run()
