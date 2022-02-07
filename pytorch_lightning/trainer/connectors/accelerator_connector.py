@@ -145,7 +145,7 @@ class AcceleratorConnector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._existing_strategies_str = StrategyRegistry.available_strategies()
-        self._existing_accelerator_type = ["tpu", "ipu", "gpu", "cpu"]
+        self._existing_accelerator_type = ("tpu", "ipu", "gpu", "cpu")
         self._supported_precision = PrecisionType.supported_types()
 
         # Raise an exception if there are conflicts between flags
@@ -229,7 +229,7 @@ class AcceleratorConnector:
             # handle duplications and conflict
             if isinstance(accelerator, Strategy) and strategy != accelerator:
                 raise MisconfigurationException(
-                    "strategy already set through strategy flag, but have also passed in through accelerator"
+                    f"Incompatible values set in `strategy` and `accelerator` arguments. Received both strategy={strategy} and accelerator={accelerator}"
                 )
             if (
                 isinstance(accelerator, str)
@@ -253,7 +253,7 @@ class AcceleratorConnector:
                             f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
 
-        if accelerator:
+        if accelerator is not None:
             if (
                 accelerator in self._existing_accelerator_type
                 or accelerator == "auto"
@@ -399,17 +399,17 @@ class AcceleratorConnector:
             # TODO: @awaelchli improve error message
             rank_zero_warn(
                 f"The flag `devices={devices}` will be ignored, "
-                f"instand the device specific number {deprecated_devices_specific_flag} will be used"
+                f"instead the device specific number {deprecated_devices_specific_flag} will be used"
             )
 
         if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
             True
         ) > 1:
             # TODO: @awaelchli improve error message
-            rank_zero_warn("more than one device specifc flag has been set")
+            rank_zero_warn("more than one device specific flag has been set")
         self._device_flag = deprecated_devices_specific_flag
 
-        if not self._accelerator_flag:
+        if self._accelerator_flag is None:
             # set accelerator type based on num_processes, gpus, ipus, tpu_cores
             if ipus:
                 self._accelerator_flag = "ipu"
