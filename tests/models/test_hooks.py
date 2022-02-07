@@ -434,11 +434,6 @@ class HookedModel(BoringModel):
         return out
 
 
-"""
-FIXME: not sure why this case sometimes raises the warning.
-tests/models/test_hooks.py::test_trainer_model_hook_system_fit[True-kwargs1]
-"""
-
 @pytest.mark.parametrize(
     "kwargs",
     [
