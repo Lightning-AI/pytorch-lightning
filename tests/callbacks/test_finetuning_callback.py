@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
 
