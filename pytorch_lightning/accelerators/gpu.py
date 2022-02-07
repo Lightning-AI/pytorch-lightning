@@ -32,6 +32,13 @@ _log = logging.getLogger(__name__)
 
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
+    
+    def __init__(self) -> None:
+        if not torch.cuda.is_available():
+            raise RuntimeError("GPU Accelerator used but CUDA isn't available.")
+        if torch.cuda.device_count() == 0:
+            raise RuntimeError("GPU Accelerator used but found no CUDA devices available.")
+                               
 
     def setup_environment(self, root_device: torch.device) -> None:
         """
