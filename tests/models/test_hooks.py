@@ -434,6 +434,8 @@ class HookedModel(BoringModel):
         return out
 
 
+# TODO(akihironitta): Remove the warning filter in a fix PR for #5558.
+@pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @pytest.mark.parametrize(
     "kwargs",
     [
