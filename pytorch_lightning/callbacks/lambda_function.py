@@ -68,8 +68,6 @@ class LambdaCallback(Callback):
         on_batch_end: Optional[Callable] = None,
         on_train_start: Optional[Callable] = None,
         on_train_end: Optional[Callable] = None,
-        on_pretrain_routine_start: Optional[Callable] = None,
-        on_pretrain_routine_end: Optional[Callable] = None,
         on_validation_start: Optional[Callable] = None,
         on_validation_end: Optional[Callable] = None,
         on_test_start: Optional[Callable] = None,

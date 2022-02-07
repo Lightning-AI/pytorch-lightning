@@ -1280,15 +1280,6 @@ class Trainer(
         # register signals
         self._signal_connector.register_signal_handlers()
 
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        self._call_callback_hooks("on_pretrain_routine_start")
-        self._call_lightning_module_hook("on_pretrain_routine_start")
-
-        self._call_callback_hooks("on_pretrain_routine_end")
-        self._call_lightning_module_hook("on_pretrain_routine_end")
-
     def _run_train(self) -> None:
         self._pre_training_routine()
 

@@ -248,10 +248,22 @@ class Callback:
         """Called when the train ends."""
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine begins."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_fit_start`` or ``setup`` instead.
+
+        Called when the pretrain routine begins.
+        """
 
     def on_pretrain_routine_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine ends."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_fit_start`` or ``setup`` instead.
+
+        Called when the pretrain routine ends.
+        """
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation loop begins."""
