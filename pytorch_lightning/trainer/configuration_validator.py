@@ -36,6 +36,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
+        # TODO: Remove this in v1.7 (deprecation: #9816)
+        _check_dl_idx_in_on_train_batch_hooks(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
         __verify_eval_loop_configuration(trainer, model, "val")
     elif trainer.state.fn == TrainerFn.TESTING:
@@ -297,6 +299,14 @@ def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
                 f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
             )
 
+
+def _check_dl_idx_in_on_train_batch_hooks(model: "pl.LightningModule") -> None:
+    for hook in ("on_train_batch_start", "on_train_batch_end"):
+        if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
+            rank_zero_deprecation(
+                f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
+                " The `dataloader_idx` argument will be removed in v1.7."
+            )
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
