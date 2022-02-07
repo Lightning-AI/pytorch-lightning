@@ -62,7 +62,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     # TODO: Remove this in v1.8
     _check_on_configure_sharded_model(trainer)
     # TODO: Remove this in v1.8
-    _check_on_before_accelerator_backend_setup(trainer, model)
+    _check_on_before_accelerator_backend_setup(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -351,7 +351,7 @@ def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
             )
 
-def _check_on_before_accelerator_backend_setup(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def _check_on_before_accelerator_backend_setup(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
             rank_zero_deprecation(

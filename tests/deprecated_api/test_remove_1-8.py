@@ -468,4 +468,3 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         match="The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-        trainer.validate(model)
