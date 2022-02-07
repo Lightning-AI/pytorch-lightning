@@ -16,10 +16,24 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
+
+    def setup_environment(self, root_device: torch.device) -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If the IPU device is not available.
+        """
+        if not _IPU_AVAILABLE:
+            raise MisconfigurationException(
+                "The IPU Accelerator requires IPU devices to run. "
+                "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
+            )
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
