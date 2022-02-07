@@ -137,6 +137,7 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. When multiple flag set to the same thing? (ignore? not handled for now)
         """
+        # TODO: move to gpu accelerator
         torch.backends.cudnn.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
