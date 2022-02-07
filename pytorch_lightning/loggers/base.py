@@ -26,8 +26,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:

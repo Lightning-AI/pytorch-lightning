@@ -121,7 +121,7 @@ def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
-    assert logger.root_dir == tmpdir
+    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
 
 

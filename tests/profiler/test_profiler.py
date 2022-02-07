@@ -111,10 +111,10 @@ def test_simple_profiler_deepcopy(tmpdir):
     assert deepcopy(simple_profiler)
 
 
-def test_simple_profiler_log_dir(tmpdir):
+def test_simple_profiler_dirpath(tmpdir):
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
@@ -122,7 +122,7 @@ def test_simple_profiler_log_dir(tmpdir):
 
     expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -131,7 +131,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -142,7 +142,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
     assert expected.exists()
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -151,7 +151,6 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
-    assert profiler._log_dir is None
 
     model = BoringModel()
     trainer = Trainer(

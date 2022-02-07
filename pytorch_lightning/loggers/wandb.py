@@ -26,11 +26,10 @@ import torch.nn as nn
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.imports import _compare_version, _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
@@ -406,7 +405,7 @@ class WandbLogger(LightningLoggerBase):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: List[Any], **kwargs: str) -> None:
+    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: str) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
@@ -417,7 +416,6 @@ class WandbLogger(LightningLoggerBase):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        step = kwargs.pop("step", None)
         kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)
