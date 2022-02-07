@@ -67,7 +67,7 @@ def test_file_logger_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
-    assert logger.root_dir == tmpdir
+    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
 
 
