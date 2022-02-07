@@ -64,19 +64,17 @@ class ModelHooks:
     def on_pretrain_routine_start(self) -> None:
         """Called at the beginning of the pretrain routine (between fit and train start).
 
-        - fit
-        - pretrain_routine start
-        - pretrain_routine end
-        - training_start
+        .. deprecated:: v1.6
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.8.0.
+            Please use :meth:`on_fit_start` or :meth:`setup` directly.
         """
 
     def on_pretrain_routine_end(self) -> None:
         """Called at the end of the pretrain routine (between fit and train start).
 
-        - fit
-        - pretrain_routine start
-        - pretrain_routine end
-        - training_start
+        .. deprecated:: v1.6
+            :meth:`on_val_dataloader` is deprecated and will be removed in v1.8.0.
+            Please use :meth:`on_fit_start` or :meth:`setup` directly.
         """
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
