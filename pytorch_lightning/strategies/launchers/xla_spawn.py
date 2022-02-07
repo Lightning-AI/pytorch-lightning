@@ -23,8 +23,8 @@ from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnOutpu
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 if _TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
