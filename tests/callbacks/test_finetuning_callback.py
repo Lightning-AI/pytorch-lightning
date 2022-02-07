@@ -264,8 +264,8 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):
-    """`on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before before
-    configure_optimizers function call."""
+    """`setup` hook is used by finetuning callbacks to freeze the model before before configure_optimizers function
+    call."""
 
     class TestCallback(Callback):
         def setup(self, trainer, pl_module, stage=None) -> None:
