@@ -57,6 +57,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
 
+
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     # -----------------------------------
     # verify model has a training step
@@ -308,6 +309,7 @@ def _check_dl_idx_in_on_train_batch_hooks(model: "pl.LightningModule") -> None:
                 " The `dataloader_idx` argument will be removed in v1.7."
             )
 
+
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
@@ -329,7 +331,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
 
-
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
                 "The `on_configure_sharded_model` callback hook was deprecated in"
@@ -350,18 +351,12 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
 
-        hooks = (
+        for hook, alternative_hook in (
             ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
             ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
-        )
-
-        for hook, alternative_hook in hooks:
+        ):
             if is_overridden(method_name=hook, instance=callback):
                 rank_zero_deprecation(
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
-            
-        
-         
-                
