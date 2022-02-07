@@ -167,28 +167,19 @@ class FitLoop(Loop[None]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
-        # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
 
-        should_stop = False
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                should_stop = True
-            else:
+        if self.trainer.should_stop and self.min_epochs:
+            self.trainer.should_stop = self.epoch_progress.current.processed >= self.min_epochs
+            if not self.trainer.should_stop:
                 log.info(
-                    "Trainer was signaled to stop but required minimum epochs"
-                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                    " not been met. Training will continue..."
+                    f"Trainer was signaled to stop but required minimum epochs ({self.min_epochs}) has not been met."
+                    " Training will continue..."
                 )
-        self.trainer.should_stop = should_stop
-
-        return stop_steps or should_stop or stop_epochs or self.trainer.num_training_batches == 0
+        return stop_steps or self.trainer.should_stop or stop_epochs or self.trainer.num_training_batches == 0
 
     @property
     def skip(self) -> bool:
