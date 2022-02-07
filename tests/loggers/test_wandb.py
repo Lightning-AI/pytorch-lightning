@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
@@ -52,13 +53,11 @@ def test_wandb_logger_init(wandb):
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
     wandb.run = wandb.init()
-    logger = WandbLogger()
+    with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
+        logger = WandbLogger()
 
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
-
-    with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
-        _ = logger.experiment
 
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
@@ -124,8 +123,9 @@ def test_wandb_pickle(wandb, tmpdir):
 def test_wandb_logger_dirs_creation(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
-    assert logger.version is None
-    assert logger.name is None
+    # the logger get initialized
+    assert logger.version is not None
+    assert logger.name is not None
 
     # mock return values of experiment
     wandb.run = None
