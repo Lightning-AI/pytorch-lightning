@@ -21,7 +21,6 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
