@@ -581,19 +581,22 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
-        # TODO: Figure out what to do here once LoggerCollection is removed
-        if trainer.logger is not None:
+        if trainer.loggers:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
             else:
-                save_dir = trainer.logger.save_dir or trainer.default_root_dir
-
+                if len(trainer.loggers) == 1 and trainer.loggers[0].save_dir:
+                    save_dir = trainer.loggers[0].save_dir
+                else:
+                    save_dir = trainer.default_root_dir
+            # TODO: Find out we handle trainer.logger.version without LoggerCollection
             version = (
                 trainer.logger.version
                 if isinstance(trainer.logger.version, str)
                 else f"version_{trainer.logger.version}"
             )
+            # TODO: Find out we handle trainer.logger.name without LoggerCollection
             ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")

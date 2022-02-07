@@ -246,8 +246,4 @@ The loggers are available as a list anywhere except ``__init__`` in your
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            # Option 1
-            # TODO: Figure out how this changes with the loggers property
-            self.logger.experiment[0].add_image("generated_images", some_img, 0)
-            # Option 2
             self.loggers[logger_index].experiment.add_image("generated_images", some_img, 0)
