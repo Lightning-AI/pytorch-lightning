@@ -318,8 +318,6 @@ class RichProgressBar(ProgressBarBase):
 
     def on_sanity_check_start(self, trainer, pl_module):
         self._init_progress(trainer)
-        self.val_sanity_progress_bar_id = self._add_task(trainer.num_sanity_val_steps, self.sanity_check_description)
-        self.refresh()
 
     def on_sanity_check_end(self, trainer, pl_module):
         if self.progress is not None:
@@ -349,14 +347,13 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_validation_epoch_start(self, trainer, pl_module):
-        if self.total_val_batches > 0:
-            total_val_batches = self.total_val_batches
-            if self.total_train_batches != float("inf") and hasattr(trainer, "val_check_batch"):
-                # val can be checked multiple times per epoch
-                val_checks_per_epoch = self.total_train_batches // trainer.val_check_batch
-                total_val_batches = self.total_val_batches * val_checks_per_epoch
-            self.val_progress_bar_id = self._add_task(total_val_batches, self.validation_description, visible=False)
-            self.refresh()
+        if trainer.sanity_checking:
+            self.val_sanity_progress_bar_id = self._add_task(self.total_val_batches, self.sanity_check_description)
+        else:
+            self.val_progress_bar_id = self._add_task(
+                self.total_val_batches, self.validation_description, visible=False
+            )
+        self.refresh()
 
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
         if self.progress is not None:
@@ -364,17 +361,20 @@ class RichProgressBar(ProgressBarBase):
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: int, current: int, total: int, visible: bool = True) -> None:
+    def _update(self, progress_bar_id: int, current: int, total: Union[int, float], visible: bool = True) -> None:
         if self.progress is not None and self._should_update(current, total):
-            self.progress.update(progress_bar_id, advance=self.refresh_rate, visible=visible)
+            leftover = current % self.refresh_rate
+            advance = leftover if (current == total and leftover != 0) else self.refresh_rate
+            self.progress.update(progress_bar_id, advance=advance, visible=visible)
             self.refresh()
 
-    def _should_update(self, current: int, total: int) -> bool:
+    def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches, visible=False)
+        if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
+            self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
+            self.refresh()
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":

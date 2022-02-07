@@ -26,9 +26,9 @@ from torch.nn import Module
 from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch._C import _DisableTorchDispatch  # type: ignore[attr-defined]

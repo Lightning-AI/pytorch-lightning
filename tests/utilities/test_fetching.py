@@ -40,27 +40,31 @@ def test_prefetch_iterator(use_combined_loader):
             yield 2
             yield 3
 
-    for prefetch_batches in range(1, 5):
-        if use_combined_loader:
-            loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
-            expected = [
-                ([tensor([1]), tensor([1])], False),
-                ([tensor([2]), tensor([2])], False),
-                ([tensor([3]), tensor([3])], True),
-            ]
-        else:
-            loader = DataLoader(IterDataset())
-            expected = [(1, False), (2, False), (3, True)]
+    for prefetch_batches in range(5):
         iterator = DataFetcher(prefetch_batches=prefetch_batches)
         assert iterator.prefetch_batches == prefetch_batches
+
+        if use_combined_loader:
+            loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
+        else:
+            loader = DataLoader(IterDataset())
         iterator.setup(loader)
 
         def generate():
-            generated = []
-            for idx, data in enumerate(iterator, prefetch_batches + 1):
-                assert iterator.fetched == 3 if iterator.done else idx
-                generated.append(data)
+            generated = [(iterator.fetched, *data) for i, data in enumerate(iterator, prefetch_batches + 1)]
+            assert iterator.fetched == 3
+            assert iterator.done
             return generated
+
+        is_last_batch = [False, False, prefetch_batches > 0]
+        fetched = list(range(prefetch_batches + 1, 4))
+        fetched += [3] * (3 - len(fetched))
+        if use_combined_loader:
+            batches = [[tensor(1), tensor(1)], [tensor(2), tensor(2)], [tensor(3), tensor(3)]]
+        else:
+            batches = [1, 2, 3]
+        expected = list(zip(fetched, batches, is_last_batch))
+        assert len(expected) == 3
 
         assert generate() == expected
         # validate reset works properly.
@@ -71,9 +75,9 @@ def test_prefetch_iterator(use_combined_loader):
         def __iter__(self):
             return iter([])
 
-    dataloader = DataLoader(EmptyIterDataset())
+    loader = DataLoader(EmptyIterDataset())
     iterator = DataFetcher()
-    iterator.setup(dataloader)
+    iterator.setup(loader)
     assert not list(iterator)
 
 

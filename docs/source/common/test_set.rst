@@ -50,8 +50,8 @@ To run the test set after training completes, use this method.
 
 .. warning::
 
-    It is recommended to test on single device since Distributed Training such as DDP internally
-    uses :class:`~torch.utils.data.distributed.DistributedSampler` which replicates some samples to
+    It is recommended to test with ``Trainer(devices=1)`` since distributed strategies such as DDP
+    use :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
     make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
     benchmarking for research papers is done the right way.
 
@@ -143,6 +143,13 @@ Apart from this ``.validate`` has same API as ``.test``, but would rely respecti
 .. note::
     ``.validate`` method uses the same validation logic being used under validation happening within
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call.
+
+.. warning::
+
+    When using ``trainer.validate()``, it is recommended to use ``Trainer(devices=1)`` since distributed strategies such as DDP
+    uses :class:`~torch.utils.data.distributed.DistributedSampler` internally, which replicates some samples to
+    make sure all devices have same batch size in case of uneven inputs. This is helpful to make sure
+    benchmarking for research papers is done the right way.
 
 .. automethod:: pytorch_lightning.trainer.Trainer.validate
     :noindex:
