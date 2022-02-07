@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn
 
 _WANDB_AVAILABLE = _module_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _compare_version("wandb", operator.ge, "0.12.10")
 
 try:
     import wandb
@@ -308,7 +309,9 @@ class WandbLogger(LightningLoggerBase):
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         # start wandb run (to create an attach_id for distributed modes)
-        _ = self.experiment
+        if _WANDB_GREATER_EQUAL_0_12_10:
+            wandb.require("service")
+            _ = self.experiment
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -342,16 +345,16 @@ class WandbLogger(LightningLoggerBase):
                 os.environ["WANDB_MODE"] = "dryrun"
 
             attach_id = getattr(self, "_attach_id", None)
-            if attach_id is not None and hasattr(wandb, "_attach"):
-                # attach to wandb process referenced
-                self._experiment = wandb._attach(attach_id)
-            elif wandb.run is not None:
+            if wandb.run is not None:
                 # wandb process already created in this instance
                 rank_zero_warn(
                     "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
                     " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
                 )
                 self._experiment = wandb.run
+            elif attach_id is not None and hasattr(wandb, "_attach"):
+                # attach to wandb process referenced
+                self._experiment = wandb._attach(attach_id)
             else:
                 # create new wandb process
                 self._experiment = wandb.init(**self._wandb_init)
