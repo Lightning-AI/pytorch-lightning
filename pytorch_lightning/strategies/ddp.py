@@ -46,18 +46,13 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
