@@ -307,7 +307,7 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
             )
         # TODO: Remove this in v1.7 (deprecation: #9816)
         for hook in ("on_train_batch_start", "on_train_batch_end"):
-            if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
+            if is_param_in_hook_signature(getattr(callback, hook), "dataloader_idx", explicit=True):
                 rank_zero_deprecation(
                     f"Base `Callback.{hook}` hook signature has changed in v1.5."
                     " The `dataloader_idx` argument will be removed in v1.7."
