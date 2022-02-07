@@ -755,7 +755,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="zero_grad"),
         dict(name="Callback.on_predict_start", args=(trainer, model)),
         dict(name="on_predict_start"),
-        # TODO: `{,Callback}.on_epoch_{start,end}`
         dict(name="Callback.on_predict_epoch_start", args=(trainer, model)),
         dict(name="on_predict_epoch_start"),
         *model._predict_batch(trainer, model, batches),

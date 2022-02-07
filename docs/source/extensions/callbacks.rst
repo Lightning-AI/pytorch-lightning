@@ -324,15 +324,6 @@ on_predict_epoch_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_predict_epoch_end
     :noindex:
 
-on_epoch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_start
-    :noindex:
-
-on_epoch_end
-~~~~~~~~~~~~
-
 .. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
     :noindex:
 

@@ -412,7 +412,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
-        def on_epoch_end(self):
+        def on_train_epoch_end(self):
             self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
@@ -435,8 +435,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     )
     trainer.fit(model)
 
-    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
-    assert model.num_epochs_end_seen == 1 + 2 + 2
+    assert model.num_epochs_end_seen == 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
@@ -1938,7 +1937,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
             return torch.optim.Adam(self.layer.parameters(), lr=0.1)
 
     class Check(Callback):
-        def on_epoch_start(self, trainer, *_):
+        def on_train_epoch_start(self, trainer, *_):
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
 
     def current_memory():
