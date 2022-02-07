@@ -31,11 +31,11 @@ from pytorch_lightning.plugins import (
     FullyShardedNativeMixedPrecisionPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
+    PLUGIN_INPUT,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    PLUGIN_INPUT,
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
@@ -106,7 +106,6 @@ class AcceleratorConnector:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugin.
 
-
             A. accelerator flag could be:
                 1. strategy class (deprecated in 1.5 will be removed in 1.7)
                 2. strategy str (deprecated in 1.5 will be removed in 1.7)
@@ -137,7 +136,6 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
             C. When multiple flag set to the same thing? (ignore? not handled for now)
-
         """
         torch.backends.cudnn.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
@@ -552,8 +550,8 @@ class AcceleratorConnector:
                 self._strategy_flag = "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
-        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a different
-        choice depending on other parameters or the environment."""
+        """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
+        different choice depending on other parameters or the environment."""
         # current logic, fallback only apply to user pass in str config not object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
