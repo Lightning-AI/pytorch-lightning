@@ -564,6 +564,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue to make the `step` argument in `WandbLogger.log_image` work ([#11716](https://github.com/PyTorchLightning/pytorch-lightning/pull/11716))
 
 
+- With `strategy='dp'`, the batch is not moved to the device explictly ([#11716](https://github.com/PyTorchLightning/pytorch-lightning/pull/11716))
+
+
 ## [1.5.9] - 2022-01-20
 
 ### Fixed
