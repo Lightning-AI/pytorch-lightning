@@ -360,7 +360,6 @@ class DummyExperiment:
         return self.nop
 
     def __getitem__(self, idx) -> "DummyExperiment":
-        # TODO: Figure out how this will change with loggers property
         # enables self.loggers[logger_index].experiment[0].add_image(...)
         return self
 
