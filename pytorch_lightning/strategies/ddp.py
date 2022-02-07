@@ -309,7 +309,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
-        optimizers = self.lightning_module.trainer.optimizers
+        optimizers = self.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
