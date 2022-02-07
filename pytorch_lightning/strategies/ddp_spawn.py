@@ -28,16 +28,6 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.spawn import SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    ReduceOp,
-    sync_ddp_if_available,
-)
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
