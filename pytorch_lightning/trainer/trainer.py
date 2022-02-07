@@ -2116,7 +2116,7 @@ class Trainer(
 
     @property
     def is_global_zero(self) -> bool:
-        return self.global_rank == 0
+        return self.strategy.is_global_zero
 
     @property
     def slurm_job_id(self) -> Optional[int]:
