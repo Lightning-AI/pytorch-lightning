@@ -610,7 +610,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
         trainer.fit(model)
 
-    message = f"minimum epochs ({min_epochs}) has not been met. Training will continue"
+    message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
     num_messages = sum(1 for record in caplog.records if message in record.message)
     assert num_messages == min_epochs - 2
     assert model.training_step_invoked == min_epochs * 2
