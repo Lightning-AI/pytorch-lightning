@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
 import logging
 import os
 import re
@@ -282,7 +281,7 @@ class CheckpointConnector:
             # avoids OOM
             if self.trainer.root_gpu is not None:
                 for param, state in optimizer.state.items():
-                    if isinstance(state, collections.Mapping):
+                    if isinstance(state, dict):
                         for k, v in state.items():
                             if isinstance(v, torch.Tensor):
                                 state[k] = v.cuda(self.trainer.root_gpu)
