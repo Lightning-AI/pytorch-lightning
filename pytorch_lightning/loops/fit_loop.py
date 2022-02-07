@@ -51,7 +51,7 @@ class FitLoop(Loop[None]):
 
     def __init__(
         self,
-        min_epochs: Optional[int] = 1,
+        min_epochs: int = 0,
         max_epochs: int = 1000,
     ) -> None:
         super().__init__()
@@ -133,6 +133,21 @@ class FitLoop(Loop[None]):
         """Returns the running loss."""
         return self.epoch_loop.batch_loop.running_loss
 
+    @Loop.restarting.setter
+    def restarting(self, restarting: bool) -> None:
+        # if the last epoch completely finished, we are not actually restarting, we can check this to see if all
+        # current values are equal
+        values = (
+            self.epoch_progress.current.ready,
+            self.epoch_progress.current.started,
+            self.epoch_progress.current.processed,
+        )
+        finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
+        if finished_before_on_train_end:
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
+        restarting &= finished_before_on_train_end
+        Loop.restarting.fset(self, restarting)  # call the parent setter
+
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
@@ -156,31 +171,23 @@ class FitLoop(Loop[None]):
         """Evaluates when to leave the loop."""
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
-        stop_epochs = _is_max_limit_reached(self.epoch_progress.current.completed, self.max_epochs)
+        stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
 
-        should_stop = False
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.epoch_progress.current.completed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                should_stop = True
-            else:
+        if self.trainer.should_stop and self.min_epochs:
+            self.trainer.should_stop = self.epoch_progress.current.processed >= self.min_epochs
+            if not self.trainer.should_stop:
                 log.info(
-                    "Trainer was signaled to stop but required minimum epochs"
-                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                    " not been met. Training will continue..."
+                    f"Trainer was signaled to stop but required minimum epochs ({self.min_epochs}) has not been met."
+                    " Training will continue..."
                 )
-        self.trainer.should_stop = should_stop
-
-        return stop_steps or should_stop or stop_epochs or self.trainer.num_training_batches == 0
+        return stop_steps or self.trainer.should_stop or stop_epochs or self.trainer.num_training_batches == 0
 
     @property
     def skip(self) -> bool:
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         # since `trainer.num_training_batches` depends on the `train_dataloader` but that won't be called
         # until `on_run_start`, we use `limit_train_batches` instead
-        return self.done or self.trainer.limit_train_batches == 0
+        return self.trainer.limit_train_batches == 0
 
     def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
         """Connects a training epoch loop to this fit loop."""
@@ -240,7 +247,7 @@ class FitLoop(Loop[None]):
             getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
         ):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.completed)
+            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
@@ -325,11 +332,6 @@ class FitLoop(Loop[None]):
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
         log.detail(f"{self.__class__.__name__}: train run ended")
-        # NOTE: the current_epoch is already incremented
-        # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
-        # To simulate that current behavior, we decrement here.
-        # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
-        self.epoch_progress.current.completed = max(self.epoch_progress.current.completed - 1, 0)
 
         # hook
         self.trainer._call_callback_hooks("on_train_end")

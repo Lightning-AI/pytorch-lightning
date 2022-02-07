@@ -153,7 +153,6 @@ def test_hpc_max_ckpt_version(tmpdir):
     )
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()

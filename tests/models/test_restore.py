@@ -232,8 +232,7 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.global_step == 0
 
     trainer.fit(model)
-    # TODO(@carmocca): should not need `-1`
-    assert trainer.current_epoch == first_max_epochs - 1
+    assert trainer.current_epoch == first_max_epochs
     assert trainer.global_step == first_max_epochs * train_batches
 
     # save checkpoint after loop ends, training end called, epoch count increased
@@ -260,8 +259,7 @@ def test_correct_step_and_epoch(tmpdir):
             assert self.trainer.global_step == first_max_epochs * train_batches + 1
 
     trainer.fit(TestModel(), ckpt_path=ckpt_path)
-    # TODO(@carmocca): should not need `-1`
-    assert trainer.current_epoch == max_epochs - 1
+    assert trainer.current_epoch == max_epochs
     # TODO(@carmocca): should not need `+1`
     assert trainer.global_step == max_epochs * train_batches + 1
 
@@ -286,8 +284,7 @@ def test_fit_twice(tmpdir):
     trainer.fit(TestModel())
     trainer.fit_loop.max_epochs = 4
     trainer.fit(TestModel())
-    # TODO(@carmocca): 1 should not be duplicated
-    assert epochs == [0, 1, 1, 2, 3]
+    assert epochs == [0, 1, 2, 3]
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
@@ -582,8 +579,8 @@ def test_dp_resume(tmpdir):
     trainer = Trainer(**trainer_options)
     trainer.fit(model, datamodule=dm)
 
-    # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
+    # track epoch before saving
+    real_global_epoch = trainer.current_epoch
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
