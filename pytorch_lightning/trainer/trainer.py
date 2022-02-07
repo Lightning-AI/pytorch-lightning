@@ -1122,7 +1122,6 @@ class Trainer(
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
