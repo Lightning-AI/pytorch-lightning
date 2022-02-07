@@ -719,7 +719,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 trainer_fn(ckpt_path="random.ckpt")
         else:
             ckpt_path = str(
-                list((Path(tmpdir) / f"lightning_logs/version_{loggers[0].version}/checkpoints").iterdir())[
+                list((Path(tmpdir) / f"lightning_logs/version_{trainer.loggers[0].version}/checkpoints").iterdir())[
                     0
                 ].absolute()
             )

@@ -586,7 +586,7 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     )
     trainer.fit(model)
 
-    path_yaml = os.path.join(trainer.loggers[0].log_dir, logger.NAME_HPARAMS_FILE)
+    path_yaml = os.path.join(trainer.loggers[0].log_dir, trainer.loggers[0].NAME_HPARAMS_FILE)
     hparams = load_hparams_from_yaml(path_yaml)
     assert hparams.get("running_arg") == 123
 
