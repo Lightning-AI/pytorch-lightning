@@ -26,7 +26,7 @@ if _XLA_AVAILABLE:
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def __init__(self) -> None:
         """
         Raises:
             MisconfigurationException:
