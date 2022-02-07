@@ -31,8 +31,7 @@ def run_model_test_without_loggers(
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    for logger in trainer.loggers:
-        model2 = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
+    model2 = load_model_from_checkpoint(trainer.loggers[0], trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model2.test_dataloader() if not data else data.test_dataloader()

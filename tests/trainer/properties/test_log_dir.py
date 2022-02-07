@@ -119,7 +119,7 @@ def test_logdir_logger_collection(tmpdir):
         max_steps=2,
         logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs")],
     )
-    # TODO: Remove this when removing LoggerCollection
+    # TODO: What behavior do we want once trainer.logger is deprecated?
     assert isinstance(trainer.logger, LoggerCollection)
     assert trainer.log_dir == default_root_dir
 

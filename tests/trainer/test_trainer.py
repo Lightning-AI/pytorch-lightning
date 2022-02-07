@@ -718,12 +718,11 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             with pytest.raises(FileNotFoundError):
                 trainer_fn(ckpt_path="random.ckpt")
         else:
-            for logger in trainer.loggers:
-                ckpt_path = str(
-                    list((Path(tmpdir) / f"lightning_logs/version_{logger.version}/checkpoints").iterdir())[
-                        0
-                    ].absolute()
-                )
+            ckpt_path = str(
+                list((Path(tmpdir) / f"lightning_logs/version_{loggers[0].version}/checkpoints").iterdir())[
+                    0
+                ].absolute()
+            )
             trainer_fn(ckpt_path=ckpt_path)
             assert getattr(trainer, path_attr) == ckpt_path
 
