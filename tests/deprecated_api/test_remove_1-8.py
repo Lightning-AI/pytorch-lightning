@@ -465,6 +465,7 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6 and will be removed in v1.8"
+        match="The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6"
+        " and will be removed in v1.8"
     ):
         trainer.fit(model)
