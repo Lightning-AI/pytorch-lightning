@@ -259,6 +259,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid enforcing `shuffle=False` for eval dataloaders ([#11575](https://github.com/PyTorchLightning/pytorch-lightning/pull/11575))
 
 
+- When using DP (data-parallel), Lightning will no longer automatically reduce all tensors returned in training_step; it will only reduce the loss unless `training_step_end` is overridden ([#11594](https://github.com/PyTorchLightning/pytorch-lightning/pull/11594))
+
+- When using DP (data-parallel), the `training_epoch_end` hook will no longer receive reduced outputs from `training_step` and instead get the full tensor of results from all GPUs ([#11594](https://github.com/PyTorchLightning/pytorch-lightning/pull/11594))
 ### Deprecated
 
 - Deprecated `Trainer.{validated,tested,predicted}_ckpt_path` and replaced with read-only property `Trainer.ckpt_path` set when checkpoints loaded via `Trainer.{fit,validate,test,predict}` ([#11696](https://github.com/PyTorchLightning/pytorch-lightning/pull/11696))

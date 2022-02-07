@@ -137,18 +137,15 @@ class DataParallelStrategy(ParallelStrategy):
             return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
-        if not is_overridden("training_step_end", self.lightning_module):
-            return self.reduce(output)
-        return output
+        if is_overridden("training_step_end", self.lightning_module):
+            return output
 
-    def validation_step_end(self, output):
-        if not is_overridden("validation_step_end", self.lightning_module):
-            return self.reduce(output)
-        return output
+        if isinstance(output, dict) and "loss" in output:
+            output["loss"] = self.reduce(output["loss"])
 
-    def test_step_end(self, output):
-        if not is_overridden("test_step_end", self.lightning_module):
-            return self.reduce(output)
+        elif isinstance(output, torch.Tensor):
+            output = self.reduce(output)
+
         return output
 
     def teardown(self) -> None:
