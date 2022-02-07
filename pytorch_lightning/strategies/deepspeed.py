@@ -485,7 +485,7 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             if lr_scheduler is None:
-                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler)
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
             else:
                 lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]
