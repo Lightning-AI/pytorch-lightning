@@ -15,8 +15,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -63,6 +63,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_batch_start_end(trainer, model)
     # TODO: Remove this in v1.8
     _check_on_configure_sharded_model(trainer)
+    # TODO: Remove this in v1.8
+    _check_on_before_accelerator_backend_setup(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -371,5 +373,14 @@ def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
                 "The `on_configure_sharded_model` callback hook was deprecated in"
+                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+            )
+
+
+def _check_on_before_accelerator_backend_setup(trainer: "pl.Trainer") -> None:
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
+            rank_zero_deprecation(
+                "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
             )

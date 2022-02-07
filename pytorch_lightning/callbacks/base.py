@@ -65,7 +65,12 @@ class Callback:
         """
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called before accelerator is being setup."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``setup()`` instead.
+
+        Called before accelerator is being setup.
+        """
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         """Called when fit, validate, test, predict, or tune begins."""
