@@ -23,6 +23,7 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -192,17 +193,7 @@ class CheckpointConnector:
             return
 
         # restore precision plugin (scaler etc.)
-        prec_plugin = self.trainer.precision_plugin
-        prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
-        if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
-            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
-
-        # old checkpoints compatibility
-        # should we raise error and force user to run utilities/upgrade_checkpoint instead?
-        if "amp_scaling_state" in self._loaded_checkpoint:
-            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
-        if "native_amp_scaling_state" in self._loaded_checkpoint:
-            prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
+        self.restore_precision_plugin_state()
 
         # restore loops and their progress
         self.restore_loops()
@@ -211,6 +202,19 @@ class CheckpointConnector:
         if self.trainer.state.fn == TrainerFn.FITTING:
             # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
+
+    def restore_precision_plugin_state(self) -> None:
+        """Restore the precision plugin state from the pre-loaded checkpoint."""
+        prec_plugin = self.trainer.precision_plugin
+        prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
+
+        # old checkpoints compatibility
+        if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, NativeMixedPrecisionPlugin):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""

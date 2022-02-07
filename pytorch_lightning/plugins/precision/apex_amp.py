@@ -21,6 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
@@ -97,3 +98,15 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         amp.load_state_dict(state_dict)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        rank_zero_deprecation(
+            "`ApexMixedPrecisionPlugin.on_load_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `ApexMixedPrecisionPlugin.load_state_dict` instead."
+        )
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        rank_zero_deprecation(
+            "`ApexMixedPrecisionPlugin.on_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `ApexMixedPrecisionPlugin.state_dict` instead."
+        )

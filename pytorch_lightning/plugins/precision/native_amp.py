@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -114,3 +115,15 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        rank_zero_deprecation(
+            "`NativeMixedPrecisionPlugin.on_load_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `NativeMixedPrecisionPlugin.load_state_dict` instead."
+        )
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        rank_zero_deprecation(
+            "`NativeMixedPrecisionPlugin.on_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
+            " Use `NativeMixedPrecisionPlugin.state_dict` instead."
+        )
