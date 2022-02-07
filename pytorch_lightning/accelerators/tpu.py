@@ -16,7 +16,8 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -24,6 +25,15 @@ if _XLA_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
+
+    def setup_environment(self, root_device: torch.device) -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If the TPU device is not available.
+        """
+        if not _XLA_AVAILABLE:
+            raise MisconfigurationException("The TPU Accelerator requires torch_xla and a TPU device to run.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given TPU device.
