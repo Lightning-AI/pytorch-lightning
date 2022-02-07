@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Dict, Optional
+from unittest import mock
 
 import pytest
 
@@ -52,6 +53,127 @@ def test_device_stats_gpu_from_torch(tmpdir):
     )
 
     trainer.fit(model)
+
+
+@RunIf(max_torch="1.7")
+@RunIf(min_gpus=1)
+def test_device_stats_gpu_from_nvidia(tmpdir):
+    """Test GPU stats are logged using a logger with Pytorch < 1.8.0."""
+    model = BoringModel()
+    device_stats = DeviceStatsMonitor()
+
+    class DebugLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
+            for f in fields:
+                assert any(f in h for h in metrics.keys())
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=7,
+        log_every_n_steps=1,
+        accelerator="gpu",
+        devices=1,
+        callbacks=[device_stats],
+        logger=DebugLogger(tmpdir),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+
+
+@RunIf(max_torch="1.7")
+@RunIf(min_gpus=1)
+def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
+    """Test GPU stats + CPU stats are logged using a logger with Pytorch < 1.8.0."""
+    model = BoringModel()
+    device_stats = DeviceStatsMonitor(cpu_stats=True)
+
+    class DebugLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            fields = [
+                "utilization.gpu",
+                "memory.used",
+                "memory.free",
+                "utilization.memory",
+                "vm_percent",
+                "cpu_percent",
+                "swap_percent",
+            ]
+            for f in fields:
+                assert any(f in h for h in metrics.keys())
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=7,
+        log_every_n_steps=1,
+        accelerator="gpu",
+        devices=1,
+        callbacks=[device_stats],
+        logger=DebugLogger(tmpdir),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+
+
+def test_device_stats_cpu(tmpdir):
+    """Test CPU stats are logged when no accelerator is used."""
+    model = BoringModel()
+
+    class DebugLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            fields = ["vm_percent", "cpu_percent", "swap_percent"]
+            for f in fields:
+                assert any(f in h for h in metrics.keys())
+
+    device_stats = DeviceStatsMonitor()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=7,
+        log_every_n_steps=1,
+        callbacks=[device_stats],
+        logger=DebugLogger(tmpdir),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+
+
+@mock.patch("pytorch_lightning.accelerators.cpu.get_cpu_process_metrics")
+@mock.patch("pytorch_lightning.callbacks.device_stats_monitor.get_cpu_process_metrics")
+def test_device_stats_cpu_queried_once(cpu_metrics_device_stats_mock, cpu_metrics_cpu_accelerator_mock, tmpdir):
+    """Make sure that get_cpu_process_metrics is only queried once if the accelerator is CPU and cpu_stats=True."""
+    model = BoringModel()
+
+    device_stats = DeviceStatsMonitor(cpu_stats=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        log_every_n_steps=1,
+        callbacks=[device_stats],
+        logger=True,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+
+    # Note that you need to mock where the function is imported
+    # (not where it is defined). Please see the following for
+    # an explanation: https://docs.python.org/3/library/unittest.mock.html#where-to-patch
+    assert cpu_metrics_device_stats_mock.call_count == 0  # called inside DeviceStatsMonitor
+    assert cpu_metrics_cpu_accelerator_mock.call_count == 2  # called inside CPUAccelerator
 
 
 @RunIf(tpu=True)

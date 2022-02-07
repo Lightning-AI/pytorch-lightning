@@ -71,7 +71,7 @@ class CPUAccelerator(Accelerator):
             description=f"{cls.__class__.__name__}",
         )
 
-def get_cpu_process_metrics() -> Dict[str, float]:
+def get_cpu_process_metrics() -> dict[str, float]:
     metrics = {
         f"vm_percent": psutil.virtual_memory().percent,
         f"cpu_percent": psutil.cpu_percent(),

@@ -77,7 +77,8 @@ class DeviceStatsMonitor(Callback):
         device = trainer.strategy.root_device
         device_stats = trainer.accelerator.get_device_stats(device)
 
-        if self.cpu_stats:
+        if self.cpu_stats and device.type != "cpu":
+            # Don't query CPU stats twice if CPU is accelerator
             device_stats.update(get_cpu_process_metrics())
 
         for logger in trainer.loggers:
