@@ -144,7 +144,7 @@ def test_datahook_selector(hook_name):
     _with_datamodule_override_model()
 
 
-def test_invalid_hook_passed_in_datahook_source():
+def test_invalid_hook_passed_in_datahook_selector():
     dh_selector = _DataHookSelector(BoringModel(), None)
     with pytest.raises(ValueError, match="is not a shared hook"):
         dh_selector.get_hook("setup")
