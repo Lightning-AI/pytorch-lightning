@@ -125,6 +125,10 @@ def sync_ddp(
     else:
         op = reduce_op
 
+    # WA for HPU. HPU doesn't support Long types
+    if _HPU_AVAILABLE:
+        result = result.float()
+
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
