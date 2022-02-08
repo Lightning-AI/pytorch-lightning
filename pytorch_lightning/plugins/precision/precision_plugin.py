@@ -244,7 +244,7 @@ class PrecisionPlugin(CheckpointHooks):
         """
 
     def state_dict(self) -> Dict[str, Any]:
-        """Called when saving a checkpoint, implement to generate and save precision plugin state.
+        """Called when saving a checkpoint, implement to generate precision plugin state_dict.
 
         Returns:
             A dictionary containing precision plugin state.
