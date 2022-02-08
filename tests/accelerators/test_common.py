@@ -18,7 +18,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator, HPUAccelerator
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.boring_model import BoringModel
@@ -80,3 +80,4 @@ def test_auto_device_count(device_count_mock):
     assert GPUAccelerator.auto_device_count() == 2
     assert TPUAccelerator.auto_device_count() == 8
     assert IPUAccelerator.auto_device_count() == 4
+    assert HPUAccelerator.auto_device_count() == 8

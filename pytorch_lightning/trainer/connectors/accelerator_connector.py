@@ -612,8 +612,6 @@ class AcceleratorConnector:
     def num_hpus(self) -> int:
         if isinstance(self.hpus, int):
             return self.hpus
-        if isinstance(self._strategy, HPUStrategy):
-            return self._strategy.replication_factor
         return 0
 
     @property
@@ -688,7 +686,7 @@ class AcceleratorConnector:
                 return TPUBf16PrecisionPlugin()
 
         if self.use_hpu:
-            if self.precision not in (16, 32):
+            if self.precision not in (16, "bf16", 32):
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self.precision!r})` is not supported."
                 )

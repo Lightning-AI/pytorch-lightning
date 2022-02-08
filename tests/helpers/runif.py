@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
@@ -63,6 +64,7 @@ class RunIf:
         amp_apex: bool = False,
         tpu: bool = False,
         ipu: bool = False,
+        hpu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -146,6 +148,10 @@ class RunIf:
         if ipu:
             conditions.append(not _IPU_AVAILABLE)
             reasons.append("IPU")
+
+        if hpu:
+            conditions.append(not _HPU_AVAILABLE)
+            reasons.append("HPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)

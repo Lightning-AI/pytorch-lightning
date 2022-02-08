@@ -86,6 +86,7 @@ class LightningLite(ABC):
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
+            hpus=None,
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,

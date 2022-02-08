@@ -903,11 +903,22 @@ def test_unsupported_ipu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
 
+def test_unsupported_hpu_choice(monkeypatch):
+    import pytorch_lightning.plugins.training_type.hpu as hpu
+    import pytorch_lightning.utilities.imports as imports
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(imports, "_HPU_AVAILABLE", True)
+    monkeypatch.setattr(hpu, "_HPU_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_hpu", True)
+    with pytest.raises(MisconfigurationException, match=r"accelerator='hpu', precision=64\)` is not supported"):
+        Trainer(accelerator="hpu", precision=64)
 
 @mock.patch("torch.cuda.is_available", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
-def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
+@mock.patch("pytorch_lightning.utilities.imports._HPU_AVAILABLE", return_value=False)
+def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock, is_hpu_available_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 1
     assert trainer.num_processes == 1
