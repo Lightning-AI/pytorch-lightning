@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
-from unittest.mock import Mock, PropertyMock
+from unittest.mock import Mock
 
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.connectors.data_connector import _DataHookSource, _DataLoaderSource, warning_cache
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.deprecated_api import no_warning_call
@@ -77,97 +75,66 @@ def test_dataloader_source_request_from_module():
 @pytest.mark.parametrize(
     "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
 )
-@mock.patch("pytorch_lightning.strategies.strategy.Strategy.lightning_module", new_callable=PropertyMock)
-def test_shared_datahook_call(module_mock, hook_name):
-    class CustomBatch:
-        def __init__(self):
-            self.x = torch.randn(3, 4)
-            self.instance_type = None
-
-        def to(self, device):
-            self.x = self.x.to(device)
-
-    def overridden_model_func(batch, *args, **kwargs):
-        batch.instance_type = "model"
-        return batch
-
-    def overridden_dm_func(batch, *args, **kwargs):
-        batch.instance_type = "datamodule"
+def test_datahook_selector(hook_name):
+    def overridden_func(batch, *args, **kwargs):
         return batch
 
     def _reset_instances():
-        dm = BoringDataModule()
-        model = BoringModel()
-        trainer = Trainer()
-        model.trainer = trainer
-        module_mock.return_value = model
-        batch = CustomBatch()
-        return model, dm, trainer, batch
+        return BoringDataModule(), BoringModel(), Trainer()
 
     def _no_datamodule_no_overridden():
-        model, _, trainer, batch = _reset_instances()
-        setattr(model, hook_name, Mock(getattr(model, hook_name)))
+        model, _, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=None)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        assert getattr(model, hook_name).call_count == 1
+        assert hook == getattr(model, hook_name)
 
     def _with_datamodule_no_overridden():
-        model, dm, trainer, batch = _reset_instances()
+        model, dm, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, Mock(getattr(model, hook_name)))
-        setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        assert getattr(model, hook_name).call_count == 1
-        assert getattr(dm, hook_name).call_count == 0
+        assert hook == getattr(model, hook_name)
 
     def _override_model_hook():
-        model, dm, trainer, batch = _reset_instances()
+        model, dm, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, overridden_model_func)
-        setattr(dm, hook_name, Mock(getattr(dm, hook_name)))
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        assert batch.instance_type == "model"
-        assert getattr(dm, hook_name).call_count == 0
+        assert hook == getattr(model, hook_name)
 
     def _override_datamodule_hook():
-        model, dm, trainer, batch = _reset_instances()
+        model, dm, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, Mock(getattr(model, hook_name)))
-        setattr(dm, hook_name, overridden_dm_func)
+        setattr(dm, hook_name, overridden_func)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        assert batch.instance_type == "datamodule"
-        assert getattr(model, hook_name).call_count == 0
+        assert hook == getattr(dm, hook_name)
 
     def _override_both_model_and_datamodule():
-        model, dm, trainer, batch = _reset_instances()
+        model, dm, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, overridden_model_func)
-        setattr(dm, hook_name, overridden_dm_func)
+        setattr(model, hook_name, overridden_func)
+        setattr(dm, hook_name, overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         warning_cache.clear()
-
-        assert batch.instance_type == "datamodule"
+        assert hook == getattr(dm, hook_name)
 
     def _with_datamodule_override_model():
-        model, dm, trainer, batch = _reset_instances()
+        model, dm, trainer = _reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, overridden_model_func)
+        setattr(model, hook_name, overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
-            trainer.strategy.batch_to_device(batch, torch.device("cpu"))
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         warning_cache.clear()
-
-        assert batch.instance_type == "model"
+        assert hook == getattr(model, hook_name)
 
     _no_datamodule_no_overridden()
     _with_datamodule_no_overridden()
@@ -178,9 +145,9 @@ def test_shared_datahook_call(module_mock, hook_name):
 
 
 def test_invalid_hook_passed_in_datahook_source():
-    dh_source = _DataHookSource(BoringModel(), None)
+    dh_selector = _DataHookSelector(BoringModel(), None)
     with pytest.raises(ValueError, match="is not a shared hook"):
-        dh_source.get_hook("setup")
+        dh_selector.get_hook("setup")
 
 
 def test_eval_distributed_sampler_warning(tmpdir):

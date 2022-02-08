@@ -13,7 +13,7 @@
 # limitations under the License.
 import multiprocessing
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Collection, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
@@ -79,7 +79,7 @@ class DataConnector:
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
 
-        self._datahook_source = _DataHookSource(None, None)
+        self._datahook_selector = _DataHookSelector(None, None)
 
     @property
     def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
@@ -254,7 +254,7 @@ class DataConnector:
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
-        self._datahook_source = _DataHookSource(model, datamodule)
+        self._datahook_selector = _DataHookSelector(model, datamodule)
 
         if datamodule is None:
             return
@@ -631,7 +631,7 @@ class _DataLoaderSource:
 
 
 @dataclass
-class _DataHookSource:
+class _DataHookSelector:
     """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
 
     The hook source can be
@@ -646,6 +646,9 @@ class _DataHookSource:
 
     model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
+    _valid_hooks: List[str] = field(
+        default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    )
 
     def get_hook(self, hook_name):
         if hook_name not in self._valid_hooks:
@@ -670,6 +673,3 @@ class _DataHookSource:
             " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
         )
         return getattr(self.model, hook_name)
-
-    def __post_init__(self):
-        self._valid_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
