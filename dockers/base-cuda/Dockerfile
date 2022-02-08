@@ -88,7 +88,7 @@ RUN \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
+    pip install --user -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* requirements/
 
 RUN \
