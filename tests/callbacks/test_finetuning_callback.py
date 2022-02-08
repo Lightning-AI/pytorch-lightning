@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -263,58 +262,36 @@ def test_base_finetuning_internal_optimizer_metadata(tmpdir):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
-def test_on_before_accelerator_backend_setup(tmpdir):
-    """`on_before_accelerator_backend_setup` hook is used by finetuning callbacks to freeze the model before before
-    configure_optimizers function call."""
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3)
+        self.act = nn.ReLU()
+        self.bn = nn.BatchNorm2d(out_channels)
 
-    class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer, pl_module):
-            pl_module.on_before_accelerator_backend_setup_called = True
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.act(x)
+        return self.bn(x)
 
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.on_before_accelerator_backend_setup_called = False
 
-        def configure_optimizers(self):
-            assert self.on_before_accelerator_backend_setup_called
-            return super().configure_optimizers()
+class ConvBlockParam(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
+        # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
+        self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
+        self.bn = nn.BatchNorm2d(out_channels)
 
-    model = TestModel()
-    callback = TestCallback()
-
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[callback], fast_dev_run=True)
-    trainer.fit(model)
+    def forward(self, x):
+        x = self.module_dict["conv"](x)
+        x = self.module_dict["act"](x)
+        return self.bn(x)
 
 
 def test_complex_nested_model():
     """Test flattening, freezing, and thawing of models which contain parent (non-leaf) modules with parameters
     directly themselves rather than exclusively their submodules containing parameters."""
-
-    class ConvBlock(nn.Module):
-        def __init__(self, in_channels, out_channels):
-            super().__init__()
-            self.conv = nn.Conv2d(in_channels, out_channels, 3)
-            self.act = nn.ReLU()
-            self.bn = nn.BatchNorm2d(out_channels)
-
-        def forward(self, x):
-            x = self.conv(x)
-            x = self.act(x)
-            return self.bn(x)
-
-    class ConvBlockParam(nn.Module):
-        def __init__(self, in_channels, out_channels):
-            super().__init__()
-            self.module_dict = nn.ModuleDict({"conv": nn.Conv2d(in_channels, out_channels, 3), "act": nn.ReLU()})
-            # add trivial test parameter to convblock to validate parent (non-leaf) module parameter handling
-            self.parent_param = nn.Parameter(torch.zeros((1), dtype=torch.float))
-            self.bn = nn.BatchNorm2d(out_channels)
-
-        def forward(self, x):
-            x = self.module_dict["conv"](x)
-            x = self.module_dict["act"](x)
-            return self.bn(x)
 
     model = nn.Sequential(
         OrderedDict(
