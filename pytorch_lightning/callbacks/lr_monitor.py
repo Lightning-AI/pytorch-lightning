@@ -158,7 +158,7 @@ class LearningRateMonitor(Callback):
 
             if latest_stat:
                 for logger in trainer.loggers:
-                    logger.log_metrics(latest_stat, step=trainer.global_step)
+                    logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != "step":
@@ -167,7 +167,7 @@ class LearningRateMonitor(Callback):
 
             if latest_stat:
                 for logger in trainer.loggers:
-                    logger.log_metrics(latest_stat, step=trainer.global_step)
+                    logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def _extract_stats(self, trainer: "pl.Trainer", interval: str) -> Dict[str, float]:
         latest_stat = {}

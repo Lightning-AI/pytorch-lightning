@@ -78,14 +78,10 @@ class LoggerConnector:
                 break
 
     @property
-    def should_flush_logs(self) -> bool:
-        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
-        return should_flush or self.trainer.should_stop
-
-    @property
     def should_update_logs(self) -> bool:
-        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        return should_log_every_n_steps or self.trainer.should_stop
+        # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
+        should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
+        return should_log or self.trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
@@ -123,7 +119,7 @@ class LoggerConnector:
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.global_step
+            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
         for logger in self.trainer.loggers:

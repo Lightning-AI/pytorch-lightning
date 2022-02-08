@@ -231,16 +231,20 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
+        fit_loop = self.trainer.fit_loop
+        # set the `global_step` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        optimizer_loop = fit_loop.epoch_loop.batch_loop.optimizer_loop
+        optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint["global_step"]
         # set the `current_epoch` value for old checkpoints without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
-        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
+        fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
             if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-                self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+                fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
             elif self.trainer.state.fn == TrainerFn.TESTING:
@@ -329,9 +333,9 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         checkpoint = {
-            # the epoch is saved for compatibility but it's not relevant for restoration
+            # the epoch and global step are saved for compatibility but they are not relevant for restoration
             "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step + model.automatic_optimization,
+            "global_step": self.trainer.global_step,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),

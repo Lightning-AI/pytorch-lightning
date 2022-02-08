@@ -156,7 +156,7 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "test" / "1" / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=2.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 

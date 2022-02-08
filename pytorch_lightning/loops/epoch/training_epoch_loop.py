@@ -60,7 +60,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.min_steps = min_steps
         self.max_steps = max_steps
 
-        self.global_step: int = 0
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
@@ -73,6 +72,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self._batches_that_stepped: int = 0
 
     @property
     def total_batch_idx(self) -> int:
@@ -87,6 +87,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # use `ready` instead of `completed` in case this is accessed after `completed` has been increased
         # but before the next `ready` increase
         return self.batch_progress.current.ready - 1
+
+    @property
+    def global_step(self) -> int:
+        lightning_module = self.trainer.lightning_module
+        if lightning_module is None or lightning_module.automatic_optimization:
+            return self.batch_loop.optimizer_loop.optim_progress.optimizer_steps
+        return self.batch_loop.manual_loop.optim_step_progress.total.completed
 
     @property
     def _is_training_done(self) -> bool:
@@ -246,17 +253,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self._run_validation()
             self.trainer.training = True
 
-        # -----------------------------------------
-        # SAVE LOGGERS (ie: Tensorboard, etc...)
-        # -----------------------------------------
-        self._save_loggers_on_train_batch_end()
-
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         if not self._should_accumulate():
-            # progress global step according to grads progress
-            self.global_step += 1
+            # this is increased once per batch disregarding multiple optimizers or tbptt on purpose for loggers
+            self._batches_that_stepped += 1
+        # this will save based on the `batches_that_stepped` value
+        self._save_loggers_on_train_batch_end()
 
         # if training finished, defer exit to the parent. this assumes there will be enough time in between
         # which might not be the case depending on what's in the `*_epoch_end` hooks
@@ -502,10 +506,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk."""
-        # when loggers should save to disk
-        should_flush_logs = self.trainer.logger_connector.should_flush_logs
         # TODO: is_global_zero check should be moved to logger.save() implementation
-        if should_flush_logs and self.trainer.is_global_zero:
+        if not self.trainer.is_global_zero or self.trainer.logger is None:
+            return
+        # this assumes that `batches_that_stepped` was increased before
+        should_flush = self._batches_that_stepped % self.trainer.flush_logs_every_n_steps == 0
+        if should_flush or self.trainer.should_stop:
             for logger in self.trainer.loggers:
                 logger.save()
 

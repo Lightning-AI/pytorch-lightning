@@ -199,7 +199,9 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert bwd_mock.call_count == 10
+    # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
+    # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
+    assert bwd_mock.call_count == 6
 
     assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
     assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
