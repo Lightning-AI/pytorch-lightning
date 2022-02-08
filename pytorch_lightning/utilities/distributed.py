@@ -150,9 +150,6 @@ class AllGatherGrad(torch.autograd.Function):
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
 
-        if _HPU_AVAILABLE:
-            # HPU distributed backend doesn't support int64 tensors
-            tensor = tensor.int()
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
 

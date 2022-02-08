@@ -11,23 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-import os
+
 from typing import Any
-
 import torch
-
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.single_hpu import HPUPlugin
-from pytorch_lightning.plugins.precision.hpu_precision import HPUPrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Any, Dict, Union
-
-_log = logging.getLogger(__name__)
-
 
 
 class HPUAccelerator(Accelerator):

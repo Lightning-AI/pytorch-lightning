@@ -1,13 +1,3 @@
-# Copyright (C) 2021 Habana Labs, Ltd. an Intel Company
-# All Rights Reserved.
-#
-# Unauthorized copying of this file or any element(s) within it, via any medium
-# is strictly prohibited.
-# This file contains Habana Labs, Ltd. proprietary and confidential information
-# and is subject to the confidentiality and license agreements under which it
-# was provided.
-#
-
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch
 import os
 from typing import Any, Dict, Optional
@@ -29,29 +20,23 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities import _HPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _PATH
 
 class HPUStrategy(SingleDeviceStrategy):
+    """Strategy for training on HPU devices."""
 
     def __init__(
         self,
         device: int,
         checkpoint_io: Optional[HPUCheckpointIO] = None,
-        debug: bool = False,
     ):
 
         device = torch.device("hpu")
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(device, checkpoint_io=checkpoint_io)
 
-        self.debug = debug
-
-    @property
-    def is_distributed(self) -> bool:
-        return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
@@ -61,7 +46,7 @@ class HPUStrategy(SingleDeviceStrategy):
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
+            raise MisconfigurationException("HPUs currently only support one optimizer.")
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
@@ -74,5 +59,3 @@ class HPUStrategy(SingleDeviceStrategy):
         if isinstance(self.device, int):
             self.device = torch.device(self.device)
 
-    def on_save(self, checkpoint: dict) -> dict:
-        return move_data_to_device(checkpoint, torch.device("cpu"))

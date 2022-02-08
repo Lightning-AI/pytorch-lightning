@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import torch
 from typing import Any, Callable, Dict, Optional
@@ -27,6 +28,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 
 
 class HPUCheckpointIO(TorchCheckpointIO):
+    """CheckpointIO to save checkpoints for HPU training strategies."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         fs = get_filesystem(path)

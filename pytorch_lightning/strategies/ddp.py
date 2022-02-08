@@ -516,13 +516,6 @@ class DDPStrategy(ParallelStrategy):
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        if self.root_device.type == "hpu" and self.cluster_environment.global_rank() == 0:
-            from pytorch_lightning.utilities.apply_func import move_data_to_device
-            return move_data_to_device(checkpoint, torch.device("cpu"))
-        else:
-            return checkpoint
-
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
         super().teardown()

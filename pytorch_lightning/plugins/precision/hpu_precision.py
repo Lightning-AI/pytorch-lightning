@@ -21,7 +21,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from typing import Any, Optional, Sequence
 from typing import Any, List, Tuple
 
 import torch.nn as nn
@@ -34,7 +34,7 @@ from habana_frameworks.torch.hpex import hmp
 class HPUPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloats/floats on HPUs"""
 
-    def __init__(self, precision: int, hmp_params :[]) -> None:
+    def __init__(self, precision: int, hmp_params :Optional[Sequence[Any]] = None) -> None:
         super().__init__()
         self.precision = precision
         if hmp_params is not None:
@@ -44,8 +44,3 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             hmp_verbose = hmp_params["verbose"]
             hmp.convert(opt_level=hmp_opt_level, bf16_file_path=hmp_bf16,
                 fp32_file_path=hmp_fp32, isVerbose=hmp_verbose)
-
-    def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
-        return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)

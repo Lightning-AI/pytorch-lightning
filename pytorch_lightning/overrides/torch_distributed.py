@@ -11,7 +11,6 @@ from torch._C._distributed_c10d import (
     ProcessGroup,
 )
 
-_HCCL_AVAILABLE = True
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
