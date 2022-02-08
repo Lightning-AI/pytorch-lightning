@@ -116,7 +116,7 @@ RUN \
 
 RUN \
     # install Bagua
-    pip install bagua-cuda${CUDA_VERSION//.}==0.9.0
+    pip install bagua-cuda${BAGUA_CUDA_VERSION}==0.9.0
 
 RUN \
     # Show what we have
