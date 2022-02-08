@@ -98,6 +98,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.path("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -123,6 +124,7 @@ def test_accelerator_choice_ddp_slurm(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.path("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp2_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -148,6 +150,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.path("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -172,6 +175,7 @@ def test_accelerator_choice_ddp_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.path("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp2_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -210,6 +214,7 @@ def test_accelerator_choice_ddp_cpu_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.path("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_kubeflow(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
