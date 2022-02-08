@@ -26,7 +26,7 @@ import os
 from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities import _HPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -39,12 +39,12 @@ class HPUStrategy(SingleDeviceStrategy):
     def __init__(
         self,
         device: int,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[HPUCheckpointIO] = None,
         debug: bool = False,
     ):
 
         device = torch.device("hpu")
-        checkpoint_io = checkpoint_io
+        checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(device, checkpoint_io=checkpoint_io)
 
         self.debug = debug
