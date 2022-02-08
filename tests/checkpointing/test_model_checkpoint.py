@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import math
 import os
 import pickle
@@ -774,30 +773,6 @@ def test_default_checkpoint_behavior(tmpdir):
     ckpts = os.listdir(save_dir)
     assert len(ckpts) == 1
     assert ckpts[0] == "epoch=2-step=15.ckpt"
-
-
-@pytest.mark.parametrize("max_epochs", [1, 2])
-@pytest.mark.parametrize("should_validate", [True, False])
-@pytest.mark.parametrize("save_last", [True, False])
-@pytest.mark.parametrize("verbose", [True, False])
-def test_model_checkpoint_save_last_warning(
-    tmpdir, caplog, max_epochs: int, should_validate: bool, save_last: bool, verbose: bool
-):
-    """Tests 'Saving latest checkpoint...' log."""
-    # set a high `every_n_epochs` to avoid saving in `on_train_epoch_end`. the message is only printed `on_train_end`
-    # but it would get skipped because it got already saved in `on_train_epoch_end` for the same global step
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose, every_n_epochs=123)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[ckpt],
-        max_epochs=max_epochs,
-        limit_train_batches=1,
-        limit_val_batches=int(should_validate),
-    )
-    model = BoringModel()
-    with caplog.at_level(logging.INFO):
-        trainer.fit(model)
-    assert caplog.messages.count("Saving latest checkpoint...") == (verbose and save_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
