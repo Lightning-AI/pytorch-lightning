@@ -512,6 +512,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": stop_optimizer,
@@ -681,6 +685,10 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": n_optimizers,
