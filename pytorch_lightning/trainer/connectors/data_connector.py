@@ -421,9 +421,14 @@ class DataConnector:
         kwargs["shuffle"] = shuffle and not overfit_batches
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         if getattr(self.trainer.strategy, "uneven_inputs_support", False) and mode == RunningStage.TRAINING:
-            cls = UnrepeatedDistributedSampler
-        else:
-            cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
+            if len(dataloader.dataset) % kwargs["num_replicas"] != 0:
+                return UnrepeatedDistributedSampler(dataloader.dataset, **kwargs)
+            rank_zero_warn(
+                f"You have passed `uneven_inputs_support=True` for the {self.trainer.strategy.name} strategy. "
+                "But as the dataset length is evenly divisible by number of replicas, then there "
+                "is no need to support uneven inputs, since the dataset will be split equally."
+            )
+        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
