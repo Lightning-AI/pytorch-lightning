@@ -65,6 +65,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        uneven_inputs_support: bool = False,
         **kwargs: Any,
     ):
         super().__init__(
@@ -80,6 +81,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._uneven_inputs_support = uneven_inputs_support
         self._local_rank = 0
         self.set_world_ranks()
 
@@ -366,6 +368,12 @@ class DDPSpawnStrategy(ParallelStrategy):
             cls,
             description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            "ddp_spawn_uneven_inputs_support",
+            cls,
+            description="DDP Spawn Strategy with `uneven_inputs_support` as True",
+            uneven_inputs_support=True,
         )
 
     def teardown(self) -> None:

@@ -430,6 +430,12 @@ class DDPStrategy(ParallelStrategy):
             description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
+        strategy_registry.register(
+            "ddp_uneven_inputs_support",
+            cls,
+            description="DDP Strategy with `uneven_inputs_support` as True",
+            uneven_inputs_support=True,
+        )
 
     def _should_run_deadlock_detection(self) -> bool:
         """Determines whether the plugin will perform process reconciliation in case of errors.
