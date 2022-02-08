@@ -24,6 +24,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
 pl_wandb._WANDB_GREATER_EQUAL_0_12_10 = True
@@ -59,6 +60,9 @@ def test_wandb_logger_init(wandb):
     wandb.run = wandb.init()
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
         logger = WandbLogger()
+    # check that no new run is created
+    with no_warning_call(UserWarning, match="There is a wandb run already in progress"):
+        _ = logger.experiment
 
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
