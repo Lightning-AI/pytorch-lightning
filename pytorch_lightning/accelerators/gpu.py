@@ -33,18 +33,24 @@ _log = logging.getLogger(__name__)
 class GPUAccelerator(Accelerator):
     """Accelerator for GPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def __init__(self) -> None:
         """
         Raises:
             MisconfigurationException:
                 If torch.cuda isn't available.
-                If no CUDA devices are found.
-                If the selected device is not GPU.
+                If no CUDA deices are found.
         """
         if not torch.cuda.is_available():
             raise MisconfigurationException("GPU Accelerator used, but CUDA isn't available.")
         if torch.cuda.device_count() == 0:
             raise MisconfigurationException("GPU Accelerator used, but found no CUDA devices available.")
+
+    def setup_environment(self, root_device: torch.device) -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If the selected device is not GPU.
+        """
         if root_device.type != "cuda":
             raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
         torch.cuda.set_device(root_device)
