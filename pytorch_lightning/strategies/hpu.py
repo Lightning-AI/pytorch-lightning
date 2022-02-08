@@ -54,12 +54,14 @@ class HPUStrategy(SingleDeviceStrategy):
         return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        shared_params = find_shared_parameters(self.model)
         self.model_to_device()
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            self.model.on_post_move_to_device()
-        else:
-            set_shared_parameters(self.model, shared_params)
+        super().setup(trainer)
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        super().setup_optimizers(trainer)
+
+        if len(self.optimizers) > 1:
+            raise MisconfigurationException("IPUs currently only support one optimizer.")
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)

@@ -59,13 +59,13 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    HPUStrategy,
     IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
     TPUSpawnStrategy,
-    HPUStrategy,
 )
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, AMPType, device_parser
 from pytorch_lightning.utilities.enums import PrecisionType

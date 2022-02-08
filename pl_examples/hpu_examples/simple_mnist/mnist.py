@@ -40,11 +40,11 @@ hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
 hmp_params = dict.fromkeys(hmp_keys)
 hmp_params["level"] = "O1"
 hmp_params["verbose"] = False
-hmp_params["bf16_ops"] = "./pytorch-lightning-fork/pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
-hmp_params["fp32_ops"] = "./pytorch-lightning-fork/pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
+hmp_params["bf16_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
+hmp_params["fp32_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
 # Initialize a trainer
-trainer = pl.Trainer(hpus=1, max_epochs=1, precision=16, hmp_params=hmp_params)
+trainer = pl.Trainer(devices=1, max_epochs=1, precision=32, hmp_params=hmp_params, default_root_dir='/tmp/', accelerator="hpu")
 
 # Train the model ⚡
 trainer.fit(mnist_model, train_loader)

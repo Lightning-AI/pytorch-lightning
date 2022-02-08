@@ -33,24 +33,6 @@ _log = logging.getLogger(__name__)
 class HPUAccelerator(Accelerator):
     """ Accelerator for HPU devices. """
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        """
-        Raises:
-            ValueError:
-                If the precision or training type plugin are unsupported.
-        """
-        if not isinstance(self.precision_plugin, HPUPrecisionPlugin):
-            # this configuration should have been avoided in the accelerator connector
-            raise ValueError(
-                f"The `HPUAccelerator` can only be used with a `HPUPrecisionPlugin`, found: {self.precision_plugin}."
-            )
-        if not isinstance(self.training_type_plugin, (HPUPlugin, DDPPlugin)):
-            raise ValueError(
-                "The `HPUAccelerator` can only be used with a `HPUPlugin` or `DDPPlugin,"
-                f" found {self.training_type_plugin}."
-            )
-        return super().setup(trainer)
-
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """HPU device stats aren't supported yet."""
         return {}
