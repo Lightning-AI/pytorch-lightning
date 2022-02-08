@@ -27,6 +27,7 @@ import __main__
 import numpy as np
 import torch
 import torch.distributed
+from torch.distributed.algorithms.join import Join
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -407,6 +408,10 @@ class DDPStrategy(ParallelStrategy):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
+            # TODO: Currently a placeholder, implement Joinable and custom join hooks
+            if self.uneven_inputs_support:
+                with Join([self.model]):
+                    return self.model(*args, **kwargs)
             return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
