@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ARG CUDA_VERSION=10.2
+ARG BAGUA_CUDA_VERSION=102
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
