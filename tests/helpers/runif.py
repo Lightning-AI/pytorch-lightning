@@ -36,10 +36,9 @@ try:
     from horovod.common.util import nccl_built
 
     nccl_built()
+    _HOROVOD_NCCL_AVAILABLE = True
 except (ImportError, ModuleNotFoundError, AttributeError):
     _HOROVOD_NCCL_AVAILABLE = False
-finally:
-    _HOROVOD_NCCL_AVAILABLE = True
 
 
 class RunIf:
