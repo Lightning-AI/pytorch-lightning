@@ -10,6 +10,7 @@ import pytorch_lightning as pl
 import sys
 
 import habana_frameworks.torch.core as htcore
+from pytorch_lightning.callbacks import HPUStatsMonitor
 
 class MNISTModel(pl.LightningModule):
 
@@ -43,8 +44,10 @@ hmp_params["verbose"] = False
 hmp_params["bf16_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
 hmp_params["fp32_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
+hpu_stats = HPUStatsMonitor(log_save_dir="habana_ptl_log", exp_name="mnist")
+
 # Initialize a trainer
-trainer = pl.Trainer(devices=1, max_epochs=1, precision=32, hmp_params=hmp_params, default_root_dir='/tmp/', accelerator="hpu")
+trainer = pl.Trainer(devices=1, callbacks=[hpu_stats], max_epochs=1, precision=32, hmp_params=hmp_params, default_root_dir='/tmp/', accelerator="hpu")
 
 # Train the model ⚡
 trainer.fit(mnist_model, train_loader)
