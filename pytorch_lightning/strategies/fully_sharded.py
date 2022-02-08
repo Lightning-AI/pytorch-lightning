@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = "ddp_fully_sharded"
+    strategy_name = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -214,7 +214,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         )
 
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )

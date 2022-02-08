@@ -228,13 +228,13 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
-def test_strategy_choice_tpu_str_ddp_spawn(tmpdir, strategy):
+def test_strategy_choice_tpu_str_ddp_spawn(tmpdir):
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
 
 @RunIf(tpu=True)
-def test_strategy_choice_tpu_str_tpu_spawn_debug(tmpdir, strategy):
+def test_strategy_choice_tpu_str_tpu_spawn_debug(tmpdir):
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 

@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 class DDP2Strategy(DDPStrategy):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
-    distributed_backend = "ddp2"
+    strategy_name = "ddp2"
 
     @property
     def global_rank(self) -> int:
@@ -78,7 +78,7 @@ class DDP2Strategy(DDPStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )

@@ -441,12 +441,7 @@ class Strategy(ABC):
 
     @classmethod
     def register_strategies(cls, strategy_registry) -> None:
-        if cls.distributed_backend:
-            strategy_registry.register(
-                cls.distributed_backend,
-                cls,
-                description=f"{cls.__class__.__name__} Strategy",
-            )
+        pass
 
     def on_train_start(self) -> None:
         """Called when train begins."""

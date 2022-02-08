@@ -82,7 +82,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedStrategy(DDPStrategy):
-    distributed_backend = "deepspeed"
+    strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(

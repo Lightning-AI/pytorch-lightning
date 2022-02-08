@@ -62,7 +62,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 
-    distributed_backend = "ipu_strategy"
+    strategy_name = "ipu_strategy"
 
     def __init__(
         self,
@@ -366,7 +366,7 @@ class IPUStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )
