@@ -15,7 +15,6 @@
 Weights and Biases Logger
 -------------------------
 """
-import operator
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -26,18 +25,19 @@ import torch.nn as nn
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.imports import (
+    _WANDB_AVAILABLE,
+    _WANDB_GREATER_EQUAL_0_10_22,
+    _WANDB_GREATER_EQUAL_0_12_10,
+)
 from pytorch_lightning.utilities.warnings import rank_zero_warn
 
-_WANDB_AVAILABLE = _module_available("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _compare_version("wandb", operator.ge, "0.12.10")
-
 try:
-    import wandb
     from wandb.wandb_run import Run
+
+    import wandb
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
@@ -266,7 +266,7 @@ class WandbLogger(LightningLoggerBase):
         prefix: Optional[str] = "",
         **kwargs,
     ):
-        if wandb is None:
+        if not _WANDB_AVAILABLE or wandb is None:
             raise ModuleNotFoundError(
                 "You want to use `wandb` logger which is not installed yet,"
                 " install it with `pip install wandb`."  # pragma: no-cover

@@ -91,6 +91,9 @@ _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supporte
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
 _TORCHVISION_AVAILABLE = _module_available("torchvision")
+_WANDB_AVAILABLE = _module_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 _XLA_AVAILABLE: bool = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
