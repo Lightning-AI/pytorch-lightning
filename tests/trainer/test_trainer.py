@@ -1097,7 +1097,7 @@ def test_gpu_choice(tmpdir):
     num_gpus = torch.cuda.device_count()
     Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(RuntimeError, match=r".*But your machine only has.*"):
+    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
         Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
