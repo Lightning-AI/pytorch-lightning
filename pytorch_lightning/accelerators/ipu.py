@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def __init__(self) -> None:
         """
         Raises:
             MisconfigurationException:
