@@ -26,7 +26,6 @@ from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import (
     _teardown_dataloader_get_iterators,
@@ -50,9 +49,10 @@ from pytorch_lightning.utilities.fetching import (
 )
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, rank_zero_warn
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class DataConnector:
