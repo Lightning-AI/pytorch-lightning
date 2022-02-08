@@ -22,7 +22,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE, _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -146,6 +146,9 @@ class AllGatherGrad(torch.autograd.Function):
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
 
+        if _HPU_AVAILABLE:
+            # HPU distributed backend doesn't support int64 tensors
+            tensor = tensor.int()
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
 
@@ -332,6 +335,13 @@ def init_dist_connection(
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
+
+    #TBD: move this to a hpu based ddp plugin
+    #local rank mapping for device open is needed for hpu devices
+    if torch_distributed_backend == 'hccl' and _HPU_AVAILABLE:
+        import habana_frameworks.torch.core.hccl
+        os.environ["ID"] = str(cluster_environment.local_rank())
+
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 

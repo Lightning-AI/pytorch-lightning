@@ -36,6 +36,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,

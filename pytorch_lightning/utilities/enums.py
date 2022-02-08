@@ -281,6 +281,7 @@ class _AcceleratorType(LightningEnum):
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+    HPU = 'HPU'
 
 
 class _FaultTolerantMode(LightningEnum):

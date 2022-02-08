@@ -24,6 +24,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
+from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
@@ -36,6 +37,7 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
+    HPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
@@ -63,6 +65,7 @@ from pytorch_lightning.strategies import (
     Strategy,
     StrategyRegistry,
     TPUSpawnStrategy,
+    HPUStrategy,
 )
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, AMPType, device_parser
 from pytorch_lightning.utilities.enums import PrecisionType
@@ -72,6 +75,7 @@ from pytorch_lightning.utilities.imports import (
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
+    _HPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
@@ -92,6 +96,7 @@ class AcceleratorConnector:
         strategy: Optional[Union[str, Strategy]],
         gpus,
         gpu_ids,
+        hpus,
         num_nodes,
         sync_batchnorm,
         benchmark,
@@ -100,6 +105,7 @@ class AcceleratorConnector:
         precision,
         amp_type,
         amp_level,
+        hmp_params,
         plugins,
     ):
         # initialization
@@ -120,6 +126,7 @@ class AcceleratorConnector:
         self.parallel_device_ids = gpu_ids
         self.tpu_cores = tpu_cores
         self.ipus = ipus
+        self.hpus = hpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -131,6 +138,7 @@ class AcceleratorConnector:
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
+        self.hmp_params = hmp_params
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._strategy: Optional[Strategy] = None
@@ -166,6 +174,7 @@ class AcceleratorConnector:
         self._cluster_environment = self.select_cluster_environment()
 
         self.update_device_type_if_ipu_plugin()
+        self.update_device_type_if_hpu_plugin()
         self.update_device_type_if_strategy_passed()
 
         self._validate_accelerator_type()
@@ -202,6 +211,8 @@ class AcceleratorConnector:
                 self._accelerator_type = _AcceleratorType.IPU
             elif self.has_gpu:
                 self._accelerator_type = _AcceleratorType.GPU
+            elif self.has_hpu:
+                self._accelerator_type = _AcceleratorType.HPU
             else:
                 self._set_devices_to_cpu_num_processes()
                 self._accelerator_type = _AcceleratorType.CPU
@@ -220,6 +231,11 @@ class AcceleratorConnector:
                 msg = "you didn't pass `gpus` to `Trainer`" if torch.cuda.is_available() else "GPUs are not available"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}.")
             self._accelerator_type = _AcceleratorType.GPU
+        elif self.distributed_backend == _AcceleratorType.HPU:
+            if not self.has_hpu:
+                msg = "HPUs are not available" if not _HPU_AVAILABLE else "you didn't pass `hpus` to `Trainer`"
+                raise MisconfigurationException(f"You passed `accelerator='hpu'`, but {msg}.")
+            self._accelerator_type = _AcceleratorType.HPU
         elif self.distributed_backend == _AcceleratorType.CPU:
             self._set_devices_to_cpu_num_processes()
             self._accelerator_type = _AcceleratorType.CPU
@@ -231,7 +247,7 @@ class AcceleratorConnector:
         if self.distributed_backend not in self.accelerator_types and self.devices is not None:
             raise MisconfigurationException(
                 f"You passed `devices={self.devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping,"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu')` for the devices mapping,"
                 f" got `accelerator={self.distributed_backend!r}`."
             )
 
@@ -257,6 +273,9 @@ class AcceleratorConnector:
         elif self.distributed_backend in ("auto", _AcceleratorType.GPU):
             if self.gpus is not None:
                 rank_zero_warn(f"{devices_warning} `gpus={self.gpus}`")
+        elif self.distributed_backend in ("auto", _AcceleratorType.HPU):
+            if self.hpus is not None:
+                rank_zero_warn(f"{devices_warning} `hpus={self.hpus}`")
         elif self.distributed_backend in ("auto", _AcceleratorType.CPU):
             if self.num_processes != 1:
                 rank_zero_warn(f"{devices_warning} `num_processes={self.num_processes}`")
@@ -270,6 +289,8 @@ class AcceleratorConnector:
             self.devices = self.ipus
         elif self._accelerator_type == _AcceleratorType.GPU:
             self.devices = self.gpus
+        elif self._accelerator_type == _AcceleratorType.HPU:
+            self.devices = self.hpus
         elif self._accelerator_type == _AcceleratorType.CPU:
             self.devices = self.num_processes
 
@@ -457,6 +478,18 @@ class AcceleratorConnector:
         return None
 
     @property
+    def has_hpu(self) -> bool:
+        # Here, we are not checking for HPU availability, but instead if User has passed
+        # `hpus` to Trainer for training.
+        if self.hpus is not None or isinstance(self._strategy, HPUStrategy):
+            return True
+        return self._map_devices_to_accelerator(_AcceleratorType.HPU)
+
+    @property
+    def use_hpu(self) -> bool:
+        return self._accelerator_type == _AcceleratorType.HPU and self.has_hpu
+
+    @property
     def has_ipu(self) -> bool:
         # Here, we are not checking for IPU availability, but instead if User has passed
         # `ipus` to Trainer for training.
@@ -490,6 +523,11 @@ class AcceleratorConnector:
                 self.devices = GPUAccelerator.auto_device_count()
             self.gpus = self.devices
             self.parallel_device_ids = device_parser.parse_gpu_ids(self.devices)
+            return True
+        if accelerator == _AcceleratorType.HPU and _HPU_AVAILABLE:
+            if self.devices == "auto":
+                self.devices = HPUAccelerator.auto_device_count()
+            self.hpus = self.devices
             return True
         if accelerator == _AcceleratorType.CPU:
             if self.devices == "auto":
@@ -571,6 +609,14 @@ class AcceleratorConnector:
         return 0
 
     @property
+    def num_hpus(self) -> int:
+        if isinstance(self.hpus, int):
+            return self.hpus
+        if isinstance(self._strategy, HPUStrategy):
+            return self._strategy.replication_factor
+        return 0
+
+    @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.use_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
@@ -581,6 +627,8 @@ class AcceleratorConnector:
                 devices = list(range(self.tpu_cores))
         elif self.use_ipu:
             devices = list(range(self.num_ipus))
+        elif self.use_hpu:
+            devices = [torch.device("hpu")] * self.num_processes
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -589,7 +637,7 @@ class AcceleratorConnector:
     def root_gpu(self) -> Optional[int]:
         return (
             self.strategy.root_device.index
-            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
+            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator, HPUAccelerator))
             else None
         )
 
@@ -638,6 +686,13 @@ class AcceleratorConnector:
                         f" is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
+
+        if self.use_hpu:
+            if self.precision not in (16, 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='hpu', precision={self.precision!r})` is not supported."
+                )
+            return HPUPrecisionPlugin(self.precision, self.hmp_params)
 
         if self._strategy_type == _StrategyType.DEEPSPEED or isinstance(self._strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)
@@ -752,6 +807,8 @@ class AcceleratorConnector:
             plugin = SingleTPUStrategy(self.tpu_id)
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
+        elif self.use_hpu:
+            plugin = HPUStrategy(device=torch.device("hpu"))
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDeviceStrategy(device=single_gpu_ordinal if self.use_gpu else "cpu")
@@ -794,6 +851,8 @@ class AcceleratorConnector:
             acc_cls = TPUAccelerator
         elif self.use_ipu:
             acc_cls = IPUAccelerator
+        elif self.use_hpu:
+            acc_cls = HPUAccelerator
         else:
             acc_cls = CPUAccelerator
 
@@ -832,6 +891,8 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
+            elif self.num_hpus  > 1 and not _use_cpu:
+                self._distrib_type = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._strategy_type = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_processes > 1:
@@ -869,6 +930,8 @@ class AcceleratorConnector:
                 self._strategy_type = _StrategyType.TPU_SPAWN
         elif self.has_ipu and not _use_cpu:
             self._device_type = _AcceleratorType.IPU
+        elif self.has_hpu and not _use_cpu:
+            self._device_type = _AcceleratorType.HPU
         elif self.distributed_backend and self._strategy_type is None:
             self._strategy_type = _StrategyType(self.distributed_backend)
 
@@ -877,7 +940,7 @@ class AcceleratorConnector:
 
         _gpu_strategy_types = (_StrategyType.DP, _StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if self.num_gpus == 0 and self._strategy_type in _gpu_strategy_types and not _use_cpu:
+        if self.num_gpus == 0 and self._strategy_type in _gpu_strategy_types and not _use_cpu and not (self.num_hpus > 1):
 
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 if self._strategy_type in (_StrategyType.DP, _StrategyType.DDP2):
@@ -901,6 +964,9 @@ class AcceleratorConnector:
 
         if self._device_type == _AcceleratorType.GPU and self._strategy_type == _StrategyType.DDP2:
             self.num_processes = self.num_nodes
+
+        if self._device_type == _AcceleratorType.HPU and self._strategy_type == _StrategyType.DDP:
+            self.num_processes = self.num_hpus
 
         # Horovod is an extra case...
         if self.distributed_backend == _StrategyType.HOROVOD:
@@ -965,6 +1031,10 @@ class AcceleratorConnector:
         if isinstance(self._strategy, IPUStrategy) and self._device_type != _AcceleratorType.IPU:
             self._device_type = _AcceleratorType.IPU
 
+    def update_device_type_if_hpu_plugin(self) -> None:
+        if isinstance(self._strategy, HPUStrategy) and self._device_type != _AcceleratorType.HPU:
+            self._device_type = _AcceleratorType.HPU
+
     def update_device_type_if_strategy_passed(self) -> None:
         if isinstance(self._strategy_flag, Strategy) or any(isinstance(plug, Strategy) for plug in self.plugins):
             if self._accelerator_type is not None:
@@ -974,6 +1044,8 @@ class AcceleratorConnector:
                     self._device_type = _AcceleratorType.TPU
                 elif self.use_gpu:
                     self._device_type = _AcceleratorType.GPU
+                elif self.use_hpu:
+                    self._device_type = _AcceleratorType.HPU
             else:
                 if self.has_ipu:
                     self._device_type = _AcceleratorType.IPU
@@ -981,6 +1053,8 @@ class AcceleratorConnector:
                     self._device_type = _AcceleratorType.TPU
                 elif self.has_gpu:
                     self._device_type = _AcceleratorType.GPU
+                elif self.has_hpu:
+                    self._device_type = _AcceleratorType.HPU
 
     def _set_strategy_type_if_strategy_passed(self):
         # This is required as when `Strategy` instance is passed to either `strategy`
