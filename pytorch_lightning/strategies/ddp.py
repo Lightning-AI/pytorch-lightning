@@ -88,6 +88,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
+        uneven_inputs_support: bool = False,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -106,6 +107,7 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
+        self._uneven_inputs_support = uneven_inputs_support
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_has_called_call_children_scripts: bool = False

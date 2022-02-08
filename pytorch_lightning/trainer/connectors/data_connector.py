@@ -409,8 +409,8 @@ class DataConnector:
 
         return dataloader.sampler
 
-    @staticmethod
     def _get_distributed_sampler(
+        self,
         dataloader: DataLoader,
         shuffle: bool,
         overfit_batches: Union[int, float],
@@ -420,7 +420,10 @@ class DataConnector:
         """This function is used to created the distributed sampler injected within the user DataLoader."""
         kwargs["shuffle"] = shuffle and not overfit_batches
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
+        if getattr(self.trainer.strategy, "uneven_inputs_support", False) and mode == RunningStage.TRAINING:
+            cls = UnrepeatedDistributedSampler
+        else:
+            cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
