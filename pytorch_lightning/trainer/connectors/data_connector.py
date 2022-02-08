@@ -428,6 +428,7 @@ class DataConnector:
                 "But as the dataset length is evenly divisible by number of replicas, then there "
                 "is no need to support uneven inputs, since the dataset will be split equally."
             )
+            self.trainer.strategy.uneven_inputs_support = False
         cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler

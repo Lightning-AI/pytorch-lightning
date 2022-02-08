@@ -116,6 +116,14 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _is_single_process_single_device(self):
         return True
 
+    @property
+    def uneven_inputs_support(self) -> bool:
+        return self._uneven_inputs_support
+
+    @uneven_inputs_support.setter
+    def uneven_inputs_support(self, uneven_inputs_support: bool) -> None:
+        self._uneven_inputs_support = uneven_inputs_support
+
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)

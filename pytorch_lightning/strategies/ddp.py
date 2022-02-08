@@ -144,6 +144,14 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
+    @property
+    def uneven_inputs_support(self) -> bool:
+        return self._uneven_inputs_support
+
+    @uneven_inputs_support.setter
+    def uneven_inputs_support(self, uneven_inputs_support: bool) -> None:
+        self._uneven_inputs_support = uneven_inputs_support
+
     def setup_environment(self) -> None:
         # start the other scripts
         if not self.cluster_environment.creates_processes_externally:
