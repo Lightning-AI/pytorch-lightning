@@ -1223,7 +1223,6 @@ for more information.
 
 
     def fit_loop():
-        on_epoch_start()
         on_train_epoch_start()
 
         for batch in train_dataloader():
@@ -1254,7 +1253,6 @@ for more information.
         training_epoch_end()
 
         on_train_epoch_end()
-        on_epoch_end()
 
 
     def val_loop():
@@ -1262,7 +1260,6 @@ for more information.
         torch.set_grad_enabled(False)
 
         on_validation_start()
-        on_epoch_start()
         on_validation_epoch_start()
 
         val_outs = []
@@ -1281,7 +1278,6 @@ for more information.
         validation_epoch_end(val_outs)
 
         on_validation_epoch_end()
-        on_epoch_end()
         on_validation_end()
 
         # set up for train
@@ -1472,18 +1468,6 @@ on_train_batch_end
 ~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_batch_end
-    :noindex:
-
-on_epoch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_epoch_start
-    :noindex:
-
-on_epoch_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_epoch_end
     :noindex:
 
 on_train_epoch_start

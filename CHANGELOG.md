@@ -95,6 +95,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `rank_zero` module to centralize utilities ([#11747](https://github.com/PyTorchLightning/pytorch-lightning/pull/11747))
 
 
+- Added a `_Stateful` support for `LightningDataModule` ([#11637](https://github.com/PyTorchLightning/pytorch-lightning/pull/11637))
+
+
 ### Changed
 
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
@@ -321,6 +324,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated function `pytorch_lightning.callbacks.device_stats_monitor.prefix_metric_keys` ([#11254](https://github.com/PyTorchLightning/pytorch-lightning/pull/11254))
+
+
+- Deprecated `Callback.on_epoch_start` hook in favour of `Callback.on_{train/val/test}_epoch_start` ([#11578](https://github.com/PyTorchLightning/pytorch-lightning/pull/11578))
+
+
+- Deprecated `Callback.on_epoch_end` hook in favour of `Callback.on_{train/val/test}_epoch_end` ([#11578](https://github.com/PyTorchLightning/pytorch-lightning/pull/11578))
+
+
+- Deprecated `LightningModule.on_epoch_start` hook in favor of `LightningModule.on_{train/val/test}_epoch_start` ([#11578](https://github.com/PyTorchLightning/pytorch-lightning/pull/11578))
+
+
+- Deprecated `LightningModule.on_epoch_end` hook in favor of `LightningModule.on_{train/val/test}_epoch_end` ([#11578](https://github.com/PyTorchLightning/pytorch-lightning/pull/11578))
 
 
 - Deprecated `on_before_accelerator_backend_setup` callback hook in favour of `setup` ([#11568](https://github.com/PyTorchLightning/pytorch-lightning/pull/11568))
@@ -564,6 +579,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `RichProgressBar` now correctly shows the `on_epoch` logged values on train epoch end ([#11689](https://github.com/PyTorchLightning/pytorch-lightning/pull/11689))
 
 
+- Fixed `restore_optimizers` for mapping states ([#11757](https://github.com/PyTorchLightning/pytorch-lightning/pull/11757))
+
+
 - Fixed check for available modules ([#11526](https://github.com/PyTorchLightning/pytorch-lightning/pull/11526))
 
 
@@ -571,6 +589,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue to make the `step` argument in `WandbLogger.log_image` work ([#11716](https://github.com/PyTorchLightning/pytorch-lightning/pull/11716))
+
+
+- With `DPStrategy`, the batch is not explictly moved to the device ([#11780](https://github.com/PyTorchLightning/pytorch-lightning/pull/11780))
+
+
+- Fixed supporting remote filesystems with `Trainer.weights_save_path` for fault-tolerant training ([#11776](https://github.com/PyTorchLightning/pytorch-lightning/pull/11776))
 
 
 ## [1.5.9] - 2022-01-20

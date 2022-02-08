@@ -347,7 +347,9 @@ def test_log_works_in_val_callback(tmpdir):
         max_epochs=1,
         callbacks=[cb],
     )
-    trainer.fit(model)
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_start` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     assert cb.call_counter == {
         "on_validation_batch_end": 4,
@@ -436,12 +438,6 @@ def test_log_works_in_test_callback(tmpdir):
 
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
-        def on_epoch_start(self, trainer, pl_module):
-            if trainer.testing:
-                self.make_logging(
-                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
 
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(

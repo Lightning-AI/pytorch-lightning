@@ -21,7 +21,6 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from tests import _PATH_LEGACY, _PROJECT_ROOT
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
@@ -55,7 +54,7 @@ class LimitNbEpochs(Callback):
         self.limit = nb
         self._count = 0
 
-    def on_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._count += 1
         if self._count >= self.limit:
             trainer.should_stop = True
@@ -73,7 +72,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
         dm = ClassifDataModule()
         model = ClassificationModel()
-        es = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
         stop = LimitNbEpochs(1)
 
         trainer = Trainer(
@@ -81,7 +79,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             accelerator="auto",
             devices=1,
             precision=(16 if torch.cuda.is_available() else 32),
-            callbacks=[es, stop],
+            callbacks=[stop],
             max_epochs=21,
             accumulate_grad_batches=2,
         )
