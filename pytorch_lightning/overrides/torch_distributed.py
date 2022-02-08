@@ -1,16 +1,13 @@
-import os
 import io
 import logging
 import os
 import pickle
 
 import torch
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from torch._C._distributed_c10d import (
-    ProcessGroup,
-)
+from torch._C._distributed_c10d import ProcessGroup
 
+from pytorch_lightning.utilities import _HPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
@@ -25,14 +22,13 @@ if torch.distributed.is_available():
 
 # https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L256
 def _rank_not_in_group(group: ProcessGroup):
-    """
-    Helper that checks if the current process's rank is not in a given group.
-    """
+    """Helper that checks if the current process's rank is not in a given group."""
     if group is None:
         return False
     return group == GroupMember.NON_GROUP_MEMBER
 
-#Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1518
+
+# Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1518
 def _object_to_tensor(obj):
     f = io.BytesIO()
     _pickler(f).dump(obj)
@@ -44,18 +40,17 @@ def _object_to_tensor(obj):
     local_size = torch.LongTensor([byte_tensor.numel()])
     return byte_tensor, local_size
 
-#Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1530
+
+# Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1530
 def _tensor_to_object(tensor, tensor_size):
     buf = tensor.numpy().tobytes()[:tensor_size]
     return _unpickler(io.BytesIO(buf)).load()
 
 
-#Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1729
+# Taken from https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L1729
 def _broadcast_object_list(object_list, src=0, group=None, device=None):
-    """
-    Broadcasts picklable objects in ``object_list`` to the whole group. Similar
-    to :func:`broadcast`, but Python objects can be passed in.
-    Note that all objects in ``object_list`` must be picklable in order to be
+    """Broadcasts picklable objects in ``object_list`` to the whole group. Similar to :func:`broadcast`, but Python
+    objects can be passed in. Note that all objects in ``object_list`` must be picklable in order to be
     broadcasted.
 
     Args:
@@ -142,7 +137,7 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
 
     elif is_hpu_backend:
         current_device = torch.device("hpu")
-        #Workaround: HPU doesn't not support long tensors for collectives
+        # Workaround: HPU doesn't not support long tensors for collectives
         object_sizes_tensor = object_sizes_tensor.int()
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
@@ -174,6 +169,7 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
                 obj_view = obj_view.cpu()
             offset += obj_size
             object_list[i] = _tensor_to_object(obj_view, obj_size)
+
 
 if not torch.distributed.is_available():
     # avoid failures on early PyTorch versions for Windows where

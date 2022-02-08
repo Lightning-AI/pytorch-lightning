@@ -22,22 +22,22 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
+    HPUPrecisionPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
-    HPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
@@ -72,10 +72,10 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
-    _HPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
@@ -889,7 +889,7 @@ class AcceleratorConnector:
         if self.distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
-            elif self.num_hpus  > 1 and not _use_cpu:
+            elif self.num_hpus > 1 and not _use_cpu:
                 self.distributed_backend = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._strategy_type = _StrategyType.DDP
@@ -939,7 +939,12 @@ class AcceleratorConnector:
 
         _gpu_strategy_types = (_StrategyType.DP, _StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if self.num_gpus == 0 and self._strategy_type in _gpu_strategy_types and not _use_cpu and not (self.num_hpus > 1):
+        if (
+            self.num_gpus == 0
+            and self._strategy_type in _gpu_strategy_types
+            and not _use_cpu
+            and not (self.num_hpus > 1)
+        ):
 
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 if self._strategy_type in (_StrategyType.DP, _StrategyType.DDP2):

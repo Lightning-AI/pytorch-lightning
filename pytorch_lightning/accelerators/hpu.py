@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
-import torch
-from pytorch_lightning.accelerators.accelerator import Accelerator
 from typing import Any, Dict, Union
+
+import torch
+
+from pytorch_lightning.accelerators.accelerator import Accelerator
 
 
 class HPUAccelerator(Accelerator):
-    """ Accelerator for HPU devices. """
+    """Accelerator for HPU devices."""
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """HPU device stats aren't supported yet."""
@@ -30,4 +31,3 @@ class HPUAccelerator(Accelerator):
         """Get the devices when set to auto."""
         # TBD: make this configurable
         return 8
-        

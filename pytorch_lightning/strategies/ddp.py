@@ -31,10 +31,10 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
@@ -286,14 +286,14 @@ class DDPStrategy(ParallelStrategy):
 
         if self.root_device.type == "hpu":
             self._static_graph = False
-            static_graph  = self._ddp_kwargs.get("static_graph")
+            static_graph = self._ddp_kwargs.get("static_graph")
             if static_graph == True:
-                #when _set_static_graph() is called find_unused_parameters does not have any significance.
-                #Resetting the value of find_unused_parameters to False which is the default value to DDP
+                # when _set_static_graph() is called find_unused_parameters does not have any significance.
+                # Resetting the value of find_unused_parameters to False which is the default value to DDP
                 self._ddp_kwargs["find_unused_parameters"] = False
                 self._static_graph = True
             if static_graph is not None:
-                #DDP does not accept static_graph as a parameter, hence removing it from the list
+                # DDP does not accept static_graph as a parameter, hence removing it from the list
                 del self._ddp_kwargs["static_graph"]
 
     def _register_ddp_hooks(self) -> None:

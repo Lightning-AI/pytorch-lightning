@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, IPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -76,10 +76,10 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _AcceleratorType,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _StrategyType,
     _TPU_AVAILABLE,
-    _HPU_AVAILABLE,
     AMPType,
     device_parser,
     GradClipAlgorithmType,
@@ -187,7 +187,7 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
-        hmp_params:["level", "verbose", "bf16_ops", "fp32_ops"] = None,
+        hmp_params: ["level", "verbose", "bf16_ops", "fp32_ops"] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
@@ -1767,14 +1767,14 @@ class Trainer(
             )
 
         if (
-            _HPU_AVAILABLE and self._device_type != _AcceleratorType.HPU
+            _HPU_AVAILABLE
+            and self._device_type != _AcceleratorType.HPU
             and not isinstance(self.accelerator, HPUAccelerator)
         ):
             rank_zero_warn(
                 "HPU available but not used. Set the `hpus` flag in your trainer"
                 " `Trainer(hpus=8)` or script `--hpus=8`."
             )
-
 
     def _on_exception(self) -> None:
         if not _fault_tolerant_training():

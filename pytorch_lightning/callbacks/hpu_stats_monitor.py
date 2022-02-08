@@ -29,14 +29,16 @@ Monitor and logs hpu stats during training.
 
 """
 from typing import Any, Dict, List, Optional, Tuple
+
 import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only
 
+
 class HPUStatsMonitor(Callback):
-    """
-    Automatically monitors and logs hpu stats during training stage.
+    """Automatically monitors and logs hpu stats during training stage.
 
     Args:
         save_dir: directory to save the logs.
@@ -51,19 +53,16 @@ class HPUStatsMonitor(Callback):
 
     you can also optionally provide save_dir and exp_name in HPUStatsMonitor.
     No need to provide logger in Trainer.
-
     """
-    def __init__(
-        self,
-        log_save_dir:str = "habana_ptl_logs",
-        exp_name:str = "default"
-    ):
+
+    def __init__(self, log_save_dir: str = "habana_ptl_logs", exp_name: str = "default"):
         super().__init__()
         self.log_save_dir = log_save_dir
         self.exp_name = exp_name
 
     def on_init_end(self, trainer: "pl.Trainer") -> None:
         from pytorch_lightning import loggers as pl_logger
+
         self.tb_logger = pl_logger.TensorBoardLogger(save_dir=self.log_save_dir, name=self.exp_name)
         trainer.logger = self.tb_logger
 
@@ -75,7 +74,7 @@ class HPUStatsMonitor(Callback):
     ) -> None:
         tensor_board = trainer.logger.experiment
         dict = vars(pl_module)
-        modules = dict['_modules']
+        modules = dict["_modules"]
         for module_name in modules:
-            tensor_board.add_histogram( module_name + ".weight",  modules[module_name].weight, pl_module.current_epoch)
-            tensor_board.add_histogram(module_name + ".bias",  modules[module_name].bias, pl_module.current_epoch)
+            tensor_board.add_histogram(module_name + ".weight", modules[module_name].weight, pl_module.current_epoch)
+            tensor_board.add_histogram(module_name + ".bias", modules[module_name].bias, pl_module.current_epoch)

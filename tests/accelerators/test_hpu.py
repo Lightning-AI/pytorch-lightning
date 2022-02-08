@@ -20,6 +20,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
+from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPlugin, HPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
@@ -30,11 +31,12 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-from pytorch_lightning.callbacks import HPUStatsMonitor
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
+
     os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
+
 
 class HPUModel(BoringModel):
     def training_step(self, batch, batch_idx):
@@ -132,6 +134,7 @@ def test_all_stages(tmpdir, hpus):
     trainer.test(model)
     trainer.predict(model)
 
+
 @RunIf(hpu=True)
 @pytest.mark.parametrize("hpus", [1])
 def test_inference_only(tmpdir, hpus):
@@ -141,6 +144,7 @@ def test_inference_only(tmpdir, hpus):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
 
 @RunIf(hpu=True)
 def test_optimization(tmpdir):
@@ -214,6 +218,7 @@ def test_pure_half_precision(tmpdir):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
 
 @RunIf(hpu=True)
 def test_stages_correct(tmpdir):
