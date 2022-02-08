@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 import torch.nn.functional as F
@@ -154,6 +156,7 @@ class ReductionTestModel(BoringModel):
         assert out.dtype is torch.float
 
 
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)

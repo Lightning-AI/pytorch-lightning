@@ -45,6 +45,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         "SLURM_LOCALID": "0",
     },
 )
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize("strategy,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
