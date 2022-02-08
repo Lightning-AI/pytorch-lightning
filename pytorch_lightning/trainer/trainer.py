@@ -1970,7 +1970,7 @@ class Trainer(
 
     @property
     def _strategy_type(self) -> _StrategyType:
-        return self.strategy.distributed_backend
+        return self.strategy.strategy_name
 
     @property
     def _device_type(self) -> _AcceleratorType:

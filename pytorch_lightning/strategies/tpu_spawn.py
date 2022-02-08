@@ -52,7 +52,7 @@ else:
 class TPUSpawnStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    distributed_backend = "tpu_spawn"
+    strategy_name = "tpu_spawn"
 
     def __init__(
         self,
@@ -350,7 +350,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         )
 
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )

@@ -36,7 +36,7 @@ if _HOROVOD_AVAILABLE:
 class HorovodStrategy(ParallelStrategy):
     """Plugin for Horovod distributed training integration."""
 
-    distributed_backend = "horovod"
+    strategy_name = "horovod"
 
     def __init__(
         self,
@@ -198,7 +198,7 @@ class HorovodStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )

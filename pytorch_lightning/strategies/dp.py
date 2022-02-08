@@ -30,7 +30,7 @@ class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
-    distributed_backend = "dp"
+    strategy_name = "dp"
 
     def __init__(
         self,
@@ -151,7 +151,7 @@ class DataParallelStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )

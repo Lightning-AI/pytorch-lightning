@@ -264,9 +264,6 @@ class AcceleratorConnector:
                 )
                 self._strategy_flag = accelerator
             elif accelerator == "ddp_cpu":
-                rank_zero_warn(
-                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
-                )
                 self._strategy_flag = accelerator
 
         if precision:
@@ -720,10 +717,10 @@ class AcceleratorConnector:
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
         interactive_compatible_strategy = ("dp", "ddp_spawn", "ddp_sharded_spawn", "tpu_spawn")
-        if _IS_INTERACTIVE and self.strategy.distributed_backend not in interactive_compatible_strategy:
+        if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.distributed_backend!r})` or"
-                f" `Trainer(accelerator={self.strategy.distributed_backend!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
+                f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
                 f" {', '.join(interactive_compatible_strategy)}."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
@@ -856,4 +853,4 @@ class AcceleratorConnector:
 
     @property
     def _strategy_type(self) -> _StrategyType:
-        return self.strategy.distributed_backend
+        return self.strategy.strategy_name

@@ -28,7 +28,7 @@ if _TPU_AVAILABLE:
 class SingleTPUStrategy(SingleDeviceStrategy):
     """Strategy for training on a single TPU device."""
 
-    distributed_backend = "single_tpu"
+    strategy_name = "single_tpu"
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            cls.distributed_backend,
+            cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__} Strategy",
         )
