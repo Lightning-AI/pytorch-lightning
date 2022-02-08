@@ -27,7 +27,7 @@ else:
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities.distributed import rank_zero_debug
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 _PAD_SIZE = 5
 
@@ -227,12 +227,12 @@ class TQDMProgressBar(ProgressBarBase):
     def init_validation_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The main progress bar doesn't exist in `trainer.validate()`
-        has_main_bar = self._main_progress_bar is not None
+        has_main_bar = self.trainer.state.fn != "validate"
         bar = Tqdm(
             desc="Validating",
             position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
-            leave=False,
+            leave=not has_main_bar,
             dynamic_ncols=True,
             file=sys.stdout,
         )

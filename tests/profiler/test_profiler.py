@@ -111,10 +111,10 @@ def test_simple_profiler_deepcopy(tmpdir):
     assert deepcopy(simple_profiler)
 
 
-def test_simple_profiler_log_dir(tmpdir):
+def test_simple_profiler_dirpath(tmpdir):
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
@@ -122,7 +122,7 @@ def test_simple_profiler_log_dir(tmpdir):
 
     expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -131,7 +131,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -142,7 +142,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
     assert expected.exists()
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -151,7 +151,6 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
-    assert profiler._log_dir is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -218,11 +217,11 @@ def test_simple_profiler_summary(tmpdir, extended):
     sep = os.linesep
     max_action_len = len("on_before_batch_transfer")
 
-    for hook in hooks:
+    for i, hook in enumerate(hooks):
         with profiler.profile(hook):
             pass
 
-        profiler.recorded_durations[hook] = [sometime]
+        profiler.recorded_durations[hook] = [sometime + i]
 
     if extended:
         header_string = (
@@ -238,12 +237,12 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"{sep_lines}"
             f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
             f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  1                    |  5.7734               |  82.478               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  1                    |  4.7734               |  68.192               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  1                    |  3.7734               |  53.906               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  1                    |  2.7734               |  39.62                |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  1.7734               |  1                    |  1.7734               |  25.335               |"  # noqa: E501
             f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
-            f"{sep}|  on_train_end                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
-            f"{sep}|  on_train_epoch_start         |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
-            f"{sep}|  on_train_epoch_end           |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
-            f"{sep}|  on_before_batch_transfer     |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
-            f"{sep}|  on_fit_start                 |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
             f"{sep_lines}{sep}"
         )
     else:
@@ -257,12 +256,12 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"{sep_lines}"
             f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
             f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  5.7734               |"
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  4.7734               |"
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  3.7734               |"
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  2.7734               |"
+            f"{sep}|  on_train_end                 |  1.7734               |  1.7734               |"
             f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
-            f"{sep}|  on_train_end                 |  0.77343              |  0.77343              |"
-            f"{sep}|  on_train_epoch_start         |  0.77343              |  0.77343              |"
-            f"{sep}|  on_train_epoch_end           |  0.77343              |  0.77343              |"
-            f"{sep}|  on_before_batch_transfer     |  0.77343              |  0.77343              |"
-            f"{sep}|  on_fit_start                 |  0.77343              |  0.77343              |"
             f"{sep_lines}{sep}"
         )
 

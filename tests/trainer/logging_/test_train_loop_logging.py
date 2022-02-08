@@ -288,16 +288,6 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_batch_start(self, _, pl_module, *__):
-            self.make_logging(
-                pl_module, "on_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
-        def on_batch_end(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
         def on_train_batch_start(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
@@ -335,7 +325,10 @@ def test_log_works_in_train_callback(tmpdir):
         max_epochs=1,
         callbacks=[cb],
     )
-    trainer.fit(model)
+
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_start` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     assert trainer.progress_bar_callback.get_metrics(trainer, model)["train_loss"] == model.seen_losses[-1]
@@ -347,8 +340,6 @@ def test_log_works_in_train_callback(tmpdir):
         "on_train_epoch_start": 1,
         "on_train_batch_start": 2,
         "on_train_batch_end": 2,
-        "on_batch_start": 2,
-        "on_batch_end": 2,
         "on_train_epoch_end": 1,
         "on_epoch_end": 1,
     }
@@ -495,11 +486,11 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
             items.pop("v_num", None)
             return items
 
-        def on_epoch_end(self, trainer: Trainer, model: LightningModule):
+        def on_train_end(self, trainer: Trainer, model: LightningModule):
             metrics = self.get_metrics(trainer, model)
             assert metrics["foo"] == self.trainer.current_epoch
             assert metrics["foo_2"] == self.trainer.current_epoch
-            model.on_epoch_end_called = True
+            model.callback_on_train_end_called = True
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
@@ -515,7 +506,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     model = TestModel()
     trainer.fit(model)
     assert model.on_train_epoch_end_called
-    assert model.on_epoch_end_called
+    assert model.callback_on_train_end_called
 
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
@@ -531,14 +522,11 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
-        def on_batch_end(self, trainer, pl_module):
-            self.log("on_batch_end", 4)
-
         def on_epoch_end(self, trainer, pl_module):
-            self.log("on_epoch_end", 5)
+            self.log("on_epoch_end", 4)
 
         def on_train_epoch_end(self, trainer, pl_module):
-            self.log("on_train_epoch_end", 6)
+            self.log("on_train_epoch_end", 5)
 
     model = BoringModel()
     trainer = Trainer(
@@ -549,15 +537,17 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         enable_model_summary=False,
         callbacks=[LoggingCallback()],
     )
-    trainer.fit(model)
+
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_end` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     expected = {
         "on_train_start": 1,
         "on_train_epoch_start": 2,
         "on_train_batch_end": 3,
-        "on_batch_end": 4,
-        "on_epoch_end": 5,
-        "on_train_epoch_end": 6,
+        "on_epoch_end": 4,
+        "on_train_epoch_end": 5,
     }
     assert trainer.callback_metrics == expected
 

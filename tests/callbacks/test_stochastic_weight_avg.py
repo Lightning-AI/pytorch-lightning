@@ -20,7 +20,7 @@ from torch import nn
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -231,20 +231,20 @@ def test_swa_deepcopy(tmpdir):
     class TestSWA(StochasticWeightAveraging):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self.on_before_accelerator_backend_setup_called = False
+            self.setup_called = False
 
-        def on_before_accelerator_backend_setup(self, trainer: "Trainer", pl_module: "LightningModule"):
-            super().on_before_accelerator_backend_setup(trainer, pl_module)
+        def setup(self, trainer, pl_module, stage) -> None:
+            super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
             assert self._average_model.trainer is None
-            self.on_before_accelerator_backend_setup_called = True
+            self.setup_called = True
 
     model = BoringModel()
     swa = TestSWA()
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
-    assert swa.on_before_accelerator_backend_setup_called
+    assert swa.setup_called
 
 
 def test_swa_multiple_lrs(tmpdir):
