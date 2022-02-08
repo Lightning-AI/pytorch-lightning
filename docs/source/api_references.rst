@@ -43,6 +43,7 @@ Strategy API
     :nosignatures:
     :template: classtemplate.rst
 
+    BaguaStrategy
     DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
@@ -288,5 +289,6 @@ Utilities API
     memory
     model_summary
     parsing
+    rank_zero
     seed
     warnings
