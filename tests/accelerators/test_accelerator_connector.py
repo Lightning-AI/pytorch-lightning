@@ -741,6 +741,7 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
     assert trainer._accelerator_connector._is_slurm_managing_tasks()
@@ -765,6 +766,7 @@ def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_di
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -788,6 +790,7 @@ def test_strategy_choice_ddp_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp2_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -825,6 +828,7 @@ def test_strategy_choice_ddp_cpu_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp_kubeflow(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
