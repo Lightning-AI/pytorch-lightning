@@ -31,11 +31,13 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -94,7 +96,7 @@ class DDPStrategy(ParallelStrategy):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
+            checkpoint_io=checkpoint_io or HPUCheckpointIO(),
             precision_plugin=precision_plugin,
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
@@ -367,7 +369,11 @@ class DDPStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        if self.root_device.type == "hpu":
+            broadcast_object_list(obj, src, group=_group.WORLD)
+        else:
+            torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+
         return obj[0]
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:

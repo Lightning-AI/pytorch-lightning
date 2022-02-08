@@ -892,7 +892,7 @@ class AcceleratorConnector:
             if self.has_horovodrun():
                 self._set_horovod_backend()
             elif self.num_hpus  > 1 and not _use_cpu:
-                self._distrib_type = _StrategyType.DDP
+                self.distributed_backend = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._strategy_type = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_processes > 1:
@@ -932,6 +932,7 @@ class AcceleratorConnector:
             self._device_type = _AcceleratorType.IPU
         elif self.has_hpu and not _use_cpu:
             self._device_type = _AcceleratorType.HPU
+            self._strategy_type = _StrategyType.DDP
         elif self.distributed_backend and self._strategy_type is None:
             self._strategy_type = _StrategyType(self.distributed_backend)
 
