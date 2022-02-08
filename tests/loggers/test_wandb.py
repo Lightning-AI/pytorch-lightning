@@ -18,10 +18,15 @@ from unittest import mock
 
 import pytest
 
+# ensure we consider recent wandb versions
+import pytorch_lightning.loggers.wandb as pl_wandb
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+
+pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
+pl_wandb._WANDB_GREATER_EQUAL_0_12_10 = True
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
@@ -121,10 +126,11 @@ def test_wandb_pickle(wandb, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_dirs_creation(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
+    wandb.run = None
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
     # the logger get initialized
-    assert logger.version is not None
-    assert logger.name is not None
+    assert logger.version == wandb.init().id
+    assert logger.name == wandb.init().project_name()
 
     # mock return values of experiment
     wandb.run = None
@@ -186,13 +192,10 @@ def test_wandb_log_model(wandb, tmpdir):
     assert not wandb.init().log_artifact.called
 
     # test correct metadata
-    import pytorch_lightning.loggers.wandb as pl_wandb
-
-    pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = pl_wandb.WandbLogger(log_model=True)
+    logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
