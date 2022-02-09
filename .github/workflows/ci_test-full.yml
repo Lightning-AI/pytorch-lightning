@@ -89,13 +89,10 @@ jobs:
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
         pip install --requirement requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         # adjust versions according installed Torch version
-        python ./requirements/_adjust_versions.py requirements/extra.txt
         python ./requirements/_adjust_versions.py requirements/examples.txt
-        python .github/prune-packages.py requirements/extra.txt "horovod"
-        pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement requirements/test.txt --upgrade
         pip list
-        # sanity check
-        python requirements/_check_avail_extras.py
       shell: bash
 
     - name: Install extra dependencies
@@ -131,6 +128,11 @@ jobs:
       with:
         path: Datasets
         key: pl-dataset
+
+    - name: Sanity check
+      run: |
+        python requirements/_check_avail_extras.py
+        python -c "import horovod.torch; horovod.torch.nccl_built()"
 
     - name: Tests
       run: |
