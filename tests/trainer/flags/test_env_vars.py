@@ -48,9 +48,9 @@ def test_passing_env_variables_defaults():
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
-def test_passing_env_variables_gpus(cuda_available_mock, device_count_mock):
+def test_passing_env_variables_devices(cuda_available_mock, device_count_mock):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
-    assert trainer.gpus == 2
-    trainer = Trainer(gpus=1)
-    assert trainer.gpus == 1
+    assert trainer.devices == 2
+    trainer = Trainer(accelerator="gpu", devices=1)
+    assert trainer.devices == 1
