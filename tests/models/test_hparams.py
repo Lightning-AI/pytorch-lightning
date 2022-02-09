@@ -286,7 +286,6 @@ if _OMEGACONF_AVAILABLE:
             super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
-
 else:
 
     class DictConfSubClassBoringModel:
