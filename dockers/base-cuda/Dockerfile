@@ -77,9 +77,9 @@ RUN \
     export BAGUA_CUDA_VERSION=${CUDA_VERSION//"."/""} && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
-    python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
     python requirements/prune_packages.py requirements/extra.txt "horovod" && \
     # Install all requirements

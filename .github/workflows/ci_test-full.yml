@@ -89,7 +89,7 @@ jobs:
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
         pip install --requirement requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         # adjust versions according installed Torch version
-        python ./requirements/_adjust_versions.py requirements/examples.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
         pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt --upgrade
         pip list
@@ -102,7 +102,7 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/_adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/extra.txt
         pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
@@ -132,7 +132,7 @@ jobs:
 
     - name: Sanity check
       run: |
-        python requirements/_check_avail_extras.py
+        python requirements/check-avail-extras.py
 
     - name: Tests
       run: |
