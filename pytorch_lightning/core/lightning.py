@@ -1541,18 +1541,19 @@ class LightningModule(
         using_lbfgs: bool = False,
     ) -> None:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer. This method (and ``zero_grad()``) won't be called during the
-        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
+        each optimizer.
+
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        This method (and ``zero_grad()``) won't be called during the accumulation phase when
+        ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+            optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp

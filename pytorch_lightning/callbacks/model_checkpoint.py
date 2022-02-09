@@ -576,7 +576,6 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
-        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 
