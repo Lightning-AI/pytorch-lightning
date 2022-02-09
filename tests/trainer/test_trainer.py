@@ -1095,10 +1095,10 @@ def test_gpu_choice(tmpdir):
         return
 
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, gpus=num_gpus, auto_select_gpus=True)
+    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(RuntimeError, match=r".*No GPUs available.*"):
-        Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
+        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1172,7 +1172,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         assert mocked.call_count == sum(trainer.num_val_batches)
 
 
-@pytest.mark.parametrize(
+@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
     "trainer_kwargs,expected",
     [
         (
@@ -1306,9 +1306,13 @@ def test_trainer_subclassing():
 
 
 @RunIf(omegaconf=True)
-@pytest.mark.parametrize("trainer_params", [{"max_epochs": 1, "gpus": 1}, {"max_epochs": 1, "gpus": [0]}])
+@pytest.mark.parametrize(
+    "trainer_params",
+    [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
+)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=1)
-def test_trainer_omegaconf(_, trainer_params):
+def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)
 
@@ -1670,7 +1674,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
 
     # model
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
     trainer.fit(model, train_data)
 
 
@@ -1915,7 +1919,13 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, strategy="ddp"
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
     )
 
     # simulate random failure in training_step on rank 0
@@ -1951,7 +1961,8 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         strategy="ddp",
         enable_progress_bar=False,
         callbacks=Check(),
@@ -2087,7 +2098,7 @@ def test_detect_anomaly_nan(tmpdir):
             trainer.fit(model)
 
 
-@pytest.mark.parametrize(
+@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
     "trainer_kwargs,expected",
     [
         (
