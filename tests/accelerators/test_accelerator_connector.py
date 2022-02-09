@@ -345,6 +345,10 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         def auto_device_count() -> int:
             return 1
 
+        @staticmethod
+        def is_available() -> bool:
+            return True
+
     class Prec(PrecisionPlugin):
         pass
 
