@@ -107,6 +107,7 @@ Training Strategies
     DDPShardedStrategy
     DDPSpawnShardedStrategy
     DDPSpawnStrategy
+    BaguaStrategy
     DeepSpeedStrategy
     HorovodStrategy
     SingleTPUStrategy

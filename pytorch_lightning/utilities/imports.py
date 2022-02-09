@@ -96,6 +96,7 @@ _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 # _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
+_BAGUA_AVAILABLE = _package_available("bagua")
 _DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
@@ -115,7 +116,11 @@ _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supporte
 _TORCHTEXT_AVAILABLE = _package_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
 _TORCHVISION_AVAILABLE = _package_available("torchvision")
+_WANDB_AVAILABLE = _package_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
+
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 

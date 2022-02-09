@@ -61,7 +61,8 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
         separator = trainer.logger.group_separator
         prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
@@ -81,7 +82,8 @@ class DeviceStatsMonitor(Callback):
         if not trainer.logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
         separator = trainer.logger.group_separator
         prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
         trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)

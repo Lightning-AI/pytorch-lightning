@@ -83,9 +83,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     GradClipAlgorithmType,
     parsing,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
@@ -103,6 +100,7 @@ from pytorch_lightning.utilities.exceptions import ExitGracefullyException, Misc
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -480,10 +478,14 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # .validate() and .test() set this when they load a checkpoint
-        self.validated_ckpt_path: Optional[str] = None
-        self.tested_ckpt_path: Optional[str] = None
-        self.predicted_ckpt_path: Optional[str] = None
+        # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
+        self._ckpt_path: Optional[str] = None
+
+        # .validate(), predict() and .test() set these when they load a checkpoint. They will be removed in favor of
+        #  the unified read-only `Trainer.ckpt_path` attribute in v1.8
+        self._validated_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
+        self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
+        self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
 
         # todo: remove in v1.7
         self._weights_summary: Optional[str] = None
@@ -758,7 +760,10 @@ class Trainer(
 
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        results = self._run(model, ckpt_path=ckpt_path)
+        self._ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+        )
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -837,12 +842,14 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
+        self._validated_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
         # run validate
-        results = self._run(model, ckpt_path=self.validated_ckpt_path)
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.validating = False
@@ -923,12 +930,14 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
+        self._tested_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
         # run test
-        results = self._run(model, ckpt_path=self.tested_ckpt_path)
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -1009,11 +1018,13 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
-        results = self._run(model, ckpt_path=self.predicted_ckpt_path)
+        self._predicted_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
@@ -1237,7 +1248,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
@@ -2103,7 +2113,7 @@ class Trainer(
 
     @property
     def is_global_zero(self) -> bool:
-        return self.global_rank == 0
+        return self.strategy.is_global_zero
 
     @property
     def slurm_job_id(self) -> Optional[int]:
@@ -2218,6 +2228,74 @@ class Trainer(
             )
 
         return resume_from_checkpoint
+
+    @property
+    def ckpt_path(self) -> Optional[str]:
+        """Set to the path/URL of a checkpoint loaded via :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`,
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`,
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
+        return self._ckpt_path
+
+    @property
+    def validated_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._validated_ckpt_path
+
+    @validated_ckpt_path.setter
+    def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path`.",
+            stacklevel=5,
+        )
+        self._validated_ckpt_path = ckpt_path
+
+    @property
+    def tested_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._tested_ckpt_path
+
+    @tested_ckpt_path.setter
+    def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        self._tested_ckpt_path = ckpt_path
+
+    @property
+    def predicted_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._predicted_ckpt_path
+
+    @predicted_ckpt_path.setter
+    def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        self._predicted_ckpt_path = ckpt_path
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         r"""

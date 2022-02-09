@@ -33,9 +33,9 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -576,7 +576,6 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
-        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 
