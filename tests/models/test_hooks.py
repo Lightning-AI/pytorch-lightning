@@ -501,7 +501,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         saved_ckpt["native_amp_scaling_state"] = ANY
     elif kwargs.get("amp_backend") == "apex":
         saved_ckpt["amp_scaling_state"] = ANY
-    device = torch.device("cuda:0" if kwargs["accelerator"] == "gpu" else "cpu")
+    device = torch.device("cuda:0" if kwargs.get("accelerator") == "gpu" else "cpu")
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
