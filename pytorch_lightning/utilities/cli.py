@@ -27,10 +27,11 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
-from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, rank_zero_warn, warnings
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
@@ -795,7 +796,7 @@ class LightningCLI:
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
         if is_overridden("configure_optimizers", self.model):
-            warnings._warn(
+            _warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.configure_optimizers`."
             )

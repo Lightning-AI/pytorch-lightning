@@ -315,6 +315,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
+            assert trainer.lr_scheduler_configs[0].interval == "step"
 
     model = BoringModel()
     trainer = Trainer(

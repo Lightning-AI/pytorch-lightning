@@ -80,7 +80,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -90,7 +90,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            optimizer.step(**kwargs)
+            return optimizer.step(**kwargs)
+        return closure_result
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         if "amp_scaling_state" in checkpoint:

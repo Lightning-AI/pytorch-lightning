@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
@@ -493,7 +493,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
     model = BoringModel()
     # Wrap the logger in a list so it becomes a LoggerCollection
-    logger = [TensorBoardLogger(save_dir=tmpdir)]
+    logger = [TensorBoardLogger(save_dir=tmpdir), DummyLogger()]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
