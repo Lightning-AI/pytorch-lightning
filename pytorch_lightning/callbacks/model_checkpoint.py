@@ -248,7 +248,6 @@ class ModelCheckpoint(Callback):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        # When pretrain routine starts we build the ckpt dir on the fly.
         self.__resolve_ckpt_dir(trainer)
         if trainer.is_global_zero:
             self.__warn_if_dir_not_empty(self.dirpath)
