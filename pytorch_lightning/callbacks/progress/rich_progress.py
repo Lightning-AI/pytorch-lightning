@@ -353,7 +353,9 @@ class RichProgressBar(ProgressBarBase):
             if self.val_progress_bar_id is not None:
                 self.progress.update(self.val_progress_bar_id, advance=self.refresh_rate, visible=False)
 
-            self.val_progress_bar_id = self._add_task(self.total_val_batches, self.validation_description, visible=False)
+            self.val_progress_bar_id = self._add_task(
+                self.total_val_batches, self.validation_description, visible=False
+            )
             self.refresh()
 
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
