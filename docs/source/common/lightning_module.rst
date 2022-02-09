@@ -1208,9 +1208,6 @@ for more information.
         setup("fit")
         configure_optimizers()
 
-        on_pretrain_routine_start()
-        on_pretrain_routine_end()
-
         # the sanity check runs here
 
         on_train_start()
@@ -1376,18 +1373,6 @@ on_validation_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
-    :noindex:
-
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_end
     :noindex:
 
 on_test_batch_start
