@@ -216,12 +216,6 @@ on_configure_sharded_model
 .. automethod:: pytorch_lightning.callbacks.Callback.on_configure_sharded_model
     :noindex:
 
-on_before_accelerator_backend_setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_before_accelerator_backend_setup
-    :noindex:
-
 setup
 ~~~~~
 
@@ -329,15 +323,6 @@ on_predict_epoch_end
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_predict_epoch_end
     :noindex:
-
-on_epoch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_start
-    :noindex:
-
-on_epoch_end
-~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
     :noindex:

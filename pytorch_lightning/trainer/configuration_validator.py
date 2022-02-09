@@ -15,8 +15,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -36,6 +36,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
+        # TODO: Remove this in v1.7 (deprecation: #9816)
+        _check_dl_idx_in_on_train_batch_hooks(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
         __verify_eval_loop_configuration(trainer, model, "val")
     elif trainer.state.fn == TrainerFn.TESTING:
@@ -49,18 +51,11 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_progress_bar(model)
     # TODO: Delete _check_on_post_move_to_device in v1.7
     _check_on_post_move_to_device(model)
-    # TODO: Delete _check_on_keyboard_interrupt in v1.7
-    _check_on_keyboard_interrupt(trainer)
-    # TODO: Remove this in v1.7 (deprecation: #9816)
-    _check_dl_idx_in_on_train_batch_hooks(trainer, model)
-    # TODO: Remove this in v1.8
-    _check_on_init_start_end(trainer)
+    _check_deprecated_callback_hooks(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
-    # TODO: Delete on_batch_start/on_batch_end hooks in v1.8
-    _check_on_batch_start_end(trainer, model)
-    # TODO: Remove this in v1.8
-    _check_on_configure_sharded_model(trainer)
+    # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
+    _check_on_epoch_start_end(model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -276,43 +271,6 @@ def _check_add_get_queue(model: "pl.LightningModule") -> None:
         )
 
 
-def _check_on_keyboard_interrupt(trainer: "pl.Trainer") -> None:
-    """Checks if on_keyboard_interrupt is overriden and sends a deprecation warning."""
-    for callback in trainer.callbacks:
-        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
-            rank_zero_deprecation(
-                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `on_exception` callback hook instead."
-            )
-
-
-def _check_dl_idx_in_on_train_batch_hooks(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
-    for hook in ("on_train_batch_start", "on_train_batch_end"):
-        if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
-            rank_zero_deprecation(
-                f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
-                " The `dataloader_idx` argument will be removed in v1.7."
-            )
-
-        for cb in trainer.callbacks:
-            if is_param_in_hook_signature(getattr(cb, hook), "dataloader_idx", explicit=True):
-                rank_zero_deprecation(
-                    f"Base `Callback.{hook}` hook signature has changed in v1.5."
-                    " The `dataloader_idx` argument will be removed in v1.7."
-                )
-
-
-def _check_on_init_start_end(trainer: "pl.Trainer") -> None:
-    """Checks if on_init_start/end are overridden and sends a deprecation warning."""
-    for callback in trainer.callbacks:
-        if is_overridden(method_name="on_init_start", instance=callback):
-            rank_zero_deprecation(
-                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
-            )
-        if is_overridden(method_name="on_init_end", instance=callback):
-            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
-
-
 # TODO: Delete _check_on_hpc_hooks in v1.8
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
@@ -328,23 +286,77 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
         )
 
 
-# TODO: Remove on_batch_start/on_batch_end hooks in v1.8
-def _check_on_batch_start_end(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
-    hooks = (["on_batch_start", "on_train_batch_start"], ["on_batch_end", "on_train_batch_end"])
+# TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
+def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
+    hooks = (
+        ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
+        ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
+    )
 
     for hook, alternative_hook in hooks:
-        for callback in trainer.callbacks:
+        if is_overridden(hook, model):
+            rank_zero_deprecation(
+                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
+                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+            )
+
+
+def _check_dl_idx_in_on_train_batch_hooks(model: "pl.LightningModule") -> None:
+    for hook in ("on_train_batch_start", "on_train_batch_end"):
+        if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
+            rank_zero_deprecation(
+                f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
+                " The `dataloader_idx` argument will be removed in v1.7."
+            )
+
+
+def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
+    for callback in trainer.callbacks:
+        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
+            rank_zero_deprecation(
+                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
+                " Please use the `on_exception` callback hook instead."
+            )
+        # TODO: Remove this in v1.7 (deprecation: #9816)
+        for hook in ("on_train_batch_start", "on_train_batch_end"):
+            if is_param_in_hook_signature(getattr(callback, hook), "dataloader_idx", explicit=True):
+                rank_zero_deprecation(
+                    f"Base `Callback.{hook}` hook signature has changed in v1.5."
+                    " The `dataloader_idx` argument will be removed in v1.7."
+                )
+        if is_overridden(method_name="on_init_start", instance=callback):
+            rank_zero_deprecation(
+                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+            )
+        if is_overridden(method_name="on_init_end", instance=callback):
+            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
+
+        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
+            rank_zero_deprecation(
+                "The `on_configure_sharded_model` callback hook was deprecated in"
+                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+            )
+        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
+            rank_zero_deprecation(
+                "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
+                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+            )
+        for hook, alternative_hook in (
+            ["on_batch_start", "on_train_batch_start"],
+            ["on_batch_end", "on_train_batch_end"],
+        ):
             if is_overridden(method_name=hook, instance=callback):
                 rank_zero_deprecation(
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
 
-
-def _check_on_configure_sharded_model(trainer: "pl.Trainer") -> None:
-    for callback in trainer.callbacks:
-        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
-            rank_zero_deprecation(
-                "The `on_configure_sharded_model` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
-            )
+        for hook, alternative_hook in (
+            ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
+            ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
+        ):
+            if is_overridden(method_name=hook, instance=callback):
+                rank_zero_deprecation(
+                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
+                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+                )

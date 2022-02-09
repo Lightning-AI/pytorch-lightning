@@ -83,9 +83,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     GradClipAlgorithmType,
     parsing,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
@@ -103,6 +100,7 @@ from pytorch_lightning.utilities.exceptions import ExitGracefullyException, Misc
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -1250,7 +1248,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
@@ -2116,7 +2113,7 @@ class Trainer(
 
     @property
     def is_global_zero(self) -> bool:
-        return self.global_rank == 0
+        return self.strategy.is_global_zero
 
     @property
     def slurm_job_id(self) -> Optional[int]:

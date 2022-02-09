@@ -38,20 +38,15 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import (
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_10,
-    GradClipAlgorithmType,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, rank_zero_debug, sync_ddp
+from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -1546,18 +1541,19 @@ class LightningModule(
         using_lbfgs: bool = False,
     ) -> None:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer. This method (and ``zero_grad()``) won't be called during the
-        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
+        each optimizer.
+
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        This method (and ``zero_grad()``) won't be called during the accumulation phase when
+        ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+            optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
