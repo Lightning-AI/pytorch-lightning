@@ -88,7 +88,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
     from pytorch_lightning.loggers import MLFlowLogger
 
-    mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
 .. seealso::

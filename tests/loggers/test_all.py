@@ -414,3 +414,17 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+
+
+def test_logger_default_name(tmpdir):
+    """Test that the default logger name is lightning_logs."""
+
+    logger = CSVLogger(save_dir=tmpdir)
+    assert logger.name == "lightning_logs"
+
+    logger = MLFlowLogger(save_dir=tmpdir)
+    # on MLFLowLogger `name` refers to the experiment id
+    assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
+
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    assert logger.name == "lightning_logs"
