@@ -5,23 +5,10 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch.distributed
 
-from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
-from tests.helpers.boring_model import BoringModel
-from tests.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
-    try:
-        from hydra._internal.callbacks import Callbacks
-    except:
-        Callbacks = None
-
-    from hydra._internal.hydra import Hydra
-    from hydra._internal.utils import create_config_search_path
-    from hydra.types import HydraContext, RunMode
-    from hydra.utils import instantiate
     from omegaconf import OmegaConf
 
 
@@ -60,6 +47,7 @@ def run_process(cmd):
 
 # Script to run from command line
 script = """
+import os
 import hydra
 import torch
 
@@ -76,55 +64,53 @@ class BoringModelGPU(BoringModel):
 
 @hydra.main()
 def task_fn(cfg):
-    trainer = Trainer(gpus=cfg.gpus, strategy=cfg.strategy, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", devices=cfg.devices, strategy=cfg.strategy, fast_dev_run=True)
     model = BoringModelGPU()
     trainer.fit(model)
 
+    # make sure teardown executed
+    assert not torch.distributed.is_initialized(), f"Torch Distributed Initialized: {torch.distributed.is_initialized()}"
+    assert "LOCAL_RANK" not in os.environ
 
 if __name__ == "__main__":
     task_fn()
 """
 
 
-@RunIf(skip_windows=True, min_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
-@pytest.mark.parametrize("gpus", [1, 2])
+@pytest.mark.parametrize("devices", [1, 2])
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(gpus, subdir):
+def test_ddp_with_hydra_runjob(devices, subdir):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
 
     # Run CLI
-    cmd = [sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"']
+    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"']
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
 
-    # Make sure config.yaml was created
+    # Make sure config.yaml was created for additional
+    # processes.
     logs = list(Path.cwd().glob("**/config.yaml"))
-    assert len(logs) == 1
-
-    # Make sure subdir was set
-    actual_subdir = ".hydra" if subdir is None else subdir
-    assert logs[0].parent.name == actual_subdir
+    assert len(logs) == devices
 
     # Make sure the parameter was set and used
     cfg = OmegaConf.load(logs[0])
-    assert cfg.gpus == gpus
+    assert cfg.devices == devices
 
     # Make sure PL spawned a job that is logged by Hydra
-    logs = list(Path.cwd().glob("**/train_ddp_process_1.log"))
-    assert len(logs) == gpus - 1
+    logs = list(Path.cwd().glob("**/train_ddp_process_*.log"))
+    assert len(logs) == devices - 1
 
 
-@RunIf(skip_windows=True, min_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
-@pytest.mark.parametrize("gpus", [1, 2])
+@pytest.mark.parametrize("devices", [1, 2])
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob(gpus, num_jobs):
+def test_ddp_with_hydra_multirunjob(devices, num_jobs):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
@@ -137,74 +123,18 @@ def test_ddp_with_hydra_multirunjob(gpus, num_jobs):
             fake_param += ","
 
     # Run CLI
-    run_process([sys.executable, "temp.py", f"+gpus={gpus}", '+strategy="ddp"', fake_param, "--multirun"])
+    run_process([sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', fake_param, "--multirun"])
 
     # Make sure config.yaml was created for each job
-    configs = sorted(Path.cwd().glob("**/config.yaml"))
-    assert len(configs) == num_jobs
+    configs = sorted(Path.cwd().glob("**/.pl_ddp_hydra_*/config.yaml"))
+    assert len(configs) == num_jobs * (devices - 1)
 
     # Make sure the parameter was set and used for each job
     for i, config in enumerate(configs):
         cfg = OmegaConf.load(config)
-        assert cfg.gpus == gpus
-        assert cfg.foo == i
+        local_rank = int(config.parent.parent.parts[-1])
+        assert cfg.devices == devices
+        assert cfg.foo == local_rank
 
-    logs = list(Path.cwd().glob("**/train_ddp_process_1.log"))
-    assert len(logs) == num_jobs * (gpus - 1)
-
-
-def task_fn(cfg):
-    trainer = Trainer(gpus=1, strategy="ddp", fast_dev_run=True)
-    model = BoringModel()
-    trainer.fit(model)
-
-
-def run_hydra_sweeper():
-    """Runs Hydra sweeper as a function (rather than CLI) so we can test teardown."""
-    search_path = create_config_search_path(None)
-    hydra = Hydra.create_main_hydra2(task_name="pytest", config_search_path=search_path)
-
-    cfg = hydra.compose_config(
-        config_name=None,
-        overrides=[],
-        with_log_configuration=False,
-        run_mode=RunMode.MULTIRUN,
-    )
-
-    callbacks = Callbacks(cfg)
-    # Instantiate sweeper without using Hydra's Plugin discovery (Zen!)
-    sweeper = instantiate(cfg.hydra.sweeper)
-    sweeper.setup(
-        config=cfg,
-        hydra_context=HydraContext(config_loader=hydra.config_loader, callbacks=callbacks),
-        task_function=task_fn,
-    )
-
-    return sweeper.sweep(arguments=[])
-
-
-@RunIf(skip_windows=True, min_gpus=2)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
-@pytest.mark.skipif(Callbacks is None, reason="Hydra version too old (for test only)")
-@pytest.mark.usefixtures("cleandir")
-def test_ddp_teardown_with_hydra():
-    job = run_hydra_sweeper()
-    assert len(job) == 1
-
-    # Make sure DDPPlugin.teardown executed
-    #  - torch.distributed should be shutdown
-    #  - PL environment variables are removed
-    assert not torch.distributed.is_initialized()
-
-    envs = (
-        "LOCAL_RANK",
-        "NODE_RANK",
-        "WORLD_SIZE",
-        "MASTER_ADDR",
-        "MASTER_PORT",
-        "PL_GLOBAL_SEED",
-        "PL_SEED_WORKERS",
-    )
-
-    for name in envs:
-        assert name not in os.environ
+    logs = list(Path.cwd().glob("**/train_ddp_process_*.log"))
+    assert len(logs) == num_jobs * (devices - 1)
