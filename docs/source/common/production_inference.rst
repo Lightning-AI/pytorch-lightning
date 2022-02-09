@@ -4,8 +4,8 @@
 Inference in Production
 #######################
 
-Once a model is trained, deploying to production and running inference is the next task. To help you with it, following are the possible approaches
-you can use to deploy and use your models for inference.
+Once a model is trained, deploying to production and running inference is the next task. To help you with it, here are the possible approaches
+you can use to deploy and make inferences with your models.
 
 ------------
 
@@ -13,7 +13,7 @@ you can use to deploy and use your models for inference.
 With Lightning API
 ******************
 
-Following are some possible ways you can use Lightning to run inference in production. Note that this can introduce extra required Lightning dependencies
+The following are some possible ways you can use Lightning to run inference in production. Note that PyTorch Lightning has some extra dependencies and using raw PyTorch might be advantageous.  
 in your production environment.
 
 ------------
@@ -22,9 +22,9 @@ Prediction API
 ==============
 
 Lightning provides you with a prediction API that can be accessed using :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
-To configure this with LightningModule, you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+To configure this with your LightningModule, you would need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
 By default :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`
-method. In order to customize this behaviour, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+method. In order to customize this behaviour, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method. This can be useful to add some pre-processing or post-processing logic to your data.
 
 For the example let's override ``predict_step`` and try out `Monte Carlo Dropout <https://arxiv.org/pdf/1506.02142.pdf>`_:
 
@@ -237,8 +237,13 @@ from your LightningModule ``init`` and ``forward`` method.
 
     # create the PyTorch model and load the checkpoint weights
     model = AutoEncoderProd()
-    checkpoint_weights = torch.load("best_model.ckpt")
-    model_weights = checkpoint_weights["state_dict"]
+    checkpoint = torch.load("best_model.ckpt")
+    hyper_parameters = checkpoint["hyper_parameters"]
+    
+    # if you want to restore any hyperparameters, you can pass them too
+    model = AutoEncoderProd(**hyper_parameters)
+    
+    state_dict = checkpoint["state_dict"]
 
     # update keys by dropping `auto_encoder.`
     for key in list(model_weights):
