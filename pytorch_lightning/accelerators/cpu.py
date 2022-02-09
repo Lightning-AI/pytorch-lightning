@@ -13,13 +13,16 @@
 # limitations under the License.
 from typing import Any, Dict, List, Union
 
-import psutil
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
+
+if _PSUTIL_AVAILABLE:
+    import psutil
 
 
 class CPUAccelerator(Accelerator):
@@ -72,6 +75,12 @@ class CPUAccelerator(Accelerator):
         )
 
 def get_cpu_process_metrics() -> dict[str, float]:
+    if not _PSUTIL_AVAILABLE:
+        raise ModuleNotFoundError(
+            "`get_cpu_process_metrics` requires `psutil` to be installed. "
+            + "Install it by running `pip install -U psutil`."
+        )
+
     metrics = {
         f"vm_percent": psutil.virtual_memory().percent,
         f"cpu_percent": psutil.cpu_percent(),
