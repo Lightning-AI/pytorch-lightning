@@ -155,7 +155,7 @@ Convert to TorchScript
 The ``LightningModule`` has a handy method :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript` that returns a scripted module which you
 can save or directly use.
 
-.. code-block:: python
+.. testcode:: python
 
     class SimpleModel(LightningModule):
         def __init__(self):
@@ -181,7 +181,34 @@ Once you have the exported model, you can run it in Pytorch or C++ runtime:
 
     inp = torch.rand(1, 64)
     scripted_module = torch.jit.load("model.pt")
-    output = scripted_module(dummy_input)
+    output = scripted_module(inp)
+
+
+If you want to script a different method, you can decorate the method with :func:`torch.jit.export`:
+
+.. code-block:: python
+
+    class LitMCdropoutModel(pl.LightningModule):
+        def __init__(self, model, mc_iteration):
+            super().__init__()
+            self.model = model
+            self.dropout = nn.Dropout()
+            self.mc_iteration = mc_iteration
+
+        @torch.jit.export
+        def predict_step(self, batch, batch_idx):
+            # enable Monte Carlo Dropout
+            self.dropout.train()
+
+            # take average of `self.mc_iteration` iterations
+            pred = [self.dropout(self.model(x)).unsqueeze(0) for _ in range(self.mc_iteration)]
+            pred = torch.vstack(pred).mean(dim=0)
+            return pred
+
+
+    model = LitMCdropoutModel(...)
+    script = model.to_torchscript(file_path="model.pt", method="script")
+
 
 ------------
 
