@@ -13,4 +13,4 @@ print(hydra.__version__)
 print(jsonargparse.__version__)
 # todo
 # print(gcsfs.__version__)
-print(rich.__version__)
+print(rich.__name__)
