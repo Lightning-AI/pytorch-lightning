@@ -97,53 +97,29 @@ def mocked_device_count_0(monkeypatch):
 @pytest.mark.parametrize(
     ["devices", "expected_num_gpus", "strategy"],
     [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
         pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
         pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
         pytest.param("-1", PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
         pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
     ],
 )
-def test_trainer_gpu_parse(mocked_device_count, devices, expected_num_gpus, strategy):
-    assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["devices", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-    ],
-)
-def test_trainer_num_gpu_0(mocked_device_count_0, devices, expected_num_gpus, strategy):
+@mock.patch("torch.cuda.is_available", return_value=True)
+def test_trainer_gpu_parse(_, mocked_device_count, devices, expected_num_gpus, strategy):
     assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).num_gpus == expected_num_gpus
 
 
 @pytest.mark.parametrize(
     ["devices", "expected_root_gpu", "strategy"],
     [
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
         pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
         pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
         pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-def test_root_gpu_property(mocked_device_count, devices, expected_root_gpu, strategy):
-    assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["devices", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, None, id="None is None"),
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="None is None"),
-    ],
-)
-def test_root_gpu_property_0_passing(mocked_device_count_0, devices, expected_root_gpu, strategy):
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=3)
+def test_root_gpu_property(_, mocked_device_count, devices, expected_root_gpu, strategy):
     assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).root_gpu == expected_root_gpu
 
 
@@ -236,10 +212,10 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "LOCAL_WORLD_SIZE": "2",
     },
 )
-@mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("devices", [[0, 1, 2], 2, "0"])
-def test_torchelastic_gpu_parsing(mocked_device_count, devices):
+@mock.patch("torch.cuda.device_count", return_value=1)
+@pytest.mark.parametrize("devices", [[0, 1, 2], 2])
+def test_torchelastic_gpu_parsing(_, mocked_device_count, devices):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(accelerator="gpu", devices=devices)
