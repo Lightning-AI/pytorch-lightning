@@ -419,12 +419,19 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 def test_logger_default_name(tmpdir):
     """Test that the default logger name is lightning_logs."""
 
+    # CSV
     logger = CSVLogger(save_dir=tmpdir)
     assert logger.name == "lightning_logs"
 
-    logger = MLFlowLogger(save_dir=tmpdir)
-    # on MLFLowLogger `name` refers to the experiment id
-    assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
+    # TensorBoard
+    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
+        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+        assert logger.name == "lightning_logs"
 
-    logger = TensorBoardLogger(save_dir=tmpdir)
-    assert logger.name == "lightning_logs"
+    # MLflow
+    with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
+        "pytorch_lightning.loggers.mlflow.MlflowClient"
+    ):
+        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
+        # on MLFLowLogger `name` refers to the experiment id
+        assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
