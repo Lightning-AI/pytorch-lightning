@@ -364,7 +364,7 @@ def test_v1_8_0_deprecated_lightning_optimizers():
     ):
         assert trainer.lightning_optimizers == {}
 
-        
+
 def test_v1_8_0_remove_on_batch_start_end(tmpdir):
     class TestCallback(Callback):
         def on_batch_start(self, *args, **kwargs):
@@ -503,24 +503,16 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     ):
         trainer.fit(model)
 
-        
+
 def test_v1_8_0_deprecated_precplugin_checkpointhooks():
     apex_amp = ApexMixedPrecisionPlugin()
-    with pytest.deprecated_call(
-        match="is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
         apex_amp.on_save_checkpoint({})
-    with pytest.deprecated_call(
-        match="is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
         apex_amp.on_load_checkpoint({})
 
     native_amp = NativeMixedPrecisionPlugin(1, "a")
-    with pytest.deprecated_call(
-        match="is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
         native_amp.on_save_checkpoint({})
-    with pytest.deprecated_call(
-        match="is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
         native_amp.on_load_checkpoint({})
