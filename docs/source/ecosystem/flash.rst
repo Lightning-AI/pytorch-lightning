@@ -21,7 +21,7 @@ Using Lightning-Flash in 3 Steps!
 
 All data loading in Flash is performed via a `from_*` classmethod on a `DataModule`.
 Which `DataModule` to use and which `from_*` methods are available depends on the task you want to perform.
-For example, for image segmentation where your data is stored in folders, you would use the [`from_folders` method of the `SemanticSegmentationData` class](https://lightning-flash.readthedocs.io/en/latest/reference/semantic_segmentation.html#from-folders):
+For example, for image segmentation where your data is stored in folders, you would use `the ``from_folders`` method of the ``SemanticSegmentationData`` class <https://lightning-flash.readthedocs.io/en/latest/reference/semantic_segmentation.html#from-folders>`_:
 
 .. code-block:: python
 
@@ -41,7 +41,7 @@ For example, for image segmentation where your data is stored in folders, you wo
 -----------------------
 
 Our tasks come loaded with pre-trained backbones and (where applicable) heads.
-You can view the available backbones to use with your task using [`available_backbones`](https://lightning-flash.readthedocs.io/en/latest/general/backbones.html).
+You can view the available backbones to use with your task using ```available_backbones`` <https://lightning-flash.readthedocs.io/en/latest/general/backbones.html>`_.
 Once you've chosen, create the model:
 
 .. code-block:: python
