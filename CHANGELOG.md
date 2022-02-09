@@ -603,7 +603,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Configure native Deepspeed schedulers with interval='step' ([#11788](https://github.com/PyTorchLightning/pytorch-lightning/pull/11788))
 
 
-- Fixed an `AttributeError` when calling `save_hyperparameters` when no parameters need saving ([#11827](https://github.com/PyTorchLightning/pytorch-lightning/pull/11827))
+- Fixed an `AttributeError` when calling `save_hyperparameters` and no parameters need saving ([#11827](https://github.com/PyTorchLightning/pytorch-lightning/pull/11827))
 
 
 ## [1.5.9] - 2022-01-20
