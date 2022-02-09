@@ -89,22 +89,6 @@ class Callback:
         Called when the trainer initialization ends, model has not yet been set.
         """
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer") -> None:
-        r"""
-        .. deprecated:: v1.6
-            This callback hook was deprecated in v1.6 and will be removed in v1.8.
-
-        Called when the pretrain routine begins.
-        """
-
-    def on_pretrain_routine_end(self, trainer: "pl.Trainer") -> None:
-        r"""
-        .. deprecated:: v1.6
-            This callback hook was deprecated in v1.6 and will be removed in v1.8.
-
-        Called when the pretrain routine ends.
-        """
-    
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when fit begins."""
 
@@ -250,7 +234,7 @@ class Callback:
         r"""
         .. deprecated:: v1.6
             This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
-            ``on_fit_start`` or ``setup`` instead.
+            ``on_train_start``.
 
         Called when the pretrain routine begins.
         """
@@ -259,7 +243,7 @@ class Callback:
         r"""
         .. deprecated:: v1.6
             This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
-            ``on_fit_start`` or ``setup`` instead.
+            ``on_train_start``.
 
         Called when the pretrain routine ends.
         """
