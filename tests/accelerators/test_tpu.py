@@ -53,7 +53,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -76,7 +76,7 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
 
@@ -84,7 +84,7 @@ def test_if_test_works_after_train(tmpdir):
 @RunIf(tpu=True)
 def test_accelerator_tpu():
 
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
@@ -96,9 +96,9 @@ def test_accelerator_tpu():
 
 
 @RunIf(tpu=True)
-def test_accelerator_cpu_with_tpu_cores_flag():
+def test_accelerator_cpu_with_devices_flag():
 
-    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+    trainer = Trainer(accelerator="cpu", devices=8)
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -107,7 +107,7 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 @RunIf(tpu=True)
 def test_accelerator_tpu_with_auto():
 
-    trainer = Trainer(accelerator="auto", tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
@@ -130,24 +130,6 @@ def test_accelerator_auto_with_devices_tpu():
 
     assert trainer._device_type == "tpu"
     assert trainer.tpu_cores == 8
-
-
-@RunIf(tpu=True)
-def test_accelerator_tpu_with_tpu_cores_priority():
-    """Test for checking `tpu_cores` flag takes priority over `devices`."""
-
-    tpu_cores = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
-
-    assert trainer.tpu_cores == tpu_cores
-
-
-@RunIf(tpu=True)
-def test_set_devices_if_none_tpu():
-
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert trainer.devices == 8
 
 
 @RunIf(tpu=True)
@@ -215,7 +197,8 @@ def test_manual_optimization_tpus(tmpdir):
         limit_train_batches=5,
         limit_test_batches=0,
         limit_val_batches=0,
-        tpu_cores=8,
+        accelerator="tpu",
+        devices=8,
     )
     trainer.fit(model)
 
@@ -250,7 +233,7 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
@@ -282,7 +265,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
     model = NestedModule()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
@@ -314,7 +297,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
 
 @RunIf(tpu=True)
 def test_xla_checkpoint_plugin_being_default():
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 

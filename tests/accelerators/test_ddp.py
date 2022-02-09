@@ -28,7 +28,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script
 
-CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
+CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
 
 
 @RunIf(min_gpus=2)
@@ -85,7 +85,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
+            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2, logger=False)
             trainer.fit(model)
 
 
@@ -103,7 +103,7 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -137,7 +137,8 @@ def test_ddp_wrapper(tmpdir, precision):
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         callbacks=CustomCallback(),
     )
     trainer.fit(model)
