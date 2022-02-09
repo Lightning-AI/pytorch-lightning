@@ -25,6 +25,12 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
+CPU_METRIC_KEYS = [
+    "cpu_vm_percent",
+    "cpu_percent",
+    "cpu_swap_percent",
+]
+
 
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
@@ -69,6 +75,9 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
             for f in fields:
                 assert any(f in h for h in metrics.keys())
 
+            for f in CPU_METRIC_KEYS:
+                assert not any(f in h for h in metrics.keys()), "CPU Stats should not be included"
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -100,10 +109,7 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
                 "memory.used",
                 "memory.free",
                 "utilization.memory",
-                "cpu_vm_percent",
-                "cpu_percent",
-                "cpu_swap_percent",
-            ]
+            ] + CPU_METRIC_KEYS
             for f in fields:
                 assert any(f in h for h in metrics.keys())
 
@@ -130,7 +136,7 @@ def test_device_stats_cpu(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
+            fields = CPU_METRIC_KEYS
             for f in fields:
                 assert any(f in h for h in metrics.keys())
 
