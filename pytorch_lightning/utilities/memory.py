@@ -17,26 +17,13 @@ import gc
 import os
 import shutil
 import subprocess
+from io import BytesIO
 from typing import Any, Dict
 
 import torch
 from torch.nn import Module
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-
-
-class _ByteCounter:
-    """Accumulate and stores the total bytes of an object."""
-
-    def __init__(self) -> None:
-        self.nbytes: int = 0
-
-    def write(self, data: bytes) -> None:
-        """Stores the total bytes of the data."""
-        self.nbytes += len(data)
-
-    def flush(self) -> None:
-        pass
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
@@ -183,7 +170,7 @@ def get_model_size_mb(model: Module) -> float:
     Returns:
         Number of megabytes in the parameters of the input module.
     """
-    model_size = _ByteCounter()
+    model_size = BytesIO()
     torch.save(model.state_dict(), model_size)
-    size_mb = model_size.nbytes / 1e6
+    size_mb = model_size.getbuffer().nbytes / 1e6
     return size_mb

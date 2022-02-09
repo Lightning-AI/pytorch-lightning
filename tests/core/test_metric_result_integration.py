@@ -33,7 +33,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -373,12 +372,8 @@ class DummyMeanMetric(Metric):
 
 
 def result_collection_reload(accelerator="auto", devices=1, **kwargs):
-
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
-
-    if not _fault_tolerant_training():
-        pytest.skip("Fault tolerant not available")
 
     class CustomException(Exception):
         pass
@@ -437,7 +432,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
             return super().training_step(batch, batch_idx)
 
-        def on_epoch_end(self) -> None:
+        def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * devices
                 metrics = self.results.metrics(on_step=False)

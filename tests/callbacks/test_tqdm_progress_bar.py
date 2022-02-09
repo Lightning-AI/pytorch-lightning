@@ -17,7 +17,7 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY, call, PropertyMock
 
 import pytest
 import torch
@@ -159,6 +159,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert bar.val_progress_bar.total_values == expected_sanity_steps
     assert bar.val_progress_bar.n_values == list(range(1, num_sanity_val_steps + 1)) * num_dl
     assert bar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
+    assert bar.val_progress_bar.leave
 
     # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -195,6 +196,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert bar.test_progress_bar.total_values == k
     assert bar.test_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
     assert bar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
+    assert bar.test_progress_bar.leave
 
     # predict
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
@@ -204,6 +206,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert bar.predict_progress_bar.total_values == k
     assert bar.predict_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
     assert bar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
+    assert bar.predict_progress_bar.leave
 
 
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
@@ -619,6 +622,8 @@ def test_get_progress_bar_metrics(tmpdir: str):
 
 
 def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
+    """TQDM counterpart to test_rich_progress_bar::test_rich_progress_bar_correct_value_epoch_end."""
+
     class MockedProgressBar(TQDMProgressBar):
         calls = defaultdict(list)
 
@@ -678,3 +683,30 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
+
+
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
+def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
+    """Test that the progress bar is disabled when not in global rank zero."""
+    progress_bar = TQDMProgressBar()
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[progress_bar],
+        fast_dev_run=True,
+    )
+
+    progress_bar.enable()
+    trainer.fit(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.predict(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.validate(model)
+    assert progress_bar.is_disabled
+
+    progress_bar.enable()
+    trainer.test(model)
+    assert progress_bar.is_disabled

@@ -53,8 +53,7 @@ class Strategy(ABC):
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
-        # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
-        self.lr_schedulers: List[LRSchedulerConfig] = []
+        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
@@ -117,7 +116,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
 
@@ -134,10 +133,12 @@ class Strategy(ABC):
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_scheduler_configs
+        )
         self.model = model
         self.optimizers = optimizers
-        self.lr_schedulers = schedulers
+        self.lr_scheduler_configs = lr_scheduler_configs
 
     def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
         """Moves the state of the optimizers to the appropriate device if needed."""
@@ -177,7 +178,7 @@ class Strategy(ABC):
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """performs the actual optimizer step.
 
         Args:
@@ -188,7 +189,7 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
