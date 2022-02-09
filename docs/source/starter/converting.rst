@@ -16,7 +16,7 @@ To enable your code to work with Lightning, here's how to organize PyTorch into 
 --------
 
 *******************************
-1. Move your Computational code
+1. Move your Computational Code
 *******************************
 
 Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.lightning.LightningModule`.
@@ -54,12 +54,12 @@ Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningMo
 
 --------
 
-***************************
-3. Configure Training Logic
-***************************
+*******************************
+3. Configure the Training Logic
+*******************************
 
 Lightning automates the training loop for you and manages all the associated components, such as epoch and batch tracking, optimizer and schedulers,
-metrics reduction. As a user, all you need is to define how your model behaves with a batch of data within the
+metrics reduction. As a user, you just need to define how your model behaves with a batch of training data within the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method. When using Lightning, simply override the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method which takes the current ``batch`` and the ``batch_idx``
 as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule defines multiple optimizers within its
@@ -76,12 +76,12 @@ as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule 
 
 --------
 
-*****************************
-4. Configure Validation Logic
-*****************************
+*********************************
+4. Configure the Validation Logic
+*********************************
 
-Lightning automates the validation loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
-all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
+Lightning also automates the validation loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
+you just need to define how your model behaves with a batch of validation data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
 method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method which takes the current
 ``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
 
@@ -97,7 +97,7 @@ To add an (optional) validation loop add logic to the
             val_loss = F.cross_entropy(y_hat, y)
             self.log("val_loss", val_loss)
 
-Additionally, you can also run the validation loop using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
+Additionally, you can run only the validation loop using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` method.
 
 .. code-block:: python
 
@@ -106,7 +106,7 @@ Additionally, you can also run the validation loop using :meth:`~pytorch_lightni
 
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for validation.
 
-.. tip:: ``trainer.validate()`` loads the best checkpoint automatically by default if checkpointing is enabled.
+.. tip:: ``trainer.validate()`` loads the best checkpoint automatically by default if checkpointing was enabled during fitting.
 
 --------
 
@@ -115,7 +115,7 @@ Additionally, you can also run the validation loop using :meth:`~pytorch_lightni
 **************************
 
 Lightning automates the testing loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
-all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`
+you just need to define how your model behaves with a batch of testing data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`
 method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method which takes the current
 ``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
 
@@ -128,7 +128,7 @@ method. When using Lightning, simply override the :meth:`~pytorch_lightning.core
             test_loss = F.cross_entropy(y_hat, y)
             self.log("test_loss", test_loss)
 
-The test loop will not be used until you call :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
+The test loop isn't used within :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`, therefore, you would need to explicitly call :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
 
 .. code-block:: python
 
@@ -146,7 +146,7 @@ The test loop will not be used until you call :meth:`~pytorch_lightning.trainer.
 *****************************
 
 Lightning automates the prediction loop for you and manages all the associated components, such as epoch and batch tracking. As a user,
-all you need is to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+you just need to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
 method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method which takes the current
 ``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
 If you don't override ``predict_step`` hook, it by default calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method on the batch.
@@ -201,11 +201,11 @@ to register it as a parameter.
 
 --------
 
-**************
-8. Plugin Data
-**************
+********************
+8. Use your own data
+********************
 
-To plugin your DataLoaders, you can override the respective dataloader hooks:
+To use your DataLoaders, you can override the respective dataloader hooks in the :class:`~pytorch_lightning.core.lightning.LightningModule`:
 
 .. testcode::
 
