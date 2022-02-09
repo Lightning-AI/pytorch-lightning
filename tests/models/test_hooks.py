@@ -692,6 +692,8 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     fn = getattr(trainer, verb)
     fn(model, verbose=False)
     hooks = [
+        dict(name=f"on_{dataloader}_dataloader"),
+        dict(name=f"{dataloader}_dataloader"),
         dict(name="train", args=(False,)),
         dict(name=f"on_{noun}_model_eval"),
         dict(name="zero_grad"),
@@ -713,7 +715,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         dict(name="setup", kwargs=dict(stage=verb)),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
-        *([dict(name=f"on_{dataloader}_dataloader"), dict(name=f"{dataloader}_dataloader")] if batches else []),
         *(hooks if batches else []),
         dict(name="Callback.teardown", args=(trainer, model), kwargs=dict(stage=verb)),
         dict(name="teardown", kwargs=dict(stage=verb)),
