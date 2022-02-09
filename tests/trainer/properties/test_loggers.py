@@ -49,6 +49,7 @@ def test_trainer_loggers_setters():
     logger1 = CustomLogger()
     logger2 = CustomLogger()
     logger_collection = LoggerCollection([logger1, logger2])
+    logger_collection_2 = LoggerCollection([logger2])
 
     trainer = Trainer()
     assert type(trainer.logger) == TensorBoardLogger
@@ -63,6 +64,11 @@ def test_trainer_loggers_setters():
     assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
+    # LoggerCollection of size 1 should result in trainer.logger becoming the contained logger.
+    trainer.logger = logger_collection_2
+    assert trainer.logger == logger2
+    assert trainer.loggers == [logger2]
+
     trainer.logger = None
     assert trainer.logger is None
     assert trainer.loggers == []
@@ -75,10 +81,6 @@ def test_trainer_loggers_setters():
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
     assert trainer.logger == logger1
-
-    trainer.loggers = [logger_collection]
-    assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = []
     assert trainer.loggers == []
