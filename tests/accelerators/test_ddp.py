@@ -85,7 +85,9 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2, logger=False)
+            trainer = Trainer(
+                default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2, logger=False
+            )
             trainer.fit(model)
 
 

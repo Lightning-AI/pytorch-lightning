@@ -188,7 +188,9 @@ def test_mixed_precision(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
+    )
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
     with pytest.raises(SystemExit):
@@ -206,7 +208,9 @@ def test_pure_half_precision(tmpdir):
 
     model = IPUModel()
     model = model.half()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
+    )
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
@@ -254,7 +258,12 @@ def test_accumulated_batches(tmpdir):
 
     model = IPUModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, accumulate_grad_batches=2, callbacks=TestCallback()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="ipu",
+        devices=1,
+        accumulate_grad_batches=2,
+        callbacks=TestCallback(),
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -297,7 +306,9 @@ def test_stages_correct(tmpdir):
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, callbacks=TestCallback()
+    )
     trainer.fit(model)
     trainer.test(model)
     trainer.validate(model)
