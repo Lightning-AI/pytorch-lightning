@@ -121,6 +121,7 @@ jobs:
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
+        python -c "import horovod.torch; horovod.torch.nccl_built()"
       shell: bash
 
     - name: Cache datasets
@@ -132,7 +133,6 @@ jobs:
     - name: Sanity check
       run: |
         python requirements/_check_avail_extras.py
-        python -c "import horovod.torch; horovod.torch.nccl_built()"
 
     - name: Tests
       run: |
