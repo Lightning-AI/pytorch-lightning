@@ -13,7 +13,7 @@ you can use to deploy and make inferences with your models.
 With Lightning API
 ******************
 
-The following are some possible ways you can use Lightning to run inference in production. Note that PyTorch Lightning has some extra dependencies and using raw PyTorch might be advantageous.  
+The following are some possible ways you can use Lightning to run inference in production. Note that PyTorch Lightning has some extra dependencies and using raw PyTorch might be advantageous.
 in your production environment.
 
 ------------
@@ -266,10 +266,10 @@ from your LightningModule ``init`` and ``forward`` method.
     model = AutoEncoderProd()
     checkpoint = torch.load("best_model.ckpt")
     hyper_parameters = checkpoint["hyper_parameters"]
-    
+
     # if you want to restore any hyperparameters, you can pass them too
     model = AutoEncoderProd(**hyper_parameters)
-    
+
     state_dict = checkpoint["state_dict"]
 
     # update keys by dropping `auto_encoder.`
