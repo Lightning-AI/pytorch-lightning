@@ -1,4 +1,4 @@
-import gcsfs
+# import gcsfs
 import hydra
 import jsonargparse
 import matplotlib
@@ -11,5 +11,6 @@ print(torchtext.__version__)
 print(omegaconf.__version__)
 print(hydra.__version__)
 print(jsonargparse.__version__)
-print(gcsfs.__version__)
+# todo
+# print(gcsfs.__version__)
 print(rich.__version__)
