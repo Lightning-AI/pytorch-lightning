@@ -103,7 +103,7 @@ Here's an example where a user will have to go hunt through files to figure out 
             self.lr = params.lr
             self.coef_x = params.coef_x
 
-Models defined as such leave you with many questions, such as what is coef_x? Is it a string? A float? What is the range? 
+Models defined as such leave you with many questions, such as what is coef_x? Is it a string? A float? What is the range?
 Instead, be explicit in your init
 
 .. testcode::
