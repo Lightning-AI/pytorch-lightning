@@ -33,12 +33,18 @@ else:
 
 
 class XLASpawnLauncher(SpawnLauncher):
+    r"""
+    Spawns processes using the `torch_xla` :func:`xmp.spawn` method and joins processes when it
+    finishes.
+    """
+
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+        """Creates spawn processes and join them at the end."""
         trainer = kwargs.pop("trainer", None)
         context = mp.get_context(self._strategy.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(
-            self._wrapped_function,
+            self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             **self._strategy.get_mp_spawn_kwargs()
         )
@@ -49,7 +55,7 @@ class XLASpawnLauncher(SpawnLauncher):
         self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
-    def _wrapped_function(
+    def _wrapping_function(
         self,
         process_idx: int,
         trainer: Optional["pl.Trainer"],

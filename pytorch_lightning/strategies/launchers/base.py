@@ -16,6 +16,12 @@ from typing import Any, Callable
 
 
 class Launcher(ABC):
+    r"""
+    Abstract base class used to build new Launchers.
+
+    Subclass this class and override any of the relevant methods
+    """
+
     @abstractmethod
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches the proceses."""

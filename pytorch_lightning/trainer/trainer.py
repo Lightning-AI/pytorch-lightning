@@ -670,8 +670,7 @@ class Trainer(
         """
         try:
             if self.strategy.launcher is not None:
-                kwargs["trainer"] = self
-                return self.strategy.launcher.launch(trainer_fn, *args, **kwargs)
+                return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7

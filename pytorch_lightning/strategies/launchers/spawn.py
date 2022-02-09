@@ -31,16 +31,22 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class SpawnLauncher(Launcher):
-    def __init__(self, strategy: Strategy):
+    r"""
+    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes when it
+    finishes.
+    """
+
+    def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+        """Creates spawn processes and join them at the end."""
         trainer = kwargs.pop("trainer", None)
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()
         mp.spawn(
-            self._wrapped_function,
+            self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
         )
@@ -51,7 +57,7 @@ class SpawnLauncher(Launcher):
         self._recover_results_in_main_process(spawn_output, trainer)
         return spawn_output.trainer_results
 
-    def _wrapped_function(
+    def _wrapping_function(
         self,
         process_idx: int,
         trainer: Optional["pl.Trainer"],

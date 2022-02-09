@@ -31,6 +31,10 @@ if _HYDRA_AVAILABLE:
 
 
 class MultiProcessLauncher(Launcher):
+    r"""
+    Creates and launches subprocess scripts on each device.
+    """
+
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
@@ -39,6 +43,7 @@ class MultiProcessLauncher(Launcher):
         self.interactive_ddp_procs: List[Popen] = []
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+        """Creates children scripts."""
         kwargs.pop("trainer", None)
         self._call_children_scripts()
         return function(*args, **kwargs)
