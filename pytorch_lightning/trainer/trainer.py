@@ -1622,19 +1622,36 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
+    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`,
+        keyed by `Callback.state_key`.
+        """
+        callback_state_dicts = {}
+        for callback in self.callbacks:
+            state_dict = callback.state_dict()
+            if state_dict:
+                callback_state_dicts[callback.state_key] = state_dict
+        return callback_state_dicts
+
     def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint.
 
         Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for returning callback_states.
         """
-        callback_states = {}
+        callback_on_save_checkpoint_deprecated_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
+            if is_overridden(method_name="on_save_checkpoint", instance=callback):
+                rank_zero_deprecation(
+                    "Method `Callback.on_save_checkpoint` is deprecated in v1.6 and"
+                    " will be removed in v1.8. Please use `Callback.state_dict` instead,"
+                    " or new method signature `Callback.on_save_checkpoint -> None`."
+                )
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_key] = state
-        return callback_states
+                callback_on_save_checkpoint_deprecated_states[callback.state_key] = state
+        return callback_on_save_checkpoint_deprecated_states
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1642,7 +1659,7 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
 
         if callback_states is None:
             return
@@ -1661,8 +1678,28 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
+                if is_overridden(method_name="on_load_checkpoint", instance=callback):
+                rank_zero_deprecation(
+                    "Method `Callback.on_load_checkpoint` is deprecated in v1.6 and"
+                    " will be removed in v1.8. Please use `Callback.load_state_dict` instead,"
+                    " or new method signature `Callback.on_load_checkpoint_new(..., checkpoint)`."
+                )
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
+            callback.on_load_checkpoint_new(self, self.lightning_module, checkpoint)
+
+    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_state_dict")
+
+        if callback_states is None:
+            return
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key)
+            if state:
+                state = deepcopy(state)
+                callback.load_state_dict(state)
 
     def _call_strategy_hook(
         self,

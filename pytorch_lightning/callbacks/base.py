@@ -282,9 +282,38 @@ class Callback:
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""
 
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate callback state_dict.
+
+        Returns:
+            A dictionary containing callback state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload callback state given callback
+        state_dict.
+
+        Args:
+            state_dict: the callback state returned by ``state_dict``.
+        """
+        pass
+
+    def on_load_checkpoint_new(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> None:
+        """Called by Lightning when loading a checkpoint to give you a chance to reload or customize anything
+        else you may have saved in on_save_checkpoint.
+
+        Args:
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
+            checkpoint: entire loaded checkpoint dictionary
+        """
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> dict:
+    ) -> Optional[dict]:
         """Called when saving a model checkpoint, use to persist state.
 
         Args:

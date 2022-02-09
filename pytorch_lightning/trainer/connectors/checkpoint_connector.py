@@ -213,6 +213,7 @@ class CheckpointConnector:
             return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -316,7 +317,8 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
-                'callbacks':                 "callback specific state"[] # if not weights_only
+                'callbacks_state_dict':                 {callback.state_key: callback.state_dict}                     # if not weights_only
+                'callbacks_deprecated_hook_states':     {callback.state_key: callback.deprecated_on_save_checkpoint}  # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
@@ -351,7 +353,8 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+            checkpoint["callbacks_state_dict"] = self.trainer._call_callbacks_state_dict()
+            checkpoint["callbacks_deprecated_hook_states"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
