@@ -289,7 +289,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -348,7 +347,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -400,7 +398,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `{,Callback}.on_batch_{start,end}`
                     dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),
@@ -421,7 +418,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, torch.device("cpu"), 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `{,Callback}.on_batch_{start,end}`
                     dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_predict_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),
