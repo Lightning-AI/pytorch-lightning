@@ -35,13 +35,7 @@ class Accelerator(ABC):
 
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
-
-        Raises:
-            RuntimeError:
-                If corresponding hardware is not found.
         """
-        if not self.is_available():
-            raise RuntimeError(f"{self.__class__.__qualname__} is not configured to run on this hardware.")
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Setup plugins for the trainer fit and creates optimizers.
