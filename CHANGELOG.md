@@ -101,7 +101,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a `_Stateful` support for `LightningDataModule` ([#11637](https://github.com/PyTorchLightning/pytorch-lightning/pull/11637))
 
 
-- Added checks to `GPUAccelerator` to assert CUDA availability at initialization ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
+- Added `Accelerator.is_available` to assert device availability ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
 
 
 ### Changed

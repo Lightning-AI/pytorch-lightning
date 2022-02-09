@@ -160,7 +160,6 @@ class ReductionTestModel(BoringModel):
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, mock_is_available, mock_device_count):
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
-    # monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
         def transfer_batch_to_device(self, batch, device, dataloader_idx):

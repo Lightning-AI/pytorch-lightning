@@ -60,3 +60,20 @@ def test_set_cuda_device(set_device_mock, tmpdir):
     )
     trainer.fit(model)
     set_device_mock.assert_called_once()
+
+
+@RunIf(min_gpus=1)
+def test_gpu_availability():
+    assert GPUAccelerator.is_available()
+
+
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_mocked_gpu_available(*_):
+    assert GPUAccelerator.is_available()
+
+
+@mock.patch("torch.cuda.is_available", return_value=False)
+@mock.patch("torch.cuda.device_count", return_value=0)
+def test_mocked_gpu_availability(*_):
+    assert not GPUAccelerator.is_available()
