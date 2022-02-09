@@ -992,7 +992,9 @@ The list of loggers currently being used.
 
     def training_step(self, batch, batch_idx):
         # List of LightningLoggerBase objects
-        self.loggers
+        loggers = self.loggers
+        for logger in loggers:
+            logger.log_metrics({"foo": 1.0})
 
 local_rank
 ~~~~~~~~~~~
