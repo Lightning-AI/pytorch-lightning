@@ -60,7 +60,7 @@ class DeviceStatsMonitor(Callback):
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
-    def _on_train_batch_common(
+    def _get_and_log_device_stats(
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
@@ -94,7 +94,7 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
-        self._on_train_batch_common(trainer, pl_module, batch, batch_idx, "on_train_batch_start")
+        self._get_and_log_device_stats(trainer, pl_module, batch, batch_idx, "on_train_batch_start")
 
     def on_train_batch_end(
         self,
@@ -105,7 +105,7 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: int = 0,
     ) -> None:
-        self._on_train_batch_common(trainer, pl_module, batch, batch_idx, "on_train_batch_end")
+        self._get_and_log_device_stats(trainer, pl_module, batch, batch_idx, "on_train_batch_end")
 
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
