@@ -97,7 +97,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
 @mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
 def test_ddp_torch_dist_is_available_in_setup(
-    mock_set_device, mock_cuda_available, mock_device_count, mock_gpu_is_available, tmpdir
+    mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
 ):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 

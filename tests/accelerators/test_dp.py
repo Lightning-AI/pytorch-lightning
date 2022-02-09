@@ -156,8 +156,8 @@ class ReductionTestModel(BoringModel):
         assert out.dtype is torch.float
 
 
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_device_count, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
 

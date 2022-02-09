@@ -23,7 +23,7 @@ def test_restore_checkpoint_after_pre_setup_default():
 
 
 def test_availability():
-    assert CPUAccelerator.is_available
+    assert CPUAccelerator.is_available()
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
