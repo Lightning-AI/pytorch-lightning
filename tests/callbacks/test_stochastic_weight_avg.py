@@ -20,6 +20,7 @@ from unittest import mock
 import pytest
 import torch
 from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
 from torch.utils.data import DataLoader
 
@@ -309,8 +310,7 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-def _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False):
-    model = SwaTestModel(crash_after_epoch=crash_after_epoch)
+def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False):
     swa_start = 3
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -340,7 +340,6 @@ def _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False)
     assert len(checkpoint_files) == 1
     checkpoint_path = checkpoint_dir / checkpoint_files[0]
 
-    model = SwaTestModel()
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -355,19 +354,48 @@ def _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=4, ddp=False)
     )
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
-        trainer.fit(model, ckpt_path=checkpoint_path.as_posix())
+        trainer.fit(resume_model, ckpt_path=checkpoint_path.as_posix())
+
+
+class CustomSchedulerModel(SwaTestModel):
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+        def lr_lambda(current_step: int):
+            return 0.1
+
+        scheduler = LambdaLR(optimizer, lr_lambda, -1)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": self.interval,
+            },
+        }
 
 
 @pytest.mark.parametrize("crash_after_epoch", [2, 4])
 def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
-    _swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch=crash_after_epoch)
+    model = SwaTestModel(crash_after_epoch=crash_after_epoch)
+    resume_model = SwaTestModel()
+    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
+
+
+@pytest.mark.parametrize("crash_after_epoch", [2, 4])
+def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_after_epoch):
+    # Reproduces the bug reported in https://github.com/PyTorchLightning/pytorch-lightning/issues/11665
+    model = CustomSchedulerModel(crash_after_epoch=crash_after_epoch)
+    resume_model = CustomSchedulerModel()
+    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
 
 
 @RunIf(skip_windows=True, min_torch="1.8")
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     # Requires PyTorch >= 1.8 to include this segfault fix:
     # https://github.com/pytorch/pytorch/pull/50998
-    _swa_resume_training_from_checkpoint(tmpdir, ddp=True)
+    model = SwaTestModel(crash_after_epoch=4)
+    resume_model = SwaTestModel()
+    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=True)
 
 
 def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy, gpus=None):
