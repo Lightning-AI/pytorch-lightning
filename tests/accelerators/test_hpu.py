@@ -22,10 +22,11 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
 from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.plugins import HPUPlugin, HPUPrecisionPlugin
+from pytorch_lightning.plugins import HPUPrecisionPlugin
+from pytorch_lightning.strategies.hpu import HPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _HPU_AVAILABLE, DeviceType
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -120,7 +121,7 @@ def test_warning_if_hpus_not_used(tmpdir):
 @RunIf(hpu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, strategy=HPUPlugin(device=torch.device("hpu")))
+        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=HPUStrategy(device=torch.device("hpu")))
     assert len(record) == 0
 
 
@@ -188,13 +189,13 @@ def test_optimization(tmpdir):
 def test_mixed_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-            assert trainer.accelerator.model.precision == "bf16"
+            assert trainer.strategy.model.precision == "bf16"
             raise SystemExit
 
     model = HPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, precision="bf16", callbacks=TestCallback())
-    assert isinstance(trainer.accelerator.precision_plugin, HPUPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == "bf16"
+    assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == "bf16"
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -203,8 +204,8 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.accelerator.model.precision == 16
-            for param in trainer.accelerator.model.parameters():
+            assert trainer.strategy.model.precision == 16
+            for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
 
@@ -212,9 +213,9 @@ def test_pure_half_precision(tmpdir):
     model = model.half()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, precision=16, callbacks=TestCallback())
 
-    assert isinstance(trainer.accelerator.training_type_plugin, HPUPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, HPUPrecisionPlugin)
-    assert trainer.accelerator.precision_plugin.precision == 16
+    assert isinstance(trainer.strategy, HPUStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == 16
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -344,11 +345,11 @@ def test_set_devices_if_none_hpu():
 
 
 @RunIf(hpu=True)
-def test_device_type(tmpdir):
-    """HPU does not support (trainer.training_type_plugin, HPUPlugin) yet."""
+def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 
-    trainer = Trainer(hpus=8)
-    assert trainer._device_type == DeviceType.HPU
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), hpus=8)
+    assert isinstance(trainer.strategy, HPUStrategy)
+    assert trainer._device_type == _AcceleratorType.HPU
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
