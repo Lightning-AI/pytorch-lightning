@@ -2,7 +2,7 @@ Lightning Transformers
 ======================
 
 `Lightning Transformers <https://lightning-transformers.readthedocs.io/en/latest/>`_ offers a flexible interface for training and fine-tuning SOTA Transformer models
-using the `PyTorch Lightning Trainer <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html>`_.
+using the :doc:`PyTorch Lightning Trainer <../common/trainer>`.
 
 .. code-block:: bash
 
