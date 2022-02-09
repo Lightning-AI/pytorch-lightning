@@ -594,6 +594,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed supporting remote filesystems with `Trainer.weights_save_path` for fault-tolerant training ([#11776](https://github.com/PyTorchLightning/pytorch-lightning/pull/11776))
 
 
+- Configure native Deepspeed schedulers with interval='step' ([#11788](https://github.com/PyTorchLightning/pytorch-lightning/pull/11788))
+
+
 ## [1.5.9] - 2022-01-20
 
 ### Fixed
