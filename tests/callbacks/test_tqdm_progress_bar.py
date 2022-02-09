@@ -159,7 +159,6 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert bar.val_progress_bar.total_values == expected_sanity_steps
     assert bar.val_progress_bar.n_values == list(range(1, num_sanity_val_steps + 1)) * num_dl
     assert bar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
-    assert bar.val_progress_bar.leave
 
     # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)

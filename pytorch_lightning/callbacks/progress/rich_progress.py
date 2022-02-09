@@ -350,12 +350,22 @@ class RichProgressBar(ProgressBarBase):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
-            if self.val_progress_bar_id is not None:
-                self.progress.update(self.val_progress_bar_id, advance=self.refresh_rate, visible=False)
+            if trainer.sanity_checking:
+                if self.val_sanity_progress_bar_id is not None:
+                    self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
-            self.val_progress_bar_id = self._add_task(
-                self.total_val_batches, self.validation_description, visible=False
-            )
+                self.val_sanity_progress_bar_id = self._add_task(
+                    self.total_val_batches, self.sanity_check_description, visible=False
+                )
+            else:
+                if self.val_progress_bar_id is not None:
+                    self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
+
+                # TODO: remove old tasks when new onces are created
+                self.val_progress_bar_id = self._add_task(
+                    self.total_val_batches, self.validation_description, visible=False
+                )
+
             self.refresh()
 
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
@@ -382,13 +392,14 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
+        super().on_validation_end(trainer, pl_module)
 
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
             if self.test_progress_bar_id is not None:
-                self.progress.update(self.test_progress_bar_id, advance=self.refresh_rate, visible=False)
+                self.progress.update(self.test_progress_bar_id, advance=0, visible=False)
             self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
             self.refresh()
 
@@ -397,7 +408,7 @@ class RichProgressBar(ProgressBarBase):
     ) -> None:
         if self.has_dataloader_changed(dataloader_idx):
             if self.predict_progress_bar_id is not None:
-                self.progress.update(self.predict_progress_bar_id, advance=self.refresh_rate, visible=False)
+                self.progress.update(self.predict_progress_bar_id, advance=0, visible=False)
             self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
             self.refresh()
 
@@ -415,6 +426,7 @@ class RichProgressBar(ProgressBarBase):
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
+                # TODO: Fix this in a follow-up
                 self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()
