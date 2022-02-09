@@ -25,11 +25,12 @@ from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -55,9 +56,11 @@ class CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        if not os.path.isdir(self.trainer.weights_save_path):
+        weights_save_path = self.trainer.weights_save_path
+        fs = get_filesystem(weights_save_path)
+        if not fs.isdir(weights_save_path):
             return None
-        dir_path_hpc = str(self.trainer.weights_save_path)
+        dir_path_hpc = str(weights_save_path)
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
@@ -65,8 +68,8 @@ class CheckpointConnector:
     @property
     def _fault_tolerant_auto_resume_path(self) -> Optional[str]:
         auto_saved_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
-        if os.path.exists(auto_saved_path):
-            return auto_saved_path
+        fs = get_filesystem(auto_saved_path)
+        return auto_saved_path if fs.exists(auto_saved_path) else None
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -155,6 +158,8 @@ class CheckpointConnector:
         datamodule = self.trainer.datamodule
         if datamodule is not None:
             datamodule.on_load_checkpoint(self._loaded_checkpoint)
+            if datamodule.__class__.__qualname__ in self._loaded_checkpoint:
+                datamodule.load_state_dict(self._loaded_checkpoint[datamodule.__class__.__qualname__])
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -234,7 +239,9 @@ class CheckpointConnector:
             return
 
         self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        self.trainer.fit_loop.current_epoch = self._loaded_checkpoint["epoch"]
+        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
@@ -260,21 +267,6 @@ class CheckpointConnector:
             raise MisconfigurationException(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
-            )
-
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        self.trainer.accumulate_grad_batches = self.trainer.accumulation_scheduler.get_accumulate_grad_batches(
-            self.trainer.current_epoch
-        )
-        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-        expected_steps = self.trainer.num_training_batches / n_accum
-        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch."
-                " Training will start from the beginning of the next epoch."
-                " This can cause unreliable results if further training is done,"
-                " consider using an end of epoch checkpoint."
             )
 
     def restore_optimizers_and_schedulers(self) -> None:
@@ -309,10 +301,13 @@ class CheckpointConnector:
             # move optimizer to GPU 1 weight at a time
             # avoids OOM
             if self.trainer.root_gpu is not None:
-                for state in optimizer.state.values():
-                    for k, v in state.items():
-                        if isinstance(v, torch.Tensor):
-                            state[k] = v.cuda(self.trainer.root_gpu)
+                for param, state in optimizer.state.items():
+                    if isinstance(state, dict):
+                        for k, v in state.items():
+                            if isinstance(v, torch.Tensor):
+                                state[k] = v.cuda(self.trainer.root_gpu)
+                    elif isinstance(state, torch.Tensor):
+                        optimizer.state[param] = state.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
         """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
@@ -346,7 +341,7 @@ class CheckpointConnector:
                 CHECKPOINT_HYPER_PARAMS_KEY:
                 CHECKPOINT_HYPER_PARAMS_TYPE:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
-                LightningDataModule.__class__.__name__: pl DataModule's state
+                LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
         """
 
@@ -405,10 +400,17 @@ class CheckpointConnector:
             else:
                 checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
-        # give the model a chance to dump a few things
+        # dump stateful datamodule
+        datamodule = self.trainer.datamodule
+        if datamodule is not None:
+            datamodule_state_dict = datamodule.state_dict()
+            if datamodule_state_dict:
+                checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
+
+        # on_save_checkpoint hooks
         model.on_save_checkpoint(checkpoint)
-        if self.trainer.datamodule is not None:
-            self.trainer.datamodule.on_save_checkpoint(checkpoint)
+        if datamodule is not None:
+            datamodule.on_save_checkpoint(checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment
