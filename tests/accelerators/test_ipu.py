@@ -106,6 +106,7 @@ def test_fail_if_no_ipus(tmpdir):
 
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
+    assert IPUAccelerator.is_available()
     trainer = Trainer(default_root_dir=tmpdir, ipus=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
     trainer = Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")

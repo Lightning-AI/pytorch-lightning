@@ -985,6 +985,19 @@ The current logger being used (tensorboard or other supported logger)
         # the particular logger
         tensorboard_logger = self.logger.experiment
 
+loggers
+~~~~~~~
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        # List of LightningLoggerBase objects
+        loggers = self.loggers
+        for logger in loggers:
+            logger.log_metrics({"foo": 1.0})
+
 local_rank
 ~~~~~~~~~~~
 

@@ -16,7 +16,7 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -47,3 +47,7 @@ class TPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 8
+
+    @staticmethod
+    def is_available() -> bool:
+        return _TPU_AVAILABLE
