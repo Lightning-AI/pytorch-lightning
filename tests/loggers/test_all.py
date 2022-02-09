@@ -431,7 +431,11 @@ def test_logger_default_name(tmpdir):
     # MLflow
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
         "pytorch_lightning.loggers.mlflow.MlflowClient"
-    ):
+    ) as mlflow_client:
+        mlflow_client().get_experiment_by_name.return_value = None
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
+
+        _ = logger.experiment
+        logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
         # on MLFLowLogger `name` refers to the experiment id
-        assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
+        # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"
