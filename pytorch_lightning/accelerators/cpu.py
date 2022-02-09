@@ -82,8 +82,8 @@ def get_cpu_process_metrics() -> dict[str, float]:
         )
 
     metrics = {
-        f"vm_percent": psutil.virtual_memory().percent,
+        f"cpu_vm_percent": psutil.virtual_memory().percent,
         f"cpu_percent": psutil.cpu_percent(),
-        f"swap_percent": psutil.swap_memory().percent,
+        f"cpu_swap_percent": psutil.swap_memory().percent,
     }
     return metrics

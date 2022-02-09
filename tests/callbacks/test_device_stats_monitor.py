@@ -100,9 +100,9 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
                 "memory.used",
                 "memory.free",
                 "utilization.memory",
-                "vm_percent",
+                "cpu_vm_percent",
                 "cpu_percent",
-                "swap_percent",
+                "cpu_swap_percent",
             ]
             for f in fields:
                 assert any(f in h for h in metrics.keys())
@@ -130,7 +130,7 @@ def test_device_stats_cpu(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = ["vm_percent", "cpu_percent", "swap_percent"]
+            fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
             for f in fields:
                 assert any(f in h for h in metrics.keys())
 
