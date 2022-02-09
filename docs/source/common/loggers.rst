@@ -52,7 +52,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
         save_dir=".",  # Optional
         project_name="default_project",  # Optional
         rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-        experiment_name="default",  # Optional
+        experiment_name="lightning_logs",  # Optional
     )
     trainer = Trainer(logger=comet_logger)
 
