@@ -16,7 +16,6 @@ ARG CUDA_VERSION=10.2
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
-ARG BAGUA_CUDA_VERSION=102
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
 
@@ -74,7 +73,8 @@ RUN \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
 
-    # Disable cache
+    # Disable cache \
+    export BAGUA_CUDA_VERSION=${CUDA_VERSION//"."/""} && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
@@ -137,10 +137,6 @@ RUN \
     # install DeepSpeed
     pip install deepspeed==0.5.7 && \
     python -c "import deepspeed; print(deepspeed.__version__)"
-
-RUN \
-    # install Bagua
-    pip install bagua-cuda${BAGUA_CUDA_VERSION}==0.9.0
 
 RUN \
     # Show what we have

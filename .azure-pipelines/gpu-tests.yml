@@ -61,10 +61,8 @@ jobs:
     - bash: |
         python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
-        python -c "import horovod.torch"
-        python -c "import fairscale ; print(fairscale.__version__)"
-        python -c "import deepspeed ;  print(deepspeed.__version__)"
-        python -c "import bagua ;  print(bagua.__version__)"
+        python requirements/_check_avail_strategies.py
+        python requirements/_check_avail_extras.py
       displayName: 'Env details'
 
     - bash: |

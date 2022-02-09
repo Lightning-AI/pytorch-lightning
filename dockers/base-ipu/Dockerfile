@@ -81,7 +81,7 @@ COPY ./.github/prune-packages.py prune_packages.py
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python adjust_versions.py requirements-extra.txt && \
+    python _adjust_versions.py requirements-extra.txt && \
     python prune_packages.py requirements-extra.txt "fairscale" "horovod" && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
