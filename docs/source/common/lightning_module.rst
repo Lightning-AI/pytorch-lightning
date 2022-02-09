@@ -986,7 +986,7 @@ The current logger being used (tensorboard or other supported logger)
 loggers
 ~~~~~~~
 
-The list of loggers currently being used.
+The list of loggers currently being used by the Trainer.
 
 .. code-block:: python
 

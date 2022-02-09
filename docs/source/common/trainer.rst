@@ -1734,8 +1734,8 @@ The current epoch
             pass
 
 
-logger (p)
-**********
+logger
+*******
 
 The current logger being used. Here's an example using tensorboard
 
@@ -1745,10 +1745,10 @@ The current logger being used. Here's an example using tensorboard
     tensorboard = logger.experiment
 
 
-loggers (p)
-***********
+loggers
+********
 
-The list of loggers currently being used.
+The list of loggers currently being used by the Trainer.
 
 .. code-block:: python
 
