@@ -23,7 +23,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
