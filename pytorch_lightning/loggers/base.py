@@ -183,6 +183,7 @@ class LightningLoggerBase(ABC):
 
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         """Record model graph.
+
         Args:
             model: lightning model
             input_array: input passes to `model.forward`
