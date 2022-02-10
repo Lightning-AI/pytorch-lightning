@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
@@ -502,6 +502,7 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     ):
         trainer.fit(model)
 
+
 def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     class AggregationLogger(CSVLogger):
         def __init__(self, *args, **kwargs):
@@ -521,5 +522,6 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
         match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
         " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
     ):
-        trainer = Trainer(logger=logger)
-    trainer2 = Trainer(logger=logger2)
+        Trainer(logger=logger)
+    # Should have no deprecation warning
+    Trainer(logger=logger2)
