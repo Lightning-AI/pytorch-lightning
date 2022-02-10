@@ -117,8 +117,8 @@ def test_trainer_gpu_parse(_, mocked_device_count, devices, expected_num_gpus, s
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=3)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_root_gpu_property(_, mocked_device_count, devices, expected_root_gpu, strategy):
     assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).root_gpu == expected_root_gpu
 
@@ -212,8 +212,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "LOCAL_WORLD_SIZE": "2",
     },
 )
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("devices", [[0, 1, 2], 2])
 def test_torchelastic_gpu_parsing(_, mocked_device_count, devices):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
