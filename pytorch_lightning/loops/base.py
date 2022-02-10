@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 T = TypeVar("T")  # the output type of `run`
 
@@ -287,6 +288,8 @@ class Loop(ABC, Generic[T]):
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
+        # do not get the mode from `self.trainer` because it might not have been attached yet
+        ft_enabled = _fault_tolerant_training()
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
