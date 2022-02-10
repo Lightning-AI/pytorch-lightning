@@ -127,7 +127,7 @@ class StochasticWeightAveraging(Callback):
         self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[SWALR] = None
-        self._scheduler_step_count: Optional[int] = None
+        self._scheduler_state: Optional[Dict] = None
         self._init_n_averaged = 0
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
 
@@ -191,9 +191,9 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
-            if self._scheduler_step_count is not None:
-                # Restore scheduler step count from checkpoint
-                self._swa_scheduler._step_count = self._scheduler_step_count
+            if self._scheduler_state is not None:
+                # Restore scheduler state from checkpoint
+                self._swa_scheduler.load_state_dict(self._scheduler_state)
             elif trainer.current_epoch != self.swa_start:
                 # Log a warning if we're initializing after start without any checkpoint data,
                 # as behaviour will be different compared to having checkpoint data.
@@ -305,7 +305,7 @@ class StochasticWeightAveraging(Callback):
     ) -> dict:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
-            "scheduler_step_count": None if self._swa_scheduler is None else self._swa_scheduler._step_count,
+            "scheduler_state": None if self._swa_scheduler is None else self._swa_scheduler.state_dict(),
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
 
@@ -313,7 +313,7 @@ class StochasticWeightAveraging(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
         self._init_n_averaged = callback_state["n_averaged"]
-        self._scheduler_step_count = callback_state["scheduler_step_count"]
+        self._scheduler_state = callback_state["scheduler_state"]
         self._load_average_model_parameters(callback_state["average_model_parameters"])
 
     def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Optional[List[nn.Parameter]]:
