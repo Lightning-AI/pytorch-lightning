@@ -328,7 +328,7 @@ def test_tpu_choice(tmpdir, devices, expected_tpu_id, error_expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--devices=8", {"devices": 8}), ("--devices=1,", {"devices": "1,"})],
+    [("--accelerator=gpu --devices=8", {"devices": 8}), ("--accelerator=gpu --devices=1,", {"devices": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
