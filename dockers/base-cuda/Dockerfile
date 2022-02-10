@@ -75,7 +75,6 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 
-# conda init
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
