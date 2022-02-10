@@ -46,6 +46,7 @@ class LoggerConnector:
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
+        self._override_agg_and_log_metrics: bool = False
 
     def on_trainer_init(
         self,
@@ -68,6 +69,7 @@ class LoggerConnector:
         if not isinstance(self.trainer.logger, LoggerCollection) and is_overridden(
             "agg_and_log_metrics", self.trainer.logger, LightningLoggerBase
         ):
+            self._override_agg_and_log_metrics = True
             rank_zero_deprecation(
                 "`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
                 " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
@@ -124,9 +126,7 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if not isinstance(self.trainer.logger, LoggerCollection) and is_overridden(
-            "agg_and_log_metrics", self.trainer.logger, LightningLoggerBase
-        ):
+        if self._override_agg_and_log_metrics:
             self.trainer.logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
         else:
             self.trainer.logger.log_metrics(metrics=scalar_metrics, step=step)
