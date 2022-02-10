@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 from typing import Sequence
 from unittest import mock
@@ -436,7 +437,6 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
     assert get_len(dataloader) == float("inf")
 
 
-@RunIf(min_gpus=2)
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 @pytest.mark.parametrize("is_min_size_mode", [False, True])
 @pytest.mark.parametrize("use_combined_loader", [False, True])
@@ -455,18 +455,20 @@ def test_combined_dataloader_for_training_with_ddp(
     }
     if use_combined_loader:
         dataloader = CombinedLoader(dataloader, mode=mode)
-    expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
-    expected_length_after_ddp = expected_length_before_ddp // 2 if replace_sampler_ddp else expected_length_before_ddp
     model = BoringModel()
     trainer = Trainer(
         strategy="ddp",
         accelerator="auto",
-        devices=2,
+        devices="auto",
         replace_sampler_ddp=replace_sampler_ddp,
         multiple_trainloader_mode="max_size_cycle" if use_combined_loader else mode,
     )
     trainer._data_connector.attach_data(
         model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
+    )
+    expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
+    expected_length_after_ddp = (
+        math.ceil(expected_length_before_ddp / trainer.devices) if replace_sampler_ddp else expected_length_before_ddp
     )
     trainer.reset_train_dataloader(model=model)
     assert trainer.train_dataloader is not None
