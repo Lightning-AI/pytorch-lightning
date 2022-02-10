@@ -169,6 +169,8 @@ class FitLoop(Loop[None]):
         """Evaluates when to leave the loop."""
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
+        # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
+        # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
 
         should_stop = False
