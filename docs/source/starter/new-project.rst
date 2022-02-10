@@ -380,9 +380,9 @@ You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
 
-    # ----------------------------------
+    # -------------------------------
     # using the AE to generate images
-    # ----------------------------------
+    # -------------------------------
     class LitAutoEncoder(LightningModule):
         def __init__(self):
             super().__init__()

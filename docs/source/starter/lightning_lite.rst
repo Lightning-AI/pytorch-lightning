@@ -221,7 +221,7 @@ but there are several major challenges ahead of you now:
    :header-rows: 0
 
    * - Processes divergence
-     - This happens when processes execute a different section of the code due to different if/else conditions, race conditions on existing files, etc., resulting in hanging.
+     - This happens when processes execute a different section of the code due to different if/else conditions, race conditions on existing files and so on, resulting in hanging.
    * - Cross processes reduction
      - Miscalculated metrics or gradients due to errors in their reduction.
    * - Large sharded models
@@ -416,7 +416,7 @@ Configure the devices to run on. Can be of type:
     # equivalent
     lite = Lite(devices=0)
 
-    # int: run on to GPUs
+    # int: run on two GPUs
     lite = Lite(devices=2, accelerator="gpu")
 
     # list: run on GPUs 1, 4 (by bus ordering)
@@ -695,7 +695,7 @@ load
 ====
 
 Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Lite will take care of
-handling the loading part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
+handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 

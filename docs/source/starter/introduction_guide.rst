@@ -99,7 +99,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
             return x
 
 Notice this is a :doc:`lightning module <../common/lightning_module>` instead of a ``torch.nn.Module``. A LightningModule is
-equivalent to a pure PyTorch module except it has added functionality. However, you can use it **exactly** the same as you would a PyTorch module.
+equivalent to a pure PyTorch ``nn.Module`` except it has added functionality. However, you can use it **exactly** the same as you would a PyTorch ``nn.Module``.
 
 .. testcode::
 
