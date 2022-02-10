@@ -188,3 +188,25 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(slow=True)`
             if marker.name == "skipif" and marker.kwargs.get("slow")
         ]
+
+
+def pytest_addoption(parser):
+    parser.addoption("--hpus", action="store", type=int, default=1, help="Number of hpus 1-8")
+    parser.addoption("--hmp-bf16", action="store", type=str, default='./ops_bf16_mnist.txt', help="bf16 ops list file in hmp O1 mode")
+    parser.addoption("--hmp-fp32", action="store", type=str, default='./ops_fp32_mnist.txt', help="fp32 ops list file in hmp O1 mode")
+
+@pytest.fixture
+def hpus(request):
+    hpus = request.config.getoption("--hpus")
+    return hpus
+
+@pytest.fixture
+def hmp_params(request):
+    """Ensure precision plugin value is set correctly."""
+    hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
+    hmp_params = dict.fromkeys(hmp_keys)
+    hmp_params["level"] = "O1"
+    hmp_params["verbose"] = False
+    hmp_params["bf16_ops"] = request.config.getoption("--hmp-bf16")
+    hmp_params["fp32_ops"] = request.config.getoption("--hmp-fp32")
+    return hmp_params

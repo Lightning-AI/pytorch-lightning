@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from typing import Optional
+from argparse import ArgumentParser
 
 import pytest
 import torch
@@ -94,7 +95,6 @@ class HPUClassificationModel(ClassificationModel):
     def test_epoch_end(self, outputs) -> None:
         self.log("test_acc", torch.stack(outputs).mean())
 
-
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus(tmpdir):
     with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
@@ -126,7 +126,6 @@ def test_no_warning_plugin(tmpdir):
 
 
 @RunIf(hpu=True)
-@pytest.mark.parametrize("hpus", [1])
 def test_all_stages(tmpdir, hpus):
     model = HPUModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
@@ -137,7 +136,6 @@ def test_all_stages(tmpdir, hpus):
 
 
 @RunIf(hpu=True)
-@pytest.mark.parametrize("hpus", [1])
 def test_inference_only(tmpdir, hpus):
     model = HPUModel()
 
@@ -266,14 +264,7 @@ def test_stages_correct(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_precision_plugin(tmpdir):
-    """Ensure precision plugin value is set correctly."""
-    hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
-    hmp_params = dict.fromkeys(hmp_keys)
-    hmp_params["level"] = "O1"
-    hmp_params["verbose"] = False
-    hmp_params["bf16_ops"] = "./ops_bf16_mnist.txt"
-    hmp_params["fp32_ops"] = "./ops_fp32_mnist.txt"
+def test_precision_plugin(tmpdir, hmp_params):
 
     plugin = HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
     assert plugin.precision == "bf16"
