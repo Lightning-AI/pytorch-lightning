@@ -184,7 +184,7 @@ class Strategy(ABC):
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """performs the actual optimizer step.
 
         Args:
@@ -195,7 +195,7 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.

@@ -22,6 +22,10 @@ def test_restore_checkpoint_after_pre_setup_default():
     assert not plugin.restore_checkpoint_after_setup
 
 
+def test_availability():
+    assert CPUAccelerator.is_available()
+
+
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
 def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
     """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre-

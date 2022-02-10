@@ -565,7 +565,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self.logger: Optional[LightningLoggerBase]
+        self._loggers: List[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1243,7 +1243,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
@@ -2548,6 +2547,37 @@ class Trainer(
     """
     Logging properties
     """
+
+    @property
+    def logger(self) -> Optional[LightningLoggerBase]:
+        if len(self.loggers) == 0:
+            return None
+        if len(self.loggers) == 1:
+            return self.loggers[0]
+        else:
+            rank_zero_warn(
+                "Using trainer.logger when Trainer is configured to use multiple loggers."
+                " This behavior will change in v1.8 when LoggerCollection is removed, and"
+                " trainer.logger will return the first logger in trainer.loggers"
+            )
+            return LoggerCollection(self.loggers)
+
+    @logger.setter
+    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+        if not logger:
+            self.loggers = []
+        elif isinstance(logger, LoggerCollection):
+            self.loggers = list(logger)
+        else:
+            self.loggers = [logger]
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
+
+    @loggers.setter
+    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+        self._loggers = loggers if loggers else []
 
     @property
     def callback_metrics(self) -> dict:

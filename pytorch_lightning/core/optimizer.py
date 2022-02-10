@@ -94,12 +94,15 @@ class LightningOptimizer:
             yield
             lightning_module.untoggle_optimizer(self._optimizer_idx)
 
-    def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> None:
+    def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
 
         Args:
-            closure: An optional optimizer_closure.
+            closure: An optional optimizer closure.
             kwargs: Any additional arguments to the ``optimizer.step()`` call.
+
+        Returns:
+            The output from the step call, which is generally the output of the closure execution.
 
         Example::
 
@@ -163,7 +166,7 @@ class LightningOptimizer:
         assert self._strategy is not None
         assert self._strategy.lightning_module is not None
         with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
-            self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+            return self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
 
 def _init_optimizers_and_lr_schedulers(

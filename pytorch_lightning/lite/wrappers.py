@@ -54,9 +54,9 @@ class _LiteOptimizer:
     def state_dict(self) -> Dict[str, Tensor]:
         return self._strategy.optimizer_state(self.optimizer)
 
-    def step(self, closure: Optional[Callable] = None) -> None:
+    def step(self, closure: Optional[Callable] = None) -> Any:
         closure = closure or _do_nothing_closure
-        self._strategy.optimizer_step(
+        return self._strategy.optimizer_step(
             self.optimizer,
             opt_idx=0,
             closure=closure,
