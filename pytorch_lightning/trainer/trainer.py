@@ -1240,7 +1240,8 @@ class Trainer(
 
             if hparams_initial is not None:
                 self.logger.log_hyperparams(hparams_initial)
-            self.logger.log_graph(self.lightning_module)
+            if hasattr(self.logger, "log_graph"):
+                self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
     def _teardown(self):
