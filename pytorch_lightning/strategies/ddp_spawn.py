@@ -26,7 +26,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.spawn import SpawnLauncher
+from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
@@ -77,7 +77,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self.set_world_ranks()
-        self._launcher = SpawnLauncher(self)
 
     @property
     def num_nodes(self) -> int:
@@ -109,6 +108,9 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def _is_single_process_single_device(self):
         return True
+
+    def _configure_launcher(self):
+        self._launcher = _SpawnLauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)

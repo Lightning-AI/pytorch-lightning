@@ -30,7 +30,7 @@ if _HYDRA_AVAILABLE:
     from hydra.utils import get_original_cwd, to_absolute_path
 
 
-class MultiProcessLauncher(Launcher):
+class _SubprocessScriptLauncher(Launcher):
     r"""
     Creates and launches subprocess scripts on each device.
     """
@@ -45,7 +45,8 @@ class MultiProcessLauncher(Launcher):
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Creates children scripts."""
         kwargs.pop("trainer", None)
-        self._call_children_scripts()
+        if not self.cluster_environment.creates_processes_externally:
+            self._call_children_scripts()
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:

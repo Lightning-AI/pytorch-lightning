@@ -172,6 +172,7 @@ class AcceleratorConnector:
         self._set_devices_if_none()
 
         self.strategy = self.final_strategy()
+        self.strategy._configure_launcher()
         self.accelerator = self.strategy.accelerator
         self._check_plugin_compatibility()
 
@@ -774,9 +775,6 @@ class AcceleratorConnector:
         if hasattr(training_type, "sync_batchnorm"):
             # set sync_batchnorm for training_type from trainer setting
             training_type.sync_batchnorm = self.sync_batchnorm
-
-        if isinstance(training_type, DDPStrategy):
-            training_type.configure_multi_process_launcher()
 
         return training_type
 

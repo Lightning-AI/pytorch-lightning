@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.types import _PATH
 
 
-class SpawnLauncher(Launcher):
+class _SpawnLauncher(Launcher):
     r"""
     Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes when it
     finishes.

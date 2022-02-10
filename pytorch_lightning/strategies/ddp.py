@@ -32,7 +32,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.multi_process import MultiProcessLauncher
+from pytorch_lightning.strategies.launchers.multi_process import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -133,9 +133,9 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def configure_multi_process_launcher(self):
-        if self.launcher is None and not self.cluster_environment.creates_processes_externally:
-            self._launcher = MultiProcessLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+    def _configure_launcher(self):
+        self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+        if not self.cluster_environment.creates_processes_externally:
             self._rank_0_will_call_children_scripts = True
 
     def setup_environment(self) -> None:

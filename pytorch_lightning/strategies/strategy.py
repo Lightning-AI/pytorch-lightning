@@ -27,7 +27,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.base import Launcher
+from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -49,7 +49,7 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
-        self._launcher = None
+        self._launcher: _Launcher = None
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
@@ -64,7 +64,7 @@ class Strategy(ABC):
             )
 
     @property
-    def launcher(self) -> Optional[Launcher]:
+    def launcher(self) -> Optional[_Launcher]:
         return self._launcher
 
     @property
@@ -105,6 +105,9 @@ class Strategy(ABC):
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
+
+    def _configure_launcher(self):
+        """Attach the launcher based on Strategy."""
 
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.

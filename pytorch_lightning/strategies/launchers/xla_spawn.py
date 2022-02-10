@@ -32,7 +32,7 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class XLASpawnLauncher(SpawnLauncher):
+class _XLASpawnLauncher(SpawnLauncher):
     r"""
     Spawns processes using the `torch_xla` :func:`xmp.spawn` method and joins processes when it
     finishes.

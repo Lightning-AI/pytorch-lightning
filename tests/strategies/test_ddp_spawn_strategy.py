@@ -96,6 +96,8 @@ class CustomSpawnLauncher(SpawnLauncher):
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def _configure_launcher(self):
         self._launcher = CustomSpawnLauncher(self)
 
 

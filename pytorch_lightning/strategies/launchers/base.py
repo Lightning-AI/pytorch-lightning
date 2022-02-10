@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable
 
 
-class Launcher(ABC):
+class _Launcher(ABC):
     r"""
     Abstract base class used to build new Launchers.
 
