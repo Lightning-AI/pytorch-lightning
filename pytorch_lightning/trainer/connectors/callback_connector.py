@@ -155,6 +155,7 @@ class CallbackConnector:
                     "Trainer was configured with `enable_checkpointing=False`"
                     " but found `ModelCheckpoint` in callbacks list."
                 )
+        elif enable_checkpointing:
             self.trainer.callbacks.append(ModelCheckpoint())
 
     def _configure_model_summary_callback(
