@@ -23,6 +23,7 @@ from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -264,16 +265,18 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self.trainer.train_dataloader is None
-            or self._num_completed_batches_reached()  # did not finish
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self.trainer.train_dataloader is not None
+            and not self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            loader: CombinedLoader = self.trainer.train_dataloader
+            state = loader.state_dict(has_completed=self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
-            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
-        )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
