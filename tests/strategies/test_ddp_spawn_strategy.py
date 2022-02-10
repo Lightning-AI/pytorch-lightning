@@ -20,7 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.spawn import SpawnLauncher
+from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -83,7 +83,7 @@ def test_ddp_spawn_extra_parameters(tmpdir):
     assert model.test_val == "test_val"
 
 
-class CustomSpawnLauncher(SpawnLauncher):
+class CustomSpawnLauncher(_SpawnLauncher):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)

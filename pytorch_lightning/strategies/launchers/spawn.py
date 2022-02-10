@@ -21,7 +21,7 @@ import torch
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.base import Launcher
+from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.types import _PATH
 
 
-class _SpawnLauncher(Launcher):
+class _SpawnLauncher(_Launcher):
     r"""
     Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes when it
     finishes.
