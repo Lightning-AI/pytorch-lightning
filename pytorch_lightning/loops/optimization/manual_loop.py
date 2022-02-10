@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 
 from torch import Tensor
 
+from pytorch_lightning.core.optimizer import do_nothing_closure
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
@@ -76,7 +77,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def __init__(self) -> None:
         super().__init__()
         # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
-        # `OptimizerProgress`
+        # `OptimizationProgress`
         self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
 
         self._done: bool = False
@@ -137,6 +138,10 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, {}  # free memory
+        # reset logic around the optimizer step
+        for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
+            lightning_optimizer.on_before_step = do_nothing_closure
+            lightning_optimizer.on_after_step = do_nothing_closure
         return output
 
     def _on_before_step(self) -> None:
