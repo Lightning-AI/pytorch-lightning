@@ -50,7 +50,7 @@ class SerialLoaderBoringModel(BoringModel):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_1(tmpdir):
+def test_model_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -90,7 +90,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_8(tmpdir):
+def test_model_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -110,7 +110,7 @@ def test_model_tpu_cores_8(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_1(tmpdir):
+def test_model_16bit_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -152,7 +152,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_8(tmpdir):
+def test_model_16bit_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -300,7 +300,7 @@ def test_broadcast_on_tpu():
 
 
 @pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id", "error_expected"],
+    ["devices", "expected_tpu_id", "error_expected"],
     [
         (1, None, False),
         (8, None, False),
@@ -317,23 +317,23 @@ def test_broadcast_on_tpu():
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
+def test_tpu_choice(tmpdir, devices, expected_tpu_id, error_expected):
     if error_expected:
         with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=tpu_cores)
+            Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=devices)
     else:
-        trainer = Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=tpu_cores)
+        trainer = Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=devices)
         assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    [("--devices=8", {"devices": 8}), ("--devices=1,", {"devices": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_cores_with_argparse(cli_args, expected):
-    """Test passing tpu_cores in command line."""
+def test_devices_with_argparse(cli_args, expected):
+    """Test passing devices in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
