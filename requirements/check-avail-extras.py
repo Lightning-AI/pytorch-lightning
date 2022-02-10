@@ -5,12 +5,3 @@ import matplotlib
 import omegaconf
 import rich
 import torchtext
-
-print(matplotlib.__version__)
-print(torchtext.__version__)
-print(omegaconf.__version__)
-print(hydra.__version__)
-print(jsonargparse.__version__)
-# todo
-# print(gcsfs.__version__)
-print(rich.__name__)
