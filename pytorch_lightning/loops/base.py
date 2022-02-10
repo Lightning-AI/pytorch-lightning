@@ -293,7 +293,7 @@ class Loop(ABC, Generic[T]):
                 destination[key] = v.state_dict()
             elif isinstance(v, Loop):
                 v.state_dict(destination, key + ".")
-            elif isinstance(v, _ResultCollection):
+            elif ft_enabled and isinstance(v, _ResultCollection):
                 # sync / unsync metrics
                 v.sync()
                 destination[key] = v.state_dict()
