@@ -14,8 +14,7 @@
 import logging
 import os
 from functools import partial
-from typing import Optional
-from typing import Type
+from typing import Optional, Type
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
@@ -34,8 +33,7 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
@@ -195,7 +193,7 @@ class FitLoop(Loop[None]):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         # since `trainer.num_training_batches` depends on the `train_dataloader` but that won't be called
         # until `on_run_start`, we use `limit_train_batches` instead
-        return self.trainer.limit_train_batches == 0
+        return self.done or self.trainer.limit_train_batches == 0
 
     def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
         """Connects a training epoch loop to this fit loop."""
