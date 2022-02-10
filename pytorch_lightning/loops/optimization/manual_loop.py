@@ -94,8 +94,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def on_run_start(self, *_: Any, **__: Any) -> None:
         # inject logic around the optimizer step
         for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
-            lightning_optimizer.on_before_step = self._on_before_step
-            lightning_optimizer.on_after_step = self._on_after_step
+            lightning_optimizer._on_before_step = self._on_before_step
+            lightning_optimizer._on_after_step = self._on_after_step
 
     def advance(self, batch: Any, batch_idx: int) -> None:  # type: ignore[override]
         """Performs the training step for manual optimization.
@@ -140,8 +140,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         output, self._output = self._output, {}  # free memory
         # reset logic around the optimizer step
         for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
-            lightning_optimizer.on_before_step = do_nothing_closure
-            lightning_optimizer.on_after_step = do_nothing_closure
+            lightning_optimizer._on_before_step = do_nothing_closure
+            lightning_optimizer._on_after_step = do_nothing_closure
         return output
 
     def _on_before_step(self) -> None:

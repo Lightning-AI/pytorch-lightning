@@ -54,8 +54,8 @@ class LightningOptimizer:
         self._strategy: Optional[pl.strategies.Strategy] = None
         self._optimizer_idx = 0
         # to inject logic around the optimizer step, particularly useful with manual optimization
-        self.on_before_step = do_nothing_closure
-        self.on_after_step = do_nothing_closure
+        self._on_before_step = do_nothing_closure
+        self._on_after_step = do_nothing_closure
 
     @property
     def optimizer(self) -> Optimizer:
@@ -157,7 +157,7 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
-        self.on_before_step()
+        self._on_before_step()
 
         if closure is None:
             closure = do_nothing_closure
@@ -173,7 +173,7 @@ class LightningOptimizer:
         with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
             step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
-        self.on_after_step()
+        self._on_after_step()
 
         return step_output
 
