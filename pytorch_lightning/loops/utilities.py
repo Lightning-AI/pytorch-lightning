@@ -71,7 +71,7 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
-) -> Tuple[Optional[int], int, Optional[int], int, Optional[Union[str, timedelta, Dict[str, int]]]]:
+) -> Tuple[Optional[int], int, int, int, Optional[Union[str, timedelta, Dict[str, int]]]]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
 
@@ -95,7 +95,12 @@ def _parse_loop_limits(
             max_epochs = 1000
         else:
             max_epochs = -1
-    min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
+    if min_epochs is None and min_steps is not None:
+        # setting this allows FitLoop.done to re-evaluate should_stop when it gets triggered `on_fit_start`
+        min_epochs = 1
+    if min_epochs is None:
+        # the default value is 0 so no training will be done when should_stop is triggered `on_fit_start`
+        min_epochs = 0
     return min_steps, max_steps, min_epochs, max_epochs, max_time
 
 
