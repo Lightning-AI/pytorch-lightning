@@ -415,6 +415,37 @@ def test_v1_8_0_on_configure_sharded_model(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_remove_on_epoch_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_epoch_start(self, *args, **kwargs):
+            print("on_epoch_start")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_epoch_end(self, *args, **kwargs):
+            print("on_epoch_end")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
 def test_v1_8_0_rank_zero_imports():
 
     import warnings
@@ -447,3 +478,25 @@ def test_v1_8_0_rank_zero_imports():
         " and will be removed in v1.8."
     ):
         warnings.warn("foo", LightningDeprecationWarning, stacklevel=5)
+
+
+def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
+    class TestCallback(Callback):
+        def on_before_accelerator_backend_setup(self, *args, **kwargs):
+            print("on_before_accelerator_backend called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6"
+        " and will be removed in v1.8"
+    ):
+        trainer.fit(model)

@@ -85,7 +85,7 @@ class ImageSampler(pl.callbacks.Callback):
         )
 
     @rank_zero_only
-    def on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if not _TORCHVISION_AVAILABLE:
             return
 
