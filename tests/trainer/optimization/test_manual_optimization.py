@@ -591,43 +591,9 @@ def test_step_with_optimizer_closure_2(tmpdir):
     assert trainer.global_step == limit_train_batches
 
 
-@patch("torch.optim.SGD.step")
-def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
-    """Tests that `step` works with optimizer_closure and extra arguments."""
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def on_train_start(self) -> None:
-            step_mock.reset_mock()
-
-        def training_step(self, batch, batch_idx):
-            opt = self.optimizers()
-            opt.step(closure=lambda: ..., foo=123)
-
-    model = TestModel()
-    model.training_epoch_end = None
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=0,
-        max_epochs=1,
-    )
-
-    trainer.fit(model)
-    assert step_mock.mock_calls == [call(closure=ANY, foo=123) for _ in range(limit_train_batches)]
-    assert trainer.global_step == limit_train_batches
-
-
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
-    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -666,6 +632,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
             gen_closure()
             if batch_idx % 2 == 0:
+                # passing a custom kwarg
                 opt_gen.step(closure=gen_closure, optim="sgd")
                 opt_gen.zero_grad()
 
