@@ -75,7 +75,7 @@ ENV \
 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust-versions.py adjust_versions.py
+COPY ./requirements/adjust-versions.py adjust-versions.py
 COPY ./.github/prune-packages.py prune_packages.py
 
 RUN \
