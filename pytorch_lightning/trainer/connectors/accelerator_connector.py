@@ -365,13 +365,14 @@ class AcceleratorConnector:
         # TODO: Delete this parsing section when num_processes, gpus, ipus and tpu_cores get removed
         self._gpus = gpus
         self._tpu_cores = tpu_cores
-        gpus = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
-            self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
-                devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
-            )
+        if not self._device_flag:
+            gpus = device_parser.parse_gpu_ids(gpus)
+            tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+            deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
+            if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
+                self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+                    devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
+                )
 
         if self._device_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
