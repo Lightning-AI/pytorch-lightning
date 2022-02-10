@@ -128,6 +128,7 @@ class StochasticWeightAveraging(Callback):
         self._initialized = False
         self._swa_scheduler: Optional[SWALR] = None
         self._scheduler_state: Optional[Dict] = None
+        self._scheduler_configs: Optional[List] = None
         self._init_n_averaged = 0
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
 
@@ -168,6 +169,9 @@ class StochasticWeightAveraging(Callback):
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             trainer.fit_loop.max_epochs += 1
 
+        if self._scheduler_state is not None:
+            self._clear_schedulers(trainer)
+
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
             self._initialized = True
@@ -204,6 +208,10 @@ class StochasticWeightAveraging(Callback):
 
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
+
+            if self._scheduler_configs:
+                trainer.lr_scheduler_configs[:] = self._scheduler_configs
+                self._scheduler_configs = None
 
             if trainer.lr_scheduler_configs:
                 scheduler_cfg = trainer.lr_scheduler_configs[0]
@@ -315,6 +323,21 @@ class StochasticWeightAveraging(Callback):
         self._init_n_averaged = callback_state["n_averaged"]
         self._scheduler_state = callback_state["scheduler_state"]
         self._load_average_model_parameters(callback_state["average_model_parameters"])
+        if self._scheduler_state is not None:
+            self._clear_schedulers(trainer)
+
+    def _clear_schedulers(self, trainer: "pl.Trainer") -> None:
+        # If we have scheduler state saved, clear the scheduler configs so that we don't try to
+        # load state into the wrong type of schedulers when restoring scheduler checkpoint state.
+        # We'll configure the scheduler and re-load its state in on_train_epoch_start.
+        # Note that this is called from both on_load_checkpoint and on_fit_start, to handle when the
+        # training strategy's restore_checkpoint_after_setup is both True and False, and relies
+        # on the callback state being restored before the schedulers.
+        # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
+        if trainer.lr_scheduler_configs:
+            assert len(trainer.lr_scheduler_configs) == 1
+            self._scheduler_configs = list(trainer.strategy.lr_scheduler_configs)
+            trainer.lr_scheduler_configs.clear()
 
     def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Optional[List[nn.Parameter]]:
         if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
