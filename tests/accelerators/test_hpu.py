@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from argparse import ArgumentParser
+from typing import Optional
 
 import pytest
 import torch
@@ -94,6 +94,7 @@ class HPUClassificationModel(ClassificationModel):
 
     def test_epoch_end(self, outputs) -> None:
         self.log("test_acc", torch.stack(outputs).mean())
+
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus(tmpdir):
