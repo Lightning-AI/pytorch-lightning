@@ -171,9 +171,11 @@ class LightningOptimizer:
         assert self._strategy is not None
         assert self._strategy.lightning_module is not None
         with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
-            return self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+            step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
         self.on_after_step()
+
+        return step_output
 
 
 def _init_optimizers_and_lr_schedulers(
