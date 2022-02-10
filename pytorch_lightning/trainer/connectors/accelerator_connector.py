@@ -263,7 +263,7 @@ class AcceleratorConnector:
                     f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
                 )
                 self._strategy_flag = accelerator
-            elif accelerator == "ddp_cpu":
+            elif accelerator == "ddp_cpu" and not self._strategy_flag:
                 self._strategy_flag = accelerator
 
         if precision:
