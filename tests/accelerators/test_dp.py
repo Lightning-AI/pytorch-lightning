@@ -164,11 +164,11 @@ def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_de
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
     monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+
     class CustomModel(BoringModel):
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             batch = batch.to(device)
             return batch
-          
 
     trainer_options = dict(default_root_dir=tmpdir, max_steps=7, accelerator="gpu", devices=[0, 1], strategy="dp")
 
