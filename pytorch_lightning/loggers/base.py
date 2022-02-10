@@ -286,11 +286,11 @@ class LoggerCollection(LightningLoggerBase):
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics, step)
+            logger.agg_and_log_metrics(metrics=metrics, step=step)
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
-            logger.log_metrics(metrics, step)
+            logger.log_metrics(metrics=metrics, step=step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:
