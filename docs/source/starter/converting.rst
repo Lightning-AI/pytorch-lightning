@@ -58,8 +58,8 @@ Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningMo
 3. Configure the Training Logic
 *******************************
 
-Lightning automates the training loop for you and manages all the associated components, such as epoch and batch tracking, optimizer and schedulers,
-metrics reduction. As a user, you just need to define how your model behaves with a batch of training data within the
+Lightning automates the training loop for you and manages all of the associated components such as: epoch and batch tracking, optimizers and schedulers,
+and metric reduction. As a user, you just need to define how your model behaves with a batch of training data within the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method. When using Lightning, simply override the
 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method which takes the current ``batch`` and the ``batch_idx``
 as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule defines multiple optimizers within its
@@ -80,7 +80,7 @@ as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule 
 4. Configure the Validation Logic
 *********************************
 
-Lightning also automates the validation loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
+Lightning also automates the validation loop for you and manages all of the associated components such as: epoch and batch tracking, and metrics reduction. As a user,
 you just need to define how your model behaves with a batch of validation data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
 method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method which takes the current
 ``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
@@ -145,7 +145,7 @@ The test loop isn't used within :meth:`~pytorch_lightning.trainer.trainer.Traine
 6. Configure Prediction Logic
 *****************************
 
-Lightning automates the prediction loop for you and manages all the associated components, such as epoch and batch tracking. As a user,
+Lightning automates the prediction loop for you and manages all of the associated components such as epoch and batch tracking. As a user,
 you just need to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
 method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method which takes the current
 ``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
@@ -222,9 +222,9 @@ To use your DataLoaders, you can override the respective dataloader hooks in the
         def predict_dataloader(self):
             return DataLoader(...)
 
-Additionally, you can also plugin your dataloaders using one of the following ways:
+Alternatively, you can pass your dataloaders in one of the following ways:
 
 * Pass in the dataloaders explictly inside ``trainer.fit/.validate/.test/.predict`` calls.
-* Use :ref:`LightningDataModule <datamodules>`.
+* Use a :ref:`LightningDataModule <datamodules>`.
 
 Checkout :ref:`data` doc to understand data management within Lightning.
