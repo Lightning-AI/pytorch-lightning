@@ -383,12 +383,12 @@ def test_combined_data_loader_validation_test(
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
 
 
-@RunIf(min_gpus=2)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
-    trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
+    trainer = Trainer(strategy="ddp", accelerator=accelerator, devices=2, replace_sampler_ddp=replace_sampler_ddp)
 
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
