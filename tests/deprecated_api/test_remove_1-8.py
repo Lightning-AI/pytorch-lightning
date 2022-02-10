@@ -19,8 +19,6 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -502,20 +500,3 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
-
-
-@RunIf(amp_apex=True)
-def test_v1_8_0_deprecated_apexamp_checkpointhooks():
-    apex_amp = ApexMixedPrecisionPlugin()
-    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
-        apex_amp.on_save_checkpoint({})
-    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
-        apex_amp.on_load_checkpoint({})
-
-
-def test_v1_8_0_deprecated_nativeamp_checkpointhooks():
-    native_amp = NativeMixedPrecisionPlugin(1, "a")
-    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
-        native_amp.on_save_checkpoint({})
-    with pytest.deprecated_call(match="is deprecated in v1.6 and will be removed in v1.8."):
-        native_amp.on_load_checkpoint({})
