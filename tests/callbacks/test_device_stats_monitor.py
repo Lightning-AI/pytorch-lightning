@@ -123,8 +123,6 @@ def test_device_stats_monitor_no_logger(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        accelerator="cpu",
-        devices=1,
         callbacks=[device_stats],
         max_epochs=1,
         logger=False,
