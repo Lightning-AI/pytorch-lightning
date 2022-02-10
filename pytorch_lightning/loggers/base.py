@@ -145,8 +145,7 @@ class LightningLoggerBase(ABC):
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        """
-        Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
+        """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
         .. deprecated:: v1.6
