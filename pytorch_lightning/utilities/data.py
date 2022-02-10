@@ -25,10 +25,10 @@ from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler,
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
