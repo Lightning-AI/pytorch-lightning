@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+import torch.distributed
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -30,20 +31,31 @@ from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import (
+    _DEEPSPEED_AVAILABLE,
+    _HYDRA_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    GradClipAlgorithmType,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log
+from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import log, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
+
+if _HYDRA_AVAILABLE:
+    pass
+
 
 warning_cache = WarningCache()
 
@@ -82,7 +94,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
-class DeepSpeedStrategy(DDPStrategy):
+class DeepSpeedStrategy(ParallelStrategy):
     strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
@@ -313,6 +325,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
+        self._num_nodes: int = 1
+        self._rank_0_will_call_children_scripts: bool = False
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -320,6 +334,83 @@ class DeepSpeedStrategy(DDPStrategy):
         self.loss_scale_window = loss_scale_window
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+        self.set_world_ranks()
+
+    @property
+    def root_device(self) -> torch.device:
+        return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
+    @property
+    def restore_checkpoint_after_setup(self) -> bool:
+        return True
+
+    @property
+    def zero_stage_3(self) -> bool:
+        return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
+
+    @property
+    def lightning_module(self):
+        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
+        module = getattr(self.model, "module", self.model)
+        return module.module if isinstance(module, LightningDeepSpeedModule) else module
+
+    @property
+    def distributed_sampler_kwargs(self):
+        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
+        return distributed_sampler_kwargs
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        """Creates optimizers and schedulers.
+
+        Args:
+            trainer: the Trainer, these optimizers should be connected to
+        """
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return
+        # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
+        # User may have specified config options instead in configure_optimizers, but this is handled
+        # via `_initialize_deepspeed_train`
+        # empty optimizers, schedulers and frequencies
+        self.optimizers = []
+        self.lr_scheduler_configs = []
+        self.optimizer_frequencies = []
+
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
+    @property
+    def deepspeed_engine(self):
+        return self.model
+
+    @property
+    def lightning_restore_optimizer(self) -> bool:
+        # managed by DeepSpeed
+        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            rank_zero_warn(
+                "A single checkpoint file has been given. This means optimizer states cannot be restored."
+                " If you'd like to restore these states, you must provide a path to the originally saved DeepSpeed"
+                " checkpoint. When using ZeRO 3, the original path should be a directory."
+            )
+        return False
+
+    @property
+    def _multi_device(self) -> bool:
+        return self.num_processes > 1 or self.num_nodes > 1
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
@@ -334,7 +425,19 @@ class DeepSpeedStrategy(DDPStrategy):
                 config = json.load(f)
         return config
 
-    def setup_distributed(self):
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
+    def _configure_launcher(self) -> None:
+        self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+        if not self.cluster_environment.creates_processes_externally:
+            self._rank_0_will_call_children_scripts = True
+
+    def setup_environment(self) -> None:
         reset_seed()
 
         # determine which process we are and world size
@@ -346,6 +449,26 @@ class DeepSpeedStrategy(DDPStrategy):
             self._format_config()
             self._config_initialized = True
 
+        super().setup_environment()
+
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            assert self._config_initialized
+            dtype = (
+                torch.float16
+                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
+                else torch.float32
+            )
+            model_parallel_context = deepspeed.zero.Init(
+                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
+            )
+        else:
+            model_parallel_context = super().model_sharded_context()
+
+        with model_parallel_context:
+            yield
+
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
@@ -353,6 +476,24 @@ class DeepSpeedStrategy(DDPStrategy):
         optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
+
+    def model_to_device(self) -> None:
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        self.model.to(self.root_device)
+
+    def barrier(self, *args, **kwargs) -> None:
+        if not distributed_available():
+            return
+
+        if self.root_device.type == "cpu":
+            ddp_device_ids = None
+        else:
+            ddp_device_ids = [self.root_device.index]
+
+        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+            torch.distributed.barrier(device_ids=ddp_device_ids)
+        else:
+            torch.distributed.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
         if platform.system() != "Windows":
@@ -371,10 +512,6 @@ class DeepSpeedStrategy(DDPStrategy):
         os.environ["RANK"] = str(self.global_rank)
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
-
-    @property
-    def restore_checkpoint_after_setup(self) -> bool:
-        return True
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -458,10 +595,6 @@ class DeepSpeedStrategy(DDPStrategy):
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
-    @property
-    def zero_stage_3(self) -> bool:
-        return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
-
     def _initialize_deepspeed_train(self, model):
         optimizer, scheduler = None, None
         if "optimizer" in self.config:
@@ -491,24 +624,6 @@ class DeepSpeedStrategy(DDPStrategy):
                 lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
-
-    @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator[None, None, None]:
-        if self.zero_stage_3:
-            assert self._config_initialized
-            dtype = (
-                torch.float16
-                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
-                else torch.float32
-            )
-            model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
-            )
-        else:
-            model_parallel_context = super().model_sharded_context()
-
-        with model_parallel_context:
-            yield
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get("activation_checkpointing"):
@@ -555,38 +670,6 @@ class DeepSpeedStrategy(DDPStrategy):
             dist_init_required=False,
         )
         self.model = model
-
-    @property
-    def lightning_module(self):
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
-        module = getattr(self.model, "module", self.model)
-        return module.module if isinstance(module, LightningDeepSpeedModule) else module
-
-    @property
-    def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
-        return distributed_sampler_kwargs
-
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        """Creates optimizers and schedulers.
-
-        Args:
-            trainer: the Trainer, these optimizers should be connected to
-        """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return
-        # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
-        # User may have specified config options instead in configure_optimizers, but this is handled
-        # via `_initialize_deepspeed_train`
-        # empty optimizers, schedulers and frequencies
-        self.optimizers = []
-        self.lr_scheduler_configs = []
-        self.optimizer_frequencies = []
-
-    @property
-    def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
-        return True
 
     def _format_config(self):
         if self.config is None:
@@ -721,14 +804,6 @@ class DeepSpeedStrategy(DDPStrategy):
             cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
-    @property
-    def deepspeed_engine(self):
-        return self.model
-
-    @property
-    def _multi_device(self) -> bool:
-        return self.num_processes > 1 or self.num_nodes > 1
-
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -771,16 +846,28 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return client_state
 
-    @property
-    def lightning_restore_optimizer(self) -> bool:
-        # managed by DeepSpeed
-        if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-            rank_zero_warn(
-                "A single checkpoint file has been given. This means optimizer states cannot be restored."
-                " If you'd like to restore these states, you must provide a path to the originally saved DeepSpeed"
-                " checkpoint. When using ZeRO 3, the original path should be a directory."
-            )
-        return False
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        obj = [obj]
+        if self.global_rank != src:
+            obj = [None]
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
+
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, torch.Tensor):
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+        return tensor
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
