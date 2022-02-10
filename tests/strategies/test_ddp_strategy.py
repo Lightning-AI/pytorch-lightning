@@ -17,8 +17,9 @@ from unittest import mock
 import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DataLoader, IterableDataset
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -127,3 +128,51 @@ def test_ddp_configure_ddp():
     trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
+
+
+@pytest.mark.skipif(True, reason="TODO")
+def test_uneven_batches_ddp(tmpdir):
+
+    from torch.distributed.distributed_c10d import get_rank
+
+    class CustomDataset(IterableDataset):
+        def __init__(self, size, length):
+            self.len = length
+            self.data = torch.randn(length, size)
+
+        def __iter__(self):
+            self.count = 0
+            return self
+
+        def __next__(self):
+            if self.count >= self.len:
+                raise StopIteration
+            data = self.data[self.count]
+            self.count += 1
+            return data
+
+    class UnevenDataModule(LightningDataModule):
+        def train_dataloader(self):
+            return DataLoader(CustomDataset(32, 2 + 5 * get_rank()), pin_memory=True)
+
+        def val_dataloader(self):
+            return DataLoader(CustomDataset(32, 2 + 5 * get_rank()))
+
+    class DebugModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            return loss
+
+    model = DebugModel()
+    dm = UnevenDataModule()
+    dm.val_dataloader = None
+    model.val_dataloader = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_uneven_inputs_support",
+        accelerator="gpu",
+        devices=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model, dm)

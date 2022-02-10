@@ -407,11 +407,8 @@ class DDPStrategy(ParallelStrategy):
         return tensor
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
+        with self.precision_plugin.train_step_context() and Join([self.model], enable=self.uneven_inputs_support):
             # TODO: Currently a placeholder, implement Joinable and custom join hooks
-            if self.uneven_inputs_support:
-                with Join([self.model]):
-                    return self.model(*args, **kwargs)
             return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
