@@ -52,5 +52,4 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
     parent_attr = getattr(parent, method_name, None)
     if parent_attr is None:
         raise ValueError("The parent should define the method")
-
     return instance_attr.__code__ != parent_attr.__code__

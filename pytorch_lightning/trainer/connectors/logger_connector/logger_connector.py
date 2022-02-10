@@ -23,6 +23,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _AcceleratorType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
@@ -64,6 +65,11 @@ class LoggerConnector:
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
+        if not isinstance(self.trainer.logger, LoggerCollection) and is_overridden("agg_and_log_metrics", self.trainer.logger, LightningLoggerBase):
+            rank_zero_deprecation(
+                "`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
+                " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
+            )
 
     @property
     def should_flush_logs(self) -> bool:
@@ -116,7 +122,10 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        self.trainer.logger.log_metrics(metrics=scalar_metrics, step=step)
+        if not isinstance(self.trainer.logger, LoggerCollection) and is_overridden("agg_and_log_metrics", self.trainer.logger, LightningLoggerBase):
+            self.trainer.logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
+        else:
+            self.trainer.logger.log_metrics(metrics=scalar_metrics, step=step)
         self.trainer.logger.save()
 
     """

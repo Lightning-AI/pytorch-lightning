@@ -19,6 +19,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -35,7 +36,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn, rank_zero_only
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
@@ -500,3 +501,25 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
+    class AggregationLogger(CSVLogger):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        @rank_zero_only
+        def agg_and_log_metrics(self, metrics, step):
+            self.log_metrics(metrics=metrics, step=step)
+
+    class NoAggregationLogger(CSVLogger):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    logger = AggregationLogger(tmpdir)
+    logger2 = NoAggregationLogger(tmpdir)
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
+        " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
+    ):
+        trainer = Trainer(logger=logger)
+    trainer2 = Trainer(logger=logger2)
