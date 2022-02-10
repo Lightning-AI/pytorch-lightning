@@ -110,7 +110,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            pg_backend=pg_backend,  # TODO: Remove inheritance from DDPStrategy
+            pg_backend=pg_backend,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu

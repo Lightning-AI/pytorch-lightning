@@ -278,7 +278,7 @@ class DeepSpeedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
-            pg_backend=pg_backend,  # TODO: Remove inheritance from DDPStrategy
+            pg_backend=pg_backend,
         )
 
         self.config = self._load_config(config)
@@ -371,12 +371,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"GLOBAL_RANK: {self.global_rank}, "
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        self._pg_backend = (
+        self._pg_backend = self._get_process_group_backend()
+        deepspeed.init_distributed(self._pg_backend, distributed_port=self.cluster_environment.main_port)
+
+    def _get_process_group_backend(self):
+        return (
             self._pg_backend
             or _get_process_group_backend_from_env()
             or get_default_process_group_backend_for_device(self.root_device)
         )
-        deepspeed.init_distributed(self._pg_backend, distributed_port=self.cluster_environment.main_port)
 
     def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address

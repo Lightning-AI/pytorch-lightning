@@ -177,12 +177,15 @@ class DDPStrategy(ParallelStrategy):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
-        self._pg_backend = (
+        self._pg_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._pg_backend)
+
+    def _get_process_group_backend(self) -> str:
+        return (
             self._pg_backend
             or _get_process_group_backend_from_env()
             or get_default_process_group_backend_for_device(self.root_device)
         )
-        init_dist_connection(self.cluster_environment, self._pg_backend)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
