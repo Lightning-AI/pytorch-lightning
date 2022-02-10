@@ -1517,9 +1517,10 @@ def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
+    predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
