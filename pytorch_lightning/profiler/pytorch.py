@@ -509,7 +509,7 @@ class PyTorchProfiler(BaseProfiler):
     def teardown(self, stage: Optional[str] = None) -> None:
         self._delete_profilers()
 
-        for k in list(self._recording_map.keys()):
+        for k in list(self._recording_map):
             self.stop(k)
         self._recording_map = {}
 
