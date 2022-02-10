@@ -65,7 +65,12 @@ class Callback:
         """
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called before accelerator is being setup."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``setup()`` instead.
+
+        Called before accelerator is being setup.
+        """
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         """Called when fit, validate, test, predict, or tune begins."""
@@ -153,10 +158,22 @@ class Callback:
         """Called when the predict epoch ends."""
 
     def on_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when either of train/val/test epoch begins."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_start`` instead.
+
+        Called when either of train/val/test epoch begins.
+        """
 
     def on_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when either of train/val/test epoch ends."""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_end`` instead.
+
+        Called when either of train/val/test epoch ends.
+        """
 
     def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         r"""
