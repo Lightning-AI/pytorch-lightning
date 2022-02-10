@@ -27,12 +27,12 @@ There are a few different data containers used in Lightning:
    * - :class:`~torch.utils.data.IterableDataset`
      - The PyTorch :class:`~torch.utils.data.IterableDataset` represents a stream of data.
    * - :class:`~torch.utils.data.DataLoader`
-     - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a Dataset.
+     - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a dataset.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      -  A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of: training DataLoader(s), validation DataLoader(s), test DataLoader(s) and predict DataLoader(s), along with the matching transforms and data processing/downloads steps required.
 
 
-Why use LightningDataModule?
+Why Use LightningDataModule?
 ============================
 
 The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
@@ -47,23 +47,21 @@ Read :ref:`this <datamodules>` for more details on LightningDataModule.
 Multiple Datasets
 *****************
 
-There are a few ways to pass multiple Datasets to Lightning:
+There are a few ways to pass multiple datasets to Lightning:
 
-1. Create a DataLoader that iterates over multiple Datasets under the hood.
-2. In the training loop you can pass multiple DataLoaders as a dict or list/tuple and Lightning
-   will automatically combine the batches from different DataLoaders. You can control the way how dataloaders of different length
-   are combined by the flag `multiple_trainloader_mode` of the :class:`~pytorch_lightning.trainer.Trainer`. Alternatively, you can provide
-   dataloaders via :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`.
-3. In the validation, test or prediction you have the option to either return multiple DataLoaders as list/tuple, which Lightning will call sequentially,
-   or combine the dataloaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
+1. Create a DataLoader that iterates over multiple datasets under the hood.
+2. In the training loop, you can pass multiple DataLoaders as a dict or list/tuple, and Lightning will
+   automatically combine the batches from different DataLoaders.
+3. In the validation, test or prediction, you have the option to return multiple DataLoaders as list/tuple, which Lightning will call sequentially
+   or combine the DataLoaders  using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
    automatically combine the batches from different DataLoaders.
 
 
 Using LightningDataModule
 =========================
 
-You can set more than one :class:`~torch.utils.data.DataLoader` in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using its dataloader hooks
-and Lightning will use the correct one under-the-hood.
+You can set more than one :class:`~torch.utils.data.DataLoader` in your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` using its DataLoader hooks
+and Lightning will use the correct one.
 
 .. testcode::
 
@@ -90,9 +88,9 @@ Using LightningModule Hooks
 Concatenated Dataset
 --------------------
 
-For training with multiple datasets you can create a :class:`~torch.utils.data.DataLoader` class
-which wraps your multiple datasets using :class:`~torch.utils.data.ConcatDataset`. This of course
-also works for testing, validation and prediction datasets.
+For training with multiple datasets, you can create a :class:`~torch.utils.data.DataLoader` class
+which wraps your multiple datasets using :class:`~torch.utils.data.ConcatDataset`. This, of course,
+also works for testing, validation, and prediction datasets.
 
 .. testcode::
 
@@ -122,7 +120,7 @@ Return Multiple DataLoaders
 
 You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.lightning.LightningModule`, and Lightning will take care of batch combination.
 
-For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
+For more details, refer to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
 
 .. testcode::
 
@@ -186,25 +184,6 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
-Alternatively, you can also pass in a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` containing multiple DataLoaders.
-
-.. testcode::
-
-    from pytorch_lightning.trainer.supporters import CombinedLoader
-
-
-    def train_dataloader(self):
-        loader_a = DataLoader()
-        loader_b = DataLoader()
-        loaders = {"a": loader_a, "b": loader_b}
-        combined_loader = CombinedLoader(loaders, mode="max_size_cycle")
-        return combined_loader
-
-
-    def training_step(self, batch, batch_idx):
-        batch_a = batch["a"]
-        batch_b = batch["b"]
-
 
 Multiple Validation/Test/Predict DataLoaders
 ============================================
@@ -212,11 +191,11 @@ Multiple Validation/Test/Predict DataLoaders
 For validation, test and predict DataLoaders, you can pass a single DataLoader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. You can choose to pass
 the batches sequentially or simultaneously, as is done for the training step.
-The default mode for these DataLoaders is sequential. Note that when using a sequence of dataloaders you need
+The default mode for these DataLoaders is sequential. Note that when using a sequence of DataLoaders you need
 to add an additional argument ``dataloader_idx`` in their corresponding step specific hook. The corresponding loop will process
-the dataloaders in sequential order, i.e., the first dataloader will be processed completely, then the second one, and so on.
+the DataLoaders in sequential order; that is, the first DataLoader will be processed completely, then the second one, and so on.
 
-See the following for more details for the default sequential option:
+Refer to the following for more details for the default sequential option:
 
 - :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader`
 - :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader`
@@ -234,7 +213,7 @@ See the following for more details for the default sequential option:
         ...
 
 
-Evaluation dataloaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collections of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using in the same way as the provided structure:
+Evaluation DataLoaders are iterated over sequentially. If you want to iterate over them in parallel, PyTorch Lightning provides a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which supports collections of DataLoaders such as list, tuple, or dictionary. The DataLoaders can be accessed using in the same way as the provided structure:
 
 .. testcode::
 
@@ -257,13 +236,13 @@ Evaluation dataloaders are iterated over sequentially. If you want to iterate ov
 Evaluate with Additional DataLoaders
 ====================================
 
-You can evaluate your models using additional dataloaders even if the dataloader specific hooks haven't been defined within your
+You can evaluate your models using additional DataLoaders even if the DataLoader specific hooks haven't been defined within your
 :class:`~pytorch_lightning.core.lightning.LightningModule`. For example, this would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
 .. code-block:: python
 
-    # setup your data loader
+    # setup your DataLoader
     test = DataLoader(...)
 
     # test (pass in the loader)
@@ -275,7 +254,7 @@ set is not available at the time your model was declared. Simply pass the test s
 Accessing DataLoaders within LightningModule
 ********************************************
 
-In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
+In the case that you require access to the DataLoader or dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
 
 .. testcode::
 
@@ -291,7 +270,7 @@ In the case that you require access to the DataLoader or Dataset objects, DataLo
             # extract metadata, etc. from the dataset:
             ...
 
-If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of dataloaders dataloader simultaneously which supports collections of dataloaders such as list, tuple, or dictionary. The dataloaders can be accessed using the same collection structure:
+If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of DataLoaders DataLoader simultaneously which supports collections of DataLoader such as list, tuple, or dictionary. The DataLoaders can be accessed using the same collection structure:
 
 .. code-block:: python
 
@@ -300,14 +279,14 @@ If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`
     test_dl1 = ...
     test_dl2 = ...
 
-    # If you provided a list of dataloaders:
+    # If you provided a list of DataLoaders:
 
     combined_loader = CombinedLoader([test_dl1, test_dl2])
     list_of_loaders = combined_loader.loaders
     test_dl1 = list_of_loaders.loaders[0]
 
 
-    # If you provided dictionary of dataloaders:
+    # If you provided dictionary of DataLoaders:
 
     combined_loader = CombinedLoader({"dl1": test_dl1, "dl2": test_dl2})
     dictionary_of_loaders = combined_loader.loaders
@@ -327,7 +306,7 @@ Lightning has built in support for dealing with sequential data.
 Packed Sequences as Inputs
 ==========================
 
-When using :class:`~torch.nn.utils.rnn.PackedSequence`, do 2 things:
+When using :class:`~torch.nn.utils.rnn.PackedSequence`, do two things:
 
 1. Return either a padded tensor in dataset or a list of variable length tensors in the DataLoader's `collate_fn <https://pytorch.org/docs/stable/data.html#dataloader-collate-fn>`_ (example shows the list implementation).
 2. Pack the sequence in forward or training and validation steps depending on use case.
@@ -382,7 +361,7 @@ Lightning can handle TBPTT automatically via this flag.
 
 Iterable Datasets
 =================
-Lightning supports using :class:`~torch.utils.data.IterableDataset` as well as map-style Datasets. IterableDatasets provide a more natural
+Lightning supports using :class:`~torch.utils.data.IterableDataset` as well as map-style datasets. IterableDatasets provide a more natural
 option when using sequential data.
 
 .. note:: When using an :class:`~torch.utils.data.IterableDataset` you must set the ``val_check_interval`` to 1.0 (the default) or an int
