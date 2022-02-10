@@ -204,10 +204,8 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
-    trainer.fit_loop.epoch_progress.current.completed -= 1
     trainer.fit_loop.global_step -= 1
     trainer.save_checkpoint(ckpt_path)
-    trainer.fit_loop.epoch_progress.current.completed += 1
     trainer.fit_loop.global_step += 1
     params = __lr_finder_dump_params(trainer)
 

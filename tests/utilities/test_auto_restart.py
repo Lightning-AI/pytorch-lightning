@@ -256,7 +256,6 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.parametrize(
     "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
