@@ -181,6 +181,14 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+        """Record model graph.
+        Args:
+            model: lightning model
+            input_array: input passes to `model.forward`
+        """
+        pass
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -275,18 +283,15 @@ class LoggerCollection(LightningLoggerBase):
 
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         for logger in self._logger_iterable:
-            if hasattr(logger, "log_graph"):
-                logger.log_graph(model, input_array)
+            logger.log_graph(model, input_array)
 
     def log_text(self, *args, **kwargs) -> None:
         for logger in self._logger_iterable:
-            if hasattr(logger, "log_text"):
-                logger.log_text(*args, **kwargs)
+            logger.log_text(*args, **kwargs)
 
     def log_image(self, *args, **kwargs) -> None:
         for logger in self._logger_iterable:
-            if hasattr(logger, "log_image"):
-                logger.log_image(*args, **kwargs)
+            logger.log_image(*args, **kwargs)
 
     def save(self) -> None:
         for logger in self._logger_iterable:

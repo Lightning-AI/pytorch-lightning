@@ -391,9 +391,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning`
 
 
-- Deprecated `log_graph`, `log_text` and `log_image` from the `LightningLoggerBase` API ([#11857](https://github.com/PyTorchLightning/pytorch-lightning/pull/11857))
-
-
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -538,7 +535,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `FitLoop.current_epoch` getter and setter ([#11562](https://github.com/PyTorchLightning/pytorch-lightning/pull/11562))
 
 
- - Removed access to `_short_id` in `NeptuneLogger` ([#11517](https://github.com/PyTorchLightning/pytorch-lightning/pull/11517))
+- Removed access to `_short_id` in `NeptuneLogger` ([#11517](https://github.com/PyTorchLightning/pytorch-lightning/pull/11517))
+
+
+- Removed `log_text` and `log_image` from the `LightningLoggerBase` API ([#11857](https://github.com/PyTorchLightning/pytorch-lightning/pull/11857))
 
 
 ### Fixed
