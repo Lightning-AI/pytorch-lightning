@@ -189,7 +189,7 @@ class Trainer(
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags.
 
