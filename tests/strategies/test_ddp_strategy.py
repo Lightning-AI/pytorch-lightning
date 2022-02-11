@@ -129,7 +129,6 @@ def test_ddp_configure_ddp():
     assert isinstance(trainer.model, LightningModule)
 
 
-
 class CheckOptimizerDeviceModel(BoringModel):
     def configure_optimizers(self):
         assert all(param.device.type == "cuda" for param in self.parameters())
