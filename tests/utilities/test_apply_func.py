@@ -303,6 +303,62 @@ def test_apply_to_collections():
     assert reduced is None
 
 
+def test_apply_to_collections_dataclass():
+    @dataclasses.dataclass
+    class Feature:
+        input_ids: torch.Tensor
+        segment_ids: np.ndarray
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, Feature):
+                return NotImplemented
+            else:
+                return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
+
+    @dataclasses.dataclass
+    class ModelExample:
+        example_ids: List[str]
+        feature: Feature
+        label: torch.Tensor
+        some_constant: int = dataclasses.field(init=False)
+
+        def __post_init__(self):
+            self.some_constant = 7
+
+        def __eq__(self, o: object) -> bool:
+            if not isinstance(o, ModelExample):
+                return NotImplemented
+            else:
+                return (
+                    self.example_ids == o.example_ids
+                    and self.feature == o.feature
+                    and torch.equal(self.label, o.label)
+                    and self.some_constant == o.some_constant
+                )
+
+    to_reduce_1 = Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0]))
+    to_reduce_2 = Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0]))
+
+    def fn(a, b):
+        return a + b
+
+    reduced = apply_to_collections(to_reduce_1, to_reduce_2, (torch.Tensor, numbers.Number, np.ndarray), fn)
+
+    assert reduced == Feature(input_ids=torch.tensor([2.0, 4.0, 6.0]), segment_ids=np.array([8.0, 10.0, 12.0]))
+
+
+    model_example = ModelExample(
+        example_ids=["i-1", "i-2", "i-3"],
+        feature=to_reduce_1,
+        label=torch.tensor([7.0, 8.0, 9.0]),
+    )
+
+    # different types
+    with pytest.raises(AssertionError, match="Dataclasses are of different types"):
+        apply_to_collections(to_reduce_1, model_example, (torch.Tensor, numbers.Number, np.ndarray), fn)
+
+
+
 def test_apply_to_collection_frozen_dataclass():
     @dataclasses.dataclass(frozen=True)
     class Foo:

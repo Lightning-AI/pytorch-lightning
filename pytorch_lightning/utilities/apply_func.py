@@ -222,6 +222,46 @@ def apply_to_collections(
         ]
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
+    if _is_dataclass_instance(data1):
+        assert isinstance(data2, type(data1)), "Dataclasses are of different types"
+        # make a deepcopy of the data,
+        # but do not deepcopy mapped fields since the computation would
+        # be wasted on values that likely get immediately overwritten
+        data = [data1, data2]
+        fields = [{}, {}]
+        memo = [{}, {}]
+        for i in range(len(data)):
+            for field in dataclasses.fields(data[i]):
+                field_value = getattr(data[i], field.name)
+                fields[i][field.name] = (field_value, field.init)
+                memo[i][id(field_value)] = field_value
+
+        result = deepcopy(data1, memo=memo[0])
+
+        # apply function to each field
+        for ((field_name, (field_value1, field_init1)),
+             (_, (field_value2, field_init2))) in zip(fields[0].items(), fields[1].items()):
+            if field_init1 and field_init2:
+                v = apply_to_collections(
+                    field_value1,
+                    field_value2,
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    **kwargs,
+                )
+            if not field_init1 or not field_init2 or v is None:  # retain old value
+                return apply_to_collection(data1, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            try:
+                setattr(result, field_name, v)
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
+        return result
+
     return apply_to_collection(data1, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
 
 
