@@ -127,3 +127,23 @@ def test_ddp_configure_ddp():
     trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
+
+
+
+class CheckOptimizerDeviceModel(BoringModel):
+    def configure_optimizers(self):
+        assert all(param.device.type == "cuda" for param in self.parameters())
+        super().configure_optimizers()
+
+
+@RunIf(min_gpus=1)
+def test_parameters_on_device_for_optimizer():
+    model = CheckOptimizerDeviceModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        fast_dev_run=1,
+        accelerator="gpu",
+        devices=1,
+        strategy="ddp",
+    )
+    trainer.fit(model)
