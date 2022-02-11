@@ -56,6 +56,7 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -418,11 +419,11 @@ class AcceleratorConnector:
 
     def _choose_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
+        if _IPU_AVAILABLE:
+            return "ipu"
         if self._accelerator_flag == "auto":
             if _TPU_AVAILABLE:
                 return "tpu"
-            if _IPU_AVAILABLE:
-                return "ipu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
         # [RFC] this is current logic, if accelerator not set, default cpu?
@@ -834,11 +835,11 @@ class AcceleratorConnector:
 
     @property
     def has_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
+        return isinstance(self.accelerator, IPUAccelerator) and isinstance(self.strategy, IPUStrategy)
 
     @property
     def use_ipu(self) -> bool:
-        return self.has_ipu
+        return isinstance(self.accelerator, IPUAccelerator)
 
     @property
     def has_tpu(self) -> bool:
