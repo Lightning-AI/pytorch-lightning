@@ -79,9 +79,7 @@ class LoggerConnector:
         if isinstance(logger, bool):
             # default logger
             self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
                 if logger
                 else None
             )

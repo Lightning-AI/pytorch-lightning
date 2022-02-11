@@ -86,16 +86,21 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
         with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
             model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2, logger=False)
+            trainer = Trainer(
+                default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2, logger=False
+            )
             trainer.fit(model)
 
 
 @RunIf(skip_windows=True)
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.set_device")
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
-def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available, mock_device_count, tmpdir):
+def test_ddp_torch_dist_is_available_in_setup(
+    mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
+):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):

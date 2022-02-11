@@ -1734,16 +1734,28 @@ The current epoch
             pass
 
 
-logger (p)
-**********
+logger
+*******
 
 The current logger being used. Here's an example using tensorboard
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        logger = self.trainer.logger
-        tensorboard = logger.experiment
+    logger = trainer.logger
+    tensorboard = logger.experiment
+
+
+loggers
+********
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    # List of LightningLoggerBase objects
+    loggers = trainer.loggers
+    for logger in loggers:
+        logger.log_metrics({"foo": 1.0})
 
 
 logged_metrics

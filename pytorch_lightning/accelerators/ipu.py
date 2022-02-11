@@ -16,6 +16,7 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
@@ -31,3 +32,7 @@ class IPUAccelerator(Accelerator):
         # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
         # Update this when api is exposed by the Graphcore team.
         return 4
+
+    @staticmethod
+    def is_available() -> bool:
+        return _IPU_AVAILABLE

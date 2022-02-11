@@ -230,7 +230,6 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loop_hierarchy():
     @dataclass
     class SimpleProgress(BaseProgress):
@@ -585,7 +584,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     n_epochs = 3
@@ -720,7 +718,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fit_loop_reset(tmpdir):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
