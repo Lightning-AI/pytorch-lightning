@@ -67,7 +67,7 @@ class LightningLoggerBase(ABC):
     def __init__(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
     ):
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
@@ -85,6 +85,8 @@ class LightningLoggerBase(ABC):
                 "The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
                 " and will be removed in v1.8."
             )
+        else:
+            self._agg_default_func = np.mean
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
