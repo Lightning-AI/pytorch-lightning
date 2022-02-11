@@ -120,5 +120,5 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=f"{cls.__class__.__name__} Strategy",
+            description=f"{cls.__class__.__name__}",
         )

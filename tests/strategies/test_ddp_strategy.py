@@ -97,7 +97,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp_fitting():
+def test_ddp_configure_ddp():
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()
@@ -115,11 +115,6 @@ def test_ddp_configure_ddp_fitting():
     # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
-
-@RunIf(skip_windows=True)
-def test_ddp_configure_ddp_validating():
-    model = BoringModel()
-    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_strategy,
