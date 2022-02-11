@@ -504,15 +504,11 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
 
 def test_v1_8_0_callback_checkpoint_hooks(tmpdir):
     class TestCallbackSaveHook(Callback):
-        def on_save_checkpoint(
-            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint
-        ) -> dict:
+        def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint) -> dict:
             return {"overriding": "on_save_checkpoint"}
 
     class TestCallbackLoadHook(Callback):
-        def on_load_checkpoint(
-            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state
-        ) -> None:
+        def on_load_checkpoint(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state) -> None:
             a = "overriding on_load_checkpoint"
 
     model = BoringModel()

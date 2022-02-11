@@ -362,8 +362,8 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
-     
-    
+
+
 def _check_callbacks_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_save_checkpoint", instance=callback):

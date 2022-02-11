@@ -291,8 +291,7 @@ class Callback:
         return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint, implement to reload callback state given callback
-        state_dict.
+        """Called when loading a checkpoint, implement to reload callback state given callback state_dict.
 
         Args:
             state_dict: the callback state returned by ``state_dict``.
@@ -308,8 +307,8 @@ class Callback:
     def on_load_checkpoint_new(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> None:
-        """Called by Lightning when loading a checkpoint to give you a chance to reload or customize anything
-        else you may have saved in on_save_checkpoint.
+        """Called by Lightning when loading a checkpoint to give you a chance to reload or customize anything else
+        you may have saved in on_save_checkpoint.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.

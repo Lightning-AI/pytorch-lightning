@@ -1623,9 +1623,8 @@ class Trainer(
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def _call_callbacks_state_dict(self) -> Dict[str, dict]:
-        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`,
-        keyed by `Callback.state_key`.
-        """
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
+        `Callback.state_key`."""
         callback_state_dicts = {}
         for callback in self.callbacks:
             state_dict = callback.state_dict()
@@ -1648,7 +1647,9 @@ class Trainer(
         return callback_on_save_checkpoint_deprecated_states
 
     def _check_ckpt_callbacks_presence_on_load(self, checkpoint: Dict) -> None:
-        ckpt_callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
+        ckpt_callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get(
+            "callbacks_deprecated_hook_states", checkpoint.get("callbacks")
+        )
         ckpt_callback_states_new_stateful: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_state_dict")
 
         if ckpt_callback_states_old_hook is None and ckpt_callback_states_new_stateful is None:
@@ -1656,7 +1657,10 @@ class Trainer(
 
         is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
         current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        difference = set().union(ckpt_callback_states_old_hook.keys(), ckpt_callback_states_new_stateful.keys()) - current_callbacks_keys
+        difference = (
+            set().union(ckpt_callback_states_old_hook.keys(), ckpt_callback_states_new_stateful.keys())
+            - current_callbacks_keys
+        )
         if difference:
             rank_zero_warn(
                 "Be aware that when using `ckpt_path`,"
@@ -1672,15 +1676,18 @@ class Trainer(
         """
         for callback in self.callbacks:
             callback.on_load_checkpoint_new(self, self.lightning_module, checkpoint)
-            callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
+            callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get(
+                "callbacks_deprecated_hook_states", checkpoint.get("callbacks")
+            )
             if callback_states_old_hook is None:
                 return
-            state = callback_states_old_hook.get(callback.state_key, callback_states_old_hook.get(callback._legacy_state_key))
+            state = callback_states_old_hook.get(
+                callback.state_key, callback_states_old_hook.get(callback._legacy_state_key)
+            )
             if state:
                 state = deepcopy(state)
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
-
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""

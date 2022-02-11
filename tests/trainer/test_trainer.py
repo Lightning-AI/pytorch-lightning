@@ -1862,6 +1862,7 @@ class CustomCallbackOnLoadCheckpoint(Callback):
     def state_dict(self) -> dict:
         return {"a": None}
 
+
 def test_on_load_checkpoint_missing_callbacks(tmpdir):
     """Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming."""
 
