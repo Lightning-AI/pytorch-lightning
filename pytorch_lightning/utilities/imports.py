@@ -120,7 +120,7 @@ _WANDB_AVAILABLE = _package_available("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
 _WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
-
+_SHARK_AVAILABLE: bool = _package_available("iree") and _package_available("torch_mlir")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 

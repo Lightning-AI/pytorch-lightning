@@ -58,6 +58,7 @@ from pytorch_lightning.strategies import (
     HorovodStrategy,
     IPUStrategy,
     ParallelStrategy,
+    SharkStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
@@ -838,6 +839,7 @@ class AcceleratorConnector:
             DeepSpeedStrategy,
             TPUSpawnStrategy,
             HorovodStrategy,
+            SharkStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):

@@ -248,6 +248,7 @@ class _StrategyType(LightningEnum):
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
     BAGUA = "bagua"
+    SHARK = "shark"
 
     @staticmethod
     def interactive_compatible_types() -> list[_StrategyType]:
