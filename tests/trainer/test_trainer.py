@@ -2009,31 +2009,36 @@ class TrainerStagesErrorsModel(BoringModel):
 )
 def test_error_handling_all_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesErrorsModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    exceptions = 0
 
-    with pytest.raises(Exception, match=r"Error during train"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    class TestException(Callback):
+        def on_exception(self, *_):
+            nonlocal exceptions
+            exceptions += 1
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy=strategy,
+        num_processes=num_processes,
+        callbacks=TestException(),
+        fast_dev_run=True,
+    )
+
+    with pytest.raises(Exception, match=r"Error during train"):
         trainer.fit(model)
-    exception_hook.assert_called()
+    assert exceptions == 1
 
-    with pytest.raises(Exception, match=r"Error during validation"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during validation"):
         trainer.validate(model)
-    exception_hook.assert_called()
+    assert exceptions == 2
 
-    with pytest.raises(Exception, match=r"Error during test"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during test"):
         trainer.test(model)
-    exception_hook.assert_called()
+    assert exceptions == 3
 
-    with pytest.raises(Exception, match=r"Error during predict"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during predict"):
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
-    exception_hook.assert_called()
+    assert exceptions == 4
 
 
 def test_trainer_metrics_reset_before_each_task(tmpdir):
