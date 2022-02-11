@@ -16,7 +16,7 @@ from typing import Any, cast, Iterator, List, Sized, Union
 
 import torch
 from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel.distributed import _DDPJoinHook, DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 import pytorch_lightning as pl
@@ -165,3 +165,49 @@ class IndexBatchSamplerWrapper:
     @property
     def sampler(self) -> Sampler:
         return self._sampler.sampler
+
+
+class _LightningDDPJoinHook(_DDPJoinHook):
+    def main_hook(self):
+        """Shadows the DDP collective communication operations in the forward and backward passes."""
+        ddp = self.ddp
+        # Buckets are rebuilt only once during a training period
+        ddp.reducer._rebuild_buckets()
+
+        # Schedule a broadcast if we are syncing module buffers in the
+        # forward pass
+        # TODO: make DDP uneven inputs context manager support buffer
+        # comm hook (https://github.com/pytorch/pytorch/issues/65436)
+        ddp._check_and_sync_module_buffers()
+
+        # Check if need to sync in the backward pass
+        work = ddp._check_global_requires_backward_grad_sync(is_joined_rank=True)
+        work.wait()
+        should_sync_backwards = work.result()[0].item() != 0
+        # Forward parameter sync is disabled in the next iteration if we
+        # are skipping gradient sync this iteration, so set
+        # `require_forward_param_sync` accordingly
+        ddp.require_forward_param_sync = should_sync_backwards
+        if not should_sync_backwards:
+            return
+
+        # Schedule one allreduce per gradient bucket to match the backward
+        # pass allreduce
+        ddp._match_all_reduce_for_bwd_pass()
+
+        # Check if we need to allreduce locally unused parameters
+        if ddp.find_unused_parameters:
+            ddp._match_unused_params_allreduce()
+
+        # Rebuilt parameters are pushed only once during a training period
+        ddp.reducer._push_all_rebuilt_params()
+
+    def post_hook(self, is_last_joiner: bool):
+        """Syncs the final model to ensure that the model is the same across all processes."""
+        self.ddp._sync_final_model(is_last_joiner)
+
+
+class LightningDistributedDataParallel(DistributedDataParallel):
+    def join_hook(self, **kwargs):
+        divide_by_initial_world_size = kwargs.get("divide_by_initial_world_size", True)
+        return _LightningDDPJoinHook(self, divide_by_initial_world_size=divide_by_initial_world_size)

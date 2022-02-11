@@ -29,12 +29,11 @@ import torch
 import torch.distributed
 from torch.distributed.algorithms.join import Join
 from torch.nn import Module
-from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.distributed import LightningDistributedDataParallel, prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -100,6 +99,7 @@ class DDPStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
+        print("==========")
         self.interactive_ddp_procs = []
         self._num_nodes = 1
         self.sync_batchnorm = False
@@ -179,11 +179,11 @@ class DDPStrategy(ParallelStrategy):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-    def _setup_model(self, model: Module) -> DistributedDataParallel:
+    def _setup_model(self, model: Module) -> LightningDistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+        return LightningDistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def _call_children_scripts(self):
         # bookkeeping of spawned processes
@@ -413,7 +413,7 @@ class DDPStrategy(ParallelStrategy):
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            if isinstance(self.model, DistributedDataParallel):
+            if isinstance(self.model, LightningDistributedDataParallel):
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
@@ -517,7 +517,7 @@ class DDPStrategy(ParallelStrategy):
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
         super().teardown()
-        if isinstance(self.model, DistributedDataParallel):
+        if isinstance(self.model, LightningDistributedDataParallel):
             self.model = self.lightning_module
 
         if self.sync_batchnorm:
