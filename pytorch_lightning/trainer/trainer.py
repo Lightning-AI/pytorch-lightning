@@ -92,7 +92,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
     parse_env_variables,
 )
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, rng_state_invariant
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, preserve_rng
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -1292,7 +1292,7 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        with rng_state_invariant():
+        with preserve_rng():
             self._run_sanity_check()
 
         # enable train mode
