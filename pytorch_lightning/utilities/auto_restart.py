@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
@@ -278,6 +279,26 @@ def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     np.random.set_state(rng_state_dict.get("numpy"))
     version, state, gauss = rng_state_dict.get("python")
     python_set_rng_state((version, tuple(state), gauss))
+
+
+@contextmanager
+def rng_state_invariant():
+    """A context manager that resets the global random state on exit to what it was before entering.
+
+    It supports persisting the states for PyTorch, Numpy, and Python built-in random number generators.
+
+    Example:
+        >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
+        <torch._C.Generator object at ...>
+        >>> with rng_state_invariant():
+        ...     [torch.rand(1) for _ in range(3)]
+        [tensor([0.7576]), tensor([0.2793]), tensor([0.4031])]
+        >>> torch.rand(1)
+        tensor([0.7576])
+    """
+    states = collect_rng_states()
+    yield
+    set_rng_states(states)
 
 
 class CaptureIterableDataset(IterableDataset):

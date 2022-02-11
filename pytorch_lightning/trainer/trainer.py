@@ -92,7 +92,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
     parse_env_variables,
 )
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, rng_state_invariant
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -1292,7 +1292,8 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        self._run_sanity_check()
+        with rng_state_invariant():
+            self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1371,10 +1372,6 @@ class Trainer(
             # reset the progress tracking state after sanity checking. we don't need to set the state before
             # because sanity check only runs when we are not restarting
             _reset_progress(val_loop)
-
-            # reset the seed to what it was before sanity check
-            # prevents sanity check to affect random sampling in training
-            reset_seed()
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
