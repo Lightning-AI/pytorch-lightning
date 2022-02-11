@@ -165,7 +165,9 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self._data_fetcher is None
+            self.trainer is None
+            or not self.trainer.state._fault_tolerant_mode.is_enabled
+            or self._data_fetcher is None
             or self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             or self.batch_progress.current.ready == 0  # did not start
@@ -248,12 +250,9 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.on_batch_start(**kwargs)
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_test_batch_start", *kwargs.values())
-        else:
-            self.trainer._call_callback_hooks("on_validation_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_validation_batch_start", *kwargs.values())
+        hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
+        self.trainer._call_callback_hooks(hook_name, *kwargs.values())
+        self.trainer._call_lightning_module_hook(hook_name, *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.

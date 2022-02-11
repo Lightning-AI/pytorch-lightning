@@ -188,10 +188,10 @@ class AbstractDataFetcher(ABC):
 
     def teardown(self) -> None:
         self.reset()
-        if isinstance(self.dataloader, CombinedLoader):
-            self.dataloader.reset()
-        if isinstance(self.dataloader, DataLoader):
-            CombinedLoader._shutdown_workers_and_reset_iterator(self.dataloader)
+        if isinstance(self._dataloader, CombinedLoader):
+            self._dataloader.reset()
+        if isinstance(self._dataloader, DataLoader):
+            CombinedLoader._shutdown_workers_and_reset_iterator(self._dataloader)
         self.dataloader_iter = None
         _teardown_dataloader_get_iterators()
 
@@ -201,19 +201,15 @@ def _no_op_batch_to_device(batch: Any) -> Any:
 
 
 class DataFetcher(AbstractDataFetcher):
-
-    """This class is used to control batch fetching flow. By default, the ``fetching_function`` will pre-fetch a
-    batch in advance to detect the end of the iteration.
+    """This class is used to control batch fetching flow.
 
     Args:
-        prefetch_batches: Number of batches to be pre-fetched. Lightning will pre-fetch
-            at least 1 batch for tracking the latest batch.
+        prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
+            whether a batch is the last one (available with :attr:`self.done`).
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
-        if prefetch_batches < 1:
-            raise MisconfigurationException("`prefetch_batches` should at least be 1.")
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
@@ -240,19 +236,31 @@ class DataFetcher(AbstractDataFetcher):
                 break
 
     def fetching_function(self) -> Tuple[Any, bool]:
+        assert self.dataloader_iter is not None
         if self.batches:
+            # there are pre-fetched batches already from a previous `prefetching` call.
+            # consume one
             batch = self.batches.pop(0)
-        else:
-            # empty iterator, no prefetching done
-            raise StopIteration
-        if not self.done:
-            assert self.dataloader_iter is not None
             try:
+                # refill the consumed batch
                 self._fetch_next_batch(self.dataloader_iter)
             except StopIteration:
+                # no more batches to fetch. we are done only if all pre-fetched batches were returned
+                self.done = not self.batches
+        elif not self.done:
+            # this will run only when no pre-fetching was done.
+            try:
+                self._fetch_next_batch(self.dataloader_iter)
+                # consume the batch we just fetched
+                batch = self.batches.pop(0)
+            except StopIteration as e:
                 self.done = True
+                raise e
+        else:
+            # the iterator is empty
+            raise StopIteration
         self.wait()
-        return self.move_to_device(batch), len(self.batches) == 0
+        return self.move_to_device(batch), self.done
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()

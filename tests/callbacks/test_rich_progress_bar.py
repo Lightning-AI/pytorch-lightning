@@ -46,9 +46,8 @@ def test_rich_progress_bar_refresh_rate_enabled():
 
 
 @RunIf(rich=True)
-@mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
 @pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
-def test_rich_progress_bar(progress_update, tmpdir, dataset):
+def test_rich_progress_bar(tmpdir, dataset):
     class TestModel(BoringModel):
         def train_dataloader(self):
             return DataLoader(dataset=dataset)
@@ -62,8 +61,6 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
         def predict_dataloader(self):
             return DataLoader(dataset=dataset)
 
-    model = TestModel()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -71,16 +68,27 @@ def test_rich_progress_bar(progress_update, tmpdir, dataset):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        max_steps=1,
+        max_epochs=1,
         callbacks=RichProgressBar(),
     )
+    model = TestModel()
 
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.fit(model)
+    # 3 for main progress bar and 1 for val progress bar
+    assert mocked.call_count == 4
 
-    assert progress_update.call_count == 8
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.validate(model)
+    assert mocked.call_count == 1
+
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.test(model)
+    assert mocked.call_count == 1
+
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update") as mocked:
+        trainer.predict(model)
+    assert mocked.call_count == 1
 
 
 def test_rich_progress_bar_import_error(monkeypatch):
@@ -186,11 +194,20 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
 
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
-@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(0, 0), (3, 7)]))
-def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, expected_call_count):
+def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=4,
+        callbacks=RichProgressBar(refresh_rate=0),
+    )
+    trainer.fit(BoringModel())
+    assert progress_update.call_count == 0
 
+
+@RunIf(rich=True)
+@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 7), (4, 7), (7, 4)]))
+def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count):
     model = BoringModel()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
@@ -200,14 +217,26 @@ def test_rich_progress_bar_refresh_rate(progress_update, tmpdir, refresh_rate, e
         callbacks=RichProgressBar(refresh_rate=refresh_rate),
     )
 
-    trainer.fit(model)
+    trainer.progress_bar_callback.on_train_start(trainer, model)
+    with mock.patch.object(
+        trainer.progress_bar_callback.progress, "update", wraps=trainer.progress_bar_callback.progress.update
+    ) as progress_update:
+        trainer.fit(model)
+        assert progress_update.call_count == expected_call_count
 
-    assert progress_update.call_count == expected_call_count
+    fit_main_bar = trainer.progress_bar_callback.progress.tasks[0]
+    fit_val_bar = trainer.progress_bar_callback.progress.tasks[1]
+    assert fit_main_bar.completed == 12
+    assert fit_main_bar.total == 12
+    assert fit_main_bar.visible
+    assert fit_val_bar.completed == 6
+    assert fit_val_bar.total == 6
+    assert not fit_val_bar.visible
 
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("limit_val_batches", (1, 5))
-def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
     model = BoringModel()
 
     progress_bar = RichProgressBar()
@@ -224,6 +253,36 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches: int):
 
     trainer.fit(model)
     assert progress_bar.progress.tasks[0].completed == min(num_sanity_val_steps, limit_val_batches)
+    assert progress_bar.progress.tasks[0].total == min(num_sanity_val_steps, limit_val_batches)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
+    """Test the completed and total counter for rich progress bar when using val_check_interval."""
+    progress_bar = RichProgressBar()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        val_check_interval=2,
+        max_epochs=1,
+        limit_train_batches=7,
+        limit_val_batches=4,
+        callbacks=[progress_bar],
+    )
+    trainer.fit(model)
+
+    fit_main_progress_bar = progress_bar.progress.tasks[1]
+    assert fit_main_progress_bar.completed == 7 + 3 * 4
+    assert fit_main_progress_bar.total == 7 + 3 * 4
+
+    fit_val_bar = progress_bar.progress.tasks[2]
+    assert fit_val_bar.completed == 4
+    assert fit_val_bar.total == 4
+
+    trainer.validate(model)
+    val_bar = progress_bar.progress.tasks[0]
+    assert val_bar.completed == 4
+    assert val_bar.total == 4
 
 
 @RunIf(rich=True)
