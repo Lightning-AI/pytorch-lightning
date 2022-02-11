@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.auto_restart import (
     CaptureIterableDataset,
     CaptureMapDataset,
     FastForwardSampler,
-    MergedIteratorState,
+    MergedIteratorState, preserve_rng,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -1574,3 +1574,24 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     torch.testing.assert_allclose(total_batches, failed_batches + restart_batches)
     assert not torch.equal(total_weight, failed_weight)
     assert torch.equal(total_weight, model.layer.weight)
+
+
+def test_preserve_rng():
+    """Test that the preserve_rng context manager isolates the random state form the outer scope."""
+    # torch
+    torch.rand(1)
+    with preserve_rng():
+        generated = [torch.rand(2) for _ in range(3)]
+    assert torch.equal(torch.rand(2), generated[0])
+
+    # numpy
+    np.random.rand(1)
+    with preserve_rng():
+        generated = [np.random.rand(2) for _ in range(3)]
+    assert np.equal(np.random.rand(2), generated[0]).all()
+
+    # python
+    random.random()
+    with preserve_rng():
+        generated = [random.random() for _ in range(3)]
+    assert random.random() == generated[0]
