@@ -518,10 +518,24 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
 
     logger = AggregationLogger(tmpdir)
     logger2 = NoAggregationLogger(tmpdir)
+    logger3 = NoAggregationLogger(tmpdir)
+
+    # Test single loggers
     with pytest.deprecated_call(
-        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
-        " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
     ):
         Trainer(logger=logger)
     # Should have no deprecation warning
     Trainer(logger=logger2)
+
+    # Test multiple loggers
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+    ):
+        Trainer(logger=[logger, logger3])
+    # Should have no deprecation warning
+    Trainer(logger=[logger2, logger3])

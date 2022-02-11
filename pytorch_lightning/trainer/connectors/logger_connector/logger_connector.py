@@ -70,8 +70,9 @@ class LoggerConnector:
             if is_overridden("agg_and_log_metrics", logger, LightningLoggerBase):
                 self._override_agg_and_log_metrics = True
                 rank_zero_deprecation(
-                    "`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be"
-                    " removed in v1.8. Please use `LightningLoggerBase.log_metrics` instead."
+                    "`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+                    " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics so custom"
+                    " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
                 )
                 break
 
