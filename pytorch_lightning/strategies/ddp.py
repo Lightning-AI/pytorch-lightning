@@ -151,7 +151,6 @@ class DDPStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
         # share ddp pids to all processes
         self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
         if self._should_run_deadlock_detection():
@@ -167,6 +166,14 @@ class DDPStrategy(ParallelStrategy):
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
+
+        super().setup(trainer)  # set up optimizers 
+        if _TORCH_GREATER_EQUAL_1_10 and trainer.state.fn == TrainerFn.FITTING:
+            import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+            if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+        
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -295,12 +302,6 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-
-            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-
-                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
-                    self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
