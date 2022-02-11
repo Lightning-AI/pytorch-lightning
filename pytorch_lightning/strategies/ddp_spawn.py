@@ -116,7 +116,6 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-        super().setup(trainer)
 
         # move the model to the correct device
         self.model_to_device()
@@ -128,6 +127,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
+        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
