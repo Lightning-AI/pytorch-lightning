@@ -104,6 +104,9 @@ class LightningLoggerBase(ABC):
     ) -> Tuple[int, Optional[Dict[str, float]]]:
         """Aggregates metrics.
 
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
@@ -126,7 +129,11 @@ class LightningLoggerBase(ABC):
         return agg_step, agg_mets
 
     def _reduce_agg_metrics(self):
-        """Aggregate accumulated metrics."""
+        """Aggregate accumulated metrics.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+        """
         # compute the metrics
         if not self._metrics_to_agg:
             agg_mets = None
@@ -137,7 +144,12 @@ class LightningLoggerBase(ABC):
         return self._prev_step, agg_mets
 
     def _finalize_agg_metrics(self):
-        """This shall be called before save/close."""
+        """This shall be called before save/close.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+
+        """
         agg_step, metrics_to_log = self._reduce_agg_metrics()
         self._metrics_to_agg = []
 
