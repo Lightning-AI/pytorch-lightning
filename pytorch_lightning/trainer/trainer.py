@@ -92,7 +92,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
     parse_env_variables,
 )
-from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, preserve_rng
+from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate, isolate_rng
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
@@ -1078,7 +1078,7 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        with preserve_rng():
+        with isolate_rng():
             result = self.tuner._tune(
                 model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
             )
@@ -1294,7 +1294,7 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        with preserve_rng():
+        with isolate_rng():
             self._run_sanity_check()
 
         # enable train mode

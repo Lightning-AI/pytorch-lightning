@@ -282,15 +282,15 @@ def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
 
 
 @contextmanager
-def preserve_rng() -> Generator[None, None, None]:
+def isolate_rng() -> Generator[None, None, None]:
     """A context manager that resets the global random state on exit to what it was before entering.
 
-    It supports persisting the states for PyTorch, Numpy, and Python built-in random number generators.
+    It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
 
     Example:
         >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
         <torch._C.Generator object at ...>
-        >>> with preserve_rng():
+        >>> with isolate_rng():
         ...     [torch.rand(1) for _ in range(3)]
         [tensor([0.7576]), tensor([0.2793]), tensor([0.4031])]
         >>> torch.rand(1)
