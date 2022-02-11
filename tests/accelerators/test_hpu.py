@@ -136,14 +136,6 @@ def test_all_stages(tmpdir, hpus):
     trainer.predict(model)
 
 
-@RunIf(hpu=True)
-def test_inference_only(tmpdir, hpus):
-    model = HPUModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
 
 
 @RunIf(hpu=True)
@@ -284,11 +276,16 @@ def test_accelerator_hpu():
     ):
         trainer = Trainer(accelerator="hpu")
 
+
     trainer = Trainer(accelerator="auto", hpus=8)
 
     assert trainer._device_type == "hpu"
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
+    with pytest.raises(
+        MisconfigurationException, match="You passed `accelerator='hpu'`, but you didn't pass `hpus` to `Trainer`"
+    ):
+        trainer = Trainer(accelerator="hpu")
 
 @RunIf(hpu=True)
 def test_accelerator_cpu_with_hpus_flag():
@@ -350,3 +347,14 @@ def test_devices_auto_choice_hpu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 8
     assert trainer.hpus == 8
+
+
+@RunIf(hpu=True)
+@pytest.mark.parametrize("hpus", [1])
+def test_inference_only(tmpdir, hpus):
+    model = HPUModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
