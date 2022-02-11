@@ -346,7 +346,6 @@ def test_apply_to_collections_dataclass():
 
     assert reduced == Feature(input_ids=torch.tensor([2.0, 4.0, 6.0]), segment_ids=np.array([8.0, 10.0, 12.0]))
 
-
     model_example = ModelExample(
         example_ids=["i-1", "i-2", "i-3"],
         feature=to_reduce_1,
@@ -356,7 +355,6 @@ def test_apply_to_collections_dataclass():
     # different types
     with pytest.raises(AssertionError, match="Dataclasses are of different types"):
         apply_to_collections(to_reduce_1, model_example, (torch.Tensor, numbers.Number, np.ndarray), fn)
-
 
 
 def test_apply_to_collection_frozen_dataclass():

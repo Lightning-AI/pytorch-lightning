@@ -239,8 +239,9 @@ def apply_to_collections(
         result = deepcopy(data1, memo=memo[0])
 
         # apply function to each field
-        for ((field_name, (field_value1, field_init1)),
-             (_, (field_value2, field_init2))) in zip(fields[0].items(), fields[1].items()):
+        for ((field_name, (field_value1, field_init1)), (_, (field_value2, field_init2))) in zip(
+            fields[0].items(), fields[1].items()
+        ):
             if field_init1 and field_init2:
                 v = apply_to_collections(
                     field_value1,
