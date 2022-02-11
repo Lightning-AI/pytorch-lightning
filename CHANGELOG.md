@@ -391,6 +391,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning`
 
 
+- Deprecated `agg_key_funcs` and `agg_default_func` parameters from `LightningLoggerBase` ([#FILLTHISIN](https://github.com/PyTorchLightning/pytorch-lightning/pull/FILLTHISIN))
+
+
+- Deprecated `LightningLoggerBase.update_agg_funcs` because `agg_key_funcs` and `agg_default_func` are deprecated ([#FILLTHISIN](https://github.com/PyTorchLightning/pytorch-lightning/pull/FILLTHISIN))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
