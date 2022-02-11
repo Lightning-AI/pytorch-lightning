@@ -360,7 +360,6 @@ class AcceleratorConnector:
         else:
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         if devices in (0, "0", "0,"):
-            print(devices)
             raise MisconfigurationException(f"You passed `devices={devices}`, please set a number > 0")
 
         self._device_flag = devices
@@ -426,11 +425,8 @@ class AcceleratorConnector:
                 return "ipu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
-            else:
-                return "cpu"
         # [RFC] this is current logic, if accelerator not set, default cpu?
-        else:
-            return "cpu"
+        return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         self._parallel_devices = []
