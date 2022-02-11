@@ -282,17 +282,18 @@ class HookedModel(BoringModel):
         return self._manual_train_batch(*args, **kwargs)
 
     @staticmethod
-    def _auto_train_batch(trainer, model, batches, device=torch.device("cpu"), current_epoch=0, **kwargs):
+    def _auto_train_batch(
+        trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
+    ):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
-        for i in range(batches):
+        for i in range(current_batch, batches):
             out.extend(
                 [
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -351,7 +352,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `on_batch_{start,end}`
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -403,7 +403,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `{,Callback}.on_batch_{start,end}`
                     dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),
@@ -424,7 +423,6 @@ class HookedModel(BoringModel):
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(name="transfer_batch_to_device", args=(ANY, torch.device("cpu"), 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
-                    # TODO: `{,Callback}.on_batch_{start,end}`
                     dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_predict_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),
@@ -491,7 +489,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     saved_ckpt = {
         "callbacks_state_dict": ANY,
         "callbacks_deprecated_hook_states": ANY,
-        "epoch": 1,
+        "epoch": 0,
         "global_step": train_batches,
         "lr_schedulers": ANY,
         "optimizer_states": ANY,
@@ -617,7 +615,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
     loaded_ckpt = {
         "callbacks_state_dict": ANY,
         "callbacks_deprecated_hook_states": ANY,
-        "epoch": 1,  # TODO: wrong saved epoch, should be 0
+        "epoch": 0,
         "global_step": 1,
         "lr_schedulers": ANY,
         "optimizer_states": ANY,
@@ -625,8 +623,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         "state_dict": ANY,
         "loops": ANY,
     }
-    # TODO: wrong saved epoch, should be 0
-    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 2}
+    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 1}
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -660,8 +657,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="on_epoch_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
-        # TODO: wrong current epoch after reload
-        *model._train_batch(trainer, model, train_batches, current_epoch=1),
+        *model._train_batch(trainer, model, steps_after_reload, current_batch=1, current_epoch=1),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="Callback.state_dict"),

@@ -165,7 +165,9 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self._data_fetcher is None
+            self.trainer is None
+            or not self.trainer.state._fault_tolerant_mode.is_enabled
+            or self._data_fetcher is None
             or self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             or self.batch_progress.current.ready == 0  # did not start

@@ -21,7 +21,6 @@ import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
@@ -231,7 +230,7 @@ class CheckpointConnector:
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
-            if self.trainer.state.fn == TrainerFn.FITTING:
+            if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -331,21 +330,12 @@ class CheckpointConnector:
                 LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
         """
-
-        # dump epoch/global_step/pytorch-lightning_version
-        current_epoch = self.trainer.current_epoch
-        global_step = self.trainer.global_step
-        has_reached_max_steps = _is_max_limit_reached(global_step, self.trainer.max_steps)
-
-        global_step += 1
-        if not has_reached_max_steps:
-            current_epoch += 1
-
         model = self.trainer.lightning_module
 
         checkpoint = {
-            "epoch": current_epoch,
-            "global_step": global_step,
+            # the epoch is saved for compatibility but it's not relevant for restoration
+            "epoch": self.trainer.current_epoch,
+            "global_step": self.trainer.global_step + 1,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
