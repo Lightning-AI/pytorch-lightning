@@ -28,9 +28,8 @@ import torch
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ class CSVLogger(LightningLoggerBase):
     def __init__(
         self,
         save_dir: str,
-        name: Optional[str] = "default",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
@@ -144,11 +143,9 @@ class CSVLogger(LightningLoggerBase):
     def root_dir(self) -> str:
         """Parent directory for all checkpoint subdirectories.
 
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
-        checkpoint will be saved in "save_dir/version_dir"
+        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
+        be saved in "save_dir/version"
         """
-        if not self.name:
-            return self.save_dir
         return os.path.join(self.save_dir, self.name)
 
     @property
@@ -234,7 +231,7 @@ class CSVLogger(LightningLoggerBase):
         return self._version
 
     def _get_next_version(self):
-        root_dir = os.path.join(self._save_dir, self.name)
+        root_dir = self.root_dir
 
         if not os.path.isdir(root_dir):
             log.warning("Missing logger folder: %s", root_dir)

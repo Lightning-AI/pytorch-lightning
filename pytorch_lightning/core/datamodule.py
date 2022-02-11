@@ -13,7 +13,7 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
@@ -246,3 +246,19 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         if test_dataset is not None:
             datamodule.test_dataloader = test_dataloader
         return datamodule
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate and save datamodule state.
+
+        Returns:
+            A dictionary containing datamodule state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
+
+        Args:
+            state_dict: the datamodule state returned by ``state_dict``.
+        """
+        pass
