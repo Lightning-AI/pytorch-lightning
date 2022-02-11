@@ -159,6 +159,7 @@ class AcceleratorConnector:
 
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
+        self._special_handle_for_ipu()
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_accelerator()
         self._set_parallel_devices_and_init_accelerator()
@@ -417,16 +418,22 @@ class AcceleratorConnector:
             if num_processes:
                 self._accelerator_flag = "cpu"
 
+    def _special_handle_for_ipu(self) -> None:
+        # current logic only apply to object config
+        # TODO this logic should apply to both str and object config
+        if isinstance(self._strategy_flag, IPUStrategy):
+            self._accelerator_flag = "ipu"
+
     def _choose_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-        if _IPU_AVAILABLE:
-            return "ipu"
         if self._accelerator_flag == "auto":
             if _TPU_AVAILABLE:
                 return "tpu"
+            if _IPU_AVAILABLE:
+                return "ipu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
-        # [RFC] this is current logic, if accelerator not set, default cpu?
+        # [RFC] this is current logic, if accelerator=None, default cpu?
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -533,7 +540,8 @@ class AcceleratorConnector:
     def _check_strategy_and_fallback(self) -> None:
         """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
         different choice depending on other parameters or the environment."""
-        # current logic, fallback only apply to user pass in str config not object config
+        # current fallback and check logic only apply to user pass in str config and object config
+        # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag == "ddp_cpu":
@@ -714,6 +722,7 @@ class AcceleratorConnector:
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
+        # TODO move is_compatible logic to strategy API
         interactive_compatible_strategy = ("dp", "ddp_spawn", "ddp_sharded_spawn", "tpu_spawn")
         if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
             raise MisconfigurationException(
