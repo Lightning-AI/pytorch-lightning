@@ -19,11 +19,10 @@ from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from functools import wraps
-from typing import Any, cast, Callable, Dict, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
-
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 
