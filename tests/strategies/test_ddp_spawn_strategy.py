@@ -169,23 +169,3 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     strategy._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
     assert not temp_file.exists()
-
-
-class CheckOptimizerDeviceModel(BoringModel):
-    def configure_optimizers(self):
-        assert all(param.device.type == "cuda" for param in self.parameters())
-        super().configure_optimizers()
-
-
-@RunIf(min_gpus=1)
-def test_model_parameters_on_device_for_optimizer():
-    """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
-    model = CheckOptimizerDeviceModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        fast_dev_run=1,
-        accelerator="gpu",
-        devices=1,
-        strategy="ddp_spawn",
-    )
-    trainer.fit(model)

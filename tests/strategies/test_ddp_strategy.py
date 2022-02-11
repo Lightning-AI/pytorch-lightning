@@ -136,7 +136,8 @@ class CheckOptimizerDeviceModel(BoringModel):
 
 
 @RunIf(min_gpus=1)
-def test_model_parameters_on_device_for_optimizer():
+@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+def test_model_parameters_on_device_for_optimizer(strategy):
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
     trainer = Trainer(
@@ -144,6 +145,6 @@ def test_model_parameters_on_device_for_optimizer():
         fast_dev_run=1,
         accelerator="gpu",
         devices=1,
-        strategy="ddp",
+        strategy=strategy,
     )
     trainer.fit(model)
