@@ -167,7 +167,7 @@ class DDPStrategy(ParallelStrategy):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-        super().setup(trainer)  # set up optimizers
+        super().setup(trainer)  # set up optimizers after the model has been moved to the device
         if _TORCH_GREATER_EQUAL_1_10 and trainer.state.fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
