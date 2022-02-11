@@ -121,7 +121,7 @@ jobs:
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
-        python -c "import horovod.torch; horovod.torch.nccl_built()"
+        python -c "import horovod.torch"
       shell: bash
 
     - name: Cache datasets
