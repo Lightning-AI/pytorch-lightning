@@ -131,8 +131,7 @@ class LightningLoggerBase(ABC):
     def _reduce_agg_metrics(self):
         """Aggregate accumulated metrics.
 
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
+        .. deprecated:: v1.6     This method is deprecated in v1.6 and will be removed in v1.8.
         """
         # compute the metrics
         if not self._metrics_to_agg:
@@ -146,9 +145,7 @@ class LightningLoggerBase(ABC):
     def _finalize_agg_metrics(self):
         """This shall be called before save/close.
 
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-
+        .. deprecated:: v1.6     This method is deprecated in v1.6 and will be removed in v1.8.
         """
         agg_step, metrics_to_log = self._reduce_agg_metrics()
         self._metrics_to_agg = []
