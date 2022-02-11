@@ -596,7 +596,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Configure native Deepspeed schedulers with interval='step' ([#11788](https://github.com/PyTorchLightning/pytorch-lightning/pull/11788))
 
 
-- Fixed `DDPStrategy` to initialize optimizers only after moving the module to the device ([#11886](https://github.com/PyTorchLightning/pytorch-lightning/pull/11886))
+- Fixed `DDPStrategy` and `DDPSpawnStrategy` to initialize optimizers only after moving the module to the device ([#11886](https://github.com/PyTorchLightning/pytorch-lightning/pull/11886))
 
 
 ## [1.5.10] - 2022-02-08
