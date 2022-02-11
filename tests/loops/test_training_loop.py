@@ -60,7 +60,8 @@ def test_outputs_format(tmpdir):
 
 @pytest.mark.parametrize("seed_once", (True, False))
 def test_training_starts_with_seed(tmpdir, seed_once):
-    """Test that the training always starts with the same random state (when using seed_everything)."""
+    """Test the behavior of seed_everything on subsequent Trainer runs in combination with different settings of
+    num_sanity_val_steps (which must not affect the random state)."""
 
     class SeededModel(BoringModel):
         def __init__(self):
