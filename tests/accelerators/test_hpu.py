@@ -136,8 +136,6 @@ def test_all_stages(tmpdir, hpus):
     trainer.predict(model)
 
 
-
-
 @RunIf(hpu=True)
 def test_optimization(tmpdir):
     seed_everything(42)
@@ -276,7 +274,6 @@ def test_accelerator_hpu():
     ):
         trainer = Trainer(accelerator="hpu")
 
-
     trainer = Trainer(accelerator="auto", hpus=8)
 
     assert trainer._device_type == "hpu"
@@ -286,6 +283,7 @@ def test_accelerator_hpu():
         MisconfigurationException, match="You passed `accelerator='hpu'`, but you didn't pass `hpus` to `Trainer`"
     ):
         trainer = Trainer(accelerator="hpu")
+
 
 @RunIf(hpu=True)
 def test_accelerator_cpu_with_hpus_flag():
