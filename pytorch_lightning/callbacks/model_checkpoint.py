@@ -335,9 +335,11 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
         trainer.fit_loop.global_step += 1
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
+        """Note ``ModelCheckpoint.on_save_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-save ModelCheckpoint state with ``ModelCheckpoint.state_dict`` instead
+        """
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -350,15 +352,17 @@ class ModelCheckpoint(Callback):
             "last_model_path": self.last_model_path,
         }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
-    ) -> None:
-        self.best_model_score = callback_state["best_model_score"]
-        self.best_model_path = callback_state["best_model_path"]
-        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
-        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
-        self.kth_value = callback_state.get("kth_value", self.kth_value)
-        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Note ``ModelCheckpoint.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore ModelCheckpoint state with ``ModelCheckpoint.load_state_dict`` instead
+        """
+        self.best_model_score = state_dict["best_model_score"]
+        self.best_model_path = state_dict["best_model_path"]
+        self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
+        self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
+        self.kth_value = state_dict.get("kth_value", self.kth_value)
+        self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.

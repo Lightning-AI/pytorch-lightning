@@ -83,7 +83,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 
 class StatefulCallback0(Callback):
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content0": 0}
 
 
@@ -96,7 +96,7 @@ class StatefulCallback1(Callback):
     def state_key(self):
         return self._generate_state_key(unique=self._unique)
 
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content1": self._unique}
 
 
@@ -125,15 +125,15 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     trainer.fit(model)
 
     ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
-    state0 = ckpt["callbacks"]["StatefulCallback0"]
-    state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
-    state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]
+    state0 = ckpt["callbacks_state_dict"]["StatefulCallback0"]
+    state1 = ckpt["callbacks_state_dict"]["StatefulCallback1{'unique': 'one'}"]
+    state2 = ckpt["callbacks_state_dict"]["StatefulCallback1{'unique': 'two'}"]
     assert "content0" in state0 and state0["content0"] == 0
     assert "content1" in state1 and state1["content1"] == "one"
     assert "content1" in state2 and state2["content1"] == "two"
     assert (
         "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': True}" in ckpt["callbacks"]
+        " 'train_time_interval': None, 'save_on_train_epoch_end': True}" in ckpt["callbacks_state_dict"]
     )
 
 

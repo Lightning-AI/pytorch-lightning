@@ -1642,31 +1642,21 @@ class Trainer(
         callback_on_save_checkpoint_deprecated_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
-            if is_overridden(method_name="on_save_checkpoint", instance=callback):
-                rank_zero_deprecation(
-                    "Method `Callback.on_save_checkpoint` is deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.state_dict` instead,"
-                    " or new method signature `Callback.on_save_checkpoint -> None`."
-                )
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 callback_on_save_checkpoint_deprecated_states[callback.state_key] = state
         return callback_on_save_checkpoint_deprecated_states
 
-    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when loading a model checkpoint.
+    def _check_ckpt_callbacks_presence_on_load(self, checkpoint: Dict) -> None:
+        ckpt_callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
+        ckpt_callback_states_new_stateful: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_state_dict")
 
-        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for getting callback_states.
-        """
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
-
-        if callback_states is None:
+        if ckpt_callback_states_old_hook is None and ckpt_callback_states_new_stateful is None:
             return
 
         is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
         current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        difference = callback_states.keys() - current_callbacks_keys
+        difference = set().union(ckpt_callback_states_old_hook.keys(), ckpt_callback_states_new_stateful.keys()) - current_callbacks_keys
         if difference:
             rank_zero_warn(
                 "Be aware that when using `ckpt_path`,"
@@ -1674,19 +1664,23 @@ class Trainer(
                 f" Please add the following callbacks: {list(difference)}.",
             )
 
+    def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint.
+
+        Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
+        `_call_callback_hooks` because we have special logic for getting callback_states.
+        """
         for callback in self.callbacks:
-            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            callback.on_load_checkpoint_new(self, self.lightning_module, checkpoint)
+            callback_states_old_hook: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks_deprecated_hook_states", checkpoint.get("callbacks"))
+            if callback_states_old_hook is None:
+                return
+            state = callback_states_old_hook.get(callback.state_key, callback_states_old_hook.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                if is_overridden(method_name="on_load_checkpoint", instance=callback):
-                rank_zero_deprecation(
-                    "Method `Callback.on_load_checkpoint` is deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.load_state_dict` instead,"
-                    " or new method signature `Callback.on_load_checkpoint_new(..., checkpoint)`."
-                )
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
-            callback.on_load_checkpoint_new(self, self.lightning_module, checkpoint)
+
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""

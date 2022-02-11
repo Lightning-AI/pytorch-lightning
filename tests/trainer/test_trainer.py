@@ -1855,9 +1855,8 @@ def test_fit_test_synchronization(tmpdir):
 
 
 class CustomCallbackOnLoadCheckpoint(Callback):
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+    def state_dict(self) -> dict:
         return {"a": None}
-
 
 def test_on_load_checkpoint_missing_callbacks(tmpdir):
     """Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming."""

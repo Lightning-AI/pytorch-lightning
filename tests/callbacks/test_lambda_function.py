@@ -37,6 +37,7 @@ def test_lambda_call(tmpdir):
     hooks = get_members(Callback)
     hooks_args = {h: partial(call, h) for h in hooks}
     hooks_args["on_save_checkpoint"] = lambda *_: [checker.add("on_save_checkpoint")]
+    hooks_args["state_dict"] = lambda *_: [checker.add("state_dict")]
 
     model = CustomModel()
 

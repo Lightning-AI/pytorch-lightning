@@ -83,16 +83,22 @@ class BaseFinetuning(Callback):
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self._restarting = False
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[int, List[Dict[str, Any]]]:
-        return self._internal_optimizer_metadata
+    def state_dict(self) -> Dict[str, Any]:
+        """Note ``BaseFinetuning.on_save_checkpoint`` is deprecated in v1.6.
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
-    ) -> None:
+        Lightning will auto-save BaseFinetuning state with ``BaseFinetuning.state_dict`` instead
+        """
+        return {
+            "internal_optimizer_metadata": self._internal_optimizer_metadata,
+        }
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Note ``BaseFinetuning.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore BaseFinetuning state with ``BaseFinetuning.load_state_dict`` instead
+        """
         self._restarting = True
-        self._internal_optimizer_metadata = callback_state
+        self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
@@ -350,19 +356,23 @@ class BackboneFinetuning(BaseFinetuning):
         self.rounding: int = rounding
         self.previous_backbone_lr: Optional[float] = None
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
+        """Note ``BackboneFinetuning.on_save_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-save BackboneFinetuning state with ``BackboneFinetuning.state_dict`` instead
+        """
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
         }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
-    ) -> None:
-        self.previous_backbone_lr = callback_state["previous_backbone_lr"]
-        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Note ``BackboneFinetuning.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore BackboneFinetuning state with ``BackboneFinetuning.load_state_dict`` instead
+        """
+        self.previous_backbone_lr = state_dict["previous_backbone_lr"]
+        super().load_state_dict(state_dict)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """

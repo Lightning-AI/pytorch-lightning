@@ -299,6 +299,12 @@ class Callback:
         """
         pass
 
+    # should we have this to support a migration period?
+    # between v1.6 and v1.8, need to support old on_load_checkpoint signature
+    # load_state_dict does not fully replace on_load_checkpoint due to trainer and LM args, so either:
+    #
+    # v1.8 introduces BC for on_load_checkpoint signature (callback_state --> checkpoint arg)
+    # or on_load_checkpoint_new gives migration opportunity, v1.8 BC requires on_load_checkpoint_new --> on_load_checkpoint
     def on_load_checkpoint_new(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> None:

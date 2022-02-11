@@ -230,6 +230,9 @@ class HookedCallback(Callback):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
+    def state_dict(*args, **kwargs):
+        return {"a": False}
+
     def on_save_checkpoint(*args, **kwargs):
         return {"foo": True}
 
@@ -486,7 +489,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     ]
     trainer.fit(model)
     saved_ckpt = {
-        "callbacks": ANY,
+        "callbacks_state_dict": ANY,
+        "callbacks_deprecated_hook_states": ANY,
         "epoch": 1,
         "global_step": train_batches,
         "lr_schedulers": ANY,
@@ -557,6 +561,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         # `ModelCheckpoint.save_checkpoint` is called here from `Callback.on_train_epoch_end`
+        dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
         dict(name="on_train_epoch_end"),
@@ -610,7 +615,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
 
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
-        "callbacks": ANY,
+        "callbacks_state_dict": ANY,
+        "callbacks_deprecated_hook_states": ANY,
         "epoch": 1,  # TODO: wrong saved epoch, should be 0
         "global_step": 1,
         "lr_schedulers": ANY,
@@ -630,7 +636,9 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="on_load_checkpoint", args=(loaded_ckpt,)),
+        dict(name="Callback.on_load_checkpoint_new", args=(trainer, model, loaded_ckpt)),
         dict(name="Callback.on_load_checkpoint", args=(trainer, model, {"foo": True})),
+        dict(name="Callback.load_state_dict", args=({"a": False},)),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
         dict(name="configure_optimizers"),
@@ -656,6 +664,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         *model._train_batch(trainer, model, train_batches, current_epoch=1),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
+        dict(name="Callback.state_dict"),
         dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
         dict(name="on_save_checkpoint", args=(saved_ckpt,)),
         dict(name="on_train_epoch_end"),

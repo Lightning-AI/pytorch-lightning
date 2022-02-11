@@ -211,7 +211,7 @@ class CheckpointConnector:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
-
+        self.trainer._check_ckpt_callbacks_presence_on_load(self._loaded_checkpoint)
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
         self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 

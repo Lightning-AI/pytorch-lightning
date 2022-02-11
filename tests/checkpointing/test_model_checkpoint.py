@@ -169,7 +169,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch + 1
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks"][
+        mc_specific_data = chk["callbacks_state_dict"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
@@ -270,7 +270,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks"][
+        mc_specific_data = chk["callbacks_state_dict"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
         ]
@@ -367,21 +367,20 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def __init__(self, expected_count, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.expected_count = expected_count
-        self.on_save_checkpoint_count = 0
+        self.state_dict_count = 0
 
     def on_train_start(self, trainer, pl_module):
         torch.save = Mock(wraps=torch.save)
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-        # only rank 0 will call ``torch.save``
-        super().on_save_checkpoint(trainer, pl_module, checkpoint)
-        self.on_save_checkpoint_count += 1
+    def state_dict(self):
+        super().state_dict()
+        self.state_dict_count += 1
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         assert self.best_model_path
         assert self.best_model_score
-        assert self.on_save_checkpoint_count == self.expected_count
+        assert self.state_dict_count == self.expected_count
         if trainer.is_global_zero:
             assert torch.save.call_count == self.expected_count
         else:
@@ -828,7 +827,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
         " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
     )
-    assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
+    assert ckpt_last["callbacks_state_dict"][ckpt_id] == ckpt_last_epoch["callbacks_state_dict"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
@@ -1060,7 +1059,7 @@ def test_current_score(tmpdir):
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
     ckpts = [
-        ckpt["callbacks"][
+        ckpt["callbacks_state_dict"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
@@ -1215,20 +1214,20 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
         "last_model_path": "last2245.ckpt",
     }
 
-    # test on_save_checkpoint
+    # test state_dict
     cb_write = ModelCheckpoint(dirpath=tmpdir, monitor="random_value", save_top_k=-1, save_last=True)
     for key, val in ckpt.items():
         setattr(cb_write, key, val)
-    written_ckpt = cb_write.on_save_checkpoint("", "", "")
+    written_ckpt = cb_write.state_dict()
     for state in ckpt:
         assert ckpt[state] == written_ckpt[state]
 
-    # test on_load_checkpoint
-    # Note: "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
+    # test load_state_dict
+    # Note: "current_score", "dirpath" and "monitor" are currently not restored by load_state_dict.
     # We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
     # "current_score" is left as initialized, i.e. None, and can therefore also be asserted
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "restore", monitor=None, save_top_k=-1, save_last=True)
-    cb_restore.on_load_checkpoint("", "", written_ckpt)
+    cb_restore.load_state_dict(written_ckpt)
     for key, val in written_ckpt.items():
         if key not in ("current_score", "dirpath", "monitor"):
             assert getattr(cb_restore, key) == val
@@ -1247,7 +1246,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
-    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
+    assert ckpt["callbacks_state_dict"][mc.state_key]["last_model_path"] == full_path
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
@@ -1260,4 +1259,4 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
-    assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
+    assert ckpt["callbacks_state_dict"][mc.state_key]["best_model_path"] == full_path

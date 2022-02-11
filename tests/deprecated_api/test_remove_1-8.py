@@ -500,3 +500,42 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+
+def test_v1_8_0_callback_checkpoint_hooks(tmpdir):
+    class TestCallbackSaveHook(Callback):
+        def on_save_checkpoint(
+            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint
+        ) -> dict:
+            return {"overriding": "on_save_checkpoint"}
+
+    class TestCallbackLoadHook(Callback):
+        def on_load_checkpoint(
+            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state
+        ) -> None:
+            a = "overriding on_load_checkpoint"
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackSaveHook()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+
+    with pytest.deprecated_call(
+        match="Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
+        " will be removed in v1.8. Please use `Callback.state_dict` instead,"
+        " or new method signature `Callback.on_save_checkpoint -> None`."
+    ):
+        trainer.fit(model)
+
+    trainer.callbacks = [TestCallbackLoadHook()]
+    with pytest.deprecated_call(
+        match="Method `Callback.on_load_checkpoint(callback_state)` is deprecated in v1.6 and"
+        " will be removed in v1.8. Please use `Callback.load_state_dict` instead,"
+        " or new method signature `Callback.on_load_checkpoint_new(checkpoint)`."
+    ):
+        trainer.fit(model)

@@ -115,11 +115,11 @@ class OldStatefulCallback(Callback):
     def state_key(self):
         return type(self)
 
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"state": self.state}
 
-    def on_load_checkpoint(self, trainer, pl_module, callback_state):
-        self.state = callback_state["state"]
+    def load_state_dict(self, state_dict) -> None:
+        self.state = state_dict["state"]
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):

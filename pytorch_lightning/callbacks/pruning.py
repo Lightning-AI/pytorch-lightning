@@ -426,12 +426,11 @@ class ModelPruning(Callback):
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers
             checkpoint["state_dict"] = self._make_pruning_permanent_on_state_dict(pl_module)
-        return checkpoint
 
     @staticmethod
     def sanitize_parameters_to_prune(
