@@ -136,7 +136,7 @@ class CheckOptimizerDeviceModel(BoringModel):
 
 
 @RunIf(min_gpus=1)
-def test_parameters_on_device_for_optimizer():
+def test_model_parameters_on_device_for_optimizer():
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
     model = CheckOptimizerDeviceModel()
     trainer = Trainer(
