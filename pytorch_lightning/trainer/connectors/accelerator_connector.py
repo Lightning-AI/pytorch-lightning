@@ -360,11 +360,9 @@ class AcceleratorConnector:
         else:
             self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         if devices in (0, "0", "0,"):
-            print(devices)
             raise MisconfigurationException(f"You passed `devices={devices}`, please set a number > 0")
 
         self._device_flag = devices
-
         # TODO: Delete this parsing section when num_processes, gpus, ipus and tpu_cores get removed
         self._gpus = gpus
         self._tpu_cores = tpu_cores
@@ -375,7 +373,6 @@ class AcceleratorConnector:
             self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
                 devices, deprecated_devices_specific_flag, num_processes, gpus, ipus, tpu_cores
             )
-
         if self._device_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
@@ -418,10 +415,10 @@ class AcceleratorConnector:
                 self._accelerator_flag = "cpu"
 
     def _choose_accelerator(self) -> str:
-        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
+        """Choose the accelerator type (str) based on availability when ``accelerator='auto' or 'None'."""
+        if _TPU_AVAILABLE:
+            return "tpu"
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
-                return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
