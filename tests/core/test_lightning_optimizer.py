@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import DEFAULT, Mock, patch
+from unittest.mock import ANY, DEFAULT, Mock, patch
 
 import pytest
 import torch
@@ -20,7 +20,29 @@ from torch.optim import Adam, Optimizer, SGD
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
+from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.helpers.boring_model import BoringModel
+
+
+def test_lightning_optimizer_wraps():
+    """Test that the LightningOptimizer fully wraps the optimizer."""
+    optimizer_cls = torch.optim.SGD
+    optimizer = Mock(spec=optimizer_cls)
+    wrapped_optimizer = LightningOptimizer(optimizer)
+    assert wrapped_optimizer.optimizer is optimizer
+    assert isinstance(wrapped_optimizer, optimizer_cls)
+
+
+def test_lightning_optimizer_steps():
+    """Test that the LightningOptimizer forwards the step() call to the wrapped optimizer."""
+    optimizer = Mock()
+    strategy = Mock(wraps=SingleDeviceStrategy("cpu"))
+    optimizer.step.return_value = 123
+    wrapped_optimizer = LightningOptimizer._wrap_optimizer(optimizer, strategy, 1)
+    step_output = wrapped_optimizer.step(foo=321)
+    assert step_output == 123
+    optimizer.step.assert_called_once_with(closure=ANY, foo=321)
+    strategy.optimizer_step.assert_called_once_with(optimizer, 1, ANY, foo=321)
 
 
 @pytest.mark.parametrize("auto", (True, False))

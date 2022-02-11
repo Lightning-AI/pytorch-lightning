@@ -62,7 +62,7 @@ class LightningOptimizer:
         return self._optimizer
 
     @classmethod
-    def _to_lightning_optimizer(
+    def _wrap_optimizer(
         cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy", opt_idx: int
     ) -> "LightningOptimizer":
         if isinstance(optimizer, LightningOptimizer):

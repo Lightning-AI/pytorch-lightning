@@ -93,7 +93,7 @@ class Strategy(ABC):
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
         self._lightning_optimizers = {
-            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
+            idx: LightningOptimizer._wrap_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
     def connect(self, model: Module) -> None:
@@ -176,7 +176,6 @@ class Strategy(ABC):
         optimizer: Optimizer,
         opt_idx: int,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
         """performs the actual optimizer step.
@@ -185,11 +184,9 @@ class Strategy(ABC):
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
             closure: closure calculating the loss value
-            model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        model = model or self.lightning_module
-        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(self.model, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.

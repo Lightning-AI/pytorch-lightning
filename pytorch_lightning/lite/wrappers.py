@@ -11,57 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Generator, Iterator, Optional, Union
+from typing import Any, Dict, Generator, Iterator, Optional, Union
 
 import torch
 from torch import nn as nn
 from torch import Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
-def _do_nothing_closure() -> None:
-    return None
-
-
-class _LiteOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
-        """LiteOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
-        step calls to the strategy plugin.
-
-        The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
-
-        Args:
-            optimizer: The optimizer to wrap
-            strategy: Reference to the strategy for handling the optimizer step
-        """
-        # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
-        # not want to call on destruction of the `_LiteOptimizer
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
-        self.__class__ = type("Lite" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-        self._optimizer = optimizer
-        self._strategy = strategy
-
-    @property
-    def optimizer(self) -> Optimizer:
-        return self._optimizer
-
+class _LiteOptimizer(LightningOptimizer):
     def state_dict(self) -> Dict[str, Tensor]:
+        assert self._strategy is not None
         return self._strategy.optimizer_state(self.optimizer)
-
-    def step(self, closure: Optional[Callable] = None) -> Any:
-        closure = closure or _do_nothing_closure
-        return self._strategy.optimizer_step(
-            self.optimizer,
-            opt_idx=0,
-            closure=closure,
-            model=self._strategy.model,
-        )
 
 
 class _LiteModule(DeviceDtypeModuleMixin):
