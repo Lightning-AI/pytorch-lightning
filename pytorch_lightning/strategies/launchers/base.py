@@ -17,9 +17,13 @@ from typing import Any, Callable
 
 class _Launcher(ABC):
     r"""
-    Abstract base class used to build new Launchers.
+    Abstract base class for all Launchers.
 
-    Subclass this class and override any of the relevant methods
+    Launchers are responsible for the creation and instrumentation of new processes so that the
+    :class:`~pytorch_lightning.strategies.base.Strategy` can set up communication between all them.
+
+    Subclass this class and override any of the relevant methods to provide a custom implementation depending on
+    cluster environment, hardware, strategy, etc.
     """
 
     @abstractmethod

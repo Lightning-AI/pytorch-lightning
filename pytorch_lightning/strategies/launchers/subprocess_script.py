@@ -76,7 +76,14 @@ class _SubprocessScriptLauncher(_Launcher):
         self.interactive_ddp_procs: List[Popen] = []
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        """Creates children scripts."""
+        """Creates new processes, then calls the given function.
+
+        Arguments:
+            function: A callback function to execute after all processes have been created.
+                It is up to the implementation of this function to synchronize the processes, e.g., with barriers.
+            *args: Optional positional arguments to be passed to the given function.
+            **kwargs: Optional keyword arguments to be passed to the given function.
+        """
         kwargs.pop("trainer", None)
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()

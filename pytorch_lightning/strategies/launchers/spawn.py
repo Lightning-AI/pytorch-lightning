@@ -31,16 +31,38 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class _SpawnLauncher(_Launcher):
-    r"""
-    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes when it
-    finishes.
+    r"""Spawns processes that run a given function in parallel, and joins them all at the end.
+
+    The main process in which this launcher is invoked creates N so-called worker processes (using
+    :func:`torch.multiprocessing.spawn`) that run the given function.
+    Worker processes have a rank that ranges from 0 to N - 1.
+
+    Note:
+        - This launcher requires all objects to be pickleable.
+        - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+
+    Arguments:
+        strategy: A reference to the strategy that is used together with this launcher.
     """
 
     def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        """Creates spawn processes and join them at the end."""
+        """Spawns processes that run the given function in parallel.
+
+        The function is allowed to have a return value. However, when all processes join, only the return value
+        of worker process 0 gets returned from this `launch` method in the main process.
+
+        Arguments:
+            function: The entry point for all spawned processes.
+            *args: Optional positional arguments to be passed to the given function.
+            **kwargs: Optional keyword arguments to be passed to the given function.
+                If a keyword argument named `trainer` is present and is an instance of
+                :class:`~pytorch_lightning.trainer.trainer.Trainer`, a selected set of attributes from the trainer get
+                restored in the main process after processes join. The `trainer` keyword argument will NOT be passed
+                into the function.
+        """
         trainer = kwargs.pop("trainer", None)
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
