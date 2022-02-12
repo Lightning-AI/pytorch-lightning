@@ -523,6 +523,7 @@ def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     ):
         trainer.fit(model)
 
+
 def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     class TestCallbackSaveHookReturn(Callback):
         def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
