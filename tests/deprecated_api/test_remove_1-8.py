@@ -501,6 +501,7 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     ):
         trainer.fit(model)
 
+
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
