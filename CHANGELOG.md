@@ -111,6 +111,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Accelerator.is_available` to check device availability ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
 
 
+- Added optional `storage_options` argument to `Trainer.save_checkpoint()` ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
+
+
 ### Changed
 
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
