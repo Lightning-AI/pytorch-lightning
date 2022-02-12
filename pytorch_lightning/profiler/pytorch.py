@@ -20,7 +20,7 @@ from collections import defaultdict
 from enum import IntEnum
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -340,18 +340,16 @@ class BasePyTorchProfiler(Profiler):
 
         if self.profiler is not None and action_name not in self._recording_map:
 
-            # Add [pl][profile] in name for pytorch profiler to recognize
-            action_name = "[pl][profile]" + action_name
-
             # start profile first then record_function to allow it can be captured by the stop
             if _KINETO_AVAILABLE and not self._emit_nvtx:
                 self._start_action(action_name)
-            recording = record_function(action_name)
+
+            # Add [pl][profile] in name for pytorch profiler to recognize
+            recording = record_function("[pl][profile]" + action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 
     def stop(self, action_name: str) -> None:
-        action_name = "[pl][profile]" + action_name
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
@@ -616,7 +614,7 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
             if _TORCH_GREATER_EQUAL_1_9:
-	        self.profiler.add_metadata("Framework", "pytorch-lightning")
+                self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def _delete_profiler(self) -> None:
         if self.profiler is not None:
@@ -723,7 +721,16 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
 
         self._start_action_name: Optional[str] = None
         self._profiler_state = KinetoProfilerState.NONE
-        self._action_map: Dict[Tuple[KinetoProfilerState, KinetoProfilerState], List[Any]] = None
+        self._action_map = {
+            (KinetoProfilerState.NONE, KinetoProfilerState.WARMUP): [torch.profiler._KinetoProfile.prepare_trace],
+            (KinetoProfilerState.NONE, KinetoProfilerState.START): [torch.profiler._KinetoProfile.start],
+            (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [torch.profiler._KinetoProfile.start_trace],
+            (KinetoProfilerState.START, KinetoProfilerState.NONE): [torch.profiler._KinetoProfile.stop],
+            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [
+                torch.profiler._KinetoProfile.stop,
+                torch.profiler._KinetoProfile.prepare_trace,
+            ],
+        }
 
         if _KINETO_AVAILABLE:
             self._init_kineto_params(profiler_kwargs)
@@ -744,7 +751,6 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             self.profiler.__enter__()
         else:
-            self._setup_profiler_action_map()
             self._transit_profiler(KinetoProfilerState.START)
 
     def _start_action(self, action_name: str) -> None:
@@ -841,20 +847,11 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if action_name.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
 
-    def _setup_profiler_action_map(self):
-        self._action_map = {
-            (KinetoProfilerState.NONE, KinetoProfilerState.WARMUP): [self.profiler.prepare_trace],
-            (KinetoProfilerState.NONE, KinetoProfilerState.START): [self.profiler.start],
-            (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [self.profiler.start_trace],
-            (KinetoProfilerState.START, KinetoProfilerState.NONE): [self.profiler.stop],
-            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [self.profiler.stop, self.profiler.prepare_trace],
-        }
-
     def _transit_profiler(self, new_state: KinetoProfilerState):
         action_list = self._action_map.get((self._profiler_state, new_state))
         if action_list:
             for action in action_list:
-                action()
+                action(self.profiler)
             self._profiler_state = new_state
 
 
