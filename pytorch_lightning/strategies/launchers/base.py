@@ -28,4 +28,4 @@ class _Launcher(ABC):
 
     @abstractmethod
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        """Launches the proceses."""
+        """Launches the processes."""
