@@ -228,8 +228,8 @@ def apply_to_collections(
         # but do not deepcopy mapped fields since the computation would
         # be wasted on values that likely get immediately overwritten
         data = [data1, data2]
-        fields = [{}, {}]
-        memo = [{}, {}]
+        fields = [{}, {}] # type: List[dict]
+        memo = [{}, {}] # type: List[dict]
         for i in range(len(data)):
             for field in dataclasses.fields(data[i]):
                 field_value = getattr(data[i], field.name)
