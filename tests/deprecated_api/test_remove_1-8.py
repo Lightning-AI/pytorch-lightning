@@ -500,3 +500,34 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
+    class CustomBoringDataModuleSave(BoringDataModule):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
+
+    class CustomBoringDataModuleLoad(BoringDataModule):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+
+    dm_save = CustomBoringDataModuleSave()
+    dm_load = CustomBoringDataModuleLoad()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=1,
+        enable_model_summary=False,
+    )
+
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model, datamodule=dm_save)
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        trainer.fit(model, datamodule=dm_load)
