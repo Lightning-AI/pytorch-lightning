@@ -2298,7 +2298,9 @@ class Trainer(
         )
         self._predicted_ckpt_path = ckpt_path
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         r"""
         Runs routine to create a checkpoint.
 

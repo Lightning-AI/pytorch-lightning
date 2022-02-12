@@ -389,7 +389,9 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
