@@ -312,7 +312,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            storage_options: Optional parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
         self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options)

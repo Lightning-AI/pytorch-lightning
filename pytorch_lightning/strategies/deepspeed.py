@@ -734,8 +734,13 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
-            storage_options: not used for ``DeepSpeedStrategy`` as ``CheckpointIO`` is not used
+            storage_options: raises exception if passed in, not used for ``DeepSpeedStrategy`` as ``CheckpointIO`` is not used
         """
+        if storage_options:
+            raise MisconfigurationException(
+                "`Trainer.save_checkpoint(storage_options)` with `storage_options` arg "
+                "is not supported for `DeepSpeedStrategy` as `CheckpointIO` is not used."
+            )
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "

@@ -397,7 +397,7 @@ class CheckpointConnector:
         Args:
             filepath: write-target file's path
             weights_only: saving model weights only
-            storage_options: Optional parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options)

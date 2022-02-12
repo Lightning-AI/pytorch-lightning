@@ -410,7 +410,7 @@ class Strategy(ABC):
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            storage_options: Optional parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options)
