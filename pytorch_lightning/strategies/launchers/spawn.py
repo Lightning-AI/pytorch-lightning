@@ -100,15 +100,13 @@ class _SpawnLauncher(_Launcher):
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback:
-            trainer.checkpoint_callback.best_model_path = spawn_output.best_model_path
+            trainer.checkpoint_callback.best_model_path = str(spawn_output.best_model_path)
 
         # TODO: pass also best score
         # load last weights
         if spawn_output.weights_path is not None:
-            ckpt = self._strategy.checkpoint_io.load_checkpoint(
-                spawn_output.weights_path, map_location=(lambda storage, loc: storage)
-            )
-            trainer.lightning_module.load_state_dict(ckpt)
+            ckpt = self._strategy.checkpoint_io.load_checkpoint(spawn_output.weights_path)
+            trainer.lightning_module.load_state_dict(ckpt)  # type: ignore[arg-type]
             self._strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
 
         trainer.state = spawn_output.trainer_state
@@ -129,7 +127,7 @@ class _SpawnLauncher(_Launcher):
         state_dict = trainer.lightning_module.state_dict()
 
         if self._strategy.global_rank != 0:
-            return
+            return None
 
         # save the last weights
         weights_path = None

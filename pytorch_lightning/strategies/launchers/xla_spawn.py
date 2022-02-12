@@ -116,7 +116,7 @@ class _XLASpawnLauncher(_SpawnLauncher):
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
         if self._strategy.local_rank != 0:
-            return
+            return None
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
