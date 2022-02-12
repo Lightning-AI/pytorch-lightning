@@ -10,3 +10,5 @@ torchmetrics>=0.4.1
 pyDeprecate>=0.3.1, <0.4.0
 packaging>=17.0
 typing-extensions>=4.0.0
+setuptools==59.5.0 # required for https://github.com/pytorch/pytorch/pull/69904
+
