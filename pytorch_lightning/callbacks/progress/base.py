@@ -213,6 +213,7 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
+    # TODO: Adapt for trainer.loggers
     if trainer.logger is not None and trainer.logger.version is not None:
         version = trainer.logger.version
         if isinstance(version, str):

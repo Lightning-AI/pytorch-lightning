@@ -614,7 +614,7 @@ class Trainer(
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
-            self.logger = DummyLogger() if self.logger is not None else None
+            self.loggers = [DummyLogger()] if self.loggers else []
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -1212,34 +1212,34 @@ class Trainer(
         # log hyper-parameters
         hparams_initial = None
 
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
+        # save exp to get started (this is where the first experiment logs are written)
+        datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-                datamodule_hparams = self.datamodule.hparams_initial
-                lightning_hparams = self.lightning_module.hparams_initial
-                inconsistent_keys = []
-                for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                    if type(lm_val) != type(dm_val):
-                        inconsistent_keys.append(key)
-                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
-                        inconsistent_keys.append(key)
-                    elif lm_val != dm_val:
-                        inconsistent_keys.append(key)
-                if inconsistent_keys:
-                    raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams "
-                        "but have different values."
-                    )
-                hparams_initial = {**lightning_hparams, **datamodule_hparams}
-            elif self.lightning_module._log_hyperparams:
-                hparams_initial = self.lightning_module.hparams_initial
-            elif datamodule_log_hyperparams:
-                hparams_initial = self.datamodule.hparams_initial
+        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+            datamodule_hparams = self.datamodule.hparams_initial
+            lightning_hparams = self.lightning_module.hparams_initial
+            inconsistent_keys = []
+            for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                if type(lm_val) != type(dm_val):
+                    inconsistent_keys.append(key)
+                elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                    inconsistent_keys.append(key)
+                elif lm_val != dm_val:
+                    inconsistent_keys.append(key)
+            if inconsistent_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams "
+                    "but have different values."
+                )
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+        elif self.lightning_module._log_hyperparams:
+            hparams_initial = self.lightning_module.hparams_initial
+        elif datamodule_log_hyperparams:
+            hparams_initial = self.datamodule.hparams_initial
 
+        for logger in trainer.loggers:
             if hparams_initial is not None:
                 self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
@@ -1472,8 +1472,8 @@ class Trainer(
 
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu kill loggers.
-        if self.logger is not None:
-            self.logger.finalize("success")
+        for logger in self.loggers:
+            logger.finalize("success")
 
         # summarize profile results
         self.profiler.describe()
@@ -2096,14 +2096,13 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if self.logger is None:
-            dirpath = self.default_root_dir
-        elif isinstance(self.logger, TensorBoardLogger):
-            dirpath = self.logger.log_dir
-        elif isinstance(self.logger, LoggerCollection):
-            dirpath = self.default_root_dir
+        if len(self.loggers) == 1:
+            if isinstance(self.logger, TensorBoardLogger):
+                dirpath = self.logger.log_dir
+            else:
+                dirpath = self.logger.save_dir
         else:
-            dirpath = self.logger.save_dir
+            dirpath = self.default_root_dir
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
