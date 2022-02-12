@@ -32,7 +32,40 @@ if _HYDRA_AVAILABLE:
 
 class _SubprocessScriptLauncher(_Launcher):
     r"""
-    Creates and launches subprocess scripts on each device.
+    A process laucher that invokes the current script as many times as desired in a single node.
+
+    This launcher needs to be invoked on each node.
+    In its default behavior, the main process in each node then spawns N-1 child processes via :func:`subprocess.Popen`,
+    where N is the number of devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.run`
+    launches processes.
+
+    For example, if the script gets invoked with the command
+
+    .. code-block:: bash
+
+        python train.py --devices 4
+
+    The launcher will create three additional subprocesses that get called like so:
+
+    .. code-block:: bash
+
+        LOCAL_RANK=1 python train.py --devices 4
+        LOCAL_RANK=2 python train.py --devices 4
+        LOCAL_RANK=3 python train.py --devices 4
+
+    It is implied that the main process which launched the others has ``LOCAL_RANK=0``.
+    Beside the local rank, the following other environment variables also get set, but unlike the local rank, these
+    get determined by the cluster environment:
+
+    1. `MASTER_ADDR`: The IP address of the main node.
+    2. `MASTER_PORT`: The port number of the main node through which all processes communicate.
+    3. `NODE_RANK`: The index of the node the current process is running on. Ranges from 0 to ``num_nodes - 1``.
+    4. `WORLD_SIZE`: The total number of processes across all nodes, i.e., ``num_processes * num_nodes``.
+
+    Arguments:
+        cluster_environment: A cluster environment that provides access to world size, node rank, etc.
+        num_processes: The number of processes to launch in the current node.
+        num_nodes: The total number of nodes that participate in this process group.
     """
 
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:

@@ -61,11 +61,7 @@ log = logging.getLogger(__name__)
 
 
 class DDPStrategy(ParallelStrategy):
-    """Plugin for multi-process single-device training on one or multiple nodes.
-
-    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
-    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
-    """
+    """Strategy for multi-process single-device training on one or multiple nodes."""
 
     distributed_backend = _StrategyType.DDP
 
