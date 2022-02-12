@@ -316,8 +316,10 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
-                'callbacks_state_dict':                 {callback.state_key: callback.state_dict}                     # if not weights_only
-                'callbacks_deprecated_hook_states':     {callback.state_key: callback.deprecated_on_save_checkpoint}  # if not weights_only
+                'callbacks_state_dict':                                  # if not weights_only
+                    {callback.state_key: callback.state_dict}
+                'callbacks_deprecated_hook_states':                      # if not weights_only
+                    {callback.state_key: callback.deprecated_on_save_checkpoint}
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp

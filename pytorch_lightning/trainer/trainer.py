@@ -1643,6 +1643,11 @@ class Trainer(
             # TODO: Add profiling for on_save_checkpoint hook
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
+                rank_zero_deprecation(
+                    "Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
+                    " will be removed in v1.8. Please use `Callback.state_dict` instead,"
+                    " or new method signature `Callback.on_save_checkpoint -> None`."
+                )
                 callback_on_save_checkpoint_deprecated_states[callback.state_key] = state
         return callback_on_save_checkpoint_deprecated_states
 
@@ -1655,12 +1660,14 @@ class Trainer(
         if ckpt_callback_states_old_hook is None and ckpt_callback_states_new_stateful is None:
             return
 
+        ckpt_callback_states = set()
+        if ckpt_callback_states_new_stateful is not None:
+            ckpt_callback_states.update(ckpt_callback_states_new_stateful.keys())
+        if ckpt_callback_states_old_hook is not None:
+            ckpt_callback_states.update(ckpt_callback_states_old_hook.keys())
         is_legacy_ckpt = Version(checkpoint["pytorch-lightning_version"]) < Version("1.5.0dev")
         current_callbacks_keys = {cb._legacy_state_key if is_legacy_ckpt else cb.state_key for cb in self.callbacks}
-        difference = (
-            set().union(ckpt_callback_states_old_hook.keys(), ckpt_callback_states_new_stateful.keys())
-            - current_callbacks_keys
-        )
+        difference = ckpt_callback_states - current_callbacks_keys
         if difference:
             rank_zero_warn(
                 "Be aware that when using `ckpt_path`,"

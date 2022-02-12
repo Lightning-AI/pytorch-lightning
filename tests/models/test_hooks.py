@@ -233,9 +233,6 @@ class HookedCallback(Callback):
     def state_dict(*args, **kwargs):
         return {"a": False}
 
-    def on_save_checkpoint(*args, **kwargs):
-        return {"foo": True}
-
 
 class HookedModel(BoringModel):
     def __init__(self, called):
@@ -634,7 +631,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="on_load_checkpoint", args=(loaded_ckpt,)),
         dict(name="Callback.on_load_checkpoint_new", args=(trainer, model, loaded_ckpt)),
-        dict(name="Callback.on_load_checkpoint", args=(trainer, model, {"foo": True})),
         dict(name="Callback.load_state_dict", args=({"a": False},)),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
