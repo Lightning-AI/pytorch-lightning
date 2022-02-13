@@ -290,5 +290,6 @@ Utilities API
     memory
     model_summary
     parsing
+    rank_zero
     seed
     warnings

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from collections import defaultdict
 from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
@@ -23,14 +24,14 @@ from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -118,6 +119,17 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+
+            trainer = self.trainer
+            if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
+                expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
+                if self.global_step % expected_steps != 0:
+                    rank_zero_warn(
+                        "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
+                        " results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
+                        " fault-tolerant training:"
+                        " https://pytorch-lightning.readthedocs.io/en/stable/advanced/fault_tolerant_training.html"
+                    )
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
@@ -264,7 +276,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self.trainer.train_dataloader is None
+            self.trainer is None
+            or not self.trainer.state._fault_tolerant_mode.is_enabled
+            or self.trainer.train_dataloader is None
             or self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             or self.batch_progress.current.ready == 0  # did not start
@@ -479,11 +493,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
-
-        # while restarting with no fault-tolerant, batch_progress.current.ready is -1
-        if batch_idx == -1:
-            return False
-
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):

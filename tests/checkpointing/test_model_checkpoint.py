@@ -166,7 +166,7 @@ def test_model_checkpoint_score_and_ckpt(
 
         expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
-        assert chk["epoch"] == epoch + 1
+        assert chk["epoch"] == epoch
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
         mc_specific_data = chk["callbacks"][
@@ -266,7 +266,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         assert math.isclose(score, expected_score, rel_tol=1e-4)
 
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
-        assert chk["epoch"] == epoch + 1
+        assert chk["epoch"] == epoch
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch)
         assert chk["global_step"] == expected_global_step
 
@@ -821,7 +821,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
 
-    assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
+    # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so the
+    # `current_epoch` count has not been increased yet
+    assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"] - 1
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
     ckpt_id = (
@@ -923,7 +925,9 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     def assert_checkpoint_content(ckpt_dir):
         chk = pl_load(get_last_checkpoint(ckpt_dir))
-        assert chk["epoch"] == epochs
+        # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so the
+        # `current_epoch` count has not been increased yet
+        assert chk["epoch"] == epochs - 1
         assert chk["global_step"] == 4
 
     def assert_checkpoint_log_dir(idx):
@@ -951,15 +955,15 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     model = ExtendedBoringModel()
     trainer.fit(model)
     assert trainer.global_step == epochs * limit_train_batches
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
     assert_checkpoint_log_dir(0)
     assert_checkpoint_content(ckpt_dir)
 
     trainer.validate(model)
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
 
     trainer.test(model)
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
 
     for idx in range(1, 5):
         chk = get_last_checkpoint(ckpt_dir)
@@ -977,14 +981,17 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
 
         trainer.validate(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
 
         trainer.fit(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
         assert_checkpoint_log_dir(idx)
 
 
@@ -1171,7 +1178,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     trainer.fit_loop.max_epochs = 4
     trainer.fit(BoringModel())
 
-    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
+    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION - 1)
     expected = {"test.ckpt", *(f"test-v{i}.ckpt" for i in ckpt_range)}
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models} == expected
