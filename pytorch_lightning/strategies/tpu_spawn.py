@@ -141,7 +141,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def is_distributed(self) -> bool:
-        return self.world_size > 1
+        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
