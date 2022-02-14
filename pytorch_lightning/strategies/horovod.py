@@ -13,6 +13,7 @@
 # limitations under the License.
 from contextlib import ExitStack
 from typing import Any, List, Optional, Tuple, Union
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 import torch
 import torch.nn as nn
@@ -77,6 +78,11 @@ class HorovodStrategy(ParallelStrategy):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
 
@@ -111,6 +117,12 @@ class HorovodStrategy(ParallelStrategy):
         hvd.broadcast_parameters(self.lightning_module.state_dict(), root_rank=0)
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
+
+        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Horovod currently does not support different `accumulate_grad_batches` at different epochs."
+            )
 
         self.optimizers = self._wrap_optimizers(optimizers)
         for optimizer in self.optimizers:
@@ -184,8 +196,12 @@ class HorovodStrategy(ParallelStrategy):
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
+        accumulate_grad_batches = self.trainer.accumulate_grad_batches
         return [
-            hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
+            hvd.DistributedOptimizer(
+                opt,
+                backward_passes_per_step=accumulate_grad_batches,
+                named_parameters=self._filter_named_parameters(self.lightning_module, opt))
             if "horovod" not in str(opt.__class__)
             else opt
             for opt in optimizers
