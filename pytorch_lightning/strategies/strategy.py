@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, move_dat
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
@@ -155,7 +155,7 @@ class Strategy(ABC):
                 # while training on 8 and more cores.
                 opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
 
-    def optimizer_state(self, optimizer: Optimizer) -> Optional[Dict[str, Tensor]]:
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
@@ -165,17 +165,9 @@ class Strategy(ABC):
         ):
             optimizer.consolidate_state_dict()
             # only call state_dict on the rank where the states were consolidated
-            return self._rank_zero_only_optim_state_dict(optimizer)
+            return optimizer.state_dict() if self.is_global_zero else {}
         else:
             return optimizer.state_dict()
-
-    @rank_zero_only
-    def _rank_zero_only_optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
 
     def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
         """Forwards backward-calls to the precision plugin.
