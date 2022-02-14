@@ -332,3 +332,9 @@ def test_devices_auto_choice_tpu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 8
     assert trainer.tpu_cores == 8
+
+
+@RunIf(tpu=True)
+def test_warning_if_tpus_not_used(tmpdir):
+    with pytest.warns(UserWarning, match="TPU available but not used. Set `tpu_cores` via your trainer"):
+        Trainer(default_root_dir=tmpdir)
