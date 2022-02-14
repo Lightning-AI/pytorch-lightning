@@ -145,4 +145,3 @@ def test_ddp_sync_batchnorm():
     assert isinstance(trainer.strategy.model.module.module.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
     trainer.strategy.teardown()
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
-

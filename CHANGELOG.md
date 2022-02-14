@@ -330,6 +330,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disable loading dataloades if corresponding `limit_batches=0` ([#11576](https://github.com/PyTorchLightning/pytorch-lightning/pull/11576))
 
 
+- Check if trainerFn == FITTING before configuring `sync_batchnorm` ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919/files))
+
+
+
 ### Deprecated
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))

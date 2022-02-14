@@ -150,8 +150,8 @@ class DDPStrategy(ParallelStrategy):
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
-            if self.sync_batchnorm:
-                self.model = self.configure_sync_batchnorm(self.model)
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
 
             # skip wrapping the model if we are not fitting as no gradients need to be exchanged
             self.configure_ddp()
@@ -425,8 +425,11 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING and self._layer_sync:
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
