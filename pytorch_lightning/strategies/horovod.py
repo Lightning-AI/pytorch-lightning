@@ -13,7 +13,6 @@
 # limitations under the License.
 from contextlib import ExitStack
 from typing import Any, List, Optional, Tuple, Union
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 import torch
 import torch.nn as nn
@@ -28,6 +27,7 @@ from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -201,7 +201,8 @@ class HorovodStrategy(ParallelStrategy):
             hvd.DistributedOptimizer(
                 opt,
                 backward_passes_per_step=accumulate_grad_batches,
-                named_parameters=self._filter_named_parameters(self.lightning_module, opt))
+                named_parameters=self._filter_named_parameters(self.lightning_module, opt),
+            )
             if "horovod" not in str(opt.__class__)
             else opt
             for opt in optimizers
