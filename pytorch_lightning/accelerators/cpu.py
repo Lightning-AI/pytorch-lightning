@@ -17,6 +17,7 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
@@ -36,9 +37,7 @@ class CPUAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "cpu":
-            raise MisconfigurationException(
-                f"Device should be CPU, got {root_device} instead."
-            )
+            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Get CPU stats from psutil."""
@@ -74,6 +73,14 @@ class CPUAccelerator(Accelerator):
             description=f"{cls.__class__.__name__}",
         )
 
+class CPUDeviceStatsEnum(LightningEnum):
+    """Enum for CPU device stats."""
+
+    CPU_VM_PERCENT = "cpu_vm_percent"
+    CPU_PERCENT = "cpu_percent"
+    CPU_SWAP_PERCENT = "cpu_swap_percent"
+
+
 def get_cpu_process_metrics() -> dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
@@ -82,8 +89,8 @@ def get_cpu_process_metrics() -> dict[str, float]:
         )
 
     metrics = {
-        f"cpu_vm_percent": psutil.virtual_memory().percent,
-        f"cpu_percent": psutil.cpu_percent(),
-        f"cpu_swap_percent": psutil.swap_memory().percent,
+        CPUDeviceStatsEnum.CPU_VM_PERCENT: psutil.virtual_memory().percent,
+        CPUDeviceStatsEnum.CPU_PERCENT: psutil.cpu_percent(),
+        CPUDeviceStatsEnum.CPU_SWAP_PERCENT: psutil.swap_memory().percent,
     }
     return metrics
