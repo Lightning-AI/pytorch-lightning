@@ -1,9 +1,9 @@
 Lightning Flash
 ===============
 
-`Lightning Flash <https://lightning-flash.readthedocs.io/en/latest/>`_ is a high-level deep learning framework for fast prototyping, baselining, finetuning and solving deep learning problems.
+`Lightning Flash <https://lightning-flash.readthedocs.io/en/latest/>`_ is a high-level deep learning framework for fast prototyping, baselining, fine-tuning, and solving deep learning problems.
 Flash makes complex AI recipes for over 15 tasks across 7 data domains accessible to all.
-It is built for beginners with a simple API that requires very little deep learning background, and for data scientists, Kagglers, applied ML practitioners and deep learning researchers that
+It is built for beginners with a simple API that requires very little deep learning background, and for data scientists, Kagglers, applied ML practitioners, and deep learning researchers that
 want a quick way to get a deep learning baseline with advanced features PyTorch Lightning offers.
 
 .. code-block:: bash
@@ -13,15 +13,15 @@ want a quick way to get a deep learning baseline with advanced features PyTorch 
 -----------------
 
 *********************************
-Using Lightning-Flash in 3 Steps!
+Using Lightning Flash in 3 Steps!
 *********************************
 
-1. Load your data
+1. Load your Data
 -----------------
 
-All data loading in Flash is performed via a `from_*` classmethod on a `DataModule`.
-Which `DataModule` to use and which `from_*` methods are available depends on the task you want to perform.
-For example, for image segmentation where your data is stored in folders, you would use `the ``from_folders`` method of the ``SemanticSegmentationData`` class <https://lightning-flash.readthedocs.io/en/latest/reference/semantic_segmentation.html#from-folders>`_:
+All data loading in Flash is performed via a ``from_*`` classmethod of a ``DataModule``.
+Which ``DataModule`` to use and which ``from_*`` methods are available depends on the task you want to perform.
+For example, for image segmentation where your data is stored in folders, you would use the ``SemanticSegmentationData``'s `from_folders <https://lightning-flash.readthedocs.io/en/latest/reference/semantic_segmentation.html#from-folders>`_ method:
 
 .. code-block:: python
 
@@ -37,11 +37,11 @@ For example, for image segmentation where your data is stored in folders, you wo
 
 ------------
 
-2. Configure your model
+2. Configure your Model
 -----------------------
 
 Our tasks come loaded with pre-trained backbones and (where applicable) heads.
-You can view the available backbones to use with your task using ```available_backbones`` <https://lightning-flash.readthedocs.io/en/latest/general/backbones.html>`_.
+You can view the available backbones to use with your task using `available_backbones <https://lightning-flash.readthedocs.io/en/latest/general/backbones.html>`_.
 Once you've chosen, create the model:
 
 .. code-block:: python

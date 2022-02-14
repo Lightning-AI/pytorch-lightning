@@ -1,7 +1,7 @@
 TorchMetrics
 ============
 
-`TorchMetrics <https://torchmetrics.readthedocs.io/en/latest//>`_ is a collection of machine learning metrics for distributed,
+`TorchMetrics <https://torchmetrics.readthedocs.io>`_ is a collection of machine learning metrics for distributed,
 scalable PyTorch models and an easy-to-use API to create custom metrics. It has a collection of 60+ PyTorch metrics implementations and
 is rigorously tested for all edge cases.
 
@@ -12,15 +12,15 @@ is rigorously tested for all edge cases.
 In TorchMetrics, we offer the following benefits:
 
 - A standardized interface to increase reproducibility
-- Reduces Boilerplate
+- Reduced Boilerplate
 - Distributed-training compatible
 - Rigorously tested
 - Automatic accumulation over batches
-- Automatic synchronization between multiple devices
+- Automatic synchronization across multiple devices
 
 -----------------
 
-Example 1: Functional metrics
+Example 1: Functional Metrics
 -----------------------------
 
 Below is a simple example for calculating the accuracy using the functional interface:
@@ -38,7 +38,7 @@ Below is a simple example for calculating the accuracy using the functional inte
 
 ------------
 
-Example 2: Module metrics
+Example 2: Module Metrics
 -------------------------
 
 The example below shows how to use the class-based interface:
@@ -72,7 +72,7 @@ The example below shows how to use the class-based interface:
 Example 3: TorchMetrics with Lightning
 --------------------------------------
 
-The example below shows how to use a metric in your `LightningModule <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html>`_:
+The example below shows how to use a metric in your :doc:`LightningModule <../common/lightning_module>`:
 
 .. code-block:: python
 
