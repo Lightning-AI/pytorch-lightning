@@ -83,6 +83,23 @@ def test_horovod_cpu(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
+def test_horovod_cpu_accumulate_grad_batches(tmpdir):
+    """Test Horovod running multi-process on CPU."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accumulate_grad_batches=4,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options)
+
+
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -125,6 +142,24 @@ def test_horovod_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
+        gpus=2,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
+    """Test Horovod with multi-GPU support."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accumulate_grad_batches=4,
         gpus=2,
         strategy="horovod",
     )

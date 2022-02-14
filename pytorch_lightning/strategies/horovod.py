@@ -196,7 +196,7 @@ class HorovodStrategy(ParallelStrategy):
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
-        accumulate_grad_batches = self.trainer.accumulate_grad_batches
+        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
         return [
             hvd.DistributedOptimizer(
                 opt,
