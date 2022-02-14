@@ -14,7 +14,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import ContextManager, Optional
 from unittest import mock
 
 import pytest
@@ -162,7 +162,7 @@ def train_with_swa(
         devices=devices,
     )
 
-    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
+    with _backward_patch(trainer):
         trainer.fit(model)
 
     # check the model is the expected
@@ -310,7 +310,7 @@ def test_swa_multiple_lrs(tmpdir):
     assert model.on_train_epoch_start_called
 
 
-def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False):
+def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False, restore_after_setup=False):
     swa_start = 3
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -331,8 +331,9 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
     )
 
     exception_type = Exception if ddp else RuntimeError
-    backward_patch = mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)
-    with backward_patch, pytest.raises(exception_type):
+    backward_patch = _backward_patch(trainer)
+    restore_patch = _restore_after_setup_patch(trainer, restore_after_setup)
+    with backward_patch, restore_patch, pytest.raises(exception_type):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
@@ -353,7 +354,9 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         strategy=strategy,
     )
 
-    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward):
+    backward_patch = _backward_patch(trainer)
+    restore_patch = _restore_after_setup_patch(trainer, restore_after_setup)
+    with restore_patch, backward_patch:
         trainer.fit(resume_model, ckpt_path=checkpoint_path.as_posix())
 
 
@@ -382,11 +385,12 @@ def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
 
 
 @pytest.mark.parametrize("crash_after_epoch", [2, 4])
-def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_after_epoch):
+@pytest.mark.parametrize("restore_after_setup", [False, True])
+def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_after_epoch, restore_after_setup):
     # Reproduces the bug reported in https://github.com/PyTorchLightning/pytorch-lightning/issues/11665
     model = CustomSchedulerModel(crash_after_epoch=crash_after_epoch)
     resume_model = CustomSchedulerModel()
-    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
+    _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, restore_after_setup=restore_after_setup)
 
 
 @RunIf(skip_windows=True, min_torch="1.8")
@@ -421,3 +425,17 @@ def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
 @RunIf(deepspeed=True, min_gpus=1)
 def test_misconfiguration_error_with_deep_speed(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed", 1)
+
+
+def _backward_patch(trainer: Trainer) -> ContextManager:
+    return mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)
+
+
+def _restore_after_setup_patch(trainer: Trainer, restore_after_setup: bool) -> ContextManager:
+    return mock.patch.object(
+        Strategy,
+        "restore_checkpoint_after_setup",
+        wraps=trainer.strategy.restore_checkpoint_after_setup,
+        new_callable=mock.PropertyMock,
+        return_value=restore_after_setup,
+    )
