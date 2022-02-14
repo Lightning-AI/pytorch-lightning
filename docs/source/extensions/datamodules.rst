@@ -326,13 +326,33 @@ on_after_batch_transfer
 on_load_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
+.. warning:: ``on_load_checkpoint`` is deprecated in v1.6 and will be removed in v1.8.
+    Please use ``load_state_dict`` instead.
+
+
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_load_checkpoint
+    :noindex:
+
+load_state_dict
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.load_state_dict
     :noindex:
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
+.. warning:: ``on_save_checkpoint`` is deprecated in v1.6 and will be removed in v1.8.
+    Please use ``state_dict`` instead.
+
+
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_save_checkpoint
+    :noindex:
+
+state_dict
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.state_dict
     :noindex:
 
 on_train_dataloader
