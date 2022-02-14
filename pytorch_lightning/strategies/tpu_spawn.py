@@ -52,7 +52,7 @@ else:
 class TPUSpawnStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
-    strategy_name = "tpu_spawn"
+    strategy_name = "tpu_spawn_strategy"
 
     def __init__(
         self,

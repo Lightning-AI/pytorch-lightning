@@ -1969,7 +1969,7 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> _StrategyType:
+    def _strategy_type(self) -> Optional[int]:
         return self.strategy.strategy_name
 
     @property
