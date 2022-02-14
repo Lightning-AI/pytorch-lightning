@@ -119,7 +119,7 @@ def test_ddp_configure_ddp():
         max_epochs=1,
         strategy=ddp_strategy,
     )
-    # test do not wrap the model if trainerFN is not fitting
+    # test do not wrap the model if TrainerFn is not fitting
     trainer.state.fn = TrainerFn.VALIDATING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
@@ -127,3 +127,22 @@ def test_ddp_configure_ddp():
     trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
+
+
+@RunIf(min_gpus=1)
+def test_ddp_sync_batchnorm():
+    model = BoringModelGPU()
+    model.layer = torch.nn.BatchNorm1d(10)
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+    assert isinstance(trainer.model, LightningModule)
+    trainer.strategy.setup(trainer)
+    # in DDPStrategy setup(), model wrapped by SyncBatchNorm
+    assert isinstance(trainer.strategy.model.module.module.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+    trainer.strategy.teardown()
+    assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
