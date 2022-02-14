@@ -292,7 +292,7 @@ class BoringFairScaleOptimizerModel(BoringModel):
 def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using fairscale optimizers."""
     model = BoringFairScaleOptimizerModel()
-    trainer = Trainer(gpus=2, max_epochs=2, strategy="ddp_sharded_spawn")
+    trainer = Trainer(gpus=2, max_epochs=2, strategy=strategy)
 
     trainer.fit(model)
 

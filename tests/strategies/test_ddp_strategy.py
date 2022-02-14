@@ -190,7 +190,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
-    trainer = Trainer(max_epochs=2, gpus=2, strategy="ddp")
+    trainer = Trainer(max_epochs=2, gpus=2, strategy=strategy)
 
     trainer.fit(model)
 
