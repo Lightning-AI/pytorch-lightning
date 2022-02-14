@@ -1239,7 +1239,7 @@ class Trainer(
         elif datamodule_log_hyperparams:
             hparams_initial = self.datamodule.hparams_initial
 
-        for logger in trainer.loggers:
+        for logger in self.loggers:
             if hparams_initial is not None:
                 self.logger.log_hyperparams(hparams_initial)
             self.logger.log_graph(self.lightning_module)
