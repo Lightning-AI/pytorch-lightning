@@ -135,7 +135,7 @@ class DDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict:
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -145,7 +145,8 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment or not self.cluster_environment.creates_processes_externally:
+        assert self.cluster_environment is not None
+        if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         self.setup_distributed()
@@ -163,12 +164,13 @@ class DDPStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm and self.model:
+        assert self.model is not None
+        if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        if self.lightning_module:
-            trainer_fn = self.lightning_module.trainer.state.fn
+        assert self.lightining_module is not None
+        trainer_fn = self.lightning_module.trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
@@ -182,14 +184,14 @@ class DDPStrategy(ParallelStrategy):
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
 
-        if self.cluster_environment:
-            # DDP Environment variables
-            os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
-            os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
+        assert self.cluster_environment is not None
+        # DDP Environment variables
+        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
-            # allow the user to pass the node rank
-            os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
-            os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+        # allow the user to pass the node rank
+        os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
+        os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -254,8 +256,8 @@ class DDPStrategy(ParallelStrategy):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        if self.cluster_environment:
-            init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
+        assert self.cluster_environment is not None
+        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
 
     def _check_can_spawn_children(self) -> None:
         if self.local_rank != 0:
@@ -278,9 +280,8 @@ class DDPStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module or (
-            not self.lightning_module.automatic_optimization
-            and not self._ddp_kwargs.get("find_unused_parameters", False)
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get("find_unused_parameters", False
         ):
             # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
@@ -303,11 +304,7 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if (
-                self.lightning_module
-                and _TORCH_GREATER_EQUAL_1_10
-                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
-            ):
+            if  _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
@@ -358,8 +355,8 @@ class DDPStrategy(ParallelStrategy):
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
-        if self.model:
-            self.model = self._setup_model(LightningDistributedModule(self.model))
+        assert self.model is not None
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self) -> Optional[List[int]]:
@@ -384,7 +381,9 @@ class DDPStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""
-        if self.model and self.lightning_module and not self.lightning_module.automatic_optimization:
+        assert self.model is not None
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
@@ -412,8 +411,8 @@ class DDPStrategy(ParallelStrategy):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
-            if self.model:
-                return self.model(*args, **kwargs)
+           assert self.model is not None
+           return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
@@ -422,21 +421,23 @@ class DDPStrategy(ParallelStrategy):
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
-                if self.lightning_module:
-                    return self.lightning_module.validation_step(*args, **kwargs)
+                assert self.lightning_module is not None
+                return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
-            if self.lightning_module:
-                return self.lightning_module.test_step(*args, **kwargs)
+            assert self.lightning_module is not None
+            return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
-            if self.lightning_module:
-                return self.lightning_module.predict_step(*args, **kwargs)
+            assert self.lightning_module is not None
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
-        if self.model and self.lightning_module and not self.lightning_module.automatic_optimization:
+        assert self.model is not None
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
     @classmethod
@@ -523,13 +524,14 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.sync_batchnorm and self.model:
+        assert self.model is not None
+        if self.sync_batchnorm:
             self.model = _revert_sync_batchnorm(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            if self.lightning_module:
-                self.lightning_module.cpu()
+            assert self.lightning_module is not None
+            self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
