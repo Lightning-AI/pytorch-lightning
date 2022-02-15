@@ -34,7 +34,7 @@ from tests.helpers.runif import RunIf
 
 class SwaTestModel(BoringModel):
     def __init__(
-        self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False, crash_after_epoch=None
+        self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False, crash_on_epoch=None
     ):
         super().__init__()
         layers = [nn.Linear(32, 32)]
@@ -44,10 +44,11 @@ class SwaTestModel(BoringModel):
         self.layer = nn.Sequential(*layers)
         self.interval = interval
         self.iterable_dataset = iterable_dataset
-        self.crash_after_epoch = crash_after_epoch
-        self.save_hyperparameters()
+        self.crash_on_epoch = crash_on_epoch
 
     def training_step(self, batch, batch_idx):
+        if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
+            raise DummyError()
         output = self.forward(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -66,12 +67,6 @@ class SwaTestModel(BoringModel):
                 "interval": self.interval,
             },
         }
-
-    def training_epoch_end(self, _):
-        if not self.crash_after_epoch:
-            return
-        if self.trainer.current_epoch + 1 >= self.crash_after_epoch:
-            raise RuntimeError("Crash test")
 
 
 class SwaTestCallback(StochasticWeightAveraging):
@@ -130,6 +125,13 @@ class SwaTestCallback(StochasticWeightAveraging):
         first_swa_epoch = max(self.first_epoch, self.swa_start)
         assert self.update_parameters_calls == trainer.max_epochs - first_swa_epoch
         assert self.transfer_weights_calls == 1
+
+
+class DummyError(Exception):
+    """Dummy error used to simulate a crash during training."""
+
+    def __init__(self):
+        super().__init__("Crash test")
 
 
 def train_with_swa(
@@ -326,7 +328,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False,
 
     backward_patch = _backward_patch(trainer)
     restore_patch = _restore_after_setup_patch(trainer, restore_after_setup)
-    with backward_patch, restore_patch, pytest.raises(Exception if ddp else RuntimeError):
+    with backward_patch, restore_patch, pytest.raises(Exception if ddp else DummyError):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
@@ -359,18 +361,18 @@ class CustomSchedulerModel(SwaTestModel):
         }
 
 
-@pytest.mark.parametrize("crash_after_epoch", [2, 4])
-def test_swa_resume_training_from_checkpoint(tmpdir, crash_after_epoch):
-    model = SwaTestModel(crash_after_epoch=crash_after_epoch)
+@pytest.mark.parametrize("crash_on_epoch", [1, 3])
+def test_swa_resume_training_from_checkpoint(tmpdir, crash_on_epoch):
+    model = SwaTestModel(crash_on_epoch=crash_on_epoch)
     resume_model = SwaTestModel()
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
 
 
-@pytest.mark.parametrize("crash_after_epoch", [2, 4])
+@pytest.mark.parametrize("crash_on_epoch", [1, 3])
 @pytest.mark.parametrize("restore_after_setup", [False, True])
-def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_after_epoch, restore_after_setup):
+def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_on_epoch, restore_after_setup):
     # Reproduces the bug reported in https://github.com/PyTorchLightning/pytorch-lightning/issues/11665
-    model = CustomSchedulerModel(crash_after_epoch=crash_after_epoch)
+    model = CustomSchedulerModel(crash_on_epoch=crash_on_epoch)
     resume_model = CustomSchedulerModel()
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, restore_after_setup=restore_after_setup)
 
@@ -379,7 +381,7 @@ def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_afte
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     # Requires PyTorch >= 1.8 to include this segfault fix:
     # https://github.com/pytorch/pytorch/pull/50998
-    model = SwaTestModel(crash_after_epoch=4)
+    model = SwaTestModel(crash_on_epoch=3)
     resume_model = SwaTestModel()
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=True)
 
