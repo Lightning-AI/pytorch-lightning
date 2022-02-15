@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
