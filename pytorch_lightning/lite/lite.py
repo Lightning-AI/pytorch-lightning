@@ -203,7 +203,7 @@ class LightningLite(ABC):
             for dataloader in dataloaders
         ]
         dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders
+        return dataloaders  # type: ignore[return-value]
 
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True

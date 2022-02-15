@@ -65,7 +65,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     if not isinstance(model, DistributedDataParallel):
         return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
-        model.require_forward_param_sync = True
+        model.require_forward_param_sync = True  # type: ignore[assignment]
         # We'll return the output object verbatim since it is a freeform
         # object. We need to find any tensors in this object, though,
         # because we need to figure out which parameters were used during
@@ -75,7 +75,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         reducer = cast(torch._C._distributed_c10d.Reducer, model.reducer)
         reducer.prepare_for_backward(args)
     else:
-        model.require_forward_param_sync = False
+        model.require_forward_param_sync = False  # type: ignore[assignment]
 
 
 class UnrepeatedDistributedSampler(DistributedSampler):
