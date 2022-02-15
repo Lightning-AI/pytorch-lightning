@@ -145,9 +145,8 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_environment(self) -> None:
         # start the other scripts
-        if not self.cluster_environment:
-            return
-        elif not self.cluster_environment.creates_processes_externally:
+        if not self.cluster_environment or\
+                not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
 
         self.setup_distributed()
