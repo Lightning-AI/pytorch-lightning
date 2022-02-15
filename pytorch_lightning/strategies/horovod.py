@@ -118,7 +118,7 @@ class HorovodStrategy(ParallelStrategy):
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
+        accumulation_scheduler = trainer.accumulation_scheduler
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
                 "Horovod currently does not support different `accumulate_grad_batches` at different epochs."
