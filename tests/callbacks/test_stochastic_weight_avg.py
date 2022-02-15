@@ -45,7 +45,6 @@ class SwaTestModel(BoringModel):
         self.interval = interval
         self.iterable_dataset = iterable_dataset
         self.crash_after_epoch = crash_after_epoch
-        self._epoch_count = 0
         self.save_hyperparameters()
 
     def training_step(self, batch, batch_idx):
@@ -54,10 +53,8 @@ class SwaTestModel(BoringModel):
         return {"loss": loss}
 
     def train_dataloader(self):
-
         dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset
         dset = dset_cls(32, 64)
-
         return DataLoader(dset, batch_size=2)
 
     def configure_optimizers(self):
@@ -73,8 +70,7 @@ class SwaTestModel(BoringModel):
     def training_epoch_end(self, _):
         if not self.crash_after_epoch:
             return
-        self._epoch_count += 1
-        if self._epoch_count >= self.crash_after_epoch:
+        if self.trainer.current_epoch + 1 >= self.crash_after_epoch:
             raise RuntimeError("Crash test")
 
 
@@ -312,52 +308,35 @@ def test_swa_multiple_lrs(tmpdir):
 
 def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False, restore_after_setup=False):
     swa_start = 3
-    max_epochs = 5
-    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 5,
+        "accelerator": "cpu",
+        "strategy": "ddp_spawn_find_unused_parameters_false" if ddp else None,
+        "devices": 2 if ddp else 1,
+        "limit_train_batches": 5,
+        "limit_val_batches": 0,
+        "accumulate_grad_batches": 2,
+        "enable_progress_bar": False,
+    }
+    trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
-    num_processes = 2 if ddp else 1
-    strategy = "ddp_spawn_find_unused_parameters_false" if ddp else None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=max_epochs,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        callbacks=[swa_callback],
-        accumulate_grad_batches=2,
-        num_processes=num_processes,
-        strategy=strategy,
-    )
-
-    exception_type = Exception if ddp else RuntimeError
     backward_patch = _backward_patch(trainer)
     restore_patch = _restore_after_setup_patch(trainer, restore_after_setup)
-    with backward_patch, restore_patch, pytest.raises(exception_type):
+    with backward_patch, restore_patch, pytest.raises(Exception if ddp else RuntimeError):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
     checkpoint_files = os.listdir(checkpoint_dir)
     assert len(checkpoint_files) == 1
-    checkpoint_path = checkpoint_dir / checkpoint_files[0]
+    ckpt_path = str(checkpoint_dir / checkpoint_files[0])
 
-    swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=max_epochs,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        callbacks=[swa_callback],
-        accumulate_grad_batches=2,
-        num_processes=num_processes,
-        strategy=strategy,
-    )
+    trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
     backward_patch = _backward_patch(trainer)
     restore_patch = _restore_after_setup_patch(trainer, restore_after_setup)
     with restore_patch, backward_patch:
-        trainer.fit(resume_model, ckpt_path=checkpoint_path.as_posix())
+        trainer.fit(resume_model, ckpt_path=ckpt_path)
 
 
 class CustomSchedulerModel(SwaTestModel):
