@@ -90,7 +90,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[
             Callable[
                 [Callable[[Any, dist.GradBucket], torch.futures.Future[torch.Tensor]], Any],
-                torch.futures.Future[torch.Tensor],
+                torch.futures.Future[torch.Tensor]
             ]
         ] = None,
         model_averaging_period: Optional[int] = None,
