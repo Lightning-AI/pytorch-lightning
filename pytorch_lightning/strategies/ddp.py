@@ -146,7 +146,6 @@ class DDPStrategy(ParallelStrategy):
     def setup_environment(self) -> None:
         # start the other scripts
         if not self.cluster_environment:
-            rank_zero_warn("self.cluster_environment is None. Skipping setup_environment.")
             return
         elif not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
@@ -493,6 +492,7 @@ class DDPStrategy(ParallelStrategy):
         sync_dir = self._sync_dir
 
         if not sync_dir:
+            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
             return
 
         # The cluster may be configured to periodically purge the `/tmp`
