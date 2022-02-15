@@ -2310,7 +2310,7 @@ class Trainer(
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only, storage_options)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
     Parsing properties

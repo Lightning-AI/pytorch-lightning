@@ -734,8 +734,11 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
-            storage_options: raises exception if passed in,
-                not used for ``DeepSpeedStrategy`` as ``CheckpointIO`` is not used
+            storage_options: not used for ``DeepSpeedStrategy`` as ``CheckpointIO`` is not used
+
+        Raises:
+            MisconfigurationException:
+                If ``storage_options`` arg is passed in
         """
         if storage_options:
             raise MisconfigurationException(

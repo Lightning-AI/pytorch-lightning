@@ -19,6 +19,8 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
+from unittest import mock
+from unittest.mock import ANY
 
 
 def test_finetuning_with_ckpt_path(tmpdir):
@@ -87,3 +89,27 @@ def test_accumulated_gradient_batches_with_ckpt_path(tmpdir):
     trainer_kwargs["max_epochs"] = 2
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt.last_model_path)
+
+def test_trainer_save_checkpoint_storage_options(tmpdir):
+    """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
+    instance_path = tmpdir + "path.ckpt"
+    instance_storage_options = "my instance storage options"
+
+    with mock.patch("pytorch_lightning.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
+        trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
+        io_mock.assert_called_once_with(ANY, instance_path, storage_options=instance_storage_options)
+
+    with mock.patch("pytorch_lightning.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint") as cc_mock:
+        trainer.save_checkpoint(instance_path, True)
+        cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
+        trainer.save_checkpoint(instance_path, False, instance_storage_options)
+        cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)

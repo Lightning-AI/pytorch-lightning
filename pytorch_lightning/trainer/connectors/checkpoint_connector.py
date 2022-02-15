@@ -400,7 +400,7 @@ class CheckpointConnector:
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options)
+        self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (

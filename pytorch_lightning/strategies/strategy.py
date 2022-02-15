@@ -413,7 +413,7 @@ class Strategy(ABC):
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         if self.is_global_zero:
-            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options)
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
