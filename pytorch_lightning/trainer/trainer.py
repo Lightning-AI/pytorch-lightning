@@ -1242,9 +1242,9 @@ class Trainer(
 
         for logger in self.loggers:
             if hparams_initial is not None:
-                self.logger.log_hyperparams(hparams_initial)
-            self.logger.log_graph(self.lightning_module)
-            self.logger.save()
+                logger.log_hyperparams(hparams_initial)
+            logger.log_graph(self.lightning_module)
+            logger.save()
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
