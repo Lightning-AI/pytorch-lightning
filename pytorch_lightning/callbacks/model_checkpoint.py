@@ -579,13 +579,12 @@ class ModelCheckpoint(Callback):
         """
         if self.dirpath is not None:
             return  # short circuit
-        # TODO: Adapt for trainer.loggers
-        if trainer.logger:
+        if trainer.loggers:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
             else:
-                save_dir = trainer.logger.save_dir or trainer.default_root_dir
+                save_dir = trainer.logger.save_dir if len(trainer.loggers) == 1 else trainer.default_root_dir
 
             version = (
                 trainer.logger.version
