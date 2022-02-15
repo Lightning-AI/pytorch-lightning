@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from typing import Any, List, Optional, Union
 
 import torch
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -106,7 +107,7 @@ class ParallelStrategy(Strategy, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: Union["pl.LightningModule", "torch.Module"]) -> "pl.LightningModule":
+    def configure_sync_batchnorm(model: Union["pl.LightningModule", "nn.Module"]) -> "pl.LightningModule":
         """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
