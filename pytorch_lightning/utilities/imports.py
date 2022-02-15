@@ -16,6 +16,7 @@ import importlib
 import operator
 import platform
 import sys
+import os
 from importlib.util import find_spec
 from typing import Callable
 
@@ -129,9 +130,11 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
-from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
-
+from habana_frameworks.torch.utils.library_loader import is_habana_avaialble, load_habana_module
 _HPU_AVAILABLE = is_habana_avaialble()
+if _HPU_AVAILABLE:
+    load_habana_module()
+    os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
