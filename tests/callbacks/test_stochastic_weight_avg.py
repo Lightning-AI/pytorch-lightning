@@ -90,7 +90,10 @@ class SwaTestCallback(StochasticWeightAveraging):
 
     def on_train_epoch_start(self, trainer, *args):
         super().on_train_epoch_start(trainer, *args)
-        if self.first_epoch is None:
+        if self.first_epoch is None and not trainer.fit_loop.restarting:
+            # since the checkpoint loaded was saved `on_train_epoch_end`, the first `FitLoop` iteration will
+            # not update the model and just call the epoch-level hooks, for that reason, we check that we are not
+            # restarting before choosing the first epoch
             self.first_epoch = trainer.current_epoch
         assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
