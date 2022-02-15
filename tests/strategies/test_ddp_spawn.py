@@ -11,9 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import patch
+
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities import memory
 from tests.helpers import BoringModel
@@ -81,3 +84,19 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     )
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."
+
+
+@RunIf(min_gpus=1, standalone=True)
+def test_ddp_wrapper(tmpdir):
+    model = BoringModel()
+    strategy = DDPSpawnStrategy()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        strategy="ddp",
+        gpus=1,
+    )
+
+    with patch.object(DDPSpawnStrategy, "teardown", wraps=strategy.teardown) as mock:
+        trainer.fit(model)
+        mock.assert_called_once()

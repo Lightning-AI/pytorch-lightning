@@ -80,7 +80,3 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        super().teardown()
-        self.accelerator.teardown()
