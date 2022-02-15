@@ -86,10 +86,9 @@ class DDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[Callable[[Any, dist.GradBucket], torch.futures.Future[torch.Tensor]]] = None,
-        ddp_comm_wrapper: Optional[Callable[[Callable[[Any, dist.GradBucket], torch.futures.Future[torch.Tensor]], Any],\  # Parameter
-                                            torch.futures.Future[torch.Tensor]]\  # Return type
-                                  ] = None,
+        ddp_comm_hook: Optional[
+            Callable[[Any, dist.GradBucket], torch.futures.Future[torch.Tensor]]] = None,
+        ddp_comm_wrapper: Optional[Callable[[Callable[[Any, dist.GradBucket], torch.futures.Future[torch.Tensor]], Any], torch.futures.Future[torch.Tensor]]] = None,
         model_averaging_period: Optional[int] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
