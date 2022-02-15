@@ -111,7 +111,7 @@ class BaguaStrategy(DDPStrategy):
         model = self._model
         if isinstance(model, BaguaDistributedDataParallel):
             model = model.module
-        return unwrap_lightning_module(model)  # type: ignore[arg-type]
+        return unwrap_lightning_module(model)
 
     def setup_distributed(self) -> None:
         reset_seed()
