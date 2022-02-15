@@ -161,5 +161,5 @@ class DataParallelStrategy(ParallelStrategy):
         if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+
+        self.accelerator.teardown()

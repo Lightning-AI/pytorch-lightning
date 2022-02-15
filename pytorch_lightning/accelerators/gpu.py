@@ -74,6 +74,9 @@ class GPUAccelerator(Accelerator):
             return torch.cuda.memory_stats(device)
         return get_nvidia_gpu_stats(device)
 
+    def teardown(self) -> None:
+        torch.cuda.empty_cache()
+
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
