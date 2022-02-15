@@ -493,7 +493,6 @@ class DDPStrategy(ParallelStrategy):
         sync_dir = self._sync_dir
 
         if not sync_dir:
-            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
             return
 
         # The cluster may be configured to periodically purge the `/tmp`
