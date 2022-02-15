@@ -584,15 +584,21 @@ class ModelCheckpoint(Callback):
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
             else:
-                save_dir = trainer.logger.save_dir if len(trainer.loggers) == 1 else trainer.default_root_dir
+                if len(trainer.loggers) == 1:
+                    save_dir = trainer.logger.save_dir or trainer.default_root_dir
+                else:
+                    save_dir = trainer.default_root_dir
 
-            version = (
-                trainer.logger.version
-                if isinstance(trainer.logger.version, str)
-                else f"version_{trainer.logger.version}"
-            )
-            # TODO: Find out what ckpt_path should be with multiple loggers
-            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
+            if len(trainer.loggers) == 1:
+                version = (
+                    trainer.logger.version
+                    if isinstance(trainer.logger.version, str)
+                    else f"version_{trainer.logger.version}"
+                )
+                # TODO: Find out what ckpt_path should be with multiple loggers
+                ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
+            else:
+                ckpt_path = os.path.join(save_dir, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
