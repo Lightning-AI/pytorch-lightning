@@ -1215,29 +1215,30 @@ class Trainer(
         # save exp to get started (this is where the first experiment logs are written)
         datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-            datamodule_hparams = self.datamodule.hparams_initial
-            lightning_hparams = self.lightning_module.hparams_initial
-            inconsistent_keys = []
-            for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                if type(lm_val) != type(dm_val):
-                    inconsistent_keys.append(key)
-                elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
-                    inconsistent_keys.append(key)
-                elif lm_val != dm_val:
-                    inconsistent_keys.append(key)
-            if inconsistent_keys:
-                raise MisconfigurationException(
-                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                    "in both the LightningModule's and LightningDataModule's hparams "
-                    "but have different values."
-                )
-            hparams_initial = {**lightning_hparams, **datamodule_hparams}
-        elif self.lightning_module._log_hyperparams:
-            hparams_initial = self.lightning_module.hparams_initial
-        elif datamodule_log_hyperparams:
-            hparams_initial = self.datamodule.hparams_initial
+        if self.loggers:
+            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+                datamodule_hparams = self.datamodule.hparams_initial
+                lightning_hparams = self.lightning_module.hparams_initial
+                inconsistent_keys = []
+                for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                    if type(lm_val) != type(dm_val):
+                        inconsistent_keys.append(key)
+                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                        inconsistent_keys.append(key)
+                    elif lm_val != dm_val:
+                        inconsistent_keys.append(key)
+                if inconsistent_keys:
+                    raise MisconfigurationException(
+                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                        "in both the LightningModule's and LightningDataModule's hparams "
+                        "but have different values."
+                    )
+                hparams_initial = {**lightning_hparams, **datamodule_hparams}
+            elif self.lightning_module._log_hyperparams:
+                hparams_initial = self.lightning_module.hparams_initial
+            elif datamodule_log_hyperparams:
+                hparams_initial = self.datamodule.hparams_initial
 
         for logger in self.loggers:
             if hparams_initial is not None:
