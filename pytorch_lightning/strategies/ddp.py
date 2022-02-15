@@ -281,7 +281,8 @@ class DDPStrategy(ParallelStrategy):
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
         assert self.lightning_module is not None
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get("find_unused_parameters", False
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
+            "find_unused_parameters", False
         ):
             # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
@@ -304,7 +305,7 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if  _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
@@ -411,8 +412,8 @@ class DDPStrategy(ParallelStrategy):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
-           assert self.model is not None
-           return self.model(*args, **kwargs)
+            assert self.model is not None
+            return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
