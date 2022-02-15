@@ -1595,12 +1595,6 @@ class Trainer(
                     with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
                         fn(self, self.lightning_module, *args, **kwargs)
 
-        # TODO: remove if block in v1.8
-        if hook_name == "on_pretrain_routine_start":
-            self.on_train_start(*args, **kwargs)
-        if hook_name == "on_pretrain_routine_end":
-            self.on_train_end(*args, **kwargs)
-
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
