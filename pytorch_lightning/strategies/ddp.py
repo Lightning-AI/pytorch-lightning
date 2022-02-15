@@ -21,7 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 from time import sleep
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import __main__
 import numpy as np
@@ -157,7 +157,9 @@ class DDPStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         super().setup(trainer)
         # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts) is not None
+        self._rank_0_has_called_call_children_scripts = (
+            self.broadcast(self._rank_0_has_called_call_children_scripts) is not None
+        )
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
@@ -279,9 +281,10 @@ class DDPStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module or (not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        )):
+        if not self.lightning_module or (
+            not self.lightning_module.automatic_optimization
+            and not self._ddp_kwargs.get("find_unused_parameters", False)
+        ):
             # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
             rank_zero_warn(
                 "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
@@ -303,7 +306,11 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
 
-            if self.lightning_module and _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+            if (
+                self.lightning_module
+                and _TORCH_GREATER_EQUAL_1_10
+                and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            ):
                 import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
@@ -380,8 +387,7 @@ class DDPStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         """Run before precision plugin executes backward."""
-        if self.model and self.lightning_module and\
-                not self.lightning_module.automatic_optimization:
+        if self.model and self.lightning_module and not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
@@ -389,7 +395,9 @@ class DDPStrategy(ParallelStrategy):
         if self.model:
             self.model.to(self.root_device)
 
-    def reduce(self, tensor: torch.Tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str, None] = "mean") -> torch.Tensor:
+    def reduce(
+        self, tensor: torch.Tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str, None] = "mean"
+    ) -> torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -431,8 +439,7 @@ class DDPStrategy(ParallelStrategy):
                 return self.lightning_module.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
-        if self.model and self.lightning_module and\
-                not self.lightning_module.automatic_optimization:
+        if self.model and self.lightning_module and not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 
     @classmethod
