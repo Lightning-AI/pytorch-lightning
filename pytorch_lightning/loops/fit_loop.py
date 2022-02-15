@@ -141,6 +141,8 @@ class FitLoop(Loop[None]):
             self.epoch_progress.current.processed,
         )
         finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
+        if finished_before_on_train_end:
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
         restarting &= finished_before_on_train_end
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
