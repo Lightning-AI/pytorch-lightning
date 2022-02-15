@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest]
-        # same config as '.azure/gpu-tests.yml'
+        # same config as '.azure-pipelines/gpu-tests.yml'
         python-version: ["3.7"]
         pytorch-version: ["1.8"]
 
