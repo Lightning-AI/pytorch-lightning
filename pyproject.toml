@@ -62,7 +62,7 @@ module = [
     "pytorch_lightning.loggers.test_tube",
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
-#    "pytorch_lightning.strategies.ddp",
+    "pytorch_lightning.strategies.ddp",
     "pytorch_lightning.strategies.ddp2",
     "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
