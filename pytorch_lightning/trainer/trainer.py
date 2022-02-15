@@ -83,9 +83,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     GradClipAlgorithmType,
     parsing,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
@@ -103,6 +100,7 @@ from pytorch_lightning.utilities.exceptions import ExitGracefullyException, Misc
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -567,7 +565,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self.logger: Optional[LightningLoggerBase]
+        self._loggers: List[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1122,6 +1120,8 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
+        self.__setup_profiler()
+
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1250,7 +1250,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
@@ -1268,7 +1267,6 @@ class Trainer(
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
-        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -2116,7 +2114,7 @@ class Trainer(
 
     @property
     def is_global_zero(self) -> bool:
-        return self.global_rank == 0
+        return self.strategy.is_global_zero
 
     @property
     def slurm_job_id(self) -> Optional[int]:
@@ -2441,7 +2439,7 @@ class Trainer(
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> Optional[int]:
+    def min_epochs(self) -> int:
         return self.fit_loop.min_epochs
 
     @property
@@ -2555,6 +2553,37 @@ class Trainer(
     """
     Logging properties
     """
+
+    @property
+    def logger(self) -> Optional[LightningLoggerBase]:
+        if len(self.loggers) == 0:
+            return None
+        if len(self.loggers) == 1:
+            return self.loggers[0]
+        else:
+            rank_zero_warn(
+                "Using trainer.logger when Trainer is configured to use multiple loggers."
+                " This behavior will change in v1.8 when LoggerCollection is removed, and"
+                " trainer.logger will return the first logger in trainer.loggers"
+            )
+            return LoggerCollection(self.loggers)
+
+    @logger.setter
+    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+        if not logger:
+            self.loggers = []
+        elif isinstance(logger, LoggerCollection):
+            self.loggers = list(logger)
+        else:
+            self.loggers = [logger]
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
+
+    @loggers.setter
+    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+        self._loggers = loggers if loggers else []
 
     @property
     def callback_metrics(self) -> dict:

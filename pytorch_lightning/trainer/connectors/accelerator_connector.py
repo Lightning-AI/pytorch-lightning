@@ -65,15 +65,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
-from pytorch_lightning.utilities import (
-    _AcceleratorType,
-    _StrategyType,
-    AMPType,
-    device_parser,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, AMPType, device_parser
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
@@ -82,6 +74,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
 )
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd

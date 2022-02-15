@@ -432,7 +432,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
             return super().training_step(batch, batch_idx)
 
-        def on_epoch_end(self) -> None:
+        def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * devices
                 metrics = self.results.metrics(on_step=False)

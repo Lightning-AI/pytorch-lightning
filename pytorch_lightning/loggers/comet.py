@@ -26,9 +26,10 @@ from torch import is_tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
@@ -79,7 +80,7 @@ class CometLogger(LightningLoggerBase):
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -95,7 +96,7 @@ class CometLogger(LightningLoggerBase):
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -187,7 +188,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.

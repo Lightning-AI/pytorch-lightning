@@ -21,14 +21,15 @@ import torch
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_info
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
@@ -54,9 +55,11 @@ class CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        if not os.path.isdir(self.trainer.weights_save_path):
+        weights_save_path = self.trainer.weights_save_path
+        fs = get_filesystem(weights_save_path)
+        if not fs.isdir(weights_save_path):
             return None
-        dir_path_hpc = str(self.trainer.weights_save_path)
+        dir_path_hpc = str(weights_save_path)
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
@@ -64,8 +67,8 @@ class CheckpointConnector:
     @property
     def _fault_tolerant_auto_resume_path(self) -> Optional[str]:
         auto_saved_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
-        if os.path.exists(auto_saved_path):
-            return auto_saved_path
+        fs = get_filesystem(auto_saved_path)
+        return auto_saved_path if fs.exists(auto_saved_path) else None
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -154,6 +157,8 @@ class CheckpointConnector:
         datamodule = self.trainer.datamodule
         if datamodule is not None:
             datamodule.on_load_checkpoint(self._loaded_checkpoint)
+            if datamodule.__class__.__qualname__ in self._loaded_checkpoint:
+                datamodule.load_state_dict(self._loaded_checkpoint[datamodule.__class__.__qualname__])
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -192,7 +197,7 @@ class CheckpointConnector:
             return
 
         # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        self.restore_precision_plugin_state()
 
         # restore loops and their progress
         self.restore_loops()
@@ -201,6 +206,21 @@ class CheckpointConnector:
         if self.trainer.state.fn == TrainerFn.FITTING:
             # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
+
+    def restore_precision_plugin_state(self) -> None:
+        """Restore the precision plugin state from the pre-loaded checkpoint."""
+        prec_plugin = self.trainer.precision_plugin
+        prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
+
+        # old checkpoints compatibility
+        if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(
+            prec_plugin, NativeMixedPrecisionPlugin
+        ):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -225,7 +245,7 @@ class CheckpointConnector:
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
-            if self.trainer.state.fn == TrainerFn.FITTING:
+            if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
                 self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
@@ -280,10 +300,13 @@ class CheckpointConnector:
             # move optimizer to GPU 1 weight at a time
             # avoids OOM
             if self.trainer.root_gpu is not None:
-                for state in optimizer.state.values():
-                    for k, v in state.items():
-                        if isinstance(v, torch.Tensor):
-                            state[k] = v.cuda(self.trainer.root_gpu)
+                for param, state in optimizer.state.items():
+                    if isinstance(state, dict):
+                        for k, v in state.items():
+                            if isinstance(v, torch.Tensor):
+                                state[k] = v.cuda(self.trainer.root_gpu)
+                    elif isinstance(state, torch.Tensor):
+                        optimizer.state[param] = state.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
         """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
@@ -311,31 +334,21 @@ class CheckpointConnector:
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
-                'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
-                'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
                 'state_dict':                Model's state_dict (e.g. network weights)
+                precision_plugin.__class__.__qualname__:  precision plugin state_dict # if not weights_only
                 CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
                 CHECKPOINT_HYPER_PARAMS_TYPE:
                 something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
-                LightningDataModule.__class__.__name__: pl DataModule's state
+                LightningDataModule.__class__.__qualname__: pl DataModule's state
             }
         """
-
-        # dump epoch/global_step/pytorch-lightning_version
-        current_epoch = self.trainer.current_epoch
-        global_step = self.trainer.global_step
-        has_reached_max_steps = _is_max_limit_reached(global_step, self.trainer.max_steps)
-
-        global_step += 1
-        if not has_reached_max_steps:
-            current_epoch += 1
-
         model = self.trainer.lightning_module
 
         checkpoint = {
-            "epoch": current_epoch,
-            "global_step": global_step,
+            # the epoch is saved for compatibility but it's not relevant for restoration
+            "epoch": self.trainer.current_epoch,
+            "global_step": self.trainer.global_step + 1,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
@@ -359,7 +372,12 @@ class CheckpointConnector:
                 lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
-            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
+            # precision plugin
+            prec_plugin = self.trainer.precision_plugin
+            prec_plugin_state_dict = prec_plugin.state_dict()
+            if prec_plugin_state_dict:
+                checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
+            prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
@@ -372,10 +390,17 @@ class CheckpointConnector:
             else:
                 checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
-        # give the model a chance to dump a few things
+        # dump stateful datamodule
+        datamodule = self.trainer.datamodule
+        if datamodule is not None:
+            datamodule_state_dict = datamodule.state_dict()
+            if datamodule_state_dict:
+                checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
+
+        # on_save_checkpoint hooks
         model.on_save_checkpoint(checkpoint)
-        if self.trainer.datamodule is not None:
-            self.trainer.datamodule.on_save_checkpoint(checkpoint)
+        if datamodule is not None:
+            datamodule.on_save_checkpoint(checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment
