@@ -130,6 +130,7 @@ class StochasticWeightAveraging(Callback):
         self._scheduler_state: Optional[Dict] = None
         self._scheduler_configs: Optional[List] = None
         self._init_n_averaged = 0
+        self._latest_update_epoch = -1
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
 
     @property
@@ -228,8 +229,11 @@ class StochasticWeightAveraging(Callback):
             if self.n_averaged is None:
                 self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
 
-        if self.swa_start <= trainer.current_epoch <= self.swa_end:
+        if (self.swa_start <= trainer.current_epoch <= self.swa_end) and (
+            trainer.current_epoch > self._latest_update_epoch
+        ):
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self._avg_fn)
+            self._latest_update_epoch = trainer.current_epoch
 
         # Note: No > here in case the callback is saved with the model and training continues
         if trainer.current_epoch == self.swa_end + 1:
@@ -314,6 +318,7 @@ class StochasticWeightAveraging(Callback):
     ) -> dict:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
+            "latest_update_epoch": self._latest_update_epoch,
             "scheduler_state": None if self._swa_scheduler is None else self._swa_scheduler.state_dict(),
             "average_model_parameters": self._get_average_model_parameters(trainer),
         }
@@ -322,6 +327,7 @@ class StochasticWeightAveraging(Callback):
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
         self._init_n_averaged = callback_state["n_averaged"]
+        self._latest_update_epoch = callback_state["latest_update_epoch"]
         self._scheduler_state = callback_state["scheduler_state"]
         self._load_average_model_parameters(callback_state["average_model_parameters"])
         if self._scheduler_state is not None:
