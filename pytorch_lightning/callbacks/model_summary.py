@@ -22,7 +22,7 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
