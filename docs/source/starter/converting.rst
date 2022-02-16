@@ -25,6 +25,7 @@ Move the model architecture and forward pass to your :doc:`lightning module <../
     import torch.nn as nn
     import torch.nn.functional as F
 
+
     class LitModel(pl.LightningModule):
         def __init__(self):
             super().__init__()
