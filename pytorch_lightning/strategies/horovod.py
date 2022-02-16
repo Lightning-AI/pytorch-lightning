@@ -194,7 +194,9 @@ class HorovodStrategy(ParallelStrategy):
         for optimizer in self.optimizers:
             optimizer.synchronize()
 
-    def _wrap_optimizers(self, optimizers: List[Optimizer], accumulate_grad_batches: int) -> List["hvd.DistributedOptimizer"]:
+    def _wrap_optimizers(
+        self, optimizers: List[Optimizer], accumulate_grad_batches: int
+    ) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
         return [
             hvd.DistributedOptimizer(
