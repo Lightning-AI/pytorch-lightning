@@ -15,19 +15,29 @@ import os
 import shutil
 from collections import OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Union, Type
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
@@ -371,8 +381,10 @@ class EvaluationLoop(DataLoaderLoop):
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
     lightning_module = trainer.lightning_module
-    step_fx = getattr(lightning_module, "test_step") if trainer.testing else getattr(lightning_module, "validation_step")
-    if is_param_in_hook_signature(step_x, "dataloader_iter", explicit=True):
+    step_fx = (
+        getattr(lightning_module, "test_step") if trainer.testing else getattr(lightning_module, "validation_step")
+    )
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
         rank_zero_warn(
             "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
             "this signature is experimental and the behavior is subject to change."
