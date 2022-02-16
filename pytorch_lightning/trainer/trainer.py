@@ -225,8 +225,9 @@ class Trainer(
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
 
-            benchmark: Defaults to ``True`` if torch.backends.cudnn.benchmark is disabled.
-                Overwrite manually to set a different value.
+            benchmark: Sets ``torch.backends.cudnn.benchmark``.
+                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is ``False``.
+                Overwrite to manually set a different value.
 
             callbacks: Add a callback or list of callbacks.
 
