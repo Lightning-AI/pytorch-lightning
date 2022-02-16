@@ -94,7 +94,7 @@ class AcceleratorConnector:
         gpu_ids,
         num_nodes,
         sync_batchnorm,
-        benchmark,
+        benchmark: Optional[bool],
         replace_sampler_ddp,
         deterministic: bool,
         precision,
@@ -122,7 +122,7 @@ class AcceleratorConnector:
         self.ipus = ipus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
-        self.benchmark = benchmark
+        self.benchmark = not deterministic if benchmark is None else benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         if not PrecisionType.supported_type(precision):
             raise MisconfigurationException(

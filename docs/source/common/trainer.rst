@@ -416,7 +416,8 @@ benchmark
 
 |
 
-If true enables cudnn.benchmark.
+Defaults to ``True`` if :attr:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
+
 This flag is likely to increase the speed of your system if your
 input sizes don't change. However, if it does, then it will likely
 make your system slower.
@@ -427,7 +428,10 @@ algorithm for the hardware `[see discussion here]
 
 Example::
 
-    # default used by the Trainer
+    # defaults to True if not deterministic (which is False by default)
+    trainer = Trainer()
+
+    # you can overwrite the value 
     trainer = Trainer(benchmark=False)
 
 deterministic
