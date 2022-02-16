@@ -24,7 +24,6 @@ import torch
 from sklearn.metrics import accuracy_score
 from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
@@ -101,27 +100,6 @@ def test_horovod_cpu_accumulate_grad_batches(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
-def test_horovod_accumulate_grad_batches_different(tmpdir):
-    """
-    Ensure MisConfigurationException for different `accumulate_grad_batches`
-    at different epochs for Horovod Strategy on multi-cpus.
-    """
-    trainer_options = dict(
-        default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=4,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accumulate_grad_batches={0: 4, 2: 2},
-        strategy="horovod",
-    )
-    with pytest.raises(MisconfigurationException):
-        _run_horovod(trainer_options)
-
-
-@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -188,29 +166,6 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
         strategy="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
-
-
-@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
-    """
-    Ensure MisConfigurationException for different `accumulate_grad_batches`
-    at different epochs for Horovod Strategy on multi-gpus.
-    """
-    trainer_options = dict(
-        default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accumulate_grad_batches={0: 4, 2: 2},
-        accelerator="gpu",
-        devices=2,
-        strategy="horovod",
-    )
-    with pytest.raises(MisconfigurationException):
-        _run_horovod(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
