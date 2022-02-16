@@ -75,7 +75,6 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 
-# conda init
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
@@ -88,11 +87,11 @@ RUN \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
+    pip install --user -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* requirements/
 
 RUN \
-    CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
+    CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
     py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
     # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
@@ -108,15 +107,18 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale==0.4.5
+    pip install fairscale==0.4.5 && \
+    python -c "import fairscale; print(fairscale.__version__)"
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed==0.5.7
+    pip install deepspeed==0.5.7 && \
+    python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
     # Show what we have
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
-    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"
+    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
+    python -c "import horovod.torch"

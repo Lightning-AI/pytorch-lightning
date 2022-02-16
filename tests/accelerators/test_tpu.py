@@ -83,6 +83,7 @@ def test_if_test_works_after_train(tmpdir):
 
 @RunIf(tpu=True)
 def test_accelerator_tpu():
+    assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
 

@@ -15,8 +15,6 @@
 
 import logging
 import os
-from functools import wraps
-from platform import python_version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -25,6 +23,10 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
+from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -42,56 +44,6 @@ else:
 
 
 log = logging.getLogger(__name__)
-
-
-def rank_zero_only(fn: Callable) -> Callable:
-    """Function that can be used as a decorator to enable a function/method being called only on rank 0."""
-
-    @wraps(fn)
-    def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
-        if rank_zero_only.rank == 0:
-            return fn(*args, **kwargs)
-        return None
-
-    return wrapped_fn
-
-
-# TODO: this should be part of the cluster environment
-def _get_rank() -> int:
-    rank_keys = ("RANK", "SLURM_PROCID", "LOCAL_RANK")
-    for key in rank_keys:
-        rank = os.environ.get(key)
-        if rank is not None:
-            return int(rank)
-    return 0
-
-
-# add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
-
-
-def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.info(*args, **kwargs)
-
-
-def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.debug(*args, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log debug-level messages only on rank 0."""
-    _debug(*args, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log info-level messages only on rank 0."""
-    _info(*args, stacklevel=stacklevel, **kwargs)
 
 
 def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:
@@ -337,7 +289,7 @@ def register_ddp_comm_hook(
         if not _TORCH_GREATER_EQUAL_1_9:
             rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
         else:
-            rank_zero_info(
+            new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
@@ -366,26 +318,30 @@ def init_dist_connection(
         global_rank: rank of the current process
         world_size: number of processes in the group
         kwargs: kwargs for ``init_process_group``
+
+    Raises:
+        RuntimeError:
+            If ``torch.distributed`` is not available
     """
+    if not torch.distributed.is_available():
+        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
+    if torch.distributed.is_initialized():
+        log.debug("torch.distributed is already initialized. Exiting early")
+        return
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
-    if not torch.distributed.is_available():
-        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
-    if not torch.distributed.is_initialized():
-        log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-        torch.distributed.init_process_group(
-            torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs
-        )
+    log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+    torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
-        # on rank=0 let everyone know training is starting
-        rank_zero_info(
-            f"{'-' * 100}\n"
-            f"distributed_backend={torch_distributed_backend}\n"
-            f"All distributed processes registered. Starting with {world_size} processes\n"
-            f"{'-' * 100}\n"
-        )
+    # on rank=0 let everyone know training is starting
+    new_rank_zero_info(
+        f"{'-' * 100}\n"
+        f"distributed_backend={torch_distributed_backend}\n"
+        f"All distributed processes registered. Starting with {world_size} processes\n"
+        f"{'-' * 100}\n"
+    )
 
 
 def _broadcast_object_list(obj: Any, rank: int) -> Any:
@@ -443,3 +399,21 @@ def _revert_sync_batchnorm(module: Module) -> Module:
         converted_module.add_module(name, _revert_sync_batchnorm(child))
     del module
     return converted_module
+
+
+def rank_zero_info(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_info(*args, **kwargs)
+
+
+def rank_zero_debug(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_debug(*args, **kwargs)

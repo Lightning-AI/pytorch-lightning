@@ -33,6 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -42,6 +43,7 @@ from pytorch_lightning.utilities.cli import (
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
+    LOGGER_REGISTRY,
     LR_SCHEDULER_REGISTRY,
     MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
@@ -182,6 +184,7 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
+    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -659,6 +662,33 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
 
 
+def test_cli_no_need_configure_optimizers():
+    class BoringModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def training_step(self, *_):
+            ...
+
+        def train_dataloader(self):
+            ...
+
+        # did not define `configure_optimizers`
+
+    from pytorch_lightning.trainer.configuration_validator import __verify_train_val_loop_configuration
+
+    with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
+        "pytorch_lightning.Trainer._run_train"
+    ) as run, mock.patch(
+        "pytorch_lightning.trainer.configuration_validator.__verify_train_val_loop_configuration",
+        wraps=__verify_train_val_loop_configuration,
+    ) as verify:
+        cli = LightningCLI(BoringModel)
+    run.assert_called_once()
+    verify.assert_called_once_with(cli.trainer, cli.model)
+
+
 def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
@@ -865,6 +895,11 @@ class CustomCallback(Callback):
     pass
 
 
+@LOGGER_REGISTRY
+class CustomLogger(LightningLoggerBase):
+    pass
+
+
 def test_registries():
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
@@ -884,6 +919,9 @@ def test_registries():
 
     # test `_Registry.__call__` returns the class
     assert isinstance(CustomCallback(), CustomCallback)
+
+    assert "WandbLogger" in LOGGER_REGISTRY
+    assert "CustomLogger" in LOGGER_REGISTRY
 
 
 @MODEL_REGISTRY
@@ -1439,3 +1477,17 @@ def test_cli_parameter_with_lazy_instance_default():
         assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
         assert cli.model.activation.negative_slope == 0.05
         assert cli.model.activation is not model.activation
+
+
+def test_cli_logger_shorthand():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
+    assert cli.trainer.logger is None
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.logger=TensorBoardLogger", "--trainer.logger.save_dir=foo"]):
+        cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
+    assert isinstance(cli.trainer.logger, TensorBoardLogger)
+
+    with mock.patch("sys.argv", ["any.py", "--trainer.logger=False"]):
+        cli = LightningCLI(TestModel, run=False)
+    assert cli.trainer.logger is None

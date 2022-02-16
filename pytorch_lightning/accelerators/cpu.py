@@ -31,6 +31,7 @@ class CPUAccelerator(Accelerator):
             MisconfigurationException:
                 If the selected device is not CPU.
         """
+        super().setup_environment(root_device)
         if root_device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
@@ -42,3 +43,8 @@ class CPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1
+
+    @staticmethod
+    def is_available() -> bool:
+        """CPU is always available for execution."""
+        return True

@@ -32,19 +32,14 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    rank_zero_debug,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
 
@@ -82,7 +77,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._num_nodes = 1
         self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -106,6 +100,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
