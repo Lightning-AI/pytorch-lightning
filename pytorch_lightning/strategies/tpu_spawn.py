@@ -183,7 +183,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             self.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # We use `local_rank` here as separate filesystems are used for each VM for TPU Pod Training
-        if self.local_rank != 0:
+        if self.tpu_local_core_rank != 0:
             return
 
         # adds the `callback_metrics` to the queue
@@ -313,7 +313,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         Args:
             filepath: Path to checkpoint
         """
-        if self.local_rank == 0:
+        if self.tpu_local_core_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
