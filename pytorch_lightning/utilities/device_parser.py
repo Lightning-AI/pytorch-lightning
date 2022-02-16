@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
+def determine_root_gpu_device(gpus: List[Union[int, torch.device]]) -> Optional[Union[int, torch.device]]:
     """
     Args:
         gpus: non-empty list of ints representing which gpus to use

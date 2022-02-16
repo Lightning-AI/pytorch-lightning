@@ -68,6 +68,7 @@ from pytorch_lightning.utilities import (
     _StrategyType,
     AMPType,
     device_parser,
+    LightningEnum,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
@@ -134,7 +135,7 @@ class AcceleratorConnector:
         priorities which to take when:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
-            C. When multiple flag set to the same thing? (ignore? not handled for now)
+            C. TODO When multiple flag set to the same thing
         """
         # TODO: move to gpu accelerator
         torch.backends.cudnn.benchmark = benchmark
@@ -151,7 +152,23 @@ class AcceleratorConnector:
         # Set each valid flag to `self._x_flag` after validation
         # Example: If accelerator is set to a strategy type, set `self._strategy_flag = accelerator`.
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
-        self._check_config_and_set_final_flags(strategy, accelerator, precision, plugins, amp_type, amp_level)
+        self._strategy_flag: Optional[Union[Strategy, str]] = None
+        self._accelerator_flag: Optional[Union[Accelerator, str]] = None
+        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_plugin_flag: Optional[PrecisionPlugin] = None
+        self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
+        self.checkpoint_io: Optional[CheckpointIO] = None
+        self._amp_type_flag: Optional[LightningEnum] = None
+        self._amp_level_flag: Optional[str] = amp_level
+
+        self._check_config_and_set_final_flags(
+            strategy=strategy,
+            accelerator=accelerator,
+            precision=precision,
+            plugins=plugins,
+            amp_type=amp_type,
+            amp_level=amp_level,
+        )
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
@@ -199,15 +216,6 @@ class AcceleratorConnector:
         4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
             argument (handled by 3). We also extract the CheckpointIO and ClusterEnvironment plugins.
         """
-        self._strategy_flag = None
-        self._accelerator_flag = None
-        self._precision_flag = None
-        self._precision_plugin_flag = None
-        self._cluster_environment_flag = None
-        self.checkpoint_io = None
-        self._amp_level_flag = amp_level
-        self._amp_type_flag = amp_type
-
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
@@ -344,7 +352,6 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
             )
-        self._amp_level_flag = amp_level
 
     def _check_device_config_and_set_final_flags(
         self,
@@ -355,10 +362,8 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], int]],
     ) -> None:
-        if num_nodes == "auto":
-            self._num_nodes_flag = 1
-        else:
-            self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+        self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
+
         if devices in (0, "0", "0,"):
             raise MisconfigurationException(f"You passed `devices={devices}`, please set a number > 0")
 
@@ -379,13 +384,13 @@ class AcceleratorConnector:
         self,
         devices: Optional[Union[List[int], str, int]],
         num_processes: Optional[int],
-        gpus: Optional[List[int]],
+        gpus: Optional[Union[List[int], str, int]],
         ipus: Optional[int],
-        tpu_cores: Optional[Union[int, List[int]]],
+        tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
         """Sets the `device_flag` and `accelerator_flag `based on num_processes, gpus, ipus, tpu_cores."""
-        self._gpus = gpus
-        self._tpu_cores = tpu_cores
+        self._gpus: Optional[Union[List[int], str, int]] = gpus
+        self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         gpus = device_parser.parse_gpu_ids(gpus)
         tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
@@ -434,7 +439,7 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        self._parallel_devices = []
+        self._parallel_devices: List[Union[int, torch.device]] = []
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         elif self._accelerator_flag == "tpu":
@@ -444,7 +449,7 @@ class AcceleratorConnector:
             if isinstance(self._device_flag, int):
                 self._parallel_devices = list(range(self._device_flag))
             else:
-                self._parallel_devices = self._device_flag
+                self._parallel_devices = self._device_flag  # type: ignore[assignment]
 
         elif self._accelerator_flag == "ipu":
             self.accelerator = IPUAccelerator()
@@ -460,7 +465,7 @@ class AcceleratorConnector:
             if isinstance(self._device_flag, int) or isinstance(self._device_flag, str):
                 self._device_flag = int(self._device_flag)
                 self._parallel_devices = (
-                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)]
+                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)]  # type: ignore
                     if self._device_flag != 0
                     else []
                 )
@@ -482,7 +487,7 @@ class AcceleratorConnector:
         self._gpus = self._device_flag if not self._gpus else self._gpus
         self._tpu_cores = self._device_flag if not self._tpu_cores else self._tpu_cores
 
-    def _choose_and_init_cluster_environment(self) -> None:
+    def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
         if self._is_slurm_managing_tasks():
@@ -497,7 +502,7 @@ class AcceleratorConnector:
     def _is_sharded_training_type(self) -> bool:
         return isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy))
 
-    def _is_slurm_managing_tasks(self):
+    def _is_slurm_managing_tasks(self) -> bool:
         """used by choosing cluster enviroment."""
         if not SLURMEnvironment.detect() or SLURMEnvironment.job_name() == "bash":
             return False
@@ -506,7 +511,7 @@ class AcceleratorConnector:
         num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
         return num_slurm_tasks == total_requested_devices
 
-    def _choose_strategy(self) -> str:
+    def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "tpu":
@@ -514,7 +519,7 @@ class AcceleratorConnector:
                 return TPUSpawnStrategy.strategy_name
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
-                return SingleTPUStrategy(device=self._parallel_devices[0])
+                return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
         if _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
             return HorovodStrategy.strategy_name
         if self._num_nodes_flag > 1:
@@ -526,7 +531,7 @@ class AcceleratorConnector:
                 else "cpu"
             )
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
-            return SingleDeviceStrategy(device=device)
+            return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
             return DDPSpawnStrategy.strategy_name
 
@@ -553,6 +558,8 @@ class AcceleratorConnector:
                 rank_zero_warn(
                     "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
                 )
+                self._accelerator_flag = "cpu"
+                self.accelerator = CPUAccelerator()
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
@@ -603,19 +610,21 @@ class AcceleratorConnector:
             return self._precision_plugin_flag
 
         if isinstance(self.accelerator, IPUAccelerator):
-            return IPUPrecisionPlugin(self._precision_flag)
+            return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
                 return TPUPrecisionPlugin()
             elif self._precision_flag in (16, "bf16"):
                 if self._precision_flag == 16:
                     rank_zero_warn(
-                        f"You passed `Trainer(accelerator='tpu', precision=16)` but {self._amp_type_flag.value} AMP"
-                        f" is not supported with TPUs. Using `precision='bf16'` instead."
+                        "You passed `Trainer(accelerator='tpu', precision=16)` but AMP"
+                        " is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
+            return DeepSpeedPrecisionPlugin(
+                self._precision_flag, self._amp_type_flag, self._amp_level_flag
+            )  # type: ignore
 
         if self._precision_flag == 32:
             return PrecisionPlugin()
@@ -631,7 +640,7 @@ class AcceleratorConnector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16bit {self._amp_type_flag.value} Automatic Mixed Precision (AMP)"
+                f"Using 16bit {self._amp_type_flag.value} Automatic Mixed Precision (AMP)"  # type: ignore
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
@@ -646,7 +655,7 @@ class AcceleratorConnector:
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
             if self._amp_type_flag == AMPType.APEX:
-                return ApexMixedPrecisionPlugin(self._amp_level_flag)
+                return ApexMixedPrecisionPlugin(self._amp_level_flag)  # type: ignore
 
         raise RuntimeError("No precision set")
 
@@ -683,7 +692,7 @@ class AcceleratorConnector:
             )
         if self._precision_flag == "bf16" and self._amp_type_flag != AMPType.NATIVE:
             raise MisconfigurationException(
-                f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "
+                f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "  # type: ignore
                 "it's not supported. Try using `amp_type='native'` instead."
             )
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == AMPType.APEX:
@@ -788,7 +797,7 @@ class AcceleratorConnector:
     @property
     def tpu_cores(self) -> Optional[Union[List[int], int]]:
         if isinstance(self.accelerator, TPUAccelerator):
-            return self._tpu_cores
+            return self._tpu_cores  # type: ignore
         return 0
 
     @property

@@ -29,7 +29,6 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
