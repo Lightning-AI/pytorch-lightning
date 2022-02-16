@@ -46,7 +46,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.plugins.sync_batchnorm import LayerSync
+from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
     BaguaStrategy,
     DataParallelStrategy,
@@ -122,7 +122,7 @@ class AcceleratorConnector:
         self.tpu_cores = tpu_cores
         self.ipus = ipus
         self.num_nodes = num_nodes
-        self.sync_batchnorm: Optional[LayerSync] = LayerSync() if sync_batchnorm else None
+        self.layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.benchmark = benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         if not PrecisionType.supported_type(precision):
@@ -324,6 +324,7 @@ class AcceleratorConnector:
         checkpoint = None
         precision = None
         cluster_environment = None
+        layer_sync = self.layer_sync
 
         for plug in self.plugins:
             if isinstance(plug, str) and plug in StrategyRegistry:
@@ -374,7 +375,12 @@ class AcceleratorConnector:
                         "You can only specify one cluster environment. Found more than 1 cluster environment plugin"
                     )
             elif isinstance(plug, LayerSync):
-                self.sync_batchnorm = plug
+                if layer_sync is not None and not isinstance(plug, NativeSyncBatchNorm):
+                    raise MisconfigurationException(
+                        "You set both `Trainer(sync_batchnorm=True)` and provided a `LayerSync` plugin, but this"
+                        " is not allowed. Choose one or the other."
+                    )
+                layer_sync = plug
             else:
                 raise MisconfigurationException(
                     f"Found invalid type for plugin {plug}. Expected a precision or training type plugin."
@@ -384,6 +390,7 @@ class AcceleratorConnector:
         self._precision_plugin = precision
         self._checkpoint_io = checkpoint
         self._cluster_environment = cluster_environment
+        self.layer_sync = layer_sync
 
     @property
     def accelerator_types(self) -> List[str]:
@@ -774,9 +781,9 @@ class AcceleratorConnector:
             # set num_nodes for training_type from trainer setting
             training_type.num_nodes = self.num_nodes
 
-        if hasattr(training_type, "sync_batchnorm"):
-            # set sync_batchnorm for training_type from trainer setting
-            training_type.sync_batchnorm = self.sync_batchnorm
+        if hasattr(training_type, "layer_sync"):
+            # set layer_sync for training_type from trainer setting
+            training_type.layer_sync = self.layer_sync
 
         return training_type
 

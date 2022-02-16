@@ -138,8 +138,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_precision_plugin()
         self._move_optimizer_state()
 
-        if self.sync_batchnorm:
-            self.model = self.sync_batchnorm.apply(self.model)
+        if self.layer_sync:
+            self.model = self.layer_sync.apply(self.lightning_module)
 
         self.configure_ddp()
         self.barrier()

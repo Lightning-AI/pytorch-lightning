@@ -32,7 +32,7 @@ class CustomParallelStrategy(DDPStrategy):
 
 @RunIf(skip_windows=True)
 def test_sync_batchnorm_set(tmpdir):
-    """Tests if sync_batchnorm is automatically set for custom plugin."""
+    """Tests if layer_sync is automatically set for custom plugin."""
     model = BoringModel()
     strategy = CustomParallelStrategy()
     assert strategy.sync_batchnorm is None

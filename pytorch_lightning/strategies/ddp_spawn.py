@@ -123,7 +123,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.model_to_device()
 
         if self.sync_batchnorm:
-            self.model = self.sync_batchnorm.apply(self.model)
+            self.model = self.sync_batchnorm.apply(self.lightning_module)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
@@ -375,7 +375,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.model = self.lightning_module
 
         if self.sync_batchnorm:
-            self.model = self.sync_batchnorm.revert(self.model)
+            self.model = self.sync_batchnorm.revert(self.lightning_module)
 
         if self.root_device.type == "cuda":
             # GPU teardown
