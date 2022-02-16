@@ -130,8 +130,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next batch
-    on restart."""
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next
+    batch on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
