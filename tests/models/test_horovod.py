@@ -33,8 +33,8 @@ from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -103,10 +103,8 @@ def test_horovod_cpu_accumulate_grad_batches(tmpdir):
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_accumulate_grad_batches_different(tmpdir):
-    """
-    Ensure MisConfigurationException for different `accumulate_grad_batches`
-    at different epochs for Horovod Strategy on multi-cpus.
-    """
+    """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
+    Strategy on multi-cpus."""
     model = ClassificationModel()
     trainer = Trainer(
         default_root_dir=str(tmpdir),
@@ -194,10 +192,8 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
-    """
-    Ensure MisConfigurationException for different `accumulate_grad_batches`
-    at different epochs for Horovod Strategy on multi-gpus.
-    """
+    """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
+    Strategy on multi-gpus."""
     model = ClassificationModel()
     trainer = Trainer(
         default_root_dir=str(tmpdir),
