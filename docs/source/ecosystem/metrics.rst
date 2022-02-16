@@ -74,7 +74,7 @@ Example 3: TorchMetrics with Lightning
 
 The example below shows how to use a metric in your :doc:`LightningModule <../common/lightning_module>`:
 
-.. code-block:: python
+.. testcode::
 
     class MyModel(LightningModule):
         def __init__(self):
