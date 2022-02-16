@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities used for collections."""
+
 import dataclasses
 import operator
 from abc import ABC
@@ -23,6 +25,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -33,6 +36,9 @@ if _TORCHTEXT_LEGACY:
         from torchtext.data import Batch
 else:
     Batch = type(None)
+
+
+_CPU_DEVICES = ("cpu", torch.device("cpu"))
 
 
 def to_dtype_tensor(
@@ -144,7 +150,13 @@ def apply_to_collection(
                 )
             if not field_init or (not include_none and v is None):  # retain old value
                 v = getattr(data, field_name)
-            setattr(result, field_name, v)
+            try:
+                setattr(result, field_name, v)
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
         return result
 
     # data is neither of dtype, nor a collection
@@ -214,9 +226,10 @@ def apply_to_collections(
 
 
 class TransferableDataType(ABC):
-    """
-    A custom type for data that can be moved to a torch device via `.to(...)`.
+    """A custom type for data that can be moved to a torch device via ``.to(...)``.
+
     Example:
+
         >>> isinstance(dict, TransferableDataType)
         False
         >>> isinstance(torch.rand(2, 3), TransferableDataType)
@@ -244,7 +257,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     moved and all other objects in the collection will be left untouched.
 
     Args:
-        batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
+        batch: A tensor or collection of tensors or anything that has a method ``.to(...)``.
             See :func:`apply_to_collection` for a list of supported collection types.
         device: The device to which the data should be moved
 
@@ -274,7 +287,10 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
                 setattr(device_data, field, device_field)
             return device_data
 
-        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        kwargs = {}
+        # Don't issue non-blocking transfers to CPU
+        if isinstance(data, torch.Tensor) and device not in _CPU_DEVICES:
+            kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
             return data_output

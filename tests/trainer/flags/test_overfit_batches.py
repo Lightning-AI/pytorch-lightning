@@ -80,7 +80,7 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     model.trainer = trainer
     trainer._data_connector.attach_datamodule(model, datamodule=dm)
 
-    loader_num_batches, dataloaders = trainer._reset_eval_dataloader(stage, model=model)
+    loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
     if stage == RunningStage.VALIDATING:
         assert loader_num_batches[0] == 0
     else:
@@ -127,8 +127,9 @@ def test_distributed_sampler_with_overfit_batches():
     model = BoringModel()
     trainer = Trainer(
         overfit_batches=1,
+        accelerator="cpu",
+        devices=2,
         strategy="ddp_spawn",
-        num_processes=2,
     )
     model.trainer = trainer
     trainer.model = model

@@ -26,12 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -62,9 +63,9 @@ class ModelIO:
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to `__init__`  in the checkpoint under `hyper_parameters`
+        it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `hyper_parameters`.
+        Any arguments specified through \*\*kwargs will override args stored in ``"hyper_parameters"``.
 
         Args:
             checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
@@ -86,37 +87,41 @@ class ModelIO:
                 These will be converted into a :class:`~dict` and passed into your
                 :class:`LightningModule` for use.
 
-                If your model's `hparams` argument is :class:`~argparse.Namespace`
+                If your model's ``hparams`` argument is :class:`~argparse.Namespace`
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
-                `hparams` as :class:`~dict`.
+                ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict. Default: `True`.
+                returned by this module's state dict.
             kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
         Return:
-            :class:`LightningModule` with loaded weights and hyperparameters (if available).
+            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
 
         Example::
 
             # load weights without mapping ...
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
             # or load weights mapping all weights from GPU 1 to GPU 0 ...
             map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 map_location=map_location
             )
 
             # or load weights and hyperparameters from separate files.
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 hparams_file='/path/to/hparams_file.yaml'
             )
 
             # override some of the params with new values
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 PATH,
                 num_layers=128,
                 pretrained_ckpt_path=NEW_PATH,
@@ -224,6 +229,10 @@ class ModelIO:
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
                 Contents need to be pickleable.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use ``LightningModule.on_save_checkpoint`` instead.
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
@@ -231,6 +240,10 @@ class ModelIO:
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use ``LightningModule.on_load_checkpoint`` instead.
         """
 
 
@@ -288,7 +301,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """
     fs = get_filesystem(tags_csv)
     if not fs.exists(tags_csv):
-        rank_zero_warn(f"Missing Tags: {tags_csv}.", RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {tags_csv}.", category=RuntimeWarning)
         return {}
 
     with fs.open(tags_csv, "r", newline="") as fp:
@@ -332,11 +345,11 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     """
     fs = get_filesystem(config_yaml)
     if not fs.exists(config_yaml):
-        rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {config_yaml}.", category=RuntimeWarning)
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        hparams = yaml.load(fp, Loader=yaml.UnsafeLoader)
+        hparams = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE:
         if use_omegaconf:

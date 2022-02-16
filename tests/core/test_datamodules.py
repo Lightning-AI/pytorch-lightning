@@ -196,11 +196,18 @@ def test_dm_checkpoint_save_and_load(tmpdir):
             return out
 
     class CustomBoringDataModule(BoringDataModule):
+        def state_dict(self) -> Dict[str, Any]:
+            return {"my": "state_dict"}
+
+        def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+            self.my_state_dict = state_dict
+
         def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            checkpoint[self.__class__.__name__] = self.__class__.__name__
+            checkpoint[self.__class__.__qualname__].update({"on_save": "update"})
 
         def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            self.checkpoint_state = checkpoint.get(self.__class__.__name__)
+            self.checkpoint_state = checkpoint.get(self.__class__.__qualname__).copy()
+            checkpoint[self.__class__.__qualname__].pop("on_save")
 
     reset_seed()
     dm = CustomBoringDataModule()
@@ -220,14 +227,14 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
-    assert dm.__class__.__name__ in checkpoint
-    assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
+    assert dm.__class__.__qualname__ in checkpoint
+    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict", "on_save": "update"}
 
     for trainer_fn in TrainerFn:
         trainer.state.fn = trainer_fn
-        with mock.patch.object(dm, "on_load_checkpoint") as dm_mock:
-            trainer._restore_modules_and_callbacks(checkpoint_path)
-            dm_mock.assert_called_once()
+        trainer._restore_modules_and_callbacks(checkpoint_path)
+        assert dm.checkpoint_state == {"my": "state_dict", "on_save": "update"}
+        assert dm.my_state_dict == {"my": "state_dict"}
 
 
 def test_full_loop(tmpdir):
@@ -256,7 +263,7 @@ def test_full_loop(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch(
-    "pytorch_lightning.plugins.training_type.training_type_plugin.TrainingTypePlugin.lightning_module",
+    "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
 def test_dm_apply_batch_transfer_handler(get_module_mock):
@@ -301,7 +308,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
     if is_overridden("transfer_batch_to_device", dm):
@@ -311,7 +318,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     model.transfer_batch_to_device = dm.transfer_batch_to_device
     model.on_after_batch_transfer = dm.on_after_batch_transfer
 
-    batch_gpu = trainer.training_type_plugin.batch_to_device(batch, expected_device)
+    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
     assert dm.transfer_batch_to_device_hook_rank == 1

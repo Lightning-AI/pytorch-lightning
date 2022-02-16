@@ -266,17 +266,25 @@ run (optional)
 Subloops
 --------
 
-When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.replace` method:
 
 .. code-block:: python
 
-    # Step 1: create your loop
-    my_epoch_loop = MyEpochLoop()
-
-    # Step 2: use connect()
-    trainer.fit_loop.connect(epoch_loop=my_epoch_loop)
-
+    # This takes care of properly instantiating the new Loop and setting all references
+    trainer.fit_loop.replace(epoch_loop=MyEpochLoop)
     # Trainer runs the fit loop with your new epoch loop!
+    trainer.fit(model)
+
+Alternatively, for more fine-grained control, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+
+.. code-block:: python
+
+    # Optional: stitch back the trainer arguments
+    epoch_loop = MyEpochLoop(trainer.fit_loop.epoch_loop.min_steps, trainer.fit_loop.epoch_loop.max_steps)
+    # Optional: connect children loops as they might have existing state
+    epoch_loop.connect(trainer.fit_loop.epoch_loop.batch_loop, trainer.fit_loop.epoch_loop.val_loop)
+    # Instantiate and connect the loop.
+    trainer.fit_loop.connect(epoch_loop=epoch_loop)
     trainer.fit(model)
 
 More about the built-in loops and how they are composed is explained in the next section.
@@ -335,13 +343,13 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        The validation is carried out by yet another loop, :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
 
        In the :code:`run()` method, the training epoch loop could in theory simply call the :code:`LightningModule.training_step` already and perform the optimization.
-       However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :doc:`truncated back-propagation through time <../advanced/sequences>`.
+       However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :ref:`TBPTT <sequential-data>`.
        For this reason there are actually two more loops nested under :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
    * - :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop`
      - The responsibility of the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` is to split a batch given by the :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` along the time-dimension and iterate over the list of splits.
        It also keeps track of the hidden state *hiddens* returned by the training step.
        By default, when truncated back-propagation through time (TBPTT) is turned off, this loop does not do anything except redirect the call to the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`.
-       Read more about :doc:`TBPTT <../advanced/sequences>`.
+       Read more about :ref:`TBPTT <sequential-data>`.
    * - :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`
      - The :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` iterates over one or multiple optimizers and for each one it calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method with the batch, the current batch index and the optimizer index if multiple optimizers are requested.
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).

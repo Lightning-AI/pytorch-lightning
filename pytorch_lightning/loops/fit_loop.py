@@ -12,21 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional
+import os
+from functools import partial
+from typing import Optional, Type
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
+from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _is_max_limit_reached
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
 
 
-class FitLoop(Loop):
+class FitLoop(Loop[None]):
     """This Loop iterates over the epochs to run the training.
 
     Args:
@@ -36,7 +49,7 @@ class FitLoop(Loop):
 
     def __init__(
         self,
-        min_epochs: Optional[int] = 1,
+        min_epochs: int = 0,
         max_epochs: int = 1000,
     ) -> None:
         super().__init__()
@@ -50,17 +63,10 @@ class FitLoop(Loop):
         self.min_epochs = min_epochs
         self.epoch_loop = TrainingEpochLoop()
         self.epoch_progress = Progress()
+
         self._is_fresh_start_epoch: bool = True
-
-    @property
-    def current_epoch(self) -> int:
-        """Return the current epoch."""
-        return self.epoch_progress.current.completed
-
-    @current_epoch.setter
-    def current_epoch(self, value: int) -> None:
-        """Setter for the current epoch."""
-        self.epoch_progress.current.completed = value
+        self._outputs: _EPOCH_OUTPUTS_TYPE = []
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def global_step(self) -> int:
@@ -83,7 +89,7 @@ class FitLoop(Loop):
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> Optional[int]:
+    def split_idx(self) -> int:
         """Returns the index of the current batch split (within the current batch) for bptt."""
         return self.epoch_loop.batch_loop.split_idx
 
@@ -125,6 +131,21 @@ class FitLoop(Loop):
         """Returns the running loss."""
         return self.epoch_loop.batch_loop.running_loss
 
+    @Loop.restarting.setter
+    def restarting(self, restarting: bool) -> None:
+        # if the last epoch completely finished, we are not actually restarting, we can check this to see if all
+        # current values are equal
+        values = (
+            self.epoch_progress.current.ready,
+            self.epoch_progress.current.started,
+            self.epoch_progress.current.processed,
+        )
+        finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
+        if finished_before_on_train_end:
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
+        restarting &= finished_before_on_train_end
+        Loop.restarting.fset(self, restarting)  # call the parent setter
+
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
@@ -136,7 +157,7 @@ class FitLoop(Loop):
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
-    def _results(self) -> ResultCollection:
+    def _results(self) -> _ResultCollection:
         if self.trainer.training:
             return self.epoch_loop._results
         if self.trainer.validating:
@@ -145,19 +166,17 @@ class FitLoop(Loop):
 
     @property
     def done(self) -> bool:
-        """Evaluates when to leave the loop.
-
-        Returns True if trainer.should_stop was set (e.g. by early stopping) or if the maximum number of steps or epochs
-        is reached.
-        """
+        """Evaluates when to leave the loop."""
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
-        stop_epochs = _is_max_limit_reached(self.current_epoch, self.max_epochs)
+        # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
+        # we use it here because the checkpoint data won't have `completed` increased yet
+        stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
-            met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
+            met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 should_stop = True
@@ -191,11 +210,15 @@ class FitLoop(Loop):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        data_fetcher_cls = _select_data_fetcher(self.trainer)
+        self._data_fetcher = data_fetcher_cls()
+
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
+
         self.trainer._call_callback_hooks("on_train_start")
         self.trainer._call_lightning_module_hook("on_train_start")
-        self.trainer._call_accelerator_hook("on_train_start")
+        self.trainer._call_strategy_hook("on_train_start")
 
     def on_advance_start(self) -> None:  # type: ignore[override]
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
@@ -203,15 +226,19 @@ class FitLoop(Loop):
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if not self._is_fresh_start_epoch and self.trainer._should_reload_dl_epoch:
+        if not self._is_fresh_start_epoch and self.trainer._data_connector._should_reload_train_dl:
+            log.detail(f"{self.__class__.__name__}: resetting train dataloader")
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
+
+        # reset outputs here instead of in `reset` as they are not accumulated between epochs
+        self._outputs = []
 
         if self.trainer.train_dataloader is not None and callable(
             getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
         ):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
+            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
@@ -221,45 +248,111 @@ class FitLoop(Loop):
 
         self.epoch_progress.increment_ready()
 
+        self.trainer.logger_connector.on_epoch_start()
+
+        self.trainer._call_callback_hooks("on_epoch_start")
+        self.trainer._call_lightning_module_hook("on_epoch_start")
+
+        self.trainer._call_callback_hooks("on_train_epoch_start")
+        self.trainer._call_lightning_module_hook("on_train_epoch_start")
+
+        self.epoch_progress.increment_started()
+
     def advance(self) -> None:  # type: ignore[override]
         """Runs one whole epoch."""
-        dataloader = self.trainer.training_type_plugin.process_dataloader(self.trainer.train_dataloader)
-        data_fetcher = self.trainer._data_connector.get_profiled_dataloader(dataloader)
-
+        log.detail(f"{self.__class__.__name__}: advancing loop")
+        assert self.trainer.train_dataloader is not None
+        dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        self._data_fetcher.setup(
+            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
+        )
         with self.trainer.profiler.profile("run_training_epoch"):
-            self.epoch_loop.run(data_fetcher)
-
-            # the global step is manually decreased here due to backwards compatibility with existing loggers
-            # as they expect that the same step is used when logging epoch end metrics even when the batch loop has
-            # finished. this means the attribute does not exactly track the number of optimizer steps applied.
-            # TODO(@carmocca): deprecate and rename so users don't get confused
-            self.global_step -= 1
-            # log epoch metrics
-            self.trainer.logger_connector.update_train_epoch_metrics()
-            self.global_step += 1
+            self._outputs = self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
+        # inform logger the batch loop has finished
+        self.trainer.logger_connector.epoch_end_reached()
+
+        # get the model and call model.training_epoch_end
+        model = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model) and self._outputs:
+            epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
+                self._outputs,
+                automatic=model.automatic_optimization,
+                num_optimizers=len(self.trainer.optimizers),
+            )
+            # run lightning module hook training_epoch_end
+            # refresh the result for custom logging at the epoch level
+            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
+            if epoch_end_outputs is not None:
+                raise MisconfigurationException(
+                    "`training_epoch_end` expects a return of None. "
+                    "HINT: remove the return statement in `training_epoch_end`."
+                )
+        # free memory
+        self._outputs = []
+
+        self.epoch_progress.increment_processed()
+
+        # call train epoch end hooks
+        self.trainer._call_callback_hooks("on_train_epoch_end")
+        self.trainer._call_lightning_module_hook("on_train_epoch_end")
+
+        self.trainer._call_callback_hooks("on_epoch_end")
+        self.trainer._call_lightning_module_hook("on_epoch_end")
+
+        self.trainer.logger_connector.on_epoch_end()
+
+        if self.epoch_loop._num_ready_batches_reached():
+            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+
         self.epoch_progress.increment_completed()
+
+        # the global step is manually decreased here due to backwards compatibility with existing loggers
+        # as they expect that the same step is used when logging epoch end metrics even when the batch loop has
+        # finished. this means the attribute does not exactly track the number of optimizer steps applied.
+        # TODO(@carmocca): deprecate and rename so users don't get confused
+        self.global_step -= 1
+        # log epoch metrics
+        self.trainer.logger_connector.update_train_epoch_metrics()
+        self.global_step += 1
+
+        # if fault tolerant is enabled and process has been notified, exit.
+        self.trainer._exit_gracefully_on_signal()
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
-        # NOTE: the current_epoch is already incremented
-        # Lightning today does not increment the current epoch at the last epoch run in Trainer.fit
-        # To simulate that current behavior, we decrement here.
-        # TODO: must be fixed by https://github.com/PyTorchLightning/pytorch-lightning/issues/5007
-        self.current_epoch = max(self.current_epoch - 1, 0)
+        log.detail(f"{self.__class__.__name__}: train run ended")
 
         # hook
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
-        self.trainer._call_ttp_hook("on_train_end")
+        self.trainer._call_strategy_hook("on_train_end")
 
         # give accelerators a chance to finish
-        self.trainer.training_type_plugin.on_train_end()
+        self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         self.epoch_loop.teardown()
 
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
+
+
+def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    training_step_fx = getattr(trainer.lightning_module, "training_step")
+    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

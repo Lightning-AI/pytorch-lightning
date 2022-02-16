@@ -15,8 +15,8 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
-    IPUAccelerator
     GPUAccelerator
+    IPUAccelerator
     TPUAccelerator
 
 Core API
@@ -32,6 +32,33 @@ Core API
     decorators
     hooks
     lightning
+
+Strategy API
+------------
+
+.. currentmodule:: pytorch_lightning.strategies
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    BaguaStrategy
+    DDP2Strategy
+    DDPFullyShardedStrategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DDPStrategy
+    DataParallelStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    IPUStrategy
+    ParallelStrategy
+    SingleDeviceStrategy
+    SingleTPUStrategy
+    Strategy
+    TPUSpawnStrategy
 
 Callbacks API
 -------------
@@ -81,8 +108,8 @@ Base Classes
     :nosignatures:
     :template: classtemplate.rst
 
-    ~base.Loop
     ~dataloader.dataloader_loop.DataLoaderLoop
+    ~base.Loop
 
 
 Default Loop Implementations
@@ -98,11 +125,11 @@ Training
     :nosignatures:
     :template: classtemplate.rst
 
-    FitLoop
-    ~epoch.TrainingEpochLoop
     ~batch.TrainingBatchLoop
-    ~optimization.OptimizerLoop
+    ~epoch.TrainingEpochLoop
+    FitLoop
     ~optimization.ManualOptimization
+    ~optimization.OptimizerLoop
 
 
 Validation and Testing
@@ -115,8 +142,8 @@ Validation and Testing
     :nosignatures:
     :template: classtemplate.rst
 
-    ~dataloader.EvaluationLoop
     ~epoch.EvaluationEpochLoop
+    ~dataloader.EvaluationLoop
 
 
 Prediction
@@ -129,36 +156,12 @@ Prediction
     :nosignatures:
     :template: classtemplate.rst
 
-    ~dataloader.PredictionLoop
     ~epoch.PredictionEpochLoop
+    ~dataloader.PredictionLoop
 
 
 Plugins API
 -----------
-
-Training Type Plugins
-^^^^^^^^^^^^^^^^^^^^^
-
-.. currentmodule:: pytorch_lightning.plugins.training_type
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    TrainingTypePlugin
-    SingleDevicePlugin
-    ParallelPlugin
-    DataParallelPlugin
-    DDPPlugin
-    DDP2Plugin
-    DDPShardedPlugin
-    DDPSpawnShardedPlugin
-    DDPSpawnPlugin
-    DeepSpeedPlugin
-    HorovodPlugin
-    SingleTPUPlugin
-    TPUSpawnPlugin
 
 Precision Plugins
 ^^^^^^^^^^^^^^^^^
@@ -170,17 +173,17 @@ Precision Plugins
     :nosignatures:
     :template: classtemplate.rst
 
-    PrecisionPlugin
-    MixedPrecisionPlugin
-    NativeMixedPrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
-    TPUPrecisionPlugin
-    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
     IPUPrecisionPlugin
+    MixedPrecisionPlugin
+    NativeMixedPrecisionPlugin
+    PrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    TPUBf16PrecisionPlugin
+    TPUPrecisionPlugin
 
 Cluster Environments
 ^^^^^^^^^^^^^^^^^^^^
@@ -193,11 +196,11 @@ Cluster Environments
     :template: classtemplate.rst
 
     ClusterEnvironment
+    KubeflowEnvironment
     LightningEnvironment
     LSFEnvironment
-    TorchElasticEnvironment
-    KubeflowEnvironment
     SLURMEnvironment
+    TorchElasticEnvironment
 
 Checkpoint IO Plugins
 ^^^^^^^^^^^^^^^^^^^^^
@@ -235,13 +238,14 @@ Profiler API
 Trainer API
 -----------
 
-.. currentmodule:: pytorch_lightning.trainer
+.. currentmodule:: pytorch_lightning.trainer.trainer
 
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    trainer
+    Trainer
 
 LightningLite API
 -----------------
@@ -275,6 +279,16 @@ Utilities API
     :toctree: api
     :nosignatures:
 
-    cli
+    apply_func
     argparse
+    cli
+    cloud_io
+    deepspeed
+    distributed
+    finite_checks
+    memory
+    model_summary
+    parsing
+    rank_zero
     seed
+    warnings

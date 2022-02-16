@@ -27,6 +27,8 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for IPU integration."""
+
     def __init__(self, precision: int) -> None:
         super().__init__()
         self.precision = precision
@@ -45,7 +47,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
@@ -62,6 +64,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
+        return closure_result
 
     def clip_gradients(
         self,
