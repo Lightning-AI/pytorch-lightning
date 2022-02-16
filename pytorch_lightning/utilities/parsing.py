@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities used for parameter parsing."""
+
 import copy
 import inspect
 import pickle
@@ -22,7 +24,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -106,13 +108,15 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
 
 
 def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
-    """Parse key words for standard self, *args and **kwargs.
+    """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
-    >>> class Model():
-    ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
-    ...         pass
-    >>> parse_class_init_keys(Model)
-    ('self', 'my_args', 'my_kwargs')
+    Examples:
+
+        >>> class Model():
+        ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
+        ...         pass
+        >>> parse_class_init_keys(Model)
+        ('self', 'my_args', 'my_kwargs')
     """
     init_parameters = inspect.signature(cls.__init__).parameters
     # docs claims the params are always ordered
@@ -220,7 +224,6 @@ def save_hyperparameters(
         init_args = {}
         for local_args in collect_init_args(frame, []):
             init_args.update(local_args)
-    assert init_args, "failed to inspect the obj init"
 
     if ignore is not None:
         if isinstance(ignore, str):
@@ -245,8 +248,7 @@ def save_hyperparameters(
             obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
-    if hp:
-        obj._set_hparams(hp)
+    obj._set_hparams(hp)
     # make deep copy so  there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 

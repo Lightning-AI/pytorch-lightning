@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for LightningCLI."""
+
 import inspect
 import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
 import torch
@@ -25,10 +27,11 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
-from pytorch_lightning.utilities import _JSONARGPARSE_AVAILABLE, rank_zero_warn, warnings
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
@@ -37,7 +40,8 @@ if _JSONARGPARSE_AVAILABLE:
 
     set_config_read_mode(fsspec_enabled=True)
 else:
-    ArgumentParser = Namespace = object
+    locals()["ArgumentParser"] = object
+    locals()["Namespace"] = object
 
 
 class _Registry(dict):
@@ -61,9 +65,16 @@ class _Registry(dict):
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
         """This function is an utility to register all classes from a module."""
-        for _, cls in inspect.getmembers(module, predicate=inspect.isclass):
-            if issubclass(cls, base_cls) and cls != base_cls:
-                self(cls=cls, override=override)
+        for cls in self.get_members(module, base_cls):
+            self(cls=cls, override=override)
+
+    @staticmethod
+    def get_members(module: ModuleType, base_cls: Type) -> Generator[Type, None, None]:
+        return (
+            cls
+            for _, cls in inspect.getmembers(module, predicate=inspect.isclass)
+            if issubclass(cls, base_cls) and cls != base_cls
+        )
 
     @property
     def names(self) -> List[str]:
@@ -101,6 +112,9 @@ MODEL_REGISTRY = _Registry()
 
 DATAMODULE_REGISTRY = _Registry()
 
+LOGGER_REGISTRY = _Registry()
+LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
@@ -112,7 +126,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
@@ -299,7 +313,7 @@ class LightningArgumentParser(ArgumentParser):
             init_args_key = f"{argv_key}.init_args"
             init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
             config = str({"class_path": class_path, "init_args": init_args})
-        elif argv_class.startswith("{"):
+        elif argv_class.startswith("{") or argv_class in ("None", "True", "False"):
             # the user passed a config as a dict
             config = argv_class
         else:
@@ -403,21 +417,30 @@ class SaveConfigCallback(Callback):
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
         # save the config in `setup` because (1) we want it to save regardless of the trainer function run
         # and we want to save before processes are spawned
-        log_dir = trainer.log_dir
+        log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
-        if not self.overwrite and os.path.isfile(config_path):
-            raise RuntimeError(
-                f"{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting"
-                " results of a previous run. You can delete the previous config file,"
-                " set `LightningCLI(save_config_callback=None)` to disable config saving,"
-                " or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file."
-            )
+        fs = get_filesystem(log_dir)
+
+        if not self.overwrite:
+            # check if the file exists on rank 0
+            file_exists = fs.isfile(config_path) if trainer.is_global_zero else False
+            # broadcast whether to fail to all ranks
+            file_exists = trainer.strategy.broadcast(file_exists)
+            if file_exists:
+                raise RuntimeError(
+                    f"{self.__class__.__name__} expected {config_path} to NOT exist. Aborting to avoid overwriting"
+                    " results of a previous run. You can delete the previous config file,"
+                    " set `LightningCLI(save_config_callback=None)` to disable config saving,"
+                    " or set `LightningCLI(save_config_overwrite=True)` to overwrite the config file."
+                )
+
+        # save the file on rank 0
         if trainer.is_global_zero:
             # save only on rank zero to avoid race conditions on DDP.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
-            get_filesystem(log_dir).makedirs(log_dir, exist_ok=True)
+            fs.makedirs(log_dir, exist_ok=True)
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
@@ -473,7 +496,10 @@ class LightningCLI:
             save_config_multifile: When input is multiple config files, saved config preserves this structure.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
-            trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
+            trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
+                this argument will not be configurable from a configuration file and will always be present for
+                this particular CLI. Alternatively, configurable callbacks can be added as explained in
+                :ref:`the CLI docs <common/lightning_cli:Configurable callbacks>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -564,6 +590,7 @@ class LightningCLI:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
+        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
@@ -684,8 +711,8 @@ class LightningCLI:
                 config["callbacks"].append(self.trainer_defaults["callbacks"])
         if self.save_config_callback and not config["fast_dev_run"]:
             config_callback = self.save_config_callback(
-                self.parser,
-                self.config,
+                self._parser(self.subcommand),
+                self.config.get(str(self.subcommand), self.config),
                 self.save_config_filename,
                 overwrite=self.save_config_overwrite,
                 multifile=self.save_config_multifile,
@@ -769,7 +796,7 @@ class LightningCLI:
                 lr_scheduler_init = _global_add_class_path(lr_scheduler_class, lr_scheduler_init)
 
         if is_overridden("configure_optimizers", self.model):
-            warnings._warn(
+            _warn(
                 f"`{self.model.__class__.__name__}.configure_optimizers` will be overridden by "
                 f"`{self.__class__.__name__}.configure_optimizers`."
             )
@@ -777,15 +804,13 @@ class LightningCLI:
         optimizer = instantiate_class(self.model.parameters(), optimizer_init)
         lr_scheduler = instantiate_class(optimizer, lr_scheduler_init) if lr_scheduler_init else None
         fn = partial(self.configure_optimizers, optimizer=optimizer, lr_scheduler=lr_scheduler)
-        update_wrapper(fn, self.model.configure_optimizers)  # necessary for `is_overridden`
+        update_wrapper(fn, self.configure_optimizers)  # necessary for `is_overridden`
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 
     def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
-        if self.subcommand is not None:
-            return config[self.subcommand].get(key, default)
-        return config.get(key, default)
+        return config.get(str(self.subcommand), config).get(key, default)
 
     def _run_subcommand(self, subcommand: str) -> None:
         """Run the chosen subcommand."""

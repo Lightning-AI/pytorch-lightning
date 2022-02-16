@@ -147,7 +147,6 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     "cli_args,expected",
     [("", False), ("--fast_dev_run=0", False), ("--fast_dev_run=True", True), ("--fast_dev_run 2", 2)],
@@ -164,10 +163,10 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected_parsed", "expected_device_ids"],
-    [("", None, None), ("--gpus 1", 1, [0]), ("--gpus 0,", "0,", [0])],
+    [("", None, None), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [0])],
 )
 @RunIf(min_gpus=1)
-def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_ids):
+def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_device_ids):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -175,12 +174,11 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
 
-    assert args.gpus == expected_parsed
+    assert args.devices == expected_parsed
     trainer = Trainer.from_argparse_args(args)
     assert trainer.data_parallel_device_ids == expected_device_ids
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     ["cli_args", "extra_args"],
     [

@@ -24,8 +24,9 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from pytorch_lightning.loops import Loop, TrainingBatchLoop
+from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -85,6 +86,23 @@ def test_connect_loops_recursive():
     assert child1.trainer is trainer
 
 
+def test_restarting_loops_recursive():
+    class MyLoop(NestedLoop):
+        def __init__(self, loop=None):
+            super().__init__()
+            self.child = loop
+
+    loop = MyLoop(MyLoop(MyLoop()))
+
+    assert not loop.restarting
+    assert not loop.child.restarting
+    assert not loop.child.child.restarting
+    loop.restarting = True
+    assert loop.restarting
+    assert loop.child.restarting
+    assert loop.child.child.restarting
+
+
 def test_connect_subloops(tmpdir):
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
@@ -100,6 +118,49 @@ def test_connect_subloops(tmpdir):
 
     trainer.fit(model)
     assert new_batch_loop.trainer is trainer
+
+
+def test_replace_loops():
+    class TestLoop(TrainingEpochLoop):
+        def __init__(self, foo):
+            super().__init__()
+
+    trainer = Trainer(min_steps=123, max_steps=321)
+
+    with pytest.raises(
+        MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
+    ):
+        trainer.fit_loop.replace(epoch_loop=TestLoop)
+
+    class TestLoop(TrainingEpochLoop):
+        ...
+
+    # test passing a loop where previous state should be connected
+    old_loop = trainer.fit_loop.epoch_loop
+    trainer.fit_loop.replace(epoch_loop=TestLoop)
+    new_loop = trainer.fit_loop.epoch_loop
+
+    assert isinstance(new_loop, TestLoop)
+    assert trainer.fit_loop.epoch_loop is new_loop
+    assert new_loop.min_steps == 123
+    assert new_loop.max_steps == 321
+    assert new_loop.batch_loop is old_loop.batch_loop
+    assert new_loop.val_loop is old_loop.val_loop
+    assert new_loop.trainer is trainer
+
+    class MyBatchLoop(TrainingBatchLoop):
+        ...
+
+    class MyEvalLoop(EvaluationLoop):
+        ...
+
+    # test passing more than one where one is an instance and the other a class
+    trainer.fit_loop.epoch_loop.replace(batch_loop=MyBatchLoop, val_loop=MyEvalLoop())
+    new_batch_loop = trainer.fit_loop.epoch_loop.batch_loop
+    new_val_loop = trainer.fit_loop.epoch_loop.val_loop
+
+    assert isinstance(new_batch_loop, MyBatchLoop)
+    assert isinstance(new_val_loop, MyEvalLoop)
 
 
 class CustomException(Exception):
@@ -280,7 +341,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
         max_epochs=n_epochs,
         limit_train_batches=1,
         limit_val_batches=n_batches,
-        num_sanity_val_steps=0,
     )
 
     # simulate a failure
@@ -300,7 +360,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
-    nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
+    # the fit-validation total batch progress is reset per epoch so it's not counted for the total value.
+    nbe_total_val_batch = 0  # stop_epoch * n_dataloaders * n_batches
     be_total_val_batch = stop_dataloader * n_batches + stop_batch
     total_val_batch = nbe_total_val_batch + be_total_val_batch
     expected = {
@@ -658,7 +719,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fit_loop_reset(tmpdir):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
@@ -673,7 +733,6 @@ def test_fit_loop_reset(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=4,
-        num_sanity_val_steps=0,
         max_epochs=2,
         callbacks=[checkpoint_callback],
         logger=False,
@@ -878,7 +937,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
-        num_sanity_val_steps=0,
         enable_progress_bar=False,
     )
     trainer.fit(model, ckpt_path=ckpt_path)
