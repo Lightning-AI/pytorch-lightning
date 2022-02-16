@@ -43,7 +43,7 @@ Example 2: Module Metrics
 
 The example below shows how to use the class-based interface:
 
-.. code-block:: python
+.. testcode::
 
     import torch
     import torchmetrics
