@@ -85,10 +85,11 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
-        with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
-            model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
-            trainer.fit(model)
+        with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
+            with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+                model = BoringModel()
+                trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
+                trainer.fit(model)
 
 
 @RunIf(skip_windows=True)
@@ -109,8 +110,9 @@ def test_ddp_torch_dist_is_available_in_setup(
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
+        with pytest.raises(SystemExit):
+            trainer.fit(model)
 
 
 @RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
