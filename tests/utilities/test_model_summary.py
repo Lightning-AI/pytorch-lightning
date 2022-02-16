@@ -105,7 +105,7 @@ class PartialScriptModel(LightningModule):
 
 
 class LazyModel(LightningModule):
-    """A model which contains lazy layers with unintialized parameters."""
+    """A model which contains lazy layers with uninitialized parameters."""
 
     def __init__(self):
         super().__init__()
@@ -139,7 +139,7 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
-def test_invalid_weights_summmary():
+def test_invalid_weights_summary():
     """Test that invalid value for weights_summary raises an error."""
     model = LightningModule()
 
