@@ -420,7 +420,7 @@ Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.determinis
 This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
-This is likely to increase the speed of your system if your input sizes don't change. However, if it does, then it
+This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
 might make your system slower. The CUDNN auto-tuner will try to find the best algorithm for the hardware when a new
 input size is encountered, `ref <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
