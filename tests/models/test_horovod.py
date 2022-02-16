@@ -196,19 +196,14 @@ def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
     Strategy on multi-gpus."""
     model = ClassificationModel()
     trainer = Trainer(
-        default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
-        gradient_clip_val=1.0,
+        default_root_dir=tmpdir,
         enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
         accumulate_grad_batches={0: 4, 2: 2},
         accelerator="gpu",
         devices=2,
         strategy="horovod",
     )
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
         trainer.fit(model)
 
 
