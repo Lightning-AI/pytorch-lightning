@@ -253,13 +253,6 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.current_epoch == 0
     assert trainer.global_step == 0
 
-    class TestModel(BoringModel):
-        def on_fit_start(self) -> None:
-            assert self.trainer.current_epoch == first_max_epochs
-            # TODO(@carmocca): should not need `+1`
-            assert self.trainer.global_step == first_max_epochs * train_batches + 1
-
-    trainer.fit(TestModel(), ckpt_path=ckpt_path)
     # TODO(@carmocca): should not need `-1`
     assert trainer.current_epoch == max_epochs - 1
     # TODO(@carmocca): should not need `+1`
