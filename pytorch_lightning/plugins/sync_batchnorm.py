@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABC, abstractmethod
 from typing import cast
 
 import torch
@@ -19,7 +20,23 @@ from torch.nn import Module
 import pytorch_lightning as pl
 
 
-class SyncBatchNormPlugin:
+class LayerSync(ABC):
+    """Abstract base class for creating plugins that wrap layers of a model with synchronization logic
+    for multiprocessing.
+    """
+
+    @staticmethod
+    @abstractmethod
+    def apply(model: "pl.LightningModule") -> "pl.LightningModule":
+        """Override this static method to apply synchronization to the layers of this model."""
+
+    @staticmethod
+    @abstractmethod
+    def revert(model: "pl.LightningModule") -> "pl.LightningModule":
+        """Override this static method to undo all modifications made in :meth:`apply`."""
+
+
+class NativeSyncBatchNorm(ABC):
     """A plugin that wraps all batch normalization layers of a model with synchronization logic for
     multiprocessing.
 
@@ -30,14 +47,14 @@ class SyncBatchNormPlugin:
     def apply(model: "pl.LightningModule") -> "pl.LightningModule":
         """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
+        Override this static method to synchronize batchnorm layers between specific process groups instead
+        of the whole world.
 
         Args:
-            model: pointer to current :class:`LightningModule`.
+            model: Reference to the current LightningModule
 
         Return:
-            LightningModule with batchnorm layers synchronized between process groups
+            LightningModule with batchnorm layers synchronized within the process groups.
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
@@ -46,7 +63,7 @@ class SyncBatchNormPlugin:
         """Convert the wrapped batchnorm layers back to regular batchnorm layers.
 
         Args:
-            model: pointer to current :class:`LightningModule`.
+            model: Reference to the current LightningModule
 
         Return:
             LightningModule with regular batchnorm layers that will no longer sync across processes.
@@ -68,7 +85,7 @@ def _revert_sync_batchnorm(module: Module) -> Module:
     # Original author: Kapil Yedidi (@kapily)
     converted_module = module
     if isinstance(module, torch.nn.modules.batchnorm.SyncBatchNorm):
-        # Unfortunately, SyncBatchNorm does not store the original class - if it did
+        # Unfortunately, LayerSync does not store the original class - if it did
         # we could return the one that was originally created.
         converted_module = _BatchNormXd(
             module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats

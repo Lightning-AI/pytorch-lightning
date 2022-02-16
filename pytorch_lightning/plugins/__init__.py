@@ -29,6 +29,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.sync_batchnorm import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
@@ -63,4 +64,6 @@ __all__ = [
     "ParallelPlugin",
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",
+    "LayerSync",
+    "NativeSyncBatchNorm",
 ]

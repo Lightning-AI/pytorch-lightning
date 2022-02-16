@@ -114,7 +114,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Accelerator.is_available` to check device availability ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
 
 
-- Added `SyncBatchNormPlugin` and `NativeSyncBatchNormPlugin` ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
+- Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
 
 
 ### Changed

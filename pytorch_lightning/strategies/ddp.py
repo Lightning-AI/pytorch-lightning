@@ -37,7 +37,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.sync_batchnorm import SyncBatchNormPlugin
+from pytorch_lightning.plugins.sync_batchnorm import LayerSync
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -101,7 +101,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self.interactive_ddp_procs = []
         self._num_nodes = 1
-        self.sync_batchnorm: Optional[SyncBatchNormPlugin] = None
+        self.sync_batchnorm: Optional[LayerSync] = None
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
