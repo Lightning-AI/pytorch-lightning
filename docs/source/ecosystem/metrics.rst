@@ -25,7 +25,7 @@ Example 1: Functional Metrics
 
 Below is a simple example for calculating the accuracy using the functional interface:
 
-.. code-block:: python
+.. testcode::
 
     import torch
     import torchmetrics
