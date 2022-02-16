@@ -2653,7 +2653,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
         return 1.0
     if 0 <= batches <= 1:
         return batches
-    if batches > 1:
+    if batches > 1 and batches % 1.0 == 0:
         return int(batches)
     raise MisconfigurationException(
         f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
