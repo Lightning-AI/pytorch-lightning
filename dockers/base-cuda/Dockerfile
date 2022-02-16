@@ -87,7 +87,7 @@ RUN \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    pip install --user -r requirements/devel.txt --no-cache-dir && \
+    pip install -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* requirements/
 
 RUN \
@@ -102,7 +102,7 @@ RUN \
 
 RUN \
     # install NVIDIA apex
-    pip install --user --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
 
 RUN \
