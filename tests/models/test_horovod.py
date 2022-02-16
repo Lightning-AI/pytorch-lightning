@@ -30,8 +30,10 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
+from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
 
 if _HOROVOD_AVAILABLE:
@@ -97,6 +99,28 @@ def test_horovod_cpu_accumulate_grad_batches(tmpdir):
         strategy="horovod",
     )
     _run_horovod(trainer_options)
+
+
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
+def test_horovod_cpu_accumulate_grad_batches_different(tmpdir):
+    """
+    Ensure MisConfigurationException for different `accumulate_grad_batches`
+    at different epochs for Horovod Strategy on multi-cpus.
+    """
+    model = ClassificationModel()
+    trainer = Trainer(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        enable_progress_bar=False,
+        max_epochs=4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accumulate_grad_batches={0: 4, 2: 2},
+        strategy="horovod",
+    )
+    with pytest.raises(MisconfigurationException):
+        trainer.fit(model)
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
@@ -166,6 +190,30 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
         strategy="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
+
+
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
+    """
+    Ensure MisConfigurationException for different `accumulate_grad_batches`
+    at different epochs for Horovod Strategy on multi-gpus.
+    """
+    model = ClassificationModel()
+    trainer = Trainer(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accumulate_grad_batches={0: 4, 2: 2},
+        accelerator="gpu",
+        devices=2,
+        strategy="horovod",
+    )
+    with pytest.raises(MisconfigurationException):
+        trainer.fit(model)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
