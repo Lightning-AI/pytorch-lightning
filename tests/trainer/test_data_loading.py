@@ -104,7 +104,7 @@ class TestSpawnBoringModel(BoringModel):
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
 
-    def on_pretrain_routine_start(self):
+    def on_fit_start(self):
         self._resout = StringIO()
         self.ctx = redirect_stderr(self._resout)
         self.ctx.__enter__()
