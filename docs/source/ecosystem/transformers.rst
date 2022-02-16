@@ -30,7 +30,7 @@ Lightning Transformers has a collection of tasks for common NLP problems such as
 
 3. Customize the backbone, optimizer, or any component within the config
 
-4. Add any `Lightning supported parameters and optimizations <https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html>`_
+4. Add any :doc:`Lightning supported parameters and optimizations <../common/trainer>`_
 
 .. code-block:: bash
 
