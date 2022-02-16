@@ -637,18 +637,16 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-@pytest.mark.parametrize([
-        "benchmark",
-        "deterministic",
-        "expected"
-    ], [
+@pytest.mark.parametrize(
+    ["benchmark", "deterministic", "expected"],
+    [
         (None, False, True),
         (None, True, False),
         (True, False, True),
         (True, True, True),
         (False, True, False),
-        (False, False, False)
-    ]
+        (False, False, False),
+    ],
 )
 def test_benchmark_option(benchmark, deterministic, expected):
     """Verify benchmark option."""
@@ -658,7 +656,7 @@ def test_benchmark_option(benchmark, deterministic, expected):
     trainer = Trainer(benchmark=benchmark, deterministic=deterministic)
     assert torch.backends.cudnn.benchmark == expected
 
-    torch.backends.cudnn.benchmark = original_val 
+    torch.backends.cudnn.benchmark = original_val
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))

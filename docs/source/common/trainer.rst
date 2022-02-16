@@ -431,7 +431,7 @@ Example::
     # defaults to True if not deterministic (which is False by default)
     trainer = Trainer()
 
-    # you can overwrite the value 
+    # you can overwrite the value
     trainer = Trainer(benchmark=False)
 
 deterministic
