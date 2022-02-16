@@ -209,8 +209,6 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         "on_epoch_end",
         "on_train_start",
         "on_train_end",
-        "on_pretrain_routine_start",
-        "on_pretrain_routine_end",
         "on_batch_start",
         "on_batch_end",
         "on_validation_start",
@@ -246,7 +244,6 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         logger=False,
     )
     model = BoringModel()
-    # need to attach model to trainer for testing of `on_pretrain_routine_start`
     trainer.fit(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
