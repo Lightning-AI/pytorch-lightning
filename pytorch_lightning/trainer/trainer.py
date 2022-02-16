@@ -1969,7 +1969,7 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> Optional[int]:
+    def _strategy_type(self) -> Optional[str]:
         return self.strategy.strategy_name
 
     @property
@@ -2006,7 +2006,9 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_device_ids
+        return (
+            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        )
 
     @property
     def lightning_module(self) -> "pl.LightningModule":

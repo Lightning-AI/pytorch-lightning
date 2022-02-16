@@ -181,7 +181,7 @@ class AcceleratorConnector:
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment
-        self.cluster_environment = self._choose_and_init_cluster_environment()
+        self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
 
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag is None:
@@ -623,8 +623,8 @@ class AcceleratorConnector:
                 return TPUBf16PrecisionPlugin()
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(
-                self._precision_flag, self._amp_type_flag, self._amp_level_flag
-            )  # type: ignore
+                self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
+            )
 
         if self._precision_flag == 32:
             return PrecisionPlugin()
@@ -824,8 +824,8 @@ class AcceleratorConnector:
         return self._gpus
 
     @property
-    def parallel_device_ids(self) -> Optional[List[int]]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else None
+    def parallel_device_ids(self) -> List[int]:
+        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def is_distributed(self) -> bool:
