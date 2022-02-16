@@ -96,6 +96,8 @@ Here are the only required methods.
 .. code-block:: python
 
     import pytorch_lightning as pl
+    import torch.nn as nn
+    import torch.nn.functional as F
 
 
     class LitModel(pl.LightningModule):
@@ -117,7 +119,7 @@ Here are the only required methods.
 
 Which you can train by doing:
 
-.. code-block:: python
+.. code-block:: python    
 
     train_loader = DataLoader(MNIST(os.getcwd(), download=True, transform=transforms.ToTensor()))
     trainer = pl.Trainer(max_epochs=1)
