@@ -264,11 +264,17 @@ Select torch distributed backend
 By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
 Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
 
-Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+Lightning allows explicitly specifying the backend via the `pg_backend` constructor argument on the relevant Strategy classes.
 
-.. code-block:: bash
+.. code-block:: python
 
-   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+    from pytorch_lightning.strategies import DDPStrategy
+
+    # Specify the process group backend
+    ddp = DDPStrategy(pg_backend="gloo")
+
+    # Configure the strategy on the Trainer
+    trainer = Trainer(strategy=ddp, accelerator="gpu", devices=8)
 
 
 ----------

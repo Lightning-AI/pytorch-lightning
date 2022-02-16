@@ -92,6 +92,17 @@ class ParallelStrategy(Strategy, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def torch_distributed_backend(self) -> str:
+        """Deprecated property."""
+        rank_zero_deprecation(
+            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
+        )
+        pg_backend = _get_process_group_backend_from_env()
+        if pg_backend:
+            return pg_backend
+        return get_default_process_group_backend_for_device(self.root_device)
+
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""
 
@@ -128,14 +139,3 @@ class ParallelStrategy(Strategy, ABC):
     def teardown(self) -> None:
         self.cluster_environment.teardown()
         super().teardown()
-
-    @property
-    def torch_distributed_backend(self) -> str:
-        """Deprecated property."""
-        rank_zero_deprecation(
-            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
-        )
-        pg_backend = _get_process_group_backend_from_env()
-        if pg_backend:
-            return pg_backend
-        return get_default_process_group_backend_for_device(self.root_device)

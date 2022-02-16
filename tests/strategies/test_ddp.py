@@ -23,6 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.strategies import DDPStrategy
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.strategies import ddp_model
@@ -145,3 +146,34 @@ def test_ddp_wrapper(tmpdir, precision):
         callbacks=CustomCallback(),
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["pg_backend", "env_var", "device_str", "expected_pg_backend"],
+    [
+        pytest.param("foo", None, "cpu", "foo"),
+        pytest.param("foo", "BAR", "cpu", "foo"),
+        pytest.param("foo", "BAR", "cuda:0", "foo"),
+        pytest.param(None, "BAR", "cuda:0", "BAR"),
+        pytest.param(None, None, "cuda:0", "nccl"),
+        pytest.param(None, None, "cpu", "gloo"),
+    ],
+)
+def test_ddp_pg_backend(pg_backend, env_var, device_str, expected_pg_backend):
+    """Test settings for process group backend."""
+
+    class MockDDPStrategy(DDPStrategy):
+        def __init__(self, root_device, pg_backend):
+            self._root_device = root_device
+            super().__init__(pg_backend)
+
+        @property
+        def root_device(self):
+            return self._root_device
+
+    strategy = MockDDPStrategy(pg_backend=pg_backend, root_device=torch.device(device_str))
+    if env_var:
+        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = env_var
+    assert strategy._get_process_group_backend() == expected_pg_backend
+    if env_var:
+        os.environ.pop("PL_TORCH_DISTRIBUTED_BACKEND")
