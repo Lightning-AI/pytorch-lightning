@@ -267,34 +267,6 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 @RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
     class TestModel(BoringModel):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.automatic_optimization = False
-            self.count = 0
-            self.batches = []
-
-        def training_step(self, dataloader_iter, batch_idx):
-            assert self.count == batch_idx
-            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
-            # fetch 2 batches
-            self.batches.append(next(dataloader_iter))
-            self.batches.append(next(dataloader_iter))
-
-            batch = self.batches.pop(0)
-            assert isinstance(batch, torch.Tensor) or batch is None
-            self.count += 2
-            opt = self.optimizers()
-            output = self(batch)
-            loss = self.loss(batch, output)
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-
-        def training_epoch_end(self, *_):
-            assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer.fit_loop._data_fetcher.fetched == 64
-            assert self.count == 64
-
         def validation_step(self, dataloader_iter, batch_idx):
             assert isinstance(self.trainer.evaluation_loop._data_fetcher, DataLoaderIterDataFetcher)
             batch = next(dataloader_iter)

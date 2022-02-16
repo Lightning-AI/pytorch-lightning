@@ -381,17 +381,16 @@ class EvaluationLoop(DataLoaderLoop):
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
     lightning_module = trainer.lightning_module
-    step_fx = (
-        getattr(lightning_module, "test_step") if trainer.testing else getattr(lightning_module, "validation_step")
-    )
+    step_fx_name = "test_step" if trainer.testing else "validation_step"
+    step_fx = getattr(lightning_module, step_fx_name)
     if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
         rank_zero_warn(
-            "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
             "this signature is experimental and the behavior is subject to change."
         )
         return DataLoaderIterDataFetcher
     elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
         if not isinstance(trainer.accelerator, GPUAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using NVidia GPUs.")
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
         return InterBatchParallelDataFetcher
     return DataFetcher
