@@ -108,10 +108,24 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
+    def state_dict(self) -> Dict[str, Any]:
+        if self.scaler is not None:
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
+        """``NativeMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.load_state_dict``
+        instead
+        """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None:
-            checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()
+        """``NativeMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-save NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.state_dict`` instead
+        """
