@@ -190,23 +190,6 @@ class RichProgressBarTheme:
     metrics: Union[str, Style] = "white"
 
 
-def _detect_light_colab_theme() -> bool:
-    """Detect if it's light theme in Colab."""
-    try:
-        get_ipython  # type: ignore
-    except NameError:
-        return False
-    ipython = get_ipython()  # noqa: F821
-    if "google.colab" in str(ipython.__class__):
-        try:
-            from google.colab import output
-
-            return output.eval_js('document.documentElement.matches("[theme=light]")')
-        except ModuleNotFoundError:
-            return False
-    return False
-
-
 class RichProgressBar(ProgressBarBase):
     """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
 
@@ -513,3 +496,20 @@ class RichProgressBar(ProgressBarBase):
             CustomTimeColumn(style=self.theme.time),
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
+
+
+def _detect_light_colab_theme() -> bool:
+    """Detect if it's light theme in Colab."""
+    try:
+        get_ipython  # type: ignore
+    except NameError:
+        return False
+    ipython = get_ipython()  # noqa: F821
+    if "google.colab" in str(ipython.__class__):
+        try:
+            from google.colab import output
+
+            return output.eval_js('document.documentElement.matches("[theme=light]")')
+        except ModuleNotFoundError:
+            return False
+    return False
