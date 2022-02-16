@@ -279,7 +279,7 @@ def test_precision_selection_raises(monkeypatch):
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
-        MisconfigurationException, match="asked for Apex AMP but you have not installed it"
-    ):
+    with mock.patch("torch.cuda.device_count", return_value=1), mock.patch(
+        "torch.cuda.is_available", return_value=True
+    ), pytest.raises(MisconfigurationException, match="asked for Apex AMP but you have not installed it"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)
