@@ -165,15 +165,18 @@ def test_ddp_pg_backend(pg_backend, env_var, device_str, expected_pg_backend):
     class MockDDPStrategy(DDPStrategy):
         def __init__(self, root_device, pg_backend):
             self._root_device = root_device
-            super().__init__(pg_backend)
+            super().__init__(pg_backend=pg_backend)
 
         @property
         def root_device(self):
             return self._root_device
 
     strategy = MockDDPStrategy(pg_backend=pg_backend, root_device=torch.device(device_str))
-    if env_var:
-        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = env_var
-    assert strategy._get_process_group_backend() == expected_pg_backend
-    if env_var:
-        os.environ.pop("PL_TORCH_DISTRIBUTED_BACKEND")
+    if not pg_backend and env_var:
+        with mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": env_var}):
+            with pytest.deprecated_call(
+                match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"
+            ):
+                assert strategy._get_process_group_backend() == expected_pg_backend
+    else:
+        assert strategy._get_process_group_backend() == expected_pg_backend
