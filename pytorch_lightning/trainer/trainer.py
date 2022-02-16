@@ -1734,15 +1734,15 @@ class Trainer(
 
         if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set `gpus` via your trainer `Trainer(accelerator='gpu', devices=1)`"
-                " or script `--accelerator='gpu' --devices=1`.",
+                "GPU available but not used. Set `accelerator` and `devices` via your"
+                " via your trainer `Trainer(accelerator='gpu', devices=1)`.",
                 category=PossibleUserWarning,
             )
 
         if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
-                "TPU available but not used. Set `tpu_cores` via your trainer"
-                " `Trainer(accelerator='tpu', devices=8)` or script `--accelerator='tpu' --devices=8`."
+                "TPU available but not used. Set `accelerator` and `devices` via your trainer"
+                " `Trainer(accelerator='tpu', devices=8)`."
             )
 
         if (
@@ -1751,8 +1751,8 @@ class Trainer(
             and not isinstance(self.accelerator, IPUAccelerator)
         ):
             rank_zero_warn(
-                "IPU available but not used. Set `ipus` via your trainer"
-                " `Trainer(accelerator='ipu', devices=8)` or script `--accelerator='ipu' --devices=8`."
+                "IPU available but not used. Set `accelerator` and `devices` via your trainer"
+                " `Trainer(accelerator='ipu', devices=8)`."
             )
 
     def _on_exception(self) -> None:
