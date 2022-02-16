@@ -35,7 +35,7 @@ class LayerSync(ABC):
         """Override this static method to undo all modifications made in :meth:`apply`."""
 
 
-class NativeSyncBatchNorm(ABC):
+class NativeSyncBatchNorm(LayerSync):
     """A plugin that wraps all batch normalization layers of a model with synchronization logic for
     multiprocessing.
 
