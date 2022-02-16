@@ -34,14 +34,6 @@ from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
 )
 
-try:
-    from horovod.common.util import nccl_built
-
-    nccl_built()
-    _HOROVOD_NCCL_AVAILABLE = True
-except (ImportError, ModuleNotFoundError, AttributeError):
-    _HOROVOD_NCCL_AVAILABLE = False
-
 
 class RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
@@ -152,8 +144,19 @@ class RunIf:
             reasons.append("Horovod")
 
         if horovod_nccl:
-            # FIXME(@jirka): nccl is not available in ci
-            conditions.append(True)  # not _HOROVOD_NCCL_AVAILABLE
+            nccl_available = False
+            if _HOROVOD_AVAILABLE:
+                try:
+                    import horovod
+
+                    # `nccl_built` returns an integer
+                    nccl_available = bool(horovod.torch.nccl_built())
+                except AttributeError:
+                    # AttributeError can be raised if MPI is not available:
+                    # https://github.com/horovod/horovod/blob/v0.23.0/horovod/torch/__init__.py#L33-L34
+                    pass
+
+            conditions.append(not nccl_available)
             reasons.append("Horovod with NCCL")
 
         if standalone:
