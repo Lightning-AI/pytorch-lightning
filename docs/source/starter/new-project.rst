@@ -46,7 +46,7 @@ Organizing your code with Lightning makes your code:
 
 Lightning is built for:
 
-* Researcher who want to focus on research without worrying about the engineering aspects of it
+* Researchers who want to focus on research without worrying about the engineering aspects of it
 * ML Engineers who want to built reproducible pipelines
 * Data Scientists who want to try out different models for their tasks and build-in ML techniques
 * Educators who seek to study and teach Deep Learning with PyTorch
@@ -198,7 +198,7 @@ of the 20+ hooks found in :ref:`lightning_hooks`
 
 **FORWARD vs TRAINING_STEP**
 
-In Lightning we suggest separatating training from inference. The ``training_step`` defines
+In Lightning we suggest separating training from inference. The ``training_step`` defines
 the full training loop. We encourage users to use the ``forward`` to define inference actions.
 
 For example, in this case we can define the autoencoder to act as an embedding extractor:
