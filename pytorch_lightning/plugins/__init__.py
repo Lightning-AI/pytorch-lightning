@@ -14,6 +14,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from pytorch_lightning.plugins.sync_batchnorm import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -29,7 +30,6 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.plugins.sync_batchnorm import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]

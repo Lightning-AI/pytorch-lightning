@@ -21,9 +21,8 @@ import pytorch_lightning as pl
 
 
 class LayerSync(ABC):
-    """Abstract base class for creating plugins that wrap layers of a model with synchronization logic
-    for multiprocessing.
-    """
+    """Abstract base class for creating plugins that wrap layers of a model with synchronization logic for
+    multiprocessing."""
 
     @staticmethod
     @abstractmethod
