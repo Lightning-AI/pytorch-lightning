@@ -147,7 +147,7 @@ class Trainer(
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
         progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
-        overfit_batches: Union[int, float] = 0.0,
+        overfit_batches: Optional[Union[int, float]] = None,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: Union[int, bool] = False,
@@ -157,11 +157,11 @@ class Trainer(
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
-        limit_train_batches: Union[int, float] = 1.0,
-        limit_val_batches: Union[int, float] = 1.0,
-        limit_test_batches: Union[int, float] = 1.0,
-        limit_predict_batches: Union[int, float] = 1.0,
-        val_check_interval: Union[int, float] = 1.0,
+        limit_train_batches: Optional[Union[int, float]] = None,
+        limit_val_batches: Optional[Union[int, float]] = None,
+        limit_test_batches: Optional[Union[int, float]] = None,
+        limit_predict_batches: Optional[Union[int, float]] = None,
+        val_check_interval: Optional[Union[int, float]] = None,
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -512,6 +512,7 @@ class Trainer(
         self._call_callback_hooks("on_init_start")
 
         # init data flags
+        self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
@@ -569,6 +570,7 @@ class Trainer(
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_interval: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -584,14 +586,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
-        val_check_interval,
-        overfit_batches,
-        fast_dev_run,
-    ):
+        limit_train_batches: Optional[Union[int, float]],
+        limit_val_batches: Optional[Union[int, float]],
+        limit_test_batches: Optional[Union[int, float]],
+        limit_predict_batches: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float]],
+        overfit_batches: Optional[Union[int, float]],
+        fast_dev_run: Union[int, bool],
+    ) -> None:
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
@@ -2640,10 +2642,18 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
 
-def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
+    if isinstance(batches, int) and batches == 1:
+        log.info(f"`Trainer({name}=1)` was configured so 1 batch per epoch will be used.")
+    elif isinstance(batches, float) and batches == 1.0:
+        log.info(f"`Trainer({name}=1.0)` was configured so 100% of the batches per epoch will be used.")
+    elif batches is None:
+        # batches is optional to know if the user passed a value so that we can show the above info messages only to the
+        # users that set a value explicitly
+        return 1.0
     if 0 <= batches <= 1:
         return batches
-    if batches > 1 and batches % 1.0 == 0:
+    if batches > 1:
         return int(batches)
     raise MisconfigurationException(
         f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
