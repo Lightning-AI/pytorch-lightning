@@ -9,9 +9,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Make `benchmark` flag optional, based on deterministic flag. ([#11944](https://github.com/PyTorchLightning/pytorch-lightning/pull/11944))
-
-
 - Add new `DETAIL` log level to provide useful logs for improving monitoring and debugging of batch jobs
 
 
@@ -115,6 +112,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Changed
+
+- Make `benchmark` flag optional, based on deterministic flag. ([#11944](https://github.com/PyTorchLightning/pytorch-lightning/pull/11944))
+
 
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
 
