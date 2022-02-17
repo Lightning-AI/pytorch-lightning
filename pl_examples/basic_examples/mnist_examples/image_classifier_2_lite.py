@@ -44,7 +44,7 @@ from pytorch_lightning.lite import LightningLite  # import LightningLite
 
 
 class Lite(LightningLite):
-    def run(self, hparams):
+    def run(self, hparams) -> None:
         self.hparams = hparams
         seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
@@ -156,6 +156,6 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
-    hparams = parser.parse_args()
+    hparams: argparse.Namespace = parser.parse_args()
 
     Lite(accelerator="auto", devices="auto").run(hparams)

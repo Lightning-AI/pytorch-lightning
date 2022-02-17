@@ -104,7 +104,7 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(self.test_dataset)
 
-    def __post_init__(cls):
+    def __post_init__(cls) -> None:
         super().__init__()
 
 
@@ -233,7 +233,7 @@ class KFoldLoop(Loop):
         self.trainer.state.fn = TrainerFn.TESTING
         self.trainer.testing = True
 
-    def __getattr__(self, key) -> Any:
+    def __getattr__(self, key: str) -> Any:
         # requires to be overridden as attributes of the wrapped loop are being accessed.
         if key not in self.__dict__:
             return getattr(self.fit_loop, key)
@@ -275,7 +275,7 @@ if __name__ == "__main__":
         accelerator="auto",
         strategy="ddp",
     )
-    internal_fit_loop = trainer.fit_loop
+    internal_fit_loop: FitLoop = trainer.fit_loop
     trainer.fit_loop = KFoldLoop(5, export_path="./")
     trainer.fit_loop.connect(internal_fit_loop)
     trainer.fit(model, datamodule)

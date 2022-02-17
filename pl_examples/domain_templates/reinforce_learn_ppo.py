@@ -28,7 +28,7 @@ References
 [3] https://github.com/sid-sundrani/ppo_lightning
 """
 import argparse
-from typing import Callable, Iterator, List, Tuple
+from typing import Callable, Iterator, List, Tuple, Union
 
 import gym
 import torch
@@ -58,7 +58,7 @@ class ActorCategorical(nn.Module):
     """Policy network, for discrete action spaces, which returns a distribution and an action given an
     observation."""
 
-    def __init__(self, actor_net):
+    def __init__(self, actor_net) -> None:
         """
         Args:
             input_shape: observation shape of the environment
@@ -92,7 +92,7 @@ class ActorContinuous(nn.Module):
     """Policy network, for continuous action spaces, which returns a distribution and an action given an
     observation."""
 
-    def __init__(self, actor_net, act_dim):
+    def __init__(self, actor_net, act_dim) -> None:
         """
         Args:
             input_shape: observation shape of the environment
@@ -132,7 +132,7 @@ class ExperienceSourceDataset(IterableDataset):
     experience source and how the batch is generated is defined the Lightning model itself
     """
 
-    def __init__(self, generate_batch: Callable):
+    def __init__(self, generate_batch: Callable) -> None:
         self.generate_batch = generate_batch
 
     def __iter__(self) -> Iterator:
@@ -414,7 +414,7 @@ class PPOLightning(pl.LightningModule):
 
         return optimizer_actor, optimizer_critic
 
-    def optimizer_step(self, *args, **kwargs):
+    def optimizer_step(self, *args, **kwargs) -> None:
         """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data
         sample."""
         for _ in range(self.nb_optim_iters):
@@ -456,7 +456,7 @@ class PPOLightning(pl.LightningModule):
         return parent_parser
 
 
-def main(args) -> None:
+def main(args: Union[argparse.ArgumentParser, argparse.Namespace]) -> None:
     model = PPOLightning(**vars(args))
 
     trainer = pl.Trainer.from_argparse_args(args)

@@ -49,8 +49,7 @@ class _MNIST(Dataset):
     cache_folder_name = "complete"
 
     def __init__(
-        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
-    ):
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs) -> None:
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -83,7 +82,7 @@ class _MNIST(Dataset):
             existing = existing and os.path.isfile(os.path.join(data_folder, fname))
         return existing
 
-    def prepare_data(self, download: bool = True):
+    def prepare_data(self, download: bool = True) -> None:
         if download and not self._check_exists(self.cached_folder_path):
             self._download(self.cached_folder_path)
         if not self._check_exists(self.cached_folder_path):
@@ -123,7 +122,7 @@ class _MNIST(Dataset):
         return tensor.sub(mean).div(std)
 
 
-def MNIST(*args, **kwargs):
+def MNIST(*args, **kwargs) -> _MNIST:
     torchvision_mnist_available = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
     if torchvision_mnist_available:
         try:
@@ -156,9 +155,7 @@ class MNISTDataModule(LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        *args,
-        **kwargs,
-    ):
+        *args, **kwargs) -> None:
         """
         Args:
             data_dir: where to save/load the data
@@ -187,15 +184,15 @@ class MNISTDataModule(LightningDataModule):
         self.dataset_val = ...
 
     @property
-    def num_classes(self):
+    def num_classes(self) -> int:
         return 10
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         """Saves MNIST files to `data_dir`"""
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=True, download=False, **extra)

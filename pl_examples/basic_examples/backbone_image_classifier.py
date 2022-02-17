@@ -40,7 +40,7 @@ class Backbone(torch.nn.Module):
     )
     """
 
-    def __init__(self, hidden_dim=128):
+    def __init__(self, hidden_dim: int=128) -> None:
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
         self.l2 = torch.nn.Linear(hidden_dim, 10)
@@ -60,7 +60,7 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, backbone: Optional[Backbone] = None, learning_rate: float = 0.0001):
+    def __init__(self, backbone: Optional[Backbone] = None, learning_rate: float = 0.0001) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=["backbone"])
         if backbone is None:
@@ -79,19 +79,19 @@ class LitClassifier(pl.LightningModule):
         self.log("train_loss", loss, on_epoch=True)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("valid_loss", loss, on_step=True)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("test_loss", loss)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=None):
         x, y = batch
         return self(x)
 
@@ -101,7 +101,7 @@ class LitClassifier(pl.LightningModule):
 
 
 class MyDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 32):
+    def __init__(self, batch_size: int = 32) -> None:
         super().__init__()
         dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
@@ -121,7 +121,7 @@ class MyDataModule(pl.LightningDataModule):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
 
-def cli_main():
+def cli_main() -> None:
     cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234, save_config_overwrite=True, run=False)
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)

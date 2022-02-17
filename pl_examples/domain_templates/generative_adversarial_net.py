@@ -42,7 +42,7 @@ class Generator(nn.Module):
     )
     """
 
-    def __init__(self, latent_dim: int = 100, img_shape: tuple = (1, 28, 28)):
+    def __init__(self, latent_dim: int = 100, img_shape: tuple = (1, 28, 28)) -> None:
         super().__init__()
         self.img_shape = img_shape
 
@@ -76,7 +76,7 @@ class Discriminator(nn.Module):
     )
     """
 
-    def __init__(self, img_shape):
+    def __init__(self, img_shape) -> None:
         super().__init__()
 
         self.model = nn.Sequential(
@@ -114,7 +114,7 @@ class GAN(LightningModule):
         b1: float = 0.5,
         b2: float = 0.999,
         latent_dim: int = 100,
-    ):
+    ) -> None:
         super().__init__()
 
         self.save_hyperparameters()
@@ -128,7 +128,7 @@ class GAN(LightningModule):
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
     @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group=True):
+    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group: bool=True) -> ArgumentParser:
         if use_argument_group:
             parser = parent_parser.add_argument_group("pl.GAN")
             parser_out = parent_parser
@@ -200,7 +200,7 @@ class GAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self) -> None:
         z = self.validation_z.type_as(self.generator.model[0].weight)
 
         # log sampled images
@@ -242,6 +242,6 @@ if __name__ == "__main__":
     # Add trainer args
     parser = Trainer.add_argparse_args(parser)
     # Parse all arguments
-    args = parser.parse_args()
+    args: Namespace = parser.parse_args()
 
     main(args)

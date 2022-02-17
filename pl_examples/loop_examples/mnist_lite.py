@@ -29,7 +29,7 @@ from pytorch_lightning.loops import Loop
 
 
 class TrainLoop(Loop):
-    def __init__(self, lite, args, model, optimizer, scheduler, dataloader):
+    def __init__(self, lite, args, model, optimizer, scheduler, dataloader) -> None:
         super().__init__()
         self.lite = lite
         self.args = args
@@ -43,7 +43,7 @@ class TrainLoop(Loop):
     def done(self) -> bool:
         return False
 
-    def reset(self):
+    def reset(self) -> None:
         self.dataloader_iter = enumerate(self.dataloader)
 
     def advance(self, epoch) -> None:
@@ -68,13 +68,13 @@ class TrainLoop(Loop):
         if self.args.dry_run:
             raise StopIteration
 
-    def on_run_end(self):
+    def on_run_end(self) -> None:
         self.scheduler.step()
         self.dataloader_iter = None
 
 
 class TestLoop(Loop):
-    def __init__(self, lite, args, model, dataloader):
+    def __init__(self, lite, args, model, dataloader) -> None:
         super().__init__()
         self.lite = lite
         self.args = args
@@ -88,7 +88,7 @@ class TestLoop(Loop):
     def done(self) -> bool:
         return False
 
-    def reset(self):
+    def reset(self) -> None:
         self.dataloader_iter = enumerate(self.dataloader)
         self.test_loss = 0
         self.accuracy.reset()
@@ -102,7 +102,7 @@ class TestLoop(Loop):
         if self.args.dry_run:
             raise StopIteration
 
-    def on_run_end(self):
+    def on_run_end(self) -> None:
         test_loss = self.lite.all_gather(self.test_loss).sum() / len(self.dataloader.dataset)
 
         if self.lite.is_global_zero:
@@ -110,7 +110,7 @@ class TestLoop(Loop):
 
 
 class MainLoop(Loop):
-    def __init__(self, lite, args, model, optimizer, scheduler, train_loader, test_loader):
+    def __init__(self, lite, args, model, optimizer, scheduler, train_loader, test_loader) -> None:
         super().__init__()
         self.lite = lite
         self.args = args
@@ -122,7 +122,7 @@ class MainLoop(Loop):
     def done(self) -> bool:
         return self.epoch >= self.args.epochs
 
-    def reset(self):
+    def reset(self) -> None:
         pass
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
@@ -136,7 +136,7 @@ class MainLoop(Loop):
 
 
 class Lite(LightningLite):
-    def run(self, hparams):
+    def run(self, hparams) -> None:
         transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
         if self.is_global_zero:
             MNIST("./data", download=True)
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
-    hparams = parser.parse_args()
+    hparams: argparse.Namespace = parser.parse_args()
 
     seed_everything(hparams.seed)
 

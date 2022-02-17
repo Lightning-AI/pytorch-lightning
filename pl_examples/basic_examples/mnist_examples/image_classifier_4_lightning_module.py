@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.cli import LightningCLI
 
 
 class ImageClassifier(LightningModule):
-    def __init__(self, model=None, lr=1.0, gamma=0.7, batch_size=32):
+    def __init__(self, model=None, lr: float=1.0, gamma: float=0.7, batch_size: int=32) -> None:
         super().__init__()
         self.save_hyperparameters(ignore="model")
         self.model = model or Net()
@@ -43,7 +43,7 @@ class ImageClassifier(LightningModule):
         loss = F.nll_loss(logits, y.long())
         return loss
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         loss = F.nll_loss(logits, y.long())
@@ -73,7 +73,7 @@ class ImageClassifier(LightningModule):
         return torch.utils.data.DataLoader(test_dataset, batch_size=self.hparams.batch_size)
 
 
-def cli_main():
+def cli_main() -> None:
     # The LightningCLI removes all the boilerplate associated with arguments parsing. This is purely optional.
     cli = LightningCLI(ImageClassifier, seed_everything_default=42, save_config_overwrite=True, run=False)
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)

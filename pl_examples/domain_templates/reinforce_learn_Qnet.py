@@ -57,7 +57,7 @@ class DQN(nn.Module):
     )
     """
 
-    def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128):
+    def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128) -> None:
         """
         Args:
             obs_size: observation/state size of the environment

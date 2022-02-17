@@ -55,7 +55,7 @@ from pytorch_lightning import LightningModule, seed_everything, Trainer
 class RandomGetItemDataset(Dataset):
     """A dataset with random elements generated using global rng from torch, numpy and python."""
 
-    def __init__(self, length, size):
+    def __init__(self, length, size) -> None:
         self.size = size
         self.len = length
 
@@ -71,7 +71,7 @@ class RandomGetItemDataset(Dataset):
 
 
 class SimpleMLP(LightningModule):
-    def __init__(self, fail_on_step: int = -1):
+    def __init__(self, fail_on_step: int = -1) -> None:
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
         self.seen_batches = []
@@ -97,14 +97,14 @@ class SimpleMLP(LightningModule):
         return DataLoader(RandomGetItemDataset(3, 1))
 
 
-def _run_training(default_root_dir=".", max_epochs=3, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(default_root_dir: str=".", max_epochs: int=3, fail_on_step: int = -1, ckpt_path=None):
     model = SimpleMLP(fail_on_step=fail_on_step)
     trainer = Trainer(default_root_dir=default_root_dir, max_epochs=max_epochs)
     trainer.fit(model, ckpt_path=ckpt_path)
     return model.seen_batches, model.parameters()
 
 
-def main(args):
+def main(args) -> None:
     seed_everything(42)
     os.environ["PL_FAULT_TOLERANT_TRAINING"] = "automatic"  # active fault tolerant automatic
 

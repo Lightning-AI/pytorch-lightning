@@ -27,7 +27,7 @@ from pl_examples.basic_examples.mnist_datamodule import MNIST
 
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
@@ -52,7 +52,7 @@ class Net(nn.Module):
         return output
 
 
-def run(hparams):
+def run(hparams) -> None:
 
     torch.manual_seed(hparams.seed)
 
@@ -128,7 +128,7 @@ def run(hparams):
         torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"

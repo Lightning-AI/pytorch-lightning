@@ -20,7 +20,7 @@ from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001) -> None:
         super().__init__()
         self.save_hyperparameters()
 

@@ -112,7 +112,7 @@ class LitAutoEncoder(pl.LightningModule):
     )
     """
 
-    def __init__(self, hidden_dim: int = 64):
+    def __init__(self, hidden_dim: int = 64) -> None:
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(28 * 28, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 3))
         self.decoder = nn.Sequential(nn.Linear(3, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 28 * 28))
@@ -125,13 +125,13 @@ class LitAutoEncoder(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, "train")
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         self._common_step(batch, batch_idx, "val")
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         self._common_step(batch, batch_idx, "test")
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=None):
         x = self._prepare_batch(batch)
         return self(x)
 
@@ -151,7 +151,7 @@ class LitAutoEncoder(pl.LightningModule):
 
 
 class MyDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 32):
+    def __init__(self, batch_size: int = 32) -> None:
         super().__init__()
         dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
@@ -171,7 +171,7 @@ class MyDataModule(pl.LightningDataModule):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
 
-def cli_main():
+def cli_main() -> None:
     cli = LightningCLI(
         LitAutoEncoder,
         MyDataModule,

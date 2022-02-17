@@ -47,13 +47,13 @@ else:
 class ExternalMNISTInputIterator:
     """This iterator class wraps torchvision's MNIST dataset and returns the images and labels in batches."""
 
-    def __init__(self, mnist_ds, batch_size):
+    def __init__(self, mnist_ds, batch_size) -> None:
         self.batch_size = batch_size
         self.mnist_ds = mnist_ds
         self.indices = list(range(len(self.mnist_ds)))
         shuffle(self.indices)
 
-    def __iter__(self):
+    def __iter__(self) -> "ExternalMNISTInputIterator":
         self.i = 0
         self.n = len(self.mnist_ds)
         return self
@@ -73,7 +73,7 @@ class ExternalMNISTInputIterator:
 class ExternalSourcePipeline(Pipeline):
     """This DALI pipeline class just contains the MNIST iterator."""
 
-    def __init__(self, batch_size, eii, num_threads, device_id):
+    def __init__(self, batch_size, eii, num_threads, device_id) -> None:
         super().__init__(batch_size, num_threads, device_id, seed=12)
         self.source = ops.ExternalSource(source=eii, num_outputs=2)
         self.build()
@@ -90,13 +90,13 @@ class DALIClassificationLoader(DALIClassificationIterator):
     def __init__(
         self,
         pipelines,
-        size=-1,
+        size: int=-1,
         reader_name=None,
-        auto_reset=False,
-        fill_last_batch=True,
-        dynamic_shape=False,
-        last_batch_padded=False,
-    ):
+        auto_reset: bool=False,
+        fill_last_batch: bool=True,
+        dynamic_shape: bool=False,
+        last_batch_padded: bool=False,
+    ) -> None:
         if NEW_DALI_API:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP
             super().__init__(
@@ -121,7 +121,7 @@ class DALIClassificationLoader(DALIClassificationIterator):
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001):
+    def __init__(self, hidden_dim: int = 128, learning_rate: float = 0.0001) -> None:
         super().__init__()
         self.save_hyperparameters()
 
@@ -143,13 +143,13 @@ class LitClassifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log("valid_loss", loss)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = self.split_batch(batch)
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
@@ -160,7 +160,7 @@ class LitClassifier(pl.LightningModule):
 
 
 class MyDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 32):
+    def __init__(self, batch_size: int = 32) -> None:
         super().__init__()
         dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
@@ -174,21 +174,21 @@ class MyDataModule(pl.LightningDataModule):
         self.pipe_val = ExternalSourcePipeline(batch_size=batch_size, eii=eii_val, num_threads=2, device_id=0)
         self.pipe_test = ExternalSourcePipeline(batch_size=batch_size, eii=eii_test, num_threads=2, device_id=0)
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DALIClassificationLoader:
         return DALIClassificationLoader(
             self.pipe_train, size=len(self.mnist_train), auto_reset=True, fill_last_batch=True
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DALIClassificationLoader:
         return DALIClassificationLoader(self.pipe_val, size=len(self.mnist_val), auto_reset=True, fill_last_batch=False)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DALIClassificationLoader:
         return DALIClassificationLoader(
             self.pipe_test, size=len(self.mnist_test), auto_reset=True, fill_last_batch=False
         )
 
 
-def cli_main():
+def cli_main() -> None:
     if not _DALI_AVAILABLE:
         return
 

@@ -1,11 +1,12 @@
 import os
+from urllib.request import OpenerDirector
 
 from six.moves import urllib
 
 from pytorch_lightning.utilities import _module_available
 
 # TorchVision hotfix https://github.com/pytorch/vision/issues/1938
-opener = urllib.request.build_opener()
+opener: OpenerDirector = urllib.request.build_opener()
 opener.addheaders = [("User-agent", "Mozilla/5.0")]
 urllib.request.install_opener(opener)
 
@@ -13,7 +14,7 @@ _EXAMPLES_ROOT = os.path.dirname(__file__)
 _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
 _DATASETS_PATH = os.path.join(_PACKAGE_ROOT, "Datasets")
 
-_DALI_AVAILABLE = _module_available("nvidia.dali")
+_DALI_AVAILABLE: bool = _module_available("nvidia.dali")
 
 LIGHTNING_LOGO = """
                     ####
@@ -41,12 +42,12 @@ LIGHTNING_LOGO = """
 """
 
 
-def nice_print(msg, last=False):
+def nice_print(msg, last: bool=False) -> None:
     print()
     print("\033[0;35m" + msg + "\033[0m")
     if last:
         print()
 
 
-def cli_lightning_logo():
+def cli_lightning_logo() -> None:
     nice_print(LIGHTNING_LOGO)

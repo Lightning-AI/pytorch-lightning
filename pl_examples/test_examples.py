@@ -28,14 +28,14 @@ ARGS_DEFAULT = (
     "--trainer.limit_predict_batches 2 "
     "--data.batch_size 32 "
 )
-ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
+ARGS_GPU: str = ARGS_DEFAULT + "--trainer.gpus 1 "
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
 @pytest.mark.skipif(_IS_WINDOWS, reason="Not supported on Windows")
 @pytest.mark.parametrize("cli_args", [ARGS_GPU])
-def test_examples_mnist_dali(tmpdir, cli_args):
+def test_examples_mnist_dali(tmpdir, cli_args) -> None:
     from pl_examples.integration_examples.dali_image_classifier import cli_main
 
     # update the temp dir

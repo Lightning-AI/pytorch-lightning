@@ -58,25 +58,25 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 #  --- Finetuning Callback ---
 
 
 class MilestonesFinetuning(BaseFinetuning):
-    def __init__(self, milestones: tuple = (5, 10), train_bn: bool = False):
+    def __init__(self, milestones: tuple = (5, 10), train_bn: bool = False) -> None:
         super().__init__()
         self.milestones = milestones
         self.train_bn = train_bn
 
-    def freeze_before_training(self, pl_module: pl.LightningModule):
+    def freeze_before_training(self, pl_module: pl.LightningModule) -> None:
         self.freeze(modules=pl_module.feature_extractor, train_bn=self.train_bn)
 
-    def finetune_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: pl.LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int) -> None:
         if epoch == self.milestones[0]:
             # unfreeze 5 last layers
             self.unfreeze_and_add_param_group(
@@ -91,7 +91,7 @@ class MilestonesFinetuning(BaseFinetuning):
 
 
 class CatDogImageDataModule(LightningDataModule):
-    def __init__(self, dl_path: Union[str, Path] = "data", num_workers: int = 0, batch_size: int = 8):
+    def __init__(self, dl_path: Union[str, Path] = "data", num_workers: int = 0, batch_size: int = 8) -> None:
         """CatDogImageDataModule.
 
         Args:
@@ -105,12 +105,12 @@ class CatDogImageDataModule(LightningDataModule):
         self._num_workers = num_workers
         self._batch_size = batch_size
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         """Download images and prepare images datasets."""
         download_and_extract_archive(url=DATA_URL, download_root=self._dl_path, remove_finished=True)
 
     @property
-    def data_path(self):
+    def data_path(self) -> Path:
         return Path(self._dl_path).joinpath("cats_and_dogs_filtered")
 
     @property
@@ -241,7 +241,7 @@ class TransferLearningModel(pl.LightningModule):
 
         return train_loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         # 1. Forward pass:
         x, y = batch
         y_logits = self.forward(x)
@@ -267,7 +267,7 @@ class TransferLearningModel(pl.LightningModule):
 
 
 class MyLightningCLI(LightningCLI):
-    def add_arguments_to_parser(self, parser):
+    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         parser.add_lightning_class_args(MilestonesFinetuning, "finetuning")
         parser.link_arguments("data.batch_size", "model.batch_size")
         parser.link_arguments("finetuning.milestones", "model.milestones")
@@ -281,7 +281,7 @@ class MyLightningCLI(LightningCLI):
         )
 
 
-def cli_main():
+def cli_main() -> None:
     MyLightningCLI(TransferLearningModel, CatDogImageDataModule, seed_everything_default=1234)
 
 

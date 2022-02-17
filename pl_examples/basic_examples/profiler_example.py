@@ -45,7 +45,7 @@ DEFAULT_CMD_LINE = (
 
 
 class ModelToProfile(LightningModule):
-    def __init__(self, name: str = "resnet18", automatic_optimization: bool = True):
+    def __init__(self, name: str = "resnet18", automatic_optimization: bool = True) -> None:
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -63,7 +63,7 @@ class ModelToProfile(LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def manual_optimization_training_step(self, batch, batch_idx):
+    def manual_optimization_training_step(self, batch, batch_idx) -> None:
         opt = self.optimizers()
         opt.zero_grad()
         inputs, labels = batch
@@ -73,13 +73,13 @@ class ModelToProfile(LightningModule):
         self.manual_backward(loss)
         opt.step()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.criterion(outputs, labels)
         self.log("val_loss", loss)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx: int = None):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
         inputs = batch[0]
         return self.model(inputs)
 
@@ -102,7 +102,7 @@ class CIFAR10DataModule(LightningDataModule):
         return torch.utils.data.DataLoader(valset, batch_size=2, shuffle=True, num_workers=0)
 
 
-def cli_main():
+def cli_main() -> None:
     if len(sys.argv) == 1:
         sys.argv += DEFAULT_CMD_LINE
 

@@ -15,6 +15,7 @@
 import os
 import random
 from argparse import ArgumentParser, Namespace
+from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -32,7 +33,7 @@ DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)
 
 
-def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
+def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)) -> None:
     """Create synthetic dataset with random images, just to simulate that the dataset have been already
     downloaded."""
     path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
@@ -86,7 +87,7 @@ class KITTI(Dataset):
         void_labels: list = DEFAULT_VOID_LABELS,
         valid_labels: list = DEFAULT_VALID_LABELS,
         transform=None,
-    ):
+    ) -> None:
         self.img_size = img_size
         self.void_labels = void_labels
         self.valid_labels = valid_labels
@@ -110,7 +111,7 @@ class KITTI(Dataset):
         self.img_list = [self.img_list[i] for i in idxs]
         self.mask_list = [self.mask_list[i] for i in idxs]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_list)
 
     def __getitem__(self, idx):
@@ -184,8 +185,7 @@ class SegModel(pl.LightningModule):
         num_layers: int = 3,
         features_start: int = 64,
         bilinear: bool = False,
-        **kwargs,
-    ):
+        **kwargs) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
         self.batch_size = batch_size
@@ -211,7 +211,7 @@ class SegModel(pl.LightningModule):
     def forward(self, x):
         return self.net(x)
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_nb) -> Dict[str, Any]:
         img, mask = batch
         img = img.float()
         mask = mask.long()
@@ -220,7 +220,7 @@ class SegModel(pl.LightningModule):
         log_dict = {"train_loss": loss}
         return {"loss": loss, "log": log_dict, "progress_bar": log_dict}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> Dict[str, Any]:
         img, mask = batch
         img = img.float()
         mask = mask.long()
@@ -228,7 +228,7 @@ class SegModel(pl.LightningModule):
         loss_val = F.cross_entropy(out, mask, ignore_index=250)
         return {"val_loss": loss_val}
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs) -> Dict[str, Any]:
         loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
         log_dict = {"val_loss": loss_val}
         return {"log": log_dict, "val_loss": log_dict["val_loss"], "progress_bar": log_dict}
@@ -258,7 +258,7 @@ class SegModel(pl.LightningModule):
         return parent_parser
 
 
-def main(hparams: Namespace):
+def main(hparams: Namespace) -> None:
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------

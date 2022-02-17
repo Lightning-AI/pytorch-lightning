@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from functools import partial
-from typing import Generator
+from typing import Generator, Optional
 
 import torch
 
@@ -49,14 +49,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class YieldLoop(OptimizerLoop):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._generator = None
 
     def connect(self, **kwargs):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
-    def on_run_start(self, batch, optimizers, batch_idx):
+    def on_run_start(self, batch, optimizers, batch_idx: int) -> None:
         super().on_run_start(batch, optimizers, batch_idx)
         if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
             raise MisconfigurationException("The `LightningModule` does not yield anything in the `training_step`.")
@@ -66,10 +66,10 @@ class YieldLoop(OptimizerLoop):
         # so we can call next() on it.
         self._generator = self._get_generator(batch, batch_idx, opt_idx=0)
 
-    def _make_step_fn(self, split_batch, batch_idx, opt_idx):
+    def _make_step_fn(self, split_batch, batch_idx: int, opt_idx: int):
         return partial(self._training_step, self._generator)
 
-    def _get_generator(self, split_batch, batch_idx, opt_idx):
+    def _get_generator(self, split_batch, batch_idx: int, opt_idx: Optional[int]):
         step_kwargs = _build_training_step_kwargs(
             self.trainer.lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens=None
         )
@@ -79,7 +79,7 @@ class YieldLoop(OptimizerLoop):
         # accelerator to enable distributed training.
         return self.trainer.strategy.training_step(*step_kwargs.values())
 
-    def _training_step(self, generator):
+    def _training_step(self, generator) -> ClosureResult:
         # required for logging
         self.trainer.lightning_module._current_fx_name = "training_step"
 
@@ -115,7 +115,7 @@ class YieldLoop(OptimizerLoop):
 class GAN(GANTemplate):
 
     # This training_step method is now a Python generator
-    def training_step(self, batch, batch_idx, optimizer_idx=0) -> Generator:
+    def training_step(self, batch, batch_idx, optimizer_idx: int=0) -> Generator:
         imgs, _ = batch
         z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
         z = z.type_as(imgs)

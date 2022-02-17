@@ -35,7 +35,7 @@ class UNet(nn.Module):
     )
     """
 
-    def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False):
+    def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False) -> None:
         """
         Args:
             num_classes: Number of output classes required (default 19 for KITTI dataset)
@@ -81,7 +81,7 @@ class DoubleConv(nn.Module):
     )
     """
 
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(self, in_ch: int, out_ch: int) -> None:
         super().__init__()
         self.net = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
@@ -110,7 +110,7 @@ class Down(nn.Module):
     )
     """
 
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(self, in_ch: int, out_ch: int) -> None:
         super().__init__()
         self.net = nn.Sequential(nn.MaxPool2d(kernel_size=2, stride=2), DoubleConv(in_ch, out_ch))
 
@@ -131,7 +131,7 @@ class Up(nn.Module):
     )
     """
 
-    def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False):
+    def __init__(self, in_ch: int, out_ch: int, bilinear: bool = False) -> None:
         super().__init__()
         self.upsample = None
         if bilinear:
