@@ -2647,10 +2647,25 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
         # batches is optional to know if the user passed a value so that we can show the above info messages only to the
         # users that set a value explicitly
         return 1.0
+
+    # differentiating based on the type can be error-prone for users. show a message describing the chosen behaviour
     if isinstance(batches, int) and batches == 1:
-        log.info(f"`Trainer({name}=1)` was configured so 1 batch per epoch will be used.")
+        if name == "limit_train_batches":
+            message = "1 batch per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run after every batch."
+        else:
+            message = "1 batch will be used."
+        log.info(f"`Trainer({name}=1)` was configured so {message}")
     elif isinstance(batches, float) and batches == 1.0:
-        log.info(f"`Trainer({name}=1.0)` was configured so 100% of the batches per epoch will be used.")
+        if name == "limit_train_batches":
+            message = "100% of the batches per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run at the end of the training epoch."
+        else:
+            message = "100% of the batches will be used."
+        log.info(f"`Trainer({name}=1.0)` was configured so {message}.")
+
     if 0 <= batches <= 1:
         return batches
     if batches > 1 and batches % 1.0 == 0:

@@ -70,14 +70,14 @@ def test_eval_limit_batches(stage, mode, limit_batches):
 
 
 @pytest.mark.parametrize(
-    "flag",
-    ("limit_train_batches", "limit_test_batches", "limit_predict_batches", "overfit_batches", "val_check_interval"),
+    "argument",
+    ("limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches", "overfit_batches"),
 )
 @pytest.mark.parametrize("value", (1, 1.0))
-def test_limit_batches_info_message(caplog, flag, value):
+def test_limit_batches_info_message(caplog, argument, value):
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
-        Trainer(**{flag: value})
-    assert f"`Trainer({flag}={value})` was configured" in caplog.text
+        Trainer(**{argument: value})
+    assert f"`Trainer({argument}={value})` was configured" in caplog.text
     message = f"configured so {'1' if isinstance(value, int) else '100%'}"
     assert message in caplog.text
 
