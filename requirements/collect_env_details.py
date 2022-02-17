@@ -62,7 +62,7 @@ def info_packages():
     }
 
 
-def nice_print(details, level: int=0):
+def nice_print(details, level: int = 0):
     lines = []
     for k in sorted(details):
         key = f"* {k}:" if level == 0 else f"- {k}:"

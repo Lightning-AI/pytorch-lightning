@@ -87,7 +87,7 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-    def __init__(self, num_features: int=24, length: int=6000, num_classes: int=3, batch_size: int=128) -> None:
+    def __init__(self, num_features: int = 24, length: int = 6000, num_classes: int = 3, batch_size: int = 128) -> None:
         data = make_classification(
             n_samples=length,
             n_features=num_features,
@@ -100,7 +100,7 @@ class ClassifDataModule(SklearnDataModule):
 
 
 class ClassificationModel(LightningModule):
-    def __init__(self, num_features: int=24, num_classes: int=3, lr: float=0.01) -> None:
+    def __init__(self, num_features: int = 24, num_classes: int = 3, lr: float = 0.01) -> None:
         super().__init__()
         self.save_hyperparameters()
 
