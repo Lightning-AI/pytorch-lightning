@@ -98,7 +98,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Defautl: True).
+                (Default: True).
         """
 
         super().__init__(

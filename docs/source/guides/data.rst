@@ -156,7 +156,7 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             return {"a": loader_a, "b": loader_b}
 
         def training_step(self, batch, batch_idx):
-            # access a dictionnary with a batch from each DataLoader
+            # access a dictionary with a batch from each DataLoader
             batch_a = batch["a"]
             batch_b = batch["b"]
 
@@ -257,7 +257,7 @@ Evaluation dataloaders are iterated over sequentially. If you want to iterate ov
 Evaluate with Additional DataLoaders
 ====================================
 
-You can evaluate your models using additonal dataloaders even if the dataloader specific hooks haven't been defined within your
+You can evaluate your models using additional dataloaders even if the dataloader specific hooks haven't been defined within your
 :class:`~pytorch_lightning.core.lightning.LightningModule`. For example, this would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
