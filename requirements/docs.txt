@@ -1,5 +1,5 @@
 sphinx>=4.0,<5.0
-myst-parser>=0.15
+myst-parser>=0.15,<0.17
 nbsphinx>=0.8.5
 ipython[notebook]
 pandoc>=1.0
