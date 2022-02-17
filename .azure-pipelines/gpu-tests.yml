@@ -43,6 +43,7 @@ jobs:
         lspci | egrep 'VGA|3D'
         whereis nvidia
         nvidia-smi
+        which python && which pip
         python --version
         pip --version
         pip list
