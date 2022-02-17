@@ -17,7 +17,10 @@ import os
 import shutil
 import sys
 import warnings
+from importlib.machinery import ModuleSpec
 from importlib.util import module_from_spec, spec_from_file_location
+from types import ModuleType
+from typing import Dict, List, Optional, Tuple
 
 import pt_lightning_sphinx_theme
 
@@ -38,10 +41,10 @@ except ImportError:
 FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
-spec = spec_from_file_location(
+spec: Optional[ModuleSpec] = spec_from_file_location(
     "pytorch_lightning/__about__.py", os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py")
 )
-about = module_from_spec(spec)
+about: ModuleType = module_from_spec(spec)
 spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
@@ -205,7 +208,7 @@ html_static_path = ["_templates", "_static"]
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = project + "-doc"
+htmlhelp_basename: str = project + "-doc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -251,7 +254,7 @@ texinfo_documents = [
 # -- Options for Epub output -------------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = project
+epub_title: str = project
 
 # The unique identifier of the text. This can be a ISBN number
 # or the project homepage.
@@ -269,7 +272,7 @@ epub_exclude_files = ["search.html"]
 
 # -- Options for intersphinx extension ---------------------------------------
 
-intersphinx_mapping = {
+intersphinx_mapping: Dict[str, Tuple[str, None]] = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -285,7 +288,7 @@ intersphinx_mapping = {
 todo_include_todos = True
 
 
-def setup(app):
+def setup(app) -> None:
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
     app.add_js_file("copybutton.js")
@@ -303,7 +306,7 @@ def setup(app):
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
-def package_list_from_file(file):
+def package_list_from_file(file) -> List[str]:
     """List up package name (not containing version and extras) from a package list file."""
     mocked_packages = []
     with open(file) as fp:

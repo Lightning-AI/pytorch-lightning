@@ -19,19 +19,21 @@ This server mainly to get detail info for better bug reporting.
 import os
 import platform
 import sys
+from typing import Dict, Tuple, Union
 
 import numpy
 import torch
 import tqdm
 
 sys.path += [os.path.abspath(".."), os.path.abspath(".")]
+
 import pytorch_lightning  # noqa: E402
 
 LEVEL_OFFSET = "\t"
 KEY_PADDING = 20
 
 
-def info_system():
+def info_system() -> Dict[str, Union[str, Tuple[str, str]]]:
     return {
         "OS": platform.system(),
         "architecture": platform.architecture(),
@@ -60,7 +62,7 @@ def info_packages():
     }
 
 
-def nice_print(details, level=0):
+def nice_print(details, level: int=0):
     lines = []
     for k in sorted(details):
         key = f"* {k}:" if level == 0 else f"- {k}:"
@@ -77,7 +79,7 @@ def nice_print(details, level=0):
     return lines
 
 
-def main():
+def main() -> None:
     details = {"System": info_system(), "CUDA": info_cuda(), "Packages": info_packages()}
     lines = nice_print(details)
     text = os.linesep.join(lines)

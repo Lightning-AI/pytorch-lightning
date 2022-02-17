@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Any, Dict
 
 import torch
 import torch.nn.functional as F
@@ -29,7 +30,7 @@ PATH_LEGACY = os.path.dirname(__file__)
 
 
 class SklearnDataset(Dataset):
-    def __init__(self, x, y, x_type, y_type):
+    def __init__(self, x, y, x_type, y_type) -> None:
         self.x = x
         self.y = y
         self._x_type = x_type
@@ -38,12 +39,12 @@ class SklearnDataset(Dataset):
     def __getitem__(self, idx):
         return torch.tensor(self.x[idx], dtype=self._x_type), torch.tensor(self.y[idx], dtype=self._y_type)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.y)
 
 
 class SklearnDataModule(LightningDataModule):
-    def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 128):
+    def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 128) -> None:
         super().__init__()
         self.batch_size = batch_size
         self._x, self._y = sklearn_dataset
@@ -51,7 +52,7 @@ class SklearnDataModule(LightningDataModule):
         self._x_type = x_type
         self._y_type = y_type
 
-    def _split_data(self):
+    def _split_data(self) -> None:
         self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
             self._x, self._y, test_size=0.20, random_state=42
         )
@@ -86,7 +87,7 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-    def __init__(self, num_features=24, length=6000, num_classes=3, batch_size=128):
+    def __init__(self, num_features: int=24, length: int=6000, num_classes: int=3, batch_size: int=128) -> None:
         data = make_classification(
             n_samples=length,
             n_features=num_features,
@@ -99,7 +100,7 @@ class ClassifDataModule(SklearnDataModule):
 
 
 class ClassificationModel(LightningModule):
-    def __init__(self, num_features=24, num_classes=3, lr=0.01):
+    def __init__(self, num_features: int=24, num_classes: int=3, lr: float=0.01) -> None:
         super().__init__()
         self.save_hyperparameters()
 
@@ -128,7 +129,7 @@ class ClassificationModel(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return [optimizer], []
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
@@ -136,20 +137,20 @@ class ClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
 
-def main_train(dir_path, max_epochs: int = 20):
+def main_train(dir_path, max_epochs: int = 20) -> None:
     seed_everything(42)
     stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
     trainer = pl.Trainer(

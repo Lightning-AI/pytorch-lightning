@@ -15,6 +15,8 @@
 
 import os
 from importlib.util import module_from_spec, spec_from_file_location
+from types import ModuleType
+from typing import Any, Dict
 
 from setuptools import find_packages, setup
 
@@ -24,7 +26,7 @@ _PATH_ROOT = os.path.dirname(__file__)
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 
 
-def _load_py_module(fname, pkg="pytorch_lightning"):
+def _load_py_module(fname, pkg: str="pytorch_lightning") -> ModuleType:
     spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
@@ -38,7 +40,7 @@ setup_tools = _load_py_module("setup_tools.py")
 # Define package extras. These are only installed if you specify them.
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
 # From local copy of repo, use like `pip install ".[dev, docs]"`
-extras = {
+extras: Dict[str, Any] = {
     # 'docs': load_requirements(file_name='docs.txt'),
     "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
     "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),

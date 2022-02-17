@@ -1,10 +1,13 @@
 import os
 import re
 import sys
-from typing import Dict, Optional
+from typing import Dict, List, Optional
+
+requirements_path: str
+torch_version: Optional[str]
 
 # IMPORTANT: this list needs to be sorted in reverse
-VERSIONS = [
+VERSIONS: List[Dict[str, str]] = [
     dict(torch="1.12.0", torchvision="0.12.*", torchtext=""),  # nightly
     dict(torch="1.11.0", torchvision="0.12.0", torchtext="0.12.0"),  # pre-release
     dict(torch="1.10.2", torchvision="0.11.3", torchtext="0.11.2"),  # stable
@@ -53,7 +56,7 @@ def main(req: str, torch_version: Optional[str] = None) -> str:
     return req
 
 
-def test():
+def test() -> None:
     requirements = """
     torch>=1.2.*
     torch==1.2.3
@@ -87,8 +90,8 @@ if __name__ == "__main__":
         requirements_path, torch_version = sys.argv[1], None
 
     with open(requirements_path) as fp:
-        requirements = fp.read()
-    requirements = main(requirements, torch_version)
+        requirements: str = fp.read()
+    requirements: str = main(requirements, torch_version)
     print(requirements)  # on purpose - to debug
     with open(requirements_path, "w") as fp:
         fp.write(requirements)
