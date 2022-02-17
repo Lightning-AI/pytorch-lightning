@@ -190,7 +190,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+@RunIf(skip_windows=True)
 def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
@@ -199,8 +199,8 @@ def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         accumulate_grad_batches={0: 4, 2: 2},
-        accelerator="gpu",
-        devices=2,
+        accelerator="auto",
+        devices=1,
         strategy="horovod",
     )
     with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
