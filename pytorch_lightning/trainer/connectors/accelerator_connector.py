@@ -430,6 +430,7 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
+        # TODO add device availability check
         self._parallel_devices: List[Union[int, torch.device]] = []
 
         if isinstance(self._accelerator_flag, Accelerator):
@@ -451,8 +452,6 @@ class AcceleratorConnector:
         elif self._accelerator_flag == "gpu":
             self.accelerator = GPUAccelerator()
             self._set_devices_flag_if_auto_passed()
-            # TODO add device availablity check for all devices, not only GPU
-            self._check_device_availability()
             if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
                 self._devices_flag = int(self._devices_flag)
                 self._parallel_devices = (
@@ -480,12 +479,6 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or not self._devices_flag:
             self._devices_flag = self.accelerator.auto_device_count()
-
-    def _check_device_availability(self) -> None:
-        if not self.accelerator.is_available():
-            raise MisconfigurationException(
-                f"You requested {self._accelerator_flag}, " f"but {self._accelerator_flag} is not available"
-            )
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
@@ -651,7 +644,8 @@ class AcceleratorConnector:
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
             if self._amp_type_flag == AMPType.APEX:
-                return ApexMixedPrecisionPlugin(self._amp_level_flag)  # type: ignore
+                self._amp_level_flag = self._amp_level_flag or "O2"
+                return ApexMixedPrecisionPlugin(self._amp_level_flag)
 
         raise RuntimeError("No precision set")
 
