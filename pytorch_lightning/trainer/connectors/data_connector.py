@@ -346,11 +346,11 @@ class DataConnector:
                 and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
             ):
                 rank_zero_warn(
-                    "Uneven inputs has been detected with the dataloaders and we are using `DistributedSampler`."
-                    f" During `trainer.{trainer_fn.value}()`, it is recommended to use `Trainer(devices=1)`"
-                    " to ensure each sample/batch gets evaluated exactly once. Otherwise, multi-device settings"
-                    " use `DistributedSampler` that replicates some samples to make sure all devices have same"
-                    " batch size in case of uneven inputs."
+                    "Uneven input batches have been detected with the dataloaders and we are using"
+                    f" `DistributedSampler`. During `trainer.{trainer_fn.value}()`, it is recommended to use"
+                    " `Trainer(devices=1)` to ensure each sample/batch gets evaluated exactly once. Otherwise,"
+                    " multi-device settings use `DistributedSampler` that replicates some samples to make sure"
+                    " all devices have same batch size in case of uneven inputs."
                 )
 
             return sampler
