@@ -653,7 +653,7 @@ def test_benchmark_option(benchmark, deterministic, expected):
 
     original_val = torch.backends.cudnn.benchmark
 
-    trainer = Trainer(benchmark=benchmark, deterministic=deterministic)
+    _ = Trainer(benchmark=benchmark, deterministic=deterministic)
     assert torch.backends.cudnn.benchmark == expected
 
     torch.backends.cudnn.benchmark = original_val
