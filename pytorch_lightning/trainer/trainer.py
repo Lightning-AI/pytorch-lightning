@@ -1964,7 +1964,7 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> Optional[str]:
+    def _strategy_type(self) -> str:
         return self.strategy.strategy_name
 
     @property
