@@ -170,7 +170,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@RunIf(skip_windows=True)
+@RunIf(horovod=True, skip_windows=True)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
