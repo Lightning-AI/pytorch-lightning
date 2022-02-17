@@ -346,7 +346,6 @@ class CheckpointConnector:
         if not weights_only:
             # dump callbacks
             checkpoint["callbacks_state_dict"] = self.trainer._call_callbacks_state_dict()
-            checkpoint["callbacks_deprecated_hook_states"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -383,6 +382,8 @@ class CheckpointConnector:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
+        if not weights_only:
+            checkpoint["callbacks_deprecated_hook_states"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         model.on_save_checkpoint(checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)

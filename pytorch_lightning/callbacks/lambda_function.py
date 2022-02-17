@@ -79,8 +79,6 @@ class LambdaCallback(Callback):
         on_save_checkpoint: Optional[Callable] = None,
         on_load_checkpoint: Optional[Callable] = None,
         on_load_checkpoint_new: Optional[Callable] = None,
-        state_dict: Optional[Callable] = None,
-        load_state_dict: Optional[Callable] = None,
         on_before_backward: Optional[Callable] = None,
         on_after_backward: Optional[Callable] = None,
         on_before_optimizer_step: Optional[Callable] = None,
