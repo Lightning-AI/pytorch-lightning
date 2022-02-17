@@ -504,21 +504,14 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
-    class AggregationLogger(CSVLogger):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
+    class AggregationOverrideLogger(CSVLogger):
         @rank_zero_only
         def agg_and_log_metrics(self, metrics, step):
             self.log_metrics(metrics=metrics, step=step)
 
-    class NoAggregationLogger(CSVLogger):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    logger = AggregationLogger(tmpdir)
-    logger2 = NoAggregationLogger(tmpdir)
-    logger3 = NoAggregationLogger(tmpdir)
+    logger = AggregationOverrideLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+    logger3 = CSVLogger(tmpdir)
 
     # Test single loggers
     with pytest.deprecated_call(
