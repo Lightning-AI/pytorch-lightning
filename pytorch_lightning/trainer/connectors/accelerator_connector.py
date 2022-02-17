@@ -298,7 +298,7 @@ class AcceleratorConnector:
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
-        # TODO: @awaelchli imporve the error messages below
+        # TODO: @awaelchli improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
@@ -359,14 +359,14 @@ class AcceleratorConnector:
         if devices in (0, "0", "0,"):
             raise MisconfigurationException(f"You passed `devices={devices}`, please set a number > 0")
 
-        self._device_flag = devices
+        self._devices_flag = devices
 
         # TODO: Delete this method num_processes, gpus, ipus and tpu_cores get removed
         self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
-        if self._device_flag == "auto" and self._accelerator_flag is None:
+        if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
@@ -399,7 +399,7 @@ class AcceleratorConnector:
             ) > 1:
                 # TODO: @awaelchli improve error message
                 rank_zero_warn("more than one device specific flag has been set")
-            self._device_flag = deprecated_devices_specific_flag
+            self._devices_flag = deprecated_devices_specific_flag
 
             if self._accelerator_flag is None:
                 # set accelerator type based on num_processes, gpus, ipus, tpu_cores
@@ -436,48 +436,48 @@ class AcceleratorConnector:
             self.accelerator: Accelerator = self._accelerator_flag
         elif self._accelerator_flag == "tpu":
             self.accelerator = TPUAccelerator()
-            if self._device_flag == "auto" or not self._device_flag:
-                self._device_flag = TPUAccelerator.auto_device_count()
-            if isinstance(self._device_flag, int):
-                self._parallel_devices = list(range(self._device_flag))
+            if self._devices_flag == "auto" or not self._devices_flag:
+                self._devices_flag = TPUAccelerator.auto_device_count()
+            if isinstance(self._devices_flag, int):
+                self._parallel_devices = list(range(self._devices_flag))
             else:
-                self._parallel_devices = self._device_flag  # type: ignore[assignment]
+                self._parallel_devices = self._devices_flag  # type: ignore[assignment]
 
         elif self._accelerator_flag == "ipu":
             self.accelerator = IPUAccelerator()
-            if self._device_flag == "auto" or not self._device_flag:
-                self._device_flag = IPUAccelerator.auto_device_count()
-            if isinstance(self._device_flag, int):
-                self._parallel_devices = list(range(self._device_flag))
+            if self._devices_flag == "auto" or not self._devices_flag:
+                self._devices_flag = IPUAccelerator.auto_device_count()
+            if isinstance(self._devices_flag, int):
+                self._parallel_devices = list(range(self._devices_flag))
 
         elif self._accelerator_flag == "gpu":
             self.accelerator = GPUAccelerator()
-            if self._device_flag == "auto" or not self._device_flag:
-                self._device_flag = GPUAccelerator.auto_device_count()
-            if isinstance(self._device_flag, int) or isinstance(self._device_flag, str):
-                self._device_flag = int(self._device_flag)
+            if self._devices_flag == "auto" or not self._devices_flag:
+                self._devices_flag = GPUAccelerator.auto_device_count()
+            if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
+                self._devices_flag = int(self._devices_flag)
                 self._parallel_devices = (
-                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._device_flag)]  # type: ignore
-                    if self._device_flag != 0
+                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._devices_flag)]  # type: ignore
+                    if self._devices_flag != 0
                     else []
                 )
             else:
-                self._parallel_devices = [torch.device("cuda", i) for i in self._device_flag]
+                self._parallel_devices = [torch.device("cuda", i) for i in self._devices_flag]
 
         elif self._accelerator_flag == "cpu":
             self.accelerator = CPUAccelerator()
-            if self._device_flag == "auto" or not self._device_flag:
-                self._device_flag = CPUAccelerator.auto_device_count()
-            if isinstance(self._device_flag, int):
-                self._parallel_devices = [torch.device("cpu")] * self._device_flag
+            if self._devices_flag == "auto" or not self._devices_flag:
+                self._devices_flag = CPUAccelerator.auto_device_count()
+            if isinstance(self._devices_flag, int):
+                self._parallel_devices = [torch.device("cpu")] * self._devices_flag
             else:
                 rank_zero_warn(
                     "The flag `devices` must be an int with `accelerator='cpu'`,"
-                    f" got `devices={self._device_flag}` instead."
+                    f" got `devices={self._devices_flag}` instead."
                 )
 
-        self._gpus = self._device_flag if not self._gpus else self._gpus
-        self._tpu_cores = self._device_flag if not self._tpu_cores else self._tpu_cores
+        self._gpus = self._devices_flag if not self._gpus else self._gpus
+        self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
@@ -542,7 +542,7 @@ class AcceleratorConnector:
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
                     "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
                 )
-            if self._device_flag == 1 and self._num_nodes_flag > 1:
+            if self._devices_flag == 1 and self._num_nodes_flag > 1:
                 strategy_flag = DDPStrategy.strategy_name
             else:
                 strategy_flag = "ddp_spawn"
