@@ -355,16 +355,16 @@ class AcceleratorConnector:
         tpu_cores: Optional[Union[List[int], int]],
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
-
-        if devices in (0, "0", "0,"):
-            raise MisconfigurationException(f"You passed `devices={devices}`, please set a number > 0")
-
         self._devices_flag = devices
 
-        # TODO: Delete this method num_processes, gpus, ipus and tpu_cores get removed
+        # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
         self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
         )
+        
+        if self._devices_flag in ([], 0, "0", "0,"):
+            rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
+            self._accelerator_flag = "cpu"
 
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
@@ -380,7 +380,7 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
-        """Sets the `devices_flag` and `accelerator_flag `based on num_processes, gpus, ipus, tpu_cores."""
+        """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         gpus = device_parser.parse_gpu_ids(gpus)
