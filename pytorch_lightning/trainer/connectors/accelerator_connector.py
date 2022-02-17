@@ -144,9 +144,9 @@ class AcceleratorConnector:
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
-        self._existing_strategies_str = StrategyRegistry.available_strategies()
-        self._existing_accelerator_type = ("tpu", "ipu", "gpu", "cpu")
-        self._supported_precision_type = ("16", "32", "64", "bf16", "mixed")
+        self._registered_strategies = StrategyRegistry.available_strategies()
+        self._accelerator_types = ("tpu", "ipu", "gpu", "cpu")
+        self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
@@ -237,11 +237,7 @@ class AcceleratorConnector:
                     f"Incompatible values set in `strategy` and `accelerator` arguments."
                     f"Received both strategy={strategy} and accelerator={accelerator}"
                 )
-            if (
-                isinstance(accelerator, str)
-                and accelerator in self._existing_strategies_str
-                and strategy != accelerator
-            ):
+            if isinstance(accelerator, str) and accelerator in self._registered_strategies and strategy != accelerator:
                 raise MisconfigurationException(
                     "strategy str already set through strategy flag, but have also passed in through accelerator"
                 )
@@ -252,20 +248,16 @@ class AcceleratorConnector:
                             f"You have passed `Trainer(strategy)`"
                             f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
-                    if isinstance(plugin, str) and plugin in self._existing_strategies_str:
+                    if isinstance(plugin, str) and plugin in self._registered_strategies:
                         raise MisconfigurationException(
                             f"You have passed `Trainer(strategy)`"
                             f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
 
         if accelerator is not None:
-            if (
-                accelerator in self._existing_accelerator_type
-                or accelerator == "auto"
-                or isinstance(accelerator, Accelerator)
-            ):
+            if accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
                 self._accelerator_flag = accelerator
-            elif accelerator in self._existing_strategies_str or isinstance(accelerator, Strategy):
+            elif accelerator in self._registered_strategies or isinstance(accelerator, Strategy):
                 rank_zero_deprecation(
                     f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
                     f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
@@ -275,16 +267,15 @@ class AcceleratorConnector:
                 self._strategy_flag = accelerator
 
         if precision is not None:
-            if str(precision) not in self._supported_precision_type:
+            if str(precision) not in self._precision_types:
                 raise MisconfigurationException(
-                    f"Precision {repr(precision)} is invalid. "
-                    f"Allowed precision values: {self._supported_precision_type}"
+                    f"Precision {repr(precision)} is invalid. " f"Allowed precision values: {self._precision_types}"
                 )
             self._precision_flag = precision
 
         if plugins:
             for plugin in plugins:
-                if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._existing_strategies_str:
+                if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
                     self._strategy_flag = plugin
                     rank_zero_deprecation(
                         f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
@@ -293,7 +284,7 @@ class AcceleratorConnector:
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
-                elif isinstance(plugin, str) and plugin in self._supported_precision_type:
+                elif isinstance(plugin, str) and plugin in self._precision_types:
                     self._precision_flag = plugin
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
