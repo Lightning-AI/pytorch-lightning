@@ -550,7 +550,6 @@ def test_accelerator_gpu_with_gpus_priority():
 
 def test_validate_accelerator_and_devices():
 
-    # with pytest.raises(MisconfigurationException, match="You passed `devices=2` but haven't specified"):
     trainer = Trainer(accelerator="ddp_cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert trainer.num_processes == 2
