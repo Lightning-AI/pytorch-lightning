@@ -161,7 +161,12 @@ def test_fx_validator(tmpdir):
 
 class HookedCallback(Callback):
     def __init__(self, not_supported):
-        def call(hook, trainer, model=None, *_, **__):
+        def call(hook, trainer=None, model=None, *_, **__):
+            if trainer is None:
+                # `state_dict`, `load_state_dict` do not have the `Trainer` available
+                assert hook in ("state_dict", "load_state_dict")
+                return
+
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
                 # `on_init_{start,end}` do not have the `LightningModule` available

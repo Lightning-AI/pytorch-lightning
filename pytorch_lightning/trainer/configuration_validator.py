@@ -342,7 +342,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
             )
         if is_overridden(method_name="on_load_checkpoint", instance=callback):
-            print("hello")
             rank_zero_deprecation(
                 "Method `Callback.on_load_checkpoint(callback_state)` is deprecated in v1.6 and"
                 " will be removed in v1.8. Please use `Callback.load_state_dict` instead,"
