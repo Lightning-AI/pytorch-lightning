@@ -36,6 +36,7 @@ class Feature:
         else:
             return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
 
+
 @dataclasses.dataclass
 class ModelExample:
     example_ids: List[str]
@@ -57,6 +58,7 @@ class ModelExample:
                 and self.some_constant == o.some_constant
             )
 
+
 @dataclasses.dataclass
 class WithClassVar:
     class_var: ClassVar[int] = 0
@@ -69,6 +71,7 @@ class WithClassVar:
             return torch.equal(self.dummy, o.dummy)
         else:
             return self.dummy == o.dummy
+
 
 @dataclasses.dataclass
 class WithInitVar:
@@ -86,6 +89,7 @@ class WithInitVar:
             return torch.equal(self.dummy, o.dummy)
         else:
             return self.dummy == o.dummy
+
 
 @dataclasses.dataclass
 class WithClassAndInitVar:
