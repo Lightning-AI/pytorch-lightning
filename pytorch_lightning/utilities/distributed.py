@@ -211,7 +211,7 @@ def register_ddp_comm_hook(
             c10d reducer would call this hook and use the tensors returned
             by the Future and copy grads to individual parameters.
         ddp_comm_wrapper:
-            communication hook wraper to support a communication hook such
+            communication hook wrapper to support a communication hook such
             as FP16 compression as wrapper, which could be combined with
             ddp_comm_hook
 
@@ -309,7 +309,7 @@ def init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initiliazing the
+    """Utility function to initialize distributed connection by setting env variables and initializing the
     distributed process group.
 
     Args:

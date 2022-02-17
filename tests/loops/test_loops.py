@@ -54,7 +54,7 @@ class NestedLoop(Loop):
 
 @pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
 def test_connect_loops_direct(loop_name):
-    """Test Trainer referenes in loops on assignment."""
+    """Test Trainer references in loops on assignment."""
     loop = NestedLoop()
 
     with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
