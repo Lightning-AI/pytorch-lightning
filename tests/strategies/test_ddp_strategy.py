@@ -54,7 +54,7 @@ def test_ddp_with_2_gpus() -> None:
 
 
 class BarrierModel(BoringModel):
-    def setup(self, stage: Optional[str]=None) -> None:
+    def setup(self, stage: Optional[str] = None) -> None:
         assert not isinstance(self.trainer.strategy.model, DistributedDataParallel)
         self.trainer.strategy.barrier("barrier before model is wrapped")
 

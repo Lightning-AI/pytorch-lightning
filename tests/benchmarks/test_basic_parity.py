@@ -86,7 +86,7 @@ def _hook_memory():
     return used_memory
 
 
-def measure_loops(cls_model, kind, num_runs: int=10, num_epochs: int=10):
+def measure_loops(cls_model, kind, num_runs: int = 10, num_epochs: int = 10):
     """Returns an array with the last loss from each epoch for each run."""
     hist_losses = []
     hist_durations = []
@@ -116,7 +116,7 @@ def measure_loops(cls_model, kind, num_runs: int=10, num_epochs: int=10):
     return {"losses": hist_losses, "durations": hist_durations, "memory": hist_memory}
 
 
-def vanilla_loop(cls_model, idx: Optional[int], device_type: str = "cuda", num_epochs: int=10):
+def vanilla_loop(cls_model, idx: Optional[int], device_type: str = "cuda", num_epochs: int = 10):
     device = torch.device(device_type)
     # set seed
     seed_everything(idx)
@@ -148,7 +148,7 @@ def vanilla_loop(cls_model, idx: Optional[int], device_type: str = "cuda", num_e
     return epoch_losses[-1], _hook_memory()
 
 
-def lightning_loop(cls_model, idx: Optional[int], device_type: str = "cuda", num_epochs: int=10):
+def lightning_loop(cls_model, idx: Optional[int], device_type: str = "cuda", num_epochs: int = 10):
     seed_everything(idx)
     torch.backends.cudnn.deterministic = True
 

@@ -26,7 +26,7 @@ from tests.helpers.utils import set_random_main_port
 
 
 class SyncBNModule(LightningModule):
-    def __init__(self, gpu_count: int=1, **kwargs) -> None:
+    def __init__(self, gpu_count: int = 1, **kwargs) -> None:
         super().__init__()
 
         self.gpu_count = gpu_count

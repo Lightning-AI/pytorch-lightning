@@ -266,7 +266,9 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value) -> None:
 
 
 @pytest.mark.parametrize("step_freeze, min_steps, min_epochs", [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
-def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: int, min_steps: int, min_epochs: int) -> None:
+def test_min_steps_override_early_stopping_functionality(
+    tmpdir, step_freeze: int, min_steps: int, min_epochs: int
+) -> None:
     """Excepted Behaviour: IF `min_steps` was set to a higher value than the `trainer.global_step` when
     `early_stopping` is being triggered, THEN the trainer should continue until reaching `trainer.global_step` ==
     `min_steps`, and stop.

@@ -775,7 +775,10 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir) -> None:
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
 
 
-inputs0: Tuple[List[Dict[str, Any]], RunningStage] = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+inputs0: Tuple[List[Dict[str, Any]], RunningStage] = (
+    [{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}],
+    RunningStage.TESTING,
+)
 expected0 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1

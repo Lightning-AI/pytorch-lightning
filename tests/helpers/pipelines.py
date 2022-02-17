@@ -93,7 +93,7 @@ def run_model_test(
 
 
 @torch.no_grad()
-def run_model_prediction(trained_model, dataloader, min_acc: float=0.50) -> None:
+def run_model_prediction(trained_model, dataloader, min_acc: float = 0.50) -> None:
     orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()

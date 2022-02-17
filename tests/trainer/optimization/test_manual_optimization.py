@@ -755,7 +755,9 @@ class TesManualOptimizationDDPModel(BoringModel):
         assert self.adam_step_mock.call_count == 2
 
 
-def train_manual_optimization(tmpdir, strategy, model_cls: Type[TesManualOptimizationDDPModel]=TesManualOptimizationDDPModel) -> None:
+def train_manual_optimization(
+    tmpdir, strategy, model_cls: Type[TesManualOptimizationDDPModel] = TesManualOptimizationDDPModel
+) -> None:
 
     seed_everything(42)
 

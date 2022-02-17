@@ -317,7 +317,9 @@ def test_loop_hierarchy() -> None:
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
-def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch: int) -> None:
+def test_loop_restart_progress_multiple_dataloaders(
+    tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch: int
+) -> None:
     n_batches = 5
     n_epochs = 3
 
@@ -388,7 +390,9 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("stop_optimizer", (1, 2))
-def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer: int, n_optimizers: int, tmpdir) -> None:
+def test_loop_state_on_exception(
+    accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer: int, n_optimizers: int, tmpdir
+) -> None:
     stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
     n_epochs = 3
     n_batches = 3

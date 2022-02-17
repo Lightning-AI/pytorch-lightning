@@ -58,13 +58,13 @@ def load_model_from_checkpoint(logger, root_weights_dir, module_class: Type[Bori
     return trained_model
 
 
-def assert_ok_model_acc(trainer, key: str="test_acc", thr: float=0.5) -> None:
+def assert_ok_model_acc(trainer, key: str = "test_acc", thr: float = 0.5) -> None:
     # this model should get 0.80+ acc
     acc = trainer.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed(seed: Optional[int]=0) -> None:
+def reset_seed(seed: Optional[int] = 0) -> None:
     seed_everything(seed)
 
 

@@ -44,7 +44,7 @@ parser.add_argument("--trainer-options", required=True)
 parser.add_argument("--on-gpu", action="store_true", default=False)
 
 
-def run_test_from_config(trainer_options, on_gpu, check_size: bool=True) -> None:
+def run_test_from_config(trainer_options, on_gpu, check_size: bool = True) -> None:
     """Trains the default model with the given config."""
     set_random_main_port()
     reset_seed()

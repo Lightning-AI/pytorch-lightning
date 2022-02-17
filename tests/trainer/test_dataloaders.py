@@ -223,10 +223,14 @@ class Counter(Callback):
     def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self.train_epoch_count += 1
 
-    def on_validation_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_start(
+        self, trainer: Trainer, pl_module: LightningModule, batch, batch_idx: int, dataloader_idx: int
+    ) -> None:
         self.val_batches_seen += 1
 
-    def on_test_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_start(
+        self, trainer: Trainer, pl_module: LightningModule, batch, batch_idx: int, dataloader_idx: int
+    ) -> None:
         self.test_batches_seen += 1
 
     def on_validation_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
@@ -239,7 +243,9 @@ class Counter(Callback):
 @pytest.mark.parametrize(
     ["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
 )
-def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches) -> None:
+def test_inf_dataloaders_with_limit_percent_batches(
+    tmpdir, limit_train_batches, limit_val_batches, limit_test_batches
+) -> None:
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent."""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
@@ -417,7 +423,9 @@ def test_datasets_dataloaders_with_limit_num_batches(
     ["limit_train_batches", "limit_val_batches", "limit_test_batches"],
     [(0.0, 0.0, 0.0), (0, 0, 0.5), (1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
 )
-def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches: int, limit_val_batches, limit_test_batches) -> None:
+def test_dataloaders_with_limit_percent_batches(
+    tmpdir, limit_train_batches: int, limit_val_batches, limit_test_batches
+) -> None:
     """Verify num_batches for train, val & test dataloaders passed with batch limit in percent."""
     model = MultiEvalDataLoaderModel()
     # train, multiple val and multiple test passed with percent_check
@@ -817,7 +825,7 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all: int):
 
 
 class DistribSamplerCallback(Callback):
-    def __init__(self, expected_seeds: Tuple[int, ...]=(0, 0, 0)) -> None:
+    def __init__(self, expected_seeds: Tuple[int, ...] = (0, 0, 0)) -> None:
         self.expected_seed = expected_seeds
 
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:

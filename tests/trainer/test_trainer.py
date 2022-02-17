@@ -1394,7 +1394,15 @@ class CustomPredictionWriter(BasePredictionWriter):
         super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(self, trainer: Trainer, pl_module: LightningModule, prediction, batch_indices: Optional[Sequence[int]], *args, **kwargs) -> None:
+    def write_on_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        prediction,
+        batch_indices: Optional[Sequence[int]],
+        *args,
+        **kwargs,
+    ) -> None:
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
@@ -1420,11 +1428,11 @@ def predict(
     strategy=None,
     accelerator=None,
     devices=None,
-    model: Optional[LightningModule]=None,
+    model: Optional[LightningModule] = None,
     plugins=None,
-    datamodule: bool=True,
-    enable_progress_bar: bool=True,
-    use_callbacks: bool=True,
+    datamodule: bool = True,
+    enable_progress_bar: bool = True,
+    use_callbacks: bool = True,
 ) -> None:
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 

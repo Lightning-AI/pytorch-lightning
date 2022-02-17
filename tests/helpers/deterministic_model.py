@@ -56,7 +56,7 @@ class DeterministicModel(LightningModule):
 
         return out
 
-    def count_num_graphs(self, result, num_graphs: int=0):
+    def count_num_graphs(self, result, num_graphs: int = 0):
         for k, v in result.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:
                 num_graphs += 1

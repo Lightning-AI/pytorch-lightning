@@ -109,7 +109,7 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir) -> None:
     _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(trainer, ckpt_path, cls: Type[TestFSDPModel]=TestFSDPModel) -> None:
+def _assert_save_equality(trainer, ckpt_path, cls: Type[TestFSDPModel] = TestFSDPModel) -> None:
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.strategy.lightning_module_state_dict()
 

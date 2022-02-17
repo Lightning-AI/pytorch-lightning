@@ -80,7 +80,7 @@ def test_simple_profiler_iterable_durations(simple_profiler, action: str, expect
     np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
 
 
-def test_simple_profiler_overhead(simple_profiler, n_iter: int=5) -> None:
+def test_simple_profiler_overhead(simple_profiler, n_iter: int = 5) -> None:
     """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with simple_profiler.profile("no-op"):
@@ -304,7 +304,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
 
 
 @pytest.mark.flaky(reruns=3)
-def test_advanced_profiler_overhead(advanced_profiler, n_iter: int=5) -> None:
+def test_advanced_profiler_overhead(advanced_profiler, n_iter: int = 5) -> None:
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):

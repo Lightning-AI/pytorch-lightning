@@ -371,7 +371,7 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator: str="auto", devices: int=1, **kwargs) -> None:
+def result_collection_reload(accelerator: str = "auto", devices: int = 1, **kwargs) -> None:
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
 

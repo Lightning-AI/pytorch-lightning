@@ -42,7 +42,7 @@ if _HOROVOD_AVAILABLE:
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
 
-def _run_horovod(trainer_options, on_gpu: bool=False) -> None:
+def _run_horovod(trainer_options, on_gpu: bool = False) -> None:
     """Execute the training script across multiple workers in parallel."""
     num_processes = trainer_options.get("gpus", 2)
     # for Horovod, we interpret `gpus` to be set per worker

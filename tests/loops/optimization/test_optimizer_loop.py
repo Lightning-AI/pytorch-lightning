@@ -143,7 +143,9 @@ class CustomException(Exception):
 @pytest.mark.parametrize("stop_epoch", (0, 1))
 @pytest.mark.parametrize("stop_batch", (0, 1, 2))
 @pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
-def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch) -> None:
+def test_loop_restart_progress_multiple_optimizers(
+    tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch
+) -> None:
     """Test that Lightning can resume from a point where a training_step failed while in the middle of processing
     several optimizer steps for one batch.
 

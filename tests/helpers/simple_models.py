@@ -22,7 +22,7 @@ from pytorch_lightning import LightningModule
 
 
 class ClassificationModel(LightningModule):
-    def __init__(self, lr: float=0.01) -> None:
+    def __init__(self, lr: float = 0.01) -> None:
         super().__init__()
 
         self.lr = lr

@@ -926,7 +926,7 @@ def test_registries() -> None:
 
 @MODEL_REGISTRY
 class TestModel(BoringModel):
-    def __init__(self, foo, bar: int=5) -> None:
+    def __init__(self, foo, bar: int = 5) -> None:
         super().__init__()
         self.foo = foo
         self.bar = bar
@@ -952,7 +952,7 @@ def test_lightning_cli_model_choices() -> None:
 
 @DATAMODULE_REGISTRY
 class MyDataModule(BoringDataModule):
-    def __init__(self, foo, bar: int=5) -> None:
+    def __init__(self, foo, bar: int = 5) -> None:
         super().__init__()
         self.foo = foo
         self.bar = bar
@@ -1150,7 +1150,9 @@ def test_argv_transformation_multiple_callbacks_with_config() -> None:
         ),
     ],
 )
-def test_argv_transformations_with_optimizers_and_lr_schedulers(args: List[str], expected, nested_key: str, registry) -> None:
+def test_argv_transformations_with_optimizers_and_lr_schedulers(
+    args: List[str], expected, nested_key: str, registry
+) -> None:
     base = ["any.py", "--trainer.max_epochs=1"]
     argv = base + args
     new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)

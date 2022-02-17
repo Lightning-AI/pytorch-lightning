@@ -21,7 +21,7 @@ from typing import List
 import pytorch_lightning
 
 
-def call_training_script(module_file, cli_args: List[str], method, tmpdir, timeout: int=60, as_module: bool=False):
+def call_training_script(module_file, cli_args: List[str], method, tmpdir, timeout: int = 60, as_module: bool = False):
     file = Path(module_file.__file__).absolute()
     cli_args = cli_args.split(" ") if cli_args else []
     cli_args += ["--tmpdir", str(tmpdir)]

@@ -101,7 +101,7 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-    def __init__(self, num_features: int=32, length: int=800, num_classes: int=3, batch_size: int=10) -> None:
+    def __init__(self, num_features: int = 32, length: int = 800, num_classes: int = 3, batch_size: int = 10) -> None:
         data = make_classification(
             n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
         )
@@ -109,7 +109,7 @@ class ClassifDataModule(SklearnDataModule):
 
 
 class RegressDataModule(SklearnDataModule):
-    def __init__(self, num_features: int=16, length: int=800, batch_size: int=10) -> None:
+    def __init__(self, num_features: int = 16, length: int = 800, batch_size: int = 10) -> None:
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
         y = [[v] for v in y]
         super().__init__((x, y), x_type=torch.float32, y_type=torch.float32, batch_size=batch_size)

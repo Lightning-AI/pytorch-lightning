@@ -282,7 +282,8 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _auto_train_batch(
-        trainer, model, batches, device=torch.device("cpu"), current_epoch: int=0, current_batch: int=0, **kwargs):
+        trainer, model, batches, device=torch.device("cpu"), current_epoch: int = 0, current_batch: int = 0, **kwargs
+    ):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []

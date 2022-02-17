@@ -25,7 +25,7 @@ from pytorch_lightning import LightningModule, Trainer
 class LSTMModel(LightningModule):
     """LSTM sequence-to-sequence model for testing TBPTT with automatic optimization."""
 
-    def __init__(self, truncated_bptt_steps: int=2, input_size: int=1, hidden_size: int=8) -> None:
+    def __init__(self, truncated_bptt_steps: int = 2, input_size: int = 1, hidden_size: int = 8) -> None:
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size

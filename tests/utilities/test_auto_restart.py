@@ -224,7 +224,9 @@ def test_fast_forward_on_random_sampler() -> None:
 
 
 class RangeIterableDataset(IterableDataset):
-    def __init__(self, data, num_workers: int, batch_size: int, state_dict=None, attr_name: str = "iter_sampler") -> None:
+    def __init__(
+        self, data, num_workers: int, batch_size: int, state_dict=None, attr_name: str = "iter_sampler"
+    ) -> None:
         self.data = list(data)
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -657,7 +659,9 @@ def test_fault_tolerant_not_supported() -> None:
     assert not _fault_tolerant_training()
 
 
-def create_iterable_dataset(batch_size, num_workers, attr_name: str="iter_sampler", wrap: bool = True) -> Union[CaptureIterableDataset, RangeIterableDataset]:
+def create_iterable_dataset(
+    batch_size, num_workers, attr_name: str = "iter_sampler", wrap: bool = True
+) -> Union[CaptureIterableDataset, RangeIterableDataset]:
     dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
     if wrap:
         dataset = CaptureIterableDataset(dataset)
@@ -1035,7 +1039,9 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
 
 class TestAutoRestartModelUnderSignal(BoringModel):
-    def __init__(self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool) -> None:
+    def __init__(
+        self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool
+    ) -> None:
         super().__init__()
         self.should_signal = should_signal
         self.failure_on_step = failure_on_step
@@ -1123,7 +1129,9 @@ def _fit_model(
 @pytest.mark.parametrize("failure_on_step", [False, True])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(skip_windows=True)
-def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir) -> None:
+def test_auto_restart_under_signal(
+    on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir
+) -> None:
     """This test asserts that if a signal is being sent during the training / validation phase, the model should
     restart in a reproducible way."""
 

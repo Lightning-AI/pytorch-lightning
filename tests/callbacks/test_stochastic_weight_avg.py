@@ -111,12 +111,12 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 def train_with_swa(
     tmpdir,
-    batchnorm: bool=True,
+    batchnorm: bool = True,
     strategy=None,
-    accelerator: str="cpu",
-    devices: int=1,
-    interval: str="epoch",
-    iterable_dataset: bool=False,
+    accelerator: str = "cpu",
+    devices: int = 1,
+    interval: str = "epoch",
+    iterable_dataset: bool = False,
 ) -> None:
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2

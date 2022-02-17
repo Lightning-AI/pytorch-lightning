@@ -57,7 +57,8 @@ class MNIST(Dataset):
     cache_folder_name = "complete"
 
     def __init__(
-        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs) -> None:
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
+    ) -> None:
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -185,7 +186,7 @@ class TrialMNIST(MNIST):
 
 
 class AverageDataset(Dataset):
-    def __init__(self, dataset_len: int=300, sequence_len: int=100) -> None:
+    def __init__(self, dataset_len: int = 300, sequence_len: int = 100) -> None:
         self.dataset_len = dataset_len
         self.sequence_len = sequence_len
         self.input_seq = torch.randn(dataset_len, sequence_len, 10)

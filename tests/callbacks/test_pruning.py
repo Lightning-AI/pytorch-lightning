@@ -59,13 +59,13 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
 def train_with_pruning_callback(
     tmpdir,
-    parameters_to_prune: bool=False,
-    use_global_unstructured: bool=False,
-    pruning_fn: str="l1_unstructured",
-    use_lottery_ticket_hypothesis: bool=False,
+    parameters_to_prune: bool = False,
+    use_global_unstructured: bool = False,
+    pruning_fn: str = "l1_unstructured",
+    use_lottery_ticket_hypothesis: bool = False,
     strategy=None,
-    accelerator: str="cpu",
-    devices: int=1,
+    accelerator: str = "cpu",
+    devices: int = 1,
 ) -> None:
     model = TestModel()
 

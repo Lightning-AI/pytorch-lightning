@@ -289,7 +289,7 @@ class LoaderTestModel(BoringModel):
         assert len(self.trainer.test_dataloaders[0]) == 10
         return super().test_step(batch, batch_idx)
 
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=0):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         assert len(self.trainer.predict_dataloaders[0]) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
