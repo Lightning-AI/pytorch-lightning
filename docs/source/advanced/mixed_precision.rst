@@ -195,8 +195,8 @@ Lightning supports training models with double precision/64-bit. You can set it 
 
 .. note::
 
-    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resouces.
-    It is recommended using single precision for better speed. Altough you can still use it if you want for your particular use-case.
+    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
+    It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
 
 
 *****************

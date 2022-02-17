@@ -493,10 +493,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "state_dict": ANY,
         "loops": ANY,
     }
-    if kwargs.get("amp_backend") == "native":
-        saved_ckpt["native_amp_scaling_state"] = ANY
-    elif kwargs.get("amp_backend") == "apex":
-        saved_ckpt["amp_scaling_state"] = ANY
+    if kwargs.get("amp_backend") == "native" or kwargs.get("amp_backend") == "apex":
+        saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "gpus" in kwargs else "cpu")
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),

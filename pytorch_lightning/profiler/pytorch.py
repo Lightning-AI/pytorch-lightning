@@ -17,7 +17,7 @@ import logging
 import os
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -25,7 +25,7 @@ from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -69,7 +69,8 @@ class RegisterRecordFunction:
         self._handles: Dict[str, List["RemovableHandle"]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
-        record = record_function(record_name)
+        # Add [pl][module] in name for pytorch profiler to recognize
+        record = record_function("[pl][module]" + record_name)
         record.__enter__()
         self._records[record_name] = record
         return input
@@ -127,6 +128,7 @@ class ScheduleWrapper:
         self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
+        self._prev_schedule_action: Optional[ProfilerAction] = None
         self._start_action_name: Optional[str] = None
 
     @property
@@ -180,6 +182,11 @@ class ScheduleWrapper:
 
         self._step()
         action = self._schedule(max(self.num_step, 0))
+        if self._prev_schedule_action == ProfilerAction.RECORD and action == ProfilerAction.WARMUP:
+            # Work around the corner case when validation starts before train.
+            # In this case, the action is RECORD in validation loop, and then call into the train
+            # and the action is still WARMUP in train and pytorch will recognize this as error.
+            action = ProfilerAction.RECORD
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_with_closure_reached_end = True
@@ -189,19 +196,12 @@ class ScheduleWrapper:
                 self._test_step_reached_end = True
             elif self._current_action.endswith("predict_step"):
                 self._predict_step_reached_end = True
+        self._prev_schedule_action = action
         return action
 
 
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = {
-        "training_step",
-        "backward",
-        "validation_step",
-        "test_step",
-        "predict_step",
-    }
-    RECORD_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     STEP_FUNCTION_PREFIX = "optimizer_step_with_closure_"
     AVAILABLE_SORT_KEYS = {
@@ -215,7 +215,6 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     }
-    START_RECORD_FUNCTIONS = {"on_fit_start", "on_validation_start", "on_test_start", "on_predict_start"}
 
     def __init__(
         self,
@@ -226,7 +225,6 @@ class PyTorchProfiler(BaseProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Set[str] = None,
         record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
@@ -266,9 +264,6 @@ class PyTorchProfiler(BaseProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: Set of profiled functions which will create a context manager on.
-                Any other will be pass through.
-
             record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
@@ -286,9 +281,6 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = record_functions or set()
-        self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
-        self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -372,7 +364,7 @@ class PyTorchProfiler(BaseProfiler):
         return activities
 
     def start(self, action_name: str) -> None:
-        if self.profiler is None and any(action_name.endswith(func) for func in self._record_functions_start):
+        if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
             if torch.autograd._profiler_enabled():
@@ -390,25 +382,20 @@ class PyTorchProfiler(BaseProfiler):
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-            if self._register is not None:
-                self._register.__enter__()
-
         if self._lightning_module is not None:
             # when the model is used in automatic optimization, we use `optimizer_step_with_closure` to step the model.
             # this profiler event is generated in the `LightningOptimizer.step` method
             if self._lightning_module.automatic_optimization and "training_step" in self.STEP_FUNCTIONS:
                 self.STEP_FUNCTIONS.remove("training_step")
 
-        if (
-            self.profiler is not None
-            and (
-                any(action_name.endswith(func) for func in self._record_functions)
-                or action_name.startswith(self.RECORD_FUNCTION_PREFIX)
-            )
-            and action_name not in self._recording_map
-        ):
+            if self._register is None and self._record_module_names:
+                self._register = RegisterRecordFunction(self._lightning_module)
+                self._register.__enter__()
 
-            recording = record_function(action_name)
+        if self.profiler is not None and action_name not in self._recording_map:
+
+            # Add [pl][profile] in name for pytorch profiler to recognize
+            recording = record_function("[pl][profile]" + action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 
@@ -459,6 +446,8 @@ class PyTorchProfiler(BaseProfiler):
             if self._schedule is not None:
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
+            if _TORCH_GREATER_EQUAL_1_9:
+                self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
@@ -489,8 +478,6 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(
                 torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
-        if self._record_module_names and self._lightning_module is not None:
-            self._register = RegisterRecordFunction(self._lightning_module)
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
@@ -522,7 +509,7 @@ class PyTorchProfiler(BaseProfiler):
     def teardown(self, stage: Optional[str] = None) -> None:
         self._delete_profilers()
 
-        for k in self._recording_map:
+        for k in list(self._recording_map):
             self.stop(k)
         self._recording_map = {}
 

@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput, DDPSpawnStrategy
+from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -669,10 +669,8 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            if isinstance(self.strategy, DDPSpawnStrategy):
-                spawn_output: _SpawnOutput = self.strategy.spawn(trainer_fn, *args, **kwargs)
-                self.strategy._recover_results_in_main_process(spawn_output, self)
-                return spawn_output.trainer_results
+            if self.strategy.launcher is not None:
+                return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
@@ -1120,6 +1118,8 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
+        self.__setup_profiler()
+
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1201,9 +1201,6 @@ class Trainer(
         self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        if isinstance(self.strategy, DDPSpawnStrategy):
-            results = self.strategy._collect_rank_zero_results(self, results)
-
         return results
 
     def _log_hyperparams(self) -> None:
@@ -1265,7 +1262,6 @@ class Trainer(
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
-        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -2009,6 +2005,7 @@ class Trainer(
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
+        # TODO: this is actually an optional return
         return self.strategy.lightning_module
 
     @property
