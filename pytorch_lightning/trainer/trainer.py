@@ -2656,7 +2656,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
             message = "validation will run after every batch."
         else:
             message = "1 batch will be used."
-        log.info(f"`Trainer({name}=1)` was configured so {message}")
+        rank_zero_info(f"`Trainer({name}=1)` was configured so {message}")
     elif isinstance(batches, float) and batches == 1.0:
         if name == "limit_train_batches":
             message = "100% of the batches per epoch will be used."
@@ -2664,7 +2664,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
             message = "validation will run at the end of the training epoch."
         else:
             message = "100% of the batches will be used."
-        log.info(f"`Trainer({name}=1.0)` was configured so {message}.")
+        rank_zero_info(f"`Trainer({name}=1.0)` was configured so {message}.")
 
     if 0 <= batches <= 1:
         return batches

@@ -45,7 +45,7 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
 
 @pytest.mark.parametrize("value", (1, 1.0))
 def test_val_check_interval_info_message(caplog, value):
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+    with caplog.at_level(logging.INFO):
         Trainer(val_check_interval=value)
     assert f"`Trainer(val_check_interval={value})` was configured" in caplog.text
     message = "configured so validation will run"
@@ -54,6 +54,6 @@ def test_val_check_interval_info_message(caplog, value):
     caplog.clear()
 
     # the message should not appear by default
-    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+    with caplog.at_level(logging.INFO):
         Trainer()
     assert message not in caplog.text
