@@ -13,7 +13,6 @@
 # limitations under the License.
 from pathlib import Path
 from re import escape
-from typing import Optional
 from unittest.mock import call, Mock
 
 import pytest
