@@ -175,7 +175,7 @@ class AcceleratorConnector:
 
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
-        self._special_handle_for_ipu()
+        self._set_accelerator_if_ipu_strategy_is_passed()
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_accelerator()
         self._set_parallel_devices_and_init_accelerator()
@@ -380,7 +380,7 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
-        """Sets the `device_flag` and `accelerator_flag `based on num_processes, gpus, ipus, tpu_cores."""
+        """Sets the `devices_flag` and `accelerator_flag `based on num_processes, gpus, ipus, tpu_cores."""
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         gpus = device_parser.parse_gpu_ids(gpus)
@@ -412,7 +412,7 @@ class AcceleratorConnector:
                 if num_processes:
                     self._accelerator_flag = "cpu"
 
-    def _special_handle_for_ipu(self) -> None:
+    def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
         # current logic only apply to object config
         # TODO this logic should apply to both str and object config
         if isinstance(self._strategy_flag, IPUStrategy):
@@ -427,17 +427,16 @@ class AcceleratorConnector:
                 return "ipu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
-        # [RFC] this is current logic, if accelerator=None, default cpu?
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         self._parallel_devices: List[Union[int, torch.device]] = []
+
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         elif self._accelerator_flag == "tpu":
             self.accelerator = TPUAccelerator()
-            if self._devices_flag == "auto" or not self._devices_flag:
-                self._devices_flag = TPUAccelerator.auto_device_count()
+            self._set_devices_flag_if_auto_passed()
             if isinstance(self._devices_flag, int):
                 self._parallel_devices = list(range(self._devices_flag))
             else:
@@ -445,15 +444,13 @@ class AcceleratorConnector:
 
         elif self._accelerator_flag == "ipu":
             self.accelerator = IPUAccelerator()
-            if self._devices_flag == "auto" or not self._devices_flag:
-                self._devices_flag = IPUAccelerator.auto_device_count()
+            self._set_devices_flag_if_auto_passed()
             if isinstance(self._devices_flag, int):
                 self._parallel_devices = list(range(self._devices_flag))
 
         elif self._accelerator_flag == "gpu":
             self.accelerator = GPUAccelerator()
-            if self._devices_flag == "auto" or not self._devices_flag:
-                self._devices_flag = GPUAccelerator.auto_device_count()
+            self._set_devices_flag_if_auto_passed()
             if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
                 self._devices_flag = int(self._devices_flag)
                 self._parallel_devices = (
@@ -466,8 +463,7 @@ class AcceleratorConnector:
 
         elif self._accelerator_flag == "cpu":
             self.accelerator = CPUAccelerator()
-            if self._devices_flag == "auto" or not self._devices_flag:
-                self._devices_flag = CPUAccelerator.auto_device_count()
+            self._set_devices_flag_if_auto_passed()
             if isinstance(self._devices_flag, int):
                 self._parallel_devices = [torch.device("cpu")] * self._devices_flag
             else:
@@ -479,6 +475,10 @@ class AcceleratorConnector:
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
+    def _set_devices_flag_if_auto_passed(self) -> None:
+        if self._devices_flag == "auto" or not self._devices_flag:
+            self._devices_flag = self.accelerator.auto_device_count()
+
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
@@ -489,10 +489,6 @@ class AcceleratorConnector:
             if env_type.detect():
                 return env_type()
         return LightningEnvironment()
-
-    @property
-    def _is_sharded_training_type(self) -> bool:
-        return isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy))
 
     def _is_slurm_managing_tasks(self) -> bool:
         """used by choosing cluster enviroment."""
