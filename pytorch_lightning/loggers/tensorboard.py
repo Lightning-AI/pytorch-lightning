@@ -88,7 +88,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def __init__(
         self,
         save_dir: str,
-        name: Optional[str] = "default",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,

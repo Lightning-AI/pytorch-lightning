@@ -416,6 +416,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     }
 
     if complete_epoch:
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
         with pytest.warns(
             RuntimeWarning, match=r"ReduceLROnPlateau conditioned on metric .* which is not available but strict"
         ):

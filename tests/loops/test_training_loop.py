@@ -121,7 +121,8 @@ def test_should_stop_mid_epoch(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
     trainer.fit(model)
 
-    assert trainer.current_epoch == 0
+    # even though we stopped mid epoch, the fit loop finished normally and the current epoch was increased
+    assert trainer.current_epoch == 1
     assert trainer.global_step == 5
     assert model.validation_called_at == (0, 4)
 

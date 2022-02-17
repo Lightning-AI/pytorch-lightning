@@ -85,7 +85,7 @@ class HorovodStrategy(ParallelStrategy):
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 
-        if not self.lightning_module.trainer.training:
+        if not trainer.training:
             # no need to setup optimizers
             return
 

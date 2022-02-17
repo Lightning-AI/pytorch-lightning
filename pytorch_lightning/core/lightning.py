@@ -37,6 +37,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -75,6 +76,7 @@ class LightningModule(
             "global_rank",
             "local_rank",
             "logger",
+            "loggers",
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
@@ -247,9 +249,14 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self):
+    def logger(self) -> Optional[LightningLoggerBase]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        """Reference to the loggers object in the Trainer."""
+        return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
