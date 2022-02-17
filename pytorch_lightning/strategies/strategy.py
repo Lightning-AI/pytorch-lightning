@@ -49,7 +49,7 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
-        self._launcher: _Launcher = None
+        self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
