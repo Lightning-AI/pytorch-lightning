@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
@@ -27,6 +27,8 @@ if _TPU_AVAILABLE:
 
 class SingleTPUStrategy(SingleDeviceStrategy):
     """Strategy for training on a single TPU device."""
+
+    strategy_name = "single_tpu"
 
     def __init__(
         self,
@@ -70,6 +72,14 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()

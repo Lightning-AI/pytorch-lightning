@@ -48,6 +48,8 @@ else:
 class TPUSpawnStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
 
+    strategy_name = "tpu_spawn"
+
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
@@ -295,4 +297,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )
