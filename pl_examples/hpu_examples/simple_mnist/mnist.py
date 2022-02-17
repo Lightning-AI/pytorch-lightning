@@ -14,6 +14,7 @@ from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu import HPUStrategy
 
+
 class MNISTModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
@@ -49,11 +50,11 @@ hmp_params["fp32_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist
 hpu_stats = HPUStatsMonitor(log_save_dir="habana_ptl_log", exp_name="mnist")
 
 parallel_devices = 1
-hpustrat=HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None))
+hpustrat = HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None))
 
 # Initialize a trainer
 trainer = pl.Trainer(
-    strategy= None if (parallel_devices==8) else hpustrat,
+    strategy=None if (parallel_devices == 8) else hpustrat,
     devices=parallel_devices,
     callbacks=[hpu_stats],
     max_epochs=1,

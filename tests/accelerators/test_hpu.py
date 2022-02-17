@@ -24,8 +24,8 @@ from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
 from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu import HPUStrategy
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.hpu import HPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _AcceleratorType, _HPU_AVAILABLE
@@ -183,8 +183,16 @@ def test_mixed_precision(tmpdir, hmp_params):
             raise SystemExit
 
     model = HPUModel()
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)),
-                      default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
+    trainer = Trainer(
+        strategy=HPUStrategy(
+            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
+        ),
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="hpu",
+        devices=1,
+        callbacks=TestCallback(),
+    )
     assert isinstance(trainer.strategy, HPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
@@ -203,8 +211,16 @@ def test_pure_half_precision(tmpdir, hmp_params):
 
     model = HPUModel()
     model = model.half()
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)),
-                      default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
+    trainer = Trainer(
+        strategy=HPUStrategy(
+            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
+        ),
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="hpu",
+        devices=1,
+        callbacks=TestCallback(),
+    )
 
     assert isinstance(trainer.strategy, HPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
