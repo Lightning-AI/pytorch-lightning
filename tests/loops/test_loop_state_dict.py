@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -37,6 +39,7 @@ def test_loops_state_dict():
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
 
 
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
@@ -56,6 +59,10 @@ def test_loops_state_dict_structure():
             },
             "epoch_loop.batch_loop.state_dict": {},
             "epoch_loop.batch_loop.manual_loop.state_dict": {},
+            "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+                "total": {"ready": 0, "completed": 0},
+                "current": {"ready": 0, "completed": 0},
+            },
             "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
                 "optimizer": {

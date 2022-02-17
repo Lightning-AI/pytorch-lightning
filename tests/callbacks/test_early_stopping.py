@@ -211,14 +211,14 @@ def test_early_stopping_no_val_step(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "stopping_threshold,divergence_theshold,losses,expected_epoch",
+    "stopping_threshold,divergence_threshold,losses,expected_epoch",
     [
         (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
         (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
         (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
     ],
 )
-def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_theshold, losses, expected_epoch):
+def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_threshold, losses, expected_epoch):
     class CurrentModel(BoringModel):
         def validation_epoch_end(self, outputs):
             val_loss = losses[self.current_epoch]
@@ -226,7 +226,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
 
     model = CurrentModel()
     early_stopping = EarlyStopping(
-        monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_theshold
+        monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_threshold
     )
     trainer = Trainer(
         default_root_dir=tmpdir,

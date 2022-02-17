@@ -53,6 +53,9 @@ class LightningOptimizer:
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
         self._optimizer_idx = 0
+        # to inject logic around the optimizer step, particularly useful with manual optimization
+        self._on_before_step = do_nothing_closure
+        self._on_after_step = do_nothing_closure
 
     @property
     def optimizer(self) -> Optimizer:
@@ -154,6 +157,8 @@ class LightningOptimizer:
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
         """
+        self._on_before_step()
+
         if closure is None:
             closure = do_nothing_closure
             profiler_action = "optimizer_step_without_closure"
@@ -166,7 +171,11 @@ class LightningOptimizer:
         assert self._strategy is not None
         assert self._strategy.lightning_module is not None
         with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
-            return self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+            step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+
+        self._on_after_step()
+
+        return step_output
 
 
 def _init_optimizers_and_lr_schedulers(

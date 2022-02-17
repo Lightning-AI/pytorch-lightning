@@ -317,7 +317,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         return backward_fn
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
-        """Toggles the optimizer to ensure the correct one is used and prevend dangling grads.
+        """Toggles the optimizer to ensure the correct one is used and prevent dangling grads.
 
         Args:
             opt_idx: the index of the optimizer to use
@@ -348,7 +348,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx: the index of the current :param:`optimizer`
             batch_idx: the index of the current batch
             train_step_and_backward_closure: the closure function performing the train step and computing the
-                gradients. By default called by the optimizer (if possible)
+                gradients. By default, called by the optimizer (if possible)
         """
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 

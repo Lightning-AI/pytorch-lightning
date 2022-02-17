@@ -208,7 +208,7 @@ class GPUStatsMonitor(Callback):
         gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
             [
-                # it's ok to supress the warning here since we ensure nvidia-smi exists during init
+                # it's ok to suppress the warning here since we ensure nvidia-smi exists during init
                 shutil.which("nvidia-smi"),  # type: ignore
                 f"--query-gpu={gpu_query}",
                 f"--format={format}",
