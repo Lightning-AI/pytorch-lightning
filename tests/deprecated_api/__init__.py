@@ -19,7 +19,7 @@ from typing import Optional
 from tests.helpers.utils import no_warning_call
 
 
-def _soft_unimport_module(str_module):
+def _soft_unimport_module(str_module: str) -> None:
     # once the module is imported  e.g with parsing with pytest it lives in memory
     if str_module in sys.modules:
         del sys.modules[str_module]

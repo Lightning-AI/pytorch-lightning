@@ -16,6 +16,7 @@ import collections
 import itertools
 import os
 from io import StringIO
+from typing import Any, Dict, List, Tuple
 from unittest import mock
 from unittest.mock import call
 
@@ -32,7 +33,7 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-def test__validation_step__log(tmpdir):
+def test__validation_step__log(tmpdir) -> None:
     """Tests that validation_step can log."""
 
     class TestModel(BoringModel):
@@ -71,7 +72,7 @@ def test__validation_step__log(tmpdir):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-def test__validation_step__epoch_end__log(tmpdir):
+def test__validation_step__epoch_end__log(tmpdir) -> None:
     """Tests that validation_epoch_end can log."""
 
     class TestModel(BoringModel):
@@ -115,7 +116,7 @@ def test__validation_step__epoch_end__log(tmpdir):
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
-def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
+def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs) -> None:
     class TestModel(BoringModel):
         def validation_epoch_end(self, outputs):
             self.log("c", torch.tensor(2), on_epoch=True, prog_bar=True, logger=True)
@@ -148,7 +149,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-def test_eval_float_logging(tmpdir):
+def test_eval_float_logging(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -171,7 +172,7 @@ def test_eval_float_logging(tmpdir):
     assert set(trainer.logged_metrics) == {"a"}
 
 
-def test_eval_logging_auto_reduce(tmpdir):
+def test_eval_logging_auto_reduce(tmpdir) -> None:
     class TestModel(BoringModel):
         val_losses = []
         manual_epoch_end_mean = None
@@ -211,7 +212,7 @@ def test_eval_logging_auto_reduce(tmpdir):
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
-def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
+def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs) -> None:
     """Tests that test_epoch_end can be used to log, and we return them in the results."""
 
     class TestModel(BoringModel):
@@ -234,7 +235,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
 
 
 @pytest.mark.parametrize("suffix", (False, True))
-def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
+def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix) -> None:
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
             out = super().test_step(batch, batch_idx)
@@ -270,7 +271,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
         assert set(r) == expected
 
 
-def test_log_works_in_val_callback(tmpdir):
+def test_log_works_in_val_callback(tmpdir) -> None:
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
@@ -379,7 +380,7 @@ def test_log_works_in_val_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-def test_log_works_in_test_callback(tmpdir):
+def test_log_works_in_test_callback(tmpdir) -> None:
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
@@ -512,7 +513,7 @@ def test_log_works_in_test_callback(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
-def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
+def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir) -> None:
     """This tests make sure we properly log_metrics to loggers."""
 
     class ExtendedModel(BoringModel):
@@ -607,7 +608,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert set(results[0]) == {"test_loss"}
 
 
-def test_logging_dict_on_validation_step(tmpdir):
+def test_logging_dict_on_validation_step(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             loss = super().validation_step(batch, batch_idx)
@@ -633,7 +634,7 @@ def test_logging_dict_on_validation_step(tmpdir):
 
 
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
+def test_multiple_dataloaders_reset(val_check_interval, tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             out = super().training_step(batch, batch_idx)
@@ -689,7 +690,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
@@ -713,7 +714,7 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     trainer.validate(model, verbose=False)
 
 
-def test_logging_results_with_no_dataloader_idx(tmpdir):
+def test_logging_results_with_no_dataloader_idx(tmpdir) -> None:
     num_dataloaders = 2
     log_common_same_val = {"test_log_common": 789}
     log_common_diff_val = "test_log_common_diff_value"
@@ -755,7 +756,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-def test_logging_multi_dataloader_on_epoch_end(tmpdir):
+def test_logging_multi_dataloader_on_epoch_end(tmpdir) -> None:
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log("foo", dataloader_idx + 1)
@@ -774,7 +775,7 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
 
 
-inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+inputs0: Tuple[List[Dict[str, Any]], RunningStage] = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
 expected0 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
@@ -784,7 +785,7 @@ expected0 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
-inputs1 = (
+inputs1: Tuple[List[Dict[str, Dict[str, Any]]], RunningStage] = (
     [
         {"performance": {"log1": torch.tensor(5), "log2": torch.tensor(3)}},
         {"test": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
@@ -802,7 +803,7 @@ expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
-inputs2 = (
+inputs2: Tuple[List[Dict[str, Any]], RunningStage] = (
     [
         {f"a {'really ' * 11}long metric name": torch.tensor(5)},
         {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
@@ -824,7 +825,7 @@ a really really really really really really really really re                    
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
-inputs3 = ([{f"log/dataloader_idx_{i}": torch.tensor(5)} for i in range(5)], "foobar")
+inputs3: Tuple[List[Dict[str, Any]], str] = ([{f"log/dataloader_idx_{i}": torch.tensor(5)} for i in range(5)], "foobar")
 expected3 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
       Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2
@@ -848,7 +849,7 @@ expected3 = """
         pytest.param(inputs3, expected3, id="case3"),
     ],
 )
-def test_native_print_results(monkeypatch, inputs, expected):
+def test_native_print_results(monkeypatch, inputs, expected) -> None:
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
@@ -919,7 +920,7 @@ expected3 = """
     ],
 )
 @RunIf(rich=True, skip_windows=True)
-def test_rich_print_results(inputs, expected):
+def test_rich_print_results(inputs, expected) -> None:
     out = StringIO()
     EvaluationLoop._print_results(*inputs, file=out)
     expected = expected[1:]  # remove the initial line break from the """ string

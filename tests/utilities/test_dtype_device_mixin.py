@@ -26,7 +26,7 @@ class SubSubModule(DeviceDtypeModuleMixin):
 
 
 class SubModule(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.module = SubSubModule()
 
@@ -38,7 +38,7 @@ class TopModule(BoringModel):
 
 
 class DeviceAssertCallback(Callback):
-    def on_train_batch_start(self, trainer, model, batch, batch_idx):
+    def on_train_batch_start(self, trainer: Trainer, model: TopModule, batch, batch_idx: int) -> None:
         rank = trainer.local_rank
         assert isinstance(model, TopModule)
         # index = None also means first device
@@ -49,7 +49,7 @@ class DeviceAssertCallback(Callback):
 @pytest.mark.parametrize("dst_dtype", [torch.float, torch.double, torch.half])
 @pytest.mark.parametrize("dst_device", [torch.device("cpu"), torch.device("cuda", 0)])
 @RunIf(min_gpus=1)
-def test_submodules_device_and_dtype(dst_device, dst_dtype):
+def test_submodules_device_and_dtype(dst_device, dst_dtype) -> None:
     """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
     the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
 
@@ -65,7 +65,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
 
 
 @RunIf(min_gpus=2)
-def test_submodules_multi_gpu_dp(tmpdir):
+def test_submodules_multi_gpu_dp(tmpdir) -> None:
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -79,7 +79,7 @@ def test_submodules_multi_gpu_dp(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_submodules_multi_gpu_ddp_spawn(tmpdir):
+def test_submodules_multi_gpu_ddp_spawn(tmpdir) -> None:
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -101,7 +101,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     ],
 )
 @RunIf(min_gpus=1)
-def test_gpu_cuda_device(device):
+def test_gpu_cuda_device(device) -> None:
     model = TopModule()
 
     model.cuda(device)

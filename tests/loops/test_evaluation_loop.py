@@ -24,7 +24,7 @@ from tests.helpers.runif import RunIf
 
 
 @mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop._on_evaluation_epoch_end")
-def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
+def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir) -> None:
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end`
     hooks."""
     model = BoringModel()
@@ -45,7 +45,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 @mock.patch(
     "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
 )
-def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
+def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir) -> None:
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
     order = []
     update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
@@ -62,7 +62,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
 
 
 @RunIf(min_gpus=1)
-def test_memory_consumption_validation(tmpdir):
+def test_memory_consumption_validation(tmpdir) -> None:
     """Test that the training batch is no longer in GPU memory when running validation."""
 
     initial_memory = torch.cuda.memory_allocated(0)
@@ -110,7 +110,7 @@ def test_memory_consumption_validation(tmpdir):
     trainer.fit(BoringLargeBatchModel())
 
 
-def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir):
+def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir) -> None:
     did_assert = False
 
     class TestModel(BoringModel):

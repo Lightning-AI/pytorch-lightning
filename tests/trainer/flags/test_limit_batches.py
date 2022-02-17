@@ -19,7 +19,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel
 
 
-def test_num_dataloader_batches(tmpdir):
+def test_num_dataloader_batches(tmpdir) -> None:
     """Tests that the correct number of batches are allocated."""
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = BoringModel()
@@ -53,7 +53,7 @@ def test_num_dataloader_batches(tmpdir):
     ],
 )
 @pytest.mark.parametrize("limit_batches", [0.1, 10])
-def test_eval_limit_batches(stage, mode, limit_batches):
+def test_eval_limit_batches(stage: RunningStage, mode, limit_batches) -> None:
     limit_eval_batches = f"limit_{mode}_batches"
     dl_hook = f"{mode}_dataloader"
     model = BoringModel()

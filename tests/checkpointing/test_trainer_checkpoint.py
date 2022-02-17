@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 
 
-def test_finetuning_with_ckpt_path(tmpdir):
+def test_finetuning_with_ckpt_path(tmpdir) -> None:
     """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
 
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
@@ -73,7 +73,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
             assert f"epoch={idx + 1}" in best_model_path
 
 
-def test_accumulated_gradient_batches_with_ckpt_path(tmpdir):
+def test_accumulated_gradient_batches_with_ckpt_path(tmpdir) -> None:
     """This test validates that accumulated gradient is properly recomputed and reset on the trainer."""
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)

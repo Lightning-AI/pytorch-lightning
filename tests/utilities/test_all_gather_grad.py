@@ -23,7 +23,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def setup_ddp(rank, world_size):
+def setup_ddp(rank, world_size) -> None:
     """Setup ddp environment."""
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "8088"
@@ -32,7 +32,7 @@ def setup_ddp(rank, world_size):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
 
 
-def _test_all_gather_ddp(rank, world_size):
+def _test_all_gather_ddp(rank, world_size) -> None:
     setup_ddp(rank, world_size)
 
     tensor1 = torch.ones(8, requires_grad=True)
@@ -55,13 +55,13 @@ def _test_all_gather_ddp(rank, world_size):
 
 
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
-def test_all_gather_ddp_spawn():
+def test_all_gather_ddp_spawn() -> None:
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
 @RunIf(min_gpus=2, skip_windows=True, standalone=True)
-def test_all_gather_collection(tmpdir):
+def test_all_gather_collection(tmpdir) -> None:
     class TestModel(BoringModel):
 
         training_epoch_end_called = False
@@ -113,7 +113,7 @@ def test_all_gather_collection(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, standalone=True)
-def test_all_gather_sync_grads(tmpdir):
+def test_all_gather_sync_grads(tmpdir) -> None:
     class TestModel(BoringModel):
 
         training_step_called = False

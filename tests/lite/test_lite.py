@@ -34,12 +34,12 @@ from tests.helpers.runif import RunIf
 
 
 class EmptyLite(LightningLite):
-    def run(self):
+    def run(self) -> None:
         pass
 
 
 class BoringModel(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = torch.nn.Linear(32, 2, bias=False)
 
@@ -48,19 +48,19 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
-def test_unsupported_accelerator():
+def test_unsupported_accelerator() -> None:
     accelerator = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
         EmptyLite(accelerator=accelerator)
 
 
-def test_unsupported_strategy():
+def test_unsupported_strategy() -> None:
     strategy = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
         EmptyLite(strategy=strategy)
 
 
-def test_run_input_output():
+def test_run_input_output() -> None:
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
     class Lite(LightningLite):
@@ -80,7 +80,7 @@ def test_run_input_output():
     assert lite.run_kwargs == {"three": 3}
 
 
-def test_setup_optimizers():
+def test_setup_optimizers() -> None:
     """Test that setup_optimizers can handle no optimizers, one optimizer, or multiple optimizers."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
@@ -109,7 +109,7 @@ def test_setup_optimizers():
     assert lite_optimizer1.optimizer is optimizer1
 
 
-def test_setup_twice_fails():
+def test_setup_twice_fails() -> None:
     """Test that calling setup with a model or optimizer that is already wrapped fails."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
@@ -124,7 +124,7 @@ def test_setup_twice_fails():
         lite.setup(model, lite_optimizer)
 
 
-def test_setup_tracks_num_models():
+def test_setup_tracks_num_models() -> None:
     """Test that setup() tracks how many times it has setup a model."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
@@ -138,14 +138,14 @@ def test_setup_tracks_num_models():
     assert lite._models_setup == 2
 
 
-def test_setup_dataloaders_unsupported_type():
+def test_setup_dataloaders_unsupported_type() -> None:
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
     with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
         lite.setup_dataloaders(range(2))  # type: ignore
 
 
-def test_setup_dataloaders_return_type():
+def test_setup_dataloaders_return_type() -> None:
     """Test that the setup method returns the dataloaders wrapped as LiteDataLoader and in the right order."""
     lite = EmptyLite()
 
@@ -166,7 +166,7 @@ def test_setup_dataloaders_return_type():
 
 
 @mock.patch("pytorch_lightning.lite.lite._replace_dataloader_init_method")
-def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
+def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager) -> None:
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
     class Lite(LightningLite):
@@ -177,7 +177,7 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     ctx_manager().__exit__.assert_called_once()
 
 
-def test_setup_dataloaders_raises_for_unknown_custom_args():
+def test_setup_dataloaders_raises_for_unknown_custom_args() -> None:
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
     method."""
     lite = EmptyLite()
@@ -198,7 +198,7 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
         lite.setup_dataloaders(dataloader)
 
 
-def test_setup_dataloaders_twice_fails():
+def test_setup_dataloaders_twice_fails() -> None:
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
     lite = EmptyLite()
     dataloader = DataLoader(range(2))
@@ -213,7 +213,7 @@ def test_setup_dataloaders_twice_fails():
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
-def test_setup_dataloaders_move_to_device(lite_device_mock):
+def test_setup_dataloaders_move_to_device(lite_device_mock) -> None:
     """Test that the setup configures LiteDataLoader to move the data to the device automatically."""
     lite = EmptyLite()
     lite_dataloaders = lite.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
@@ -226,7 +226,7 @@ def test_setup_dataloaders_move_to_device(lite_device_mock):
     lite_device_mock.assert_called()
 
 
-def test_setup_dataloaders_distributed_sampler_not_needed():
+def test_setup_dataloaders_distributed_sampler_not_needed() -> None:
     """Test that replace_sampler option has no effect when no distributed sampler is needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
@@ -238,7 +238,7 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_seed_everything():
+def test_seed_everything() -> None:
     """Test that seed everything is static and sets the worker init function on the dataloader."""
     EmptyLite.seed_everything(3)
 
@@ -260,7 +260,7 @@ def test_seed_everything():
         pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
     ],
 )
-def test_setup_dataloaders_replace_custom_sampler(strategy):
+def test_setup_dataloaders_replace_custom_sampler(strategy) -> None:
     """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
     needed."""
     custom_sampler = Mock(spec=Sampler)
@@ -289,7 +289,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])
-def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
+def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy) -> None:
     """Test that Lite replaces the default samplers with DistributedSampler automatically."""
     lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
     is_distributed = lite._accelerator_connector.is_distributed
@@ -305,7 +305,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
     ],
 )
-def test_to_device(accelerator, expected):
+def test_to_device(accelerator, expected) -> None:
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
     lite = EmptyLite(accelerator=accelerator, devices=1)
 
@@ -325,7 +325,7 @@ def test_to_device(accelerator, expected):
     assert collection["data"].device == expected
 
 
-def test_rank_properties():
+def test_rank_properties() -> None:
     """Test that the rank properties are determined by the strategy."""
     lite = EmptyLite()
     lite._strategy = Mock(spec=Strategy)
@@ -339,7 +339,7 @@ def test_rank_properties():
     assert lite.node_rank == 1
 
 
-def test_backward():
+def test_backward() -> None:
     """Test that backward() calls into the precision plugin."""
     lite = EmptyLite()
     lite._precision_plugin = Mock(spec=PrecisionPlugin)
@@ -349,7 +349,7 @@ def test_backward():
 
 
 @RunIf(deepspeed=True)
-def test_backward_model_input_required():
+def test_backward_model_input_required() -> None:
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
     lite = EmptyLite(strategy="deepspeed")
 
@@ -370,7 +370,7 @@ def test_backward_model_input_required():
         lite.backward(loss)
 
 
-def test_autocast():
+def test_autocast() -> None:
     """Test that the Lite autocast context manager lets the precision plugin handle casting."""
     lite = EmptyLite()
     lite._precision_plugin.forward_context = MagicMock()
@@ -382,7 +382,7 @@ def test_autocast():
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multiple_models():
+def test_deepspeed_multiple_models() -> None:
     class Lite(LightningLite):
         def run(self):
             model = BoringModel()

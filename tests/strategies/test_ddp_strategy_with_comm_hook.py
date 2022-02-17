@@ -27,7 +27,7 @@ if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_10:
 
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
-def test_ddp_fp16_compress_comm_hook(tmpdir):
+def test_ddp_fp16_compress_comm_hook(tmpdir) -> None:
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
     strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
@@ -47,7 +47,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
 
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
-def test_ddp_sgd_comm_hook(tmpdir):
+def test_ddp_sgd_comm_hook(tmpdir) -> None:
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
     strategy = DDPStrategy(
@@ -70,7 +70,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
 
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
-def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
+def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir) -> None:
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
     strategy = DDPStrategy(
@@ -94,7 +94,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
 
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, standalone=True)
-def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
+def test_ddp_spawn_fp16_compress_comm_hook(tmpdir) -> None:
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
     strategy = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
@@ -111,7 +111,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 
 
 @RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
-def test_ddp_post_local_sgd_comm_hook(tmpdir):
+def test_ddp_post_local_sgd_comm_hook(tmpdir) -> None:
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
 

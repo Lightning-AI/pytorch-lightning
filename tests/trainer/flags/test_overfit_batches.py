@@ -23,7 +23,7 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
-def test_overfit_basic(tmpdir, overfit_batches):
+def test_overfit_basic(tmpdir, overfit_batches) -> None:
     """Tests that only training_step can be used when overfitting."""
 
     model = BoringModel()
@@ -41,7 +41,7 @@ def test_overfit_basic(tmpdir, overfit_batches):
     )
 
 
-def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
+def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir) -> None:
     class NonSequentialSampler(Sampler):
         def __init__(self, data_source):
             self.data_source = data_source
@@ -72,7 +72,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
     [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
 )
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
-def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
+def test_overfit_batch_limits_eval(stage: RunningStage, mode, overfit_batches) -> None:
     model = ClassificationModel()
     dm = ClassifDataModule()
     eval_loader = getattr(dm, f"{mode}_dataloader")()
@@ -89,7 +89,7 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
 
 
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
-def test_overfit_batch_limits_train(overfit_batches):
+def test_overfit_batch_limits_train(overfit_batches) -> None:
     model = ClassificationModel()
     dm = ClassifDataModule()
 
@@ -123,7 +123,7 @@ def test_overfit_batch_limits_train(overfit_batches):
 
 
 @RunIf(skip_windows=True)
-def test_distributed_sampler_with_overfit_batches():
+def test_distributed_sampler_with_overfit_batches() -> None:
     model = BoringModel()
     trainer = Trainer(
         overfit_batches=1,

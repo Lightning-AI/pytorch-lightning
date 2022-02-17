@@ -24,7 +24,7 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
 
 
-def test_error_on_more_than_1_optimizer(tmpdir):
+def test_error_on_more_than_1_optimizer(tmpdir) -> None:
     """Check that error is thrown when more than 1 optimizer is passed."""
 
     class CustomBoringModel(BoringModel):
@@ -46,7 +46,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
         trainer.tuner.lr_find(model)
 
 
-def test_model_reset_correctly(tmpdir):
+def test_model_reset_correctly(tmpdir) -> None:
     """Check that model weights are correctly reset after lr_find()"""
 
     model = BoringModel()
@@ -68,7 +68,7 @@ def test_model_reset_correctly(tmpdir):
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".lr_find"))
 
 
-def test_trainer_reset_correctly(tmpdir):
+def test_trainer_reset_correctly(tmpdir) -> None:
     """Check that all trainer parameters are reset correctly after lr_find()"""
 
     model = BoringModel()
@@ -95,7 +95,7 @@ def test_trainer_reset_correctly(tmpdir):
 
 
 @pytest.mark.parametrize("use_hparams", [False, True])
-def test_trainer_arg_bool(tmpdir, use_hparams):
+def test_trainer_arg_bool(tmpdir, use_hparams) -> None:
     """Test that setting trainer arg to bool works."""
     seed_everything(1)
 
@@ -124,7 +124,7 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
 
 
 @pytest.mark.parametrize("use_hparams", [False, True])
-def test_trainer_arg_str(tmpdir, use_hparams):
+def test_trainer_arg_str(tmpdir, use_hparams) -> None:
     """Test that setting trainer arg to string works."""
     seed_everything(1)
 
@@ -155,7 +155,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
 
 
 @pytest.mark.parametrize("opt", ["Adam", "Adagrad"])
-def test_call_to_trainer_method(tmpdir, opt):
+def test_call_to_trainer_method(tmpdir, opt) -> None:
     """Test that directly calling the trainer method works."""
     seed_everything(1)
 
@@ -186,7 +186,7 @@ def test_call_to_trainer_method(tmpdir, opt):
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
-def test_datamodule_parameter(tmpdir):
+def test_datamodule_parameter(tmpdir) -> None:
     """Test that the datamodule parameter works."""
     seed_everything(1)
 
@@ -205,7 +205,7 @@ def test_datamodule_parameter(tmpdir):
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
-def test_accumulation_and_early_stopping(tmpdir):
+def test_accumulation_and_early_stopping(tmpdir) -> None:
     """Test that early stopping of learning rate finder works, and that accumulation also works for this
     feature."""
     seed_everything(1)
@@ -224,7 +224,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     assert lrfinder._total_batch_idx == 199
 
 
-def test_suggestion_parameters_work(tmpdir):
+def test_suggestion_parameters_work(tmpdir) -> None:
     """Test that default skipping does not alter results in basic case."""
     seed_everything(1)
 
@@ -250,7 +250,7 @@ def test_suggestion_parameters_work(tmpdir):
     assert lr1 != lr2, "Skipping parameter did not influence learning rate"
 
 
-def test_suggestion_with_non_finite_values(tmpdir):
+def test_suggestion_with_non_finite_values(tmpdir) -> None:
     """Test that non-finite values does not alter results."""
     seed_everything(1)
 
@@ -276,14 +276,14 @@ def test_suggestion_with_non_finite_values(tmpdir):
     assert before_lr == after_lr, "Learning rate was altered because of non-finite loss values"
 
 
-def test_lr_finder_fails_fast_on_bad_config(tmpdir):
+def test_lr_finder_fails_fast_on_bad_config(tmpdir) -> None:
     """Test that tune fails if the model does not have a lr BEFORE running lr find."""
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
     with pytest.raises(MisconfigurationException, match="should have one of these fields"):
         trainer.tune(BoringModel())
 
 
-def test_lr_find_with_bs_scale(tmpdir):
+def test_lr_find_with_bs_scale(tmpdir) -> None:
     """Test that lr_find runs with batch_size_scaling."""
     seed_everything(1)
 
@@ -306,7 +306,7 @@ def test_lr_find_with_bs_scale(tmpdir):
     assert isinstance(bs, int)
 
 
-def test_lr_candidates_between_min_and_max(tmpdir):
+def test_lr_candidates_between_min_and_max(tmpdir) -> None:
     """Test that learning rate candidates are between min_lr and max_lr."""
     seed_everything(1)
 
@@ -325,7 +325,7 @@ def test_lr_candidates_between_min_and_max(tmpdir):
     assert all(lr_min <= lr <= lr_max for lr in lr_candidates)
 
 
-def test_lr_finder_ends_before_num_training(tmpdir):
+def test_lr_finder_ends_before_num_training(tmpdir) -> None:
     """Tests learning rate finder ends before `num_training` steps."""
 
     class TestModel(BoringModel):
@@ -343,7 +343,7 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     trainer.tuner.lr_find(model=model, num_training=num_training)
 
 
-def test_multiple_lr_find_calls_gives_same_results(tmpdir):
+def test_multiple_lr_find_calls_gives_same_results(tmpdir) -> None:
     """Tests that lr_finder gives same results if called multiple times."""
     seed_everything(1)
     model = BoringModel()

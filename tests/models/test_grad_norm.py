@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict
 from unittest.mock import patch
 
 import numpy as np
@@ -22,7 +23,7 @@ from tests.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(BoringModel):
-    def __init__(self, norm_type, *args, **kwargs):
+    def __init__(self, norm_type, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.stored_grad_norms, self.norm_type = [], float(norm_type)
 
@@ -30,13 +31,13 @@ class ModelWithManualGradTracker(BoringModel):
     validation_step = None
     val_dataloader = None
 
-    def training_step(self, batch, batch_idx, optimizer_idx=None):
+    def training_step(self, batch, batch_idx, optimizer_idx=None) -> Dict[str, Any]:
         # just return a loss, no log or progress bar meta
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         out, norms = {}, []
         prefix = f"grad_{self.norm_type}_norm_"
         for name, p in self.named_parameters():
@@ -57,7 +58,7 @@ class ModelWithManualGradTracker(BoringModel):
 
 
 @pytest.mark.parametrize("norm_type", [1.0, 1.25, 2, 3, 5, 10, "inf"])
-def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
+def test_grad_tracking(tmpdir, norm_type, rtol: float=5e-3) -> None:
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
     reset_seed()
 
@@ -87,7 +88,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 
 
 @pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
-def test_grad_tracking_interval(tmpdir, log_every_n_steps):
+def test_grad_tracking_interval(tmpdir, log_every_n_steps: int) -> None:
     """Test that gradient norms get tracked in the right interval and that everytime the same keys get logged."""
     trainer = Trainer(default_root_dir=tmpdir, track_grad_norm=2, log_every_n_steps=log_every_n_steps, max_steps=10)
 

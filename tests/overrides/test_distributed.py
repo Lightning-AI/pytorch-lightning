@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.data import has_len
 
 
 @pytest.mark.parametrize("shuffle", [False, True])
-def test_unrepeated_distributed_sampler(shuffle, tmpdir):
+def test_unrepeated_distributed_sampler(shuffle, tmpdir) -> None:
     """Test each rank will receive a different number of elements."""
 
     seed_everything(42)
@@ -44,7 +44,7 @@ def test_unrepeated_distributed_sampler(shuffle, tmpdir):
     assert indices[3][-1] == 35 if shuffle else 99
 
 
-def test_index_batch_sampler(tmpdir):
+def test_index_batch_sampler(tmpdir) -> None:
     """Test `IndexBatchSampler` properly extracts indices."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
@@ -57,7 +57,7 @@ def test_index_batch_sampler(tmpdir):
     assert list(index_batch_sampler) == index_batch_sampler.seen_batch_indices
 
 
-def test_index_batch_sampler_methods():
+def test_index_batch_sampler_methods() -> None:
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)

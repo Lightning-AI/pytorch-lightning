@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
@@ -67,7 +67,7 @@ from tests.helpers.runif import RunIf
 # Taken from:
 # https://github.com/pytorch/pytorch/blob/3b977a0d2834d300c0301a0c6af98c8e939019ce/torch/utils/data/_utils/worker.py#L151
 # Not available until torch 1.9.0
-def _generate_state(base_seed, worker_id):
+def _generate_state(base_seed, worker_id) -> List[int]:
     INIT_A = 0x43B0D7E5
     MULT_A = 0x931E8875
     INIT_B = 0x8B51F9DD
@@ -119,7 +119,7 @@ def _generate_state(base_seed, worker_id):
     return state
 
 
-def test_fast_forward_getattr():
+def test_fast_forward_getattr() -> None:
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -129,7 +129,7 @@ def test_fast_forward_getattr():
     assert index_batch_sampler.sampler == sampler
 
 
-def test_fast_forward_on_batch_sampler():
+def test_fast_forward_on_batch_sampler() -> None:
     """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next
     batch on restart."""
     dataset = range(15)
@@ -153,7 +153,7 @@ def test_fast_forward_on_batch_sampler():
     assert next(index_batch_sampler_iter) == [6, 7, 8]
 
 
-def test_fast_forward_on_sequential_sampler():
+def test_fast_forward_on_sequential_sampler() -> None:
     """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrieved the right next
     batch on restart."""
     dataset = range(15)
@@ -176,7 +176,7 @@ def test_fast_forward_on_sequential_sampler():
     assert next(batch_sampler_iter) == [6, 7, 8]
 
 
-def test_fast_forward_on_random_sampler():
+def test_fast_forward_on_random_sampler() -> None:
     """This test ensures ``FastForwardSampler`` applied to ``RandomSampler`` correctly retrieved the right next
     batch on restart."""
     seed = 42
@@ -224,7 +224,7 @@ def test_fast_forward_on_random_sampler():
 
 
 class RangeIterableDataset(IterableDataset):
-    def __init__(self, data, num_workers: int, batch_size: int, state_dict=None, attr_name: str = "iter_sampler"):
+    def __init__(self, data, num_workers: int, batch_size: int, state_dict=None, attr_name: str = "iter_sampler") -> None:
         self.data = list(data)
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -256,7 +256,7 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.parametrize(
     "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
 )
-def test_fast_forward_sampler_over_iterable_dataset(num_workers):
+def test_fast_forward_sampler_over_iterable_dataset(num_workers) -> None:
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
     batch_size = 3
@@ -302,14 +302,14 @@ def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     assert torch.equal(batches_restart[2]["data"], batches[4]["data"])
 
 
-def _setup_ddp(rank, worldsize):
+def _setup_ddp(rank, worldsize) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
 
     # initialize the process group
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
+def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize) -> None:
     _setup_ddp(rank, worldsize)
 
     initial_seed = seed_everything(42)
@@ -367,7 +367,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
 
 @RunIf(skip_windows=True, slow=True)
-def test_fast_forward_sampler_with_distributed_sampler():
+def test_fast_forward_sampler_with_distributed_sampler() -> None:
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
     worldsize = 2
@@ -387,7 +387,7 @@ class MetaLearningDataset(IterableDataset):
         initial_seed: Optional[int] = None,
         shuffle: bool = True,
         debugging: bool = False,
-    ):
+    ) -> None:
         self.dataset = dataset
         self.batch_size = batch_size
         self.drop_last = drop_last
@@ -424,7 +424,7 @@ class MetaLearningDataset(IterableDataset):
     def is_distributed(self) -> bool:
         return self.world_size is not None and self.world_size > 1
 
-    def set_seed(self, shared: bool = False):
+    def set_seed(self, shared: bool = False) -> None:
         initial_seed = self.initial_seed + self.current_task_iteration
         if shared:
             seed = initial_seed
@@ -437,7 +437,7 @@ class MetaLearningDataset(IterableDataset):
         torch.manual_seed(seed)
         np.random.seed(np_seed)
 
-    def sample_task_indices(self):
+    def sample_task_indices(self) -> None:
         self.set_seed(shared=True)
         self.selected_indexes = np.random.choice(self.unique_labels, self.task_num_classes, replace=False)
         self.selected_indexes.sort()
@@ -455,7 +455,7 @@ class MetaLearningDataset(IterableDataset):
         is_global_zero = self.global_rank == 0
         return self.global_rank + worker_id + int(not is_global_zero)
 
-    def create_sampler(self):
+    def create_sampler(self) -> None:
         data = range(self.task_length)
         if self.world_size == 1 and self.num_workers in (0, 1):
             if self.shuffle:
@@ -481,7 +481,7 @@ class MetaLearningDataset(IterableDataset):
         self.current_task_iteration += 1
         return self
 
-    def increment_iteration(self):
+    def increment_iteration(self) -> None:
         self.current_task_iteration += 1
 
     def __next__(self):
@@ -497,7 +497,7 @@ class MetaLearningDataset(IterableDataset):
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, inputs, labels):
+    def __init__(self, inputs, labels) -> None:
         self.inputs = inputs
         self.labels = labels
         assert len(self.inputs) == len(self.labels)
@@ -505,11 +505,11 @@ class ClassificationDataset(Dataset):
     def __getitem__(self, index):
         return (self.inputs[index], self.labels[index])
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.inputs)
 
 
-def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(rank, worldsize):
+def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(rank, worldsize: int) -> None:
     if worldsize > 1:
         _setup_ddp(rank, worldsize)
 
@@ -636,13 +636,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(slow=True)
-def test_fast_forward_sampler_iterative_dataset():
+def test_fast_forward_sampler_iterative_dataset() -> None:
     _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(skip_windows=True, slow=True)
-def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
+def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset() -> None:
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
     worldsize = 2
@@ -653,11 +653,11 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(max_torch="1.7")
-def test_fault_tolerant_not_supported():
+def test_fault_tolerant_not_supported() -> None:
     assert not _fault_tolerant_training()
 
 
-def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
+def create_iterable_dataset(batch_size, num_workers, attr_name: str="iter_sampler", wrap: bool = True) -> Union[CaptureIterableDataset, RangeIterableDataset]:
     dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
     if wrap:
         dataset = CaptureIterableDataset(dataset)
@@ -666,7 +666,7 @@ def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", w
 
 @mock.patch("pytorch_lightning.trainer.connectors.data_connector._validate_fault_tolerant_automatic")
 @pytest.mark.parametrize("use_fault_tolerant", ["0", "1"])
-def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
+def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant) -> None:
     """This test ensures the dataset and sampler are properly wrapped when fault tolerant is enabled."""
 
     class CustomBatchSampler(BatchSampler):
@@ -729,7 +729,7 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
 
 
 class SequentialGetItemDataset(Dataset):
-    def __init__(self, length, *_):
+    def __init__(self, length, *_) -> None:
         self.len = length
 
     def __getitem__(self, index):
@@ -742,7 +742,7 @@ class SequentialGetItemDataset(Dataset):
 class RandomGetItemDataset(Dataset):
     """A dataset with random elements generated using global rng from torch, numpy and python."""
 
-    def __init__(self, length, size):
+    def __init__(self, length, size) -> None:
         self.size = size
         self.len = length
 
@@ -769,7 +769,7 @@ class RandomGetItemDataset(Dataset):
 )
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
-def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
+def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size) -> None:
     """Test that the sequence of batches coming from a random number generator continues with the correct sequence
     after reloading the state."""
 
@@ -842,7 +842,7 @@ class CustomException(Exception):
 
 
 class SequentialIterableDataset(IterableDataset):
-    def __init__(self, length, *_):
+    def __init__(self, length, *_) -> None:
         self.len = length
         self.sampler = SequentialSampler(range(self.len))
 
@@ -856,13 +856,13 @@ class SequentialIterableDataset(IterableDataset):
 
 
 class SequentialDictIterableDataset(SequentialIterableDataset):
-    def __next__(self):
+    def __next__(self) -> Dict[str, Any]:
         indices = next(self.sampler_iter)
         return {"data": torch.tensor([indices]).float()}
 
 
 class TestModel(LightningModule):
-    def __init__(self, fail_on_step: int = -1):
+    def __init__(self, fail_on_step: int = -1) -> None:
         super().__init__()
         self.layer = torch.nn.Linear(1, 2)
         self.seen_batches = []
@@ -909,7 +909,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
     ],
 )
 @pytest.mark.parametrize("multiple_trainloader_mode", ["min_size", "max_size_cycle"])
-def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, multiple_trainloader_mode):
+def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, multiple_trainloader_mode) -> None:
     """Test that the Trainer can resume from a failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -969,7 +969,7 @@ def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, m
         1.0,
     ],
 )
-def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir):
+def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_check_interval, tmpdir) -> None:
     n_val_dataloaders = len(val_datasets)
     stop_dataloader = n_val_dataloaders - 1
     stop_batch = 1
@@ -1035,7 +1035,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
 
 class TestAutoRestartModelUnderSignal(BoringModel):
-    def __init__(self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool):
+    def __init__(self, should_signal: bool, failure_on_step: bool, failure_on_training: bool, on_last_batch: bool) -> None:
         super().__init__()
         self.should_signal = should_signal
         self.failure_on_step = failure_on_step
@@ -1043,7 +1043,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
         self.on_last_batch = on_last_batch
         self.seen_train_batches = []
 
-    def _signal(self):
+    def _signal(self) -> None:
         if self.should_signal:
             # simulate `os.kill(os.getpid(), signal.SIGTERM)`
             self.trainer._terminate_gracefully = True
@@ -1082,7 +1082,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
 
 def _fit_model(
     tmpdir, should_signal, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=None
-):
+) -> TestAutoRestartModelUnderSignal:
     seed_everything(42)
     model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
 
@@ -1123,7 +1123,7 @@ def _fit_model(
 @pytest.mark.parametrize("failure_on_step", [False, True])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(skip_windows=True)
-def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir):
+def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on_training, failure_on_step, tmpdir) -> None:
     """This test asserts that if a signal is being sent during the training / validation phase, the model should
     restart in a reproducible way."""
 
@@ -1180,7 +1180,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_validate_fault_tolerant(tmpdir):
+def test_validate_fault_tolerant(tmpdir) -> None:
     def data():
         return range(10)
 
@@ -1281,7 +1281,7 @@ def test_validate_fault_tolerant(tmpdir):
         _validate_fault_tolerant_automatic(dataloaders, RunningStage.VALIDATING)
 
 
-def test_rotate_worker_indices():
+def test_rotate_worker_indices() -> None:
     """This test ensures `worker_id` are rotated properly depending on which one was the latest."""
     state_dict = {0: 0, 1: 1}
     assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
@@ -1294,7 +1294,7 @@ def test_rotate_worker_indices():
         _rotate_worker_indices(state_dict, 2, 3)
 
 
-def test_fault_tolerant_mode_enum():
+def test_fault_tolerant_mode_enum() -> None:
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "0"}):
         assert _FaultTolerantMode.DISABLED == _FaultTolerantMode.detect_current_mode()
         assert not TrainerState()._fault_tolerant_mode.is_enabled
@@ -1318,16 +1318,16 @@ class StatefulRandomSampler(RandomSampler):
 
     counter = 0
 
-    def state_dict(self):
+    def state_dict(self) -> Dict[str, int]:
         self.counter += 1
         return {"counter": self.counter}
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict) -> None:
         self.counter = state_dict["counter"]
 
 
 class StatefulRandomDataset(RandomDataset):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.counter = 0
 
@@ -1341,11 +1341,11 @@ class StatefulRandomDataset(RandomDataset):
             return {info.id: {"counter": self.counter}}
         return {"counter": self.counter}
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict) -> None:
         self.counter = state_dict[0]["counter"]
 
 
-def test_collect_states_with_collection():
+def test_collect_states_with_collection() -> None:
     state = {"state": 0}
     collection = [{"a": state, "b": [{"a": state}]}]
     generated = _collect_states_on_rank_zero_over_collection(collection)
@@ -1418,7 +1418,7 @@ def test_stateful_workers(num_workers):
 
 
 class RandomFaultTolerantDataset(RandomGetItemDataset):
-    def __init__(self, *args, seed: int, **kwargs):
+    def __init__(self, *args, seed: int, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.seed = seed
         self._cache_state_dict = None
@@ -1444,12 +1444,12 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
     def state_dict(self):
         return {self.worker_id: {"random_state": self.generator.getstate()}}
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict) -> None:
         self._cache_state_dict = state_dict
 
 
 class RandomFaultTolerantSampler(RandomSampler):
-    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+    def __init__(self, *args, seed: int = 0, generator=None, **kwargs) -> None:
         generator = torch.Generator().manual_seed(seed)
         super().__init__(*args, generator=generator, **kwargs)
         self.counter = 0
@@ -1458,12 +1458,12 @@ class RandomFaultTolerantSampler(RandomSampler):
     def state_dict(self):
         return {"random_state": self.state, "counter": self.counter}
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict) -> None:
         self.generator.set_state(state_dict.get("random_state"))
         self.counter = state_dict["counter"]
         self.restarting = True
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data_source) - self.counter
 
     def __iter__(self) -> Iterator[int]:
@@ -1493,7 +1493,7 @@ class RandomFaultTolerantSampler(RandomSampler):
 )
 @pytest.mark.parametrize("val_check_interval", [0.5])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
-def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_dataset_cls, tmpdir):
+def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_dataset_cls, tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self, should_fail: bool = False):
             super().__init__()

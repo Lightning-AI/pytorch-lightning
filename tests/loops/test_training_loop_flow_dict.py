@@ -20,7 +20,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers.deterministic_model import DeterministicModel
 
 
-def test__training_step__flow_dict(tmpdir):
+def test__training_step__flow_dict(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -52,7 +52,7 @@ def test__training_step__flow_dict(tmpdir):
     assert not model.training_epoch_end_called
 
 
-def test__training_step__tr_step_end__flow_dict(tmpdir):
+def test__training_step__tr_step_end__flow_dict(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -91,7 +91,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
     assert not model.training_epoch_end_called
 
 
-def test__training_step__epoch_end__flow_dict(tmpdir):
+def test__training_step__epoch_end__flow_dict(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -138,7 +138,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     assert model.training_epoch_end_called
 
 
-def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
+def test__training_step__step_end__epoch_end__flow_dict(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):

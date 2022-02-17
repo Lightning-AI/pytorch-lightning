@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -22,6 +23,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
@@ -29,7 +31,7 @@ from tests.helpers.runif import RunIf
 
 
 class SwaTestModel(BoringModel):
-    def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False):
+    def __init__(self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False) -> None:
         super().__init__()
         layers = [nn.Linear(32, 32)]
         if batchnorm:
@@ -39,7 +41,7 @@ class SwaTestModel(BoringModel):
         self.interval = interval
         self.iterable_dataset = iterable_dataset
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self.forward(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -51,7 +53,7 @@ class SwaTestModel(BoringModel):
 
         return DataLoader(dset, batch_size=2)
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         return {
             "optimizer": optimizer,
@@ -74,7 +76,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         self.transfer_weights_calls += 1
         return StochasticWeightAveraging.transfer_weights(*args, **kwargs)
 
-    def on_train_epoch_start(self, trainer, *args):
+    def on_train_epoch_start(self, trainer: Trainer, *args) -> None:
         super().on_train_epoch_start(trainer, *args)
         assert trainer.fit_loop._skip_backward == (trainer.current_epoch > self.swa_end)
         if self.swa_start <= trainer.current_epoch:
@@ -82,7 +84,7 @@ class SwaTestCallback(StochasticWeightAveraging):
             assert trainer.lr_scheduler_configs[0].interval == "epoch"
             assert trainer.lr_scheduler_configs[0].frequency == 1
 
-    def on_train_epoch_end(self, trainer, *args):
+    def on_train_epoch_end(self, trainer: Trainer, *args) -> None:
         super().on_train_epoch_end(trainer, *args)
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             swa_epoch = trainer.current_epoch - self.swa_start
@@ -90,7 +92,7 @@ class SwaTestCallback(StochasticWeightAveraging):
         elif trainer.current_epoch > self.swa_end:
             assert self.n_averaged == self._max_epochs - self.swa_start
 
-    def on_train_end(self, trainer, pl_module):
+    def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         super().on_train_end(trainer, pl_module)
 
         # make sure these are correctly set again
@@ -109,13 +111,13 @@ class SwaTestCallback(StochasticWeightAveraging):
 
 def train_with_swa(
     tmpdir,
-    batchnorm=True,
+    batchnorm: bool=True,
     strategy=None,
-    accelerator="cpu",
-    devices=1,
-    interval="epoch",
-    iterable_dataset=False,
-):
+    accelerator: str="cpu",
+    devices: int=1,
+    interval: str="epoch",
+    iterable_dataset: bool=False,
+) -> None:
     model = SwaTestModel(batchnorm=batchnorm, interval=interval, iterable_dataset=iterable_dataset)
     swa_start = 2
     max_epochs = 5
@@ -144,37 +146,37 @@ def train_with_swa(
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_swa_callback_ddp(tmpdir):
+def test_swa_callback_ddp(tmpdir) -> None:
     train_with_swa(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
 @RunIf(min_gpus=2)
-def test_swa_callback_ddp_spawn(tmpdir):
+def test_swa_callback_ddp_spawn(tmpdir) -> None:
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_swa_callback_ddp_cpu(tmpdir):
+def test_swa_callback_ddp_cpu(tmpdir) -> None:
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @RunIf(min_gpus=1)
-def test_swa_callback_1_gpu(tmpdir):
+def test_swa_callback_1_gpu(tmpdir) -> None:
     train_with_swa(tmpdir, accelerator="gpu", devices=1)
 
 
 @pytest.mark.parametrize("batchnorm", (True, False))
 @pytest.mark.parametrize("iterable_dataset", (True, False))
-def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool):
+def test_swa_callback(tmpdir, batchnorm: bool, iterable_dataset: bool) -> None:
     train_with_swa(tmpdir, batchnorm=batchnorm, iterable_dataset=iterable_dataset)
 
 
 @pytest.mark.parametrize("interval", ("epoch", "step"))
-def test_swa_callback_scheduler_step(tmpdir, interval: str):
+def test_swa_callback_scheduler_step(tmpdir, interval: str) -> None:
     train_with_swa(tmpdir, interval=interval)
 
 
-def test_swa_warns(tmpdir, caplog):
+def test_swa_warns(tmpdir, caplog) -> None:
     model = SwaTestModel(interval="step")
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
@@ -182,7 +184,7 @@ def test_swa_warns(tmpdir, caplog):
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
 
 
-def test_swa_raises():
+def test_swa_raises() -> None:
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
@@ -195,7 +197,7 @@ def test_swa_raises():
 
 @pytest.mark.parametrize("stochastic_weight_avg", [False, True])
 @pytest.mark.parametrize("use_callbacks", [False, True])
-def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
+def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool) -> None:
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer."""
 
     class TestModel(BoringModel):
@@ -225,7 +227,7 @@ def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochast
         assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
 
-def test_swa_deepcopy(tmpdir):
+def test_swa_deepcopy(tmpdir) -> None:
     """Test to ensure SWA Callback doesn't deepcopy dataloaders and datamodule potentially leading to OOM."""
 
     class TestSWA(StochasticWeightAveraging):
@@ -247,7 +249,7 @@ def test_swa_deepcopy(tmpdir):
     assert swa.setup_called
 
 
-def test_swa_multiple_lrs(tmpdir):
+def test_swa_multiple_lrs(tmpdir) -> None:
     swa_lrs = [0.123, 0.321]
 
     class TestModel(BoringModel):

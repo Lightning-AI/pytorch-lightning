@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 
 
 @mock.patch.dict(os.environ, {})
-def test_default_attributes():
+def test_default_attributes() -> None:
     """Test the default attributes when no environment variables are set."""
     env = TorchElasticEnvironment()
     assert env.creates_processes_externally
@@ -47,7 +47,7 @@ def test_default_attributes():
         "GROUP_RANK": "3",
     },
 )
-def test_attributes_from_environment_variables(caplog):
+def test_attributes_from_environment_variables(caplog) -> None:
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = TorchElasticEnvironment()
     assert env.main_address == "1.2.3.4"
@@ -70,7 +70,7 @@ def test_attributes_from_environment_variables(caplog):
     assert "setting world size is not allowed" in caplog.text
 
 
-def test_detect():
+def test_detect() -> None:
     """Test the detection of a torchelastic environment configuration."""
     with mock.patch.dict(os.environ, {}):
         assert not TorchElasticEnvironment.detect()

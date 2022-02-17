@@ -38,18 +38,18 @@ from tests.helpers.runif import RunIf
 
 
 class DummyMetric(Metric):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, x):
+    def update(self, x) -> None:
         self.x += x
 
     def compute(self):
         return self.x
 
 
-def _setup_ddp(rank, worldsize):
+def _setup_ddp(rank, worldsize) -> None:
     import os
 
     os.environ["MASTER_ADDR"] = "localhost"
@@ -58,7 +58,7 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize):
+def _ddp_test_fn(rank, worldsize) -> None:
     _setup_ddp(rank, worldsize)
     torch.tensor([1.0])
 
@@ -100,7 +100,7 @@ def _ddp_test_fn(rank, worldsize):
 
 
 @RunIf(skip_windows=True, min_gpus=2)
-def test_result_reduce_ddp():
+def test_result_reduce_ddp() -> None:
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
 
@@ -108,7 +108,7 @@ def test_result_reduce_ddp():
     mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
 
 
-def test_result_metric_integration():
+def test_result_metric_integration() -> None:
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -162,7 +162,7 @@ def test_result_metric_integration():
     )
 
 
-def test_result_collection_simple_loop():
+def test_result_collection_simple_loop() -> None:
     result = _ResultCollection(True, torch.device("cpu"))
     current_fx_name = None
     batch_idx = None
@@ -208,7 +208,7 @@ def my_sync_dist(x, *_, **__):
     return x
 
 
-def test_result_collection_restoration(tmpdir):
+def test_result_collection_restoration(tmpdir) -> None:
     """This test make sure metrics are properly reloaded on failure."""
 
     result = _ResultCollection(True, torch.device("cpu"))
@@ -299,7 +299,7 @@ def test_result_collection_restoration(tmpdir):
 
 
 @pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_gpus=1))))
-def test_lightning_module_logging_result_collection(tmpdir, device):
+def test_lightning_module_logging_result_collection(tmpdir, device) -> None:
     class LoggingModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -355,12 +355,12 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
 
 
 class DummyMeanMetric(Metric):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.add_state("sum", torch.tensor(0), dist_reduce_fx=torch.sum)
         self.add_state("count", torch.tensor(0), dist_reduce_fx=torch.sum)
 
-    def update(self, increment):
+    def update(self, increment) -> None:
         self.sum += increment
         self.count += 1
 
@@ -371,7 +371,7 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator="auto", devices=1, **kwargs):
+def result_collection_reload(accelerator: str="auto", devices: int=1, **kwargs) -> None:
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
 
@@ -470,23 +470,23 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload(tmpdir):
+def test_result_collection_reload(tmpdir) -> None:
     result_collection_reload(default_root_dir=tmpdir)
 
 
 @RunIf(min_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_1_gpu_ddp(tmpdir):
+def test_result_collection_reload_1_gpu_ddp(tmpdir) -> None:
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
 
 
 @RunIf(min_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_2_gpus(tmpdir):
+def test_result_collection_reload_2_gpus(tmpdir) -> None:
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
-def test_metric_collections(tmpdir):
+def test_metric_collections(tmpdir) -> None:
     """This test ensures the metric attribute is properly found even with complex nested metric structure."""
 
     class TestModel(BoringModel):
@@ -547,7 +547,7 @@ def test_metric_collections(tmpdir):
     trainer.fit(model)
 
 
-def test_metric_result_computed_check():
+def test_metric_result_computed_check() -> None:
     """Unittest ``_get_cache`` with multielement tensors."""
     metadata = _Metadata("foo", "bar", on_epoch=True, enable_graph=True)
     metadata.sync = _Sync()
@@ -560,7 +560,7 @@ def test_metric_result_computed_check():
 
 
 @pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
-def test_metric_result_respects_dtype(floating_dtype):
+def test_metric_result_respects_dtype(floating_dtype) -> None:
     torch.set_default_dtype(floating_dtype)
     fixed_dtype = torch.long  # default by PyTorch
 
@@ -591,7 +591,7 @@ def test_metric_result_respects_dtype(floating_dtype):
 
 
 @pytest.mark.parametrize("reduce_fx", ("mean", sum))
-def test_metric_result_dtype_promotion(reduce_fx):
+def test_metric_result_dtype_promotion(reduce_fx) -> None:
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
@@ -611,7 +611,7 @@ def test_metric_result_dtype_promotion(reduce_fx):
 
 
 @pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
-def test_result_metric_max_min(reduce_fx, expected):
+def test_result_metric_max_min(reduce_fx, expected) -> None:
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)

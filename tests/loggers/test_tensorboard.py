@@ -35,7 +35,7 @@ if _OMEGACONF_AVAILABLE:
 @pytest.mark.skipif(
     _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
 )
-def test_tensorboard_hparams_reload(tmpdir):
+def test_tensorboard_hparams_reload(tmpdir) -> None:
     from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
     class CustomModel(BoringModel):
@@ -73,7 +73,7 @@ def test_tensorboard_hparams_reload(tmpdir):
     assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.content == hparams_data
 
 
-def test_tensorboard_automatic_versioning(tmpdir):
+def test_tensorboard_automatic_versioning(tmpdir) -> None:
     """Verify that automatic versioning works."""
 
     root_dir = tmpdir / "tb_versioning"
@@ -85,7 +85,7 @@ def test_tensorboard_automatic_versioning(tmpdir):
     assert logger.version == 2
 
 
-def test_tensorboard_manual_versioning(tmpdir):
+def test_tensorboard_manual_versioning(tmpdir) -> None:
     """Verify that manual versioning works."""
 
     root_dir = tmpdir / "tb_versioning"
@@ -99,7 +99,7 @@ def test_tensorboard_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
-def test_tensorboard_named_version(tmpdir):
+def test_tensorboard_named_version(tmpdir) -> None:
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
 
     name = "tb_versioning"
@@ -115,7 +115,7 @@ def test_tensorboard_named_version(tmpdir):
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_tensorboard_no_name(tmpdir, name):
+def test_tensorboard_no_name(tmpdir, name) -> None:
     """Verify that None or empty name works."""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
@@ -124,7 +124,7 @@ def test_tensorboard_no_name(tmpdir, name):
 
 
 @mock.patch.dict(os.environ, {})
-def test_tensorboard_log_sub_dir(tmpdir):
+def test_tensorboard_log_sub_dir(tmpdir) -> None:
     class TestLogger(TensorBoardLogger):
         # for reproducibility
         @property
@@ -166,13 +166,13 @@ def test_tensorboard_log_sub_dir(tmpdir):
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_tensorboard_log_metrics(tmpdir, step_idx):
+def test_tensorboard_log_metrics(tmpdir, step_idx) -> None:
     logger = TensorBoardLogger(tmpdir)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
 
 
-def test_tensorboard_log_hyperparams(tmpdir):
+def test_tensorboard_log_hyperparams(tmpdir) -> None:
     logger = TensorBoardLogger(tmpdir)
     hparams = {
         "float": 0.3,
@@ -189,7 +189,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
     logger.log_hyperparams(hparams)
 
 
-def test_tensorboard_log_hparams_and_metrics(tmpdir):
+def test_tensorboard_log_hparams_and_metrics(tmpdir) -> None:
     logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
@@ -208,7 +208,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
 
 
 @RunIf(omegaconf=True)
-def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
+def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir) -> None:
     logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
@@ -225,7 +225,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
-def test_tensorboard_log_graph(tmpdir, example_input_array):
+def test_tensorboard_log_graph(tmpdir, example_input_array) -> None:
     """test that log graph works with both model.example_input_array and if array is passed externally."""
     model = BoringModel()
     if example_input_array is not None:
@@ -235,7 +235,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger.log_graph(model, example_input_array)
 
 
-def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
+def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir) -> None:
     """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
     model.example_input_array = None
@@ -249,7 +249,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
-def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
+def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir) -> None:
     """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
     class TestModel(BoringModel):
@@ -287,7 +287,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter")
-def test_tensorboard_finalize(summary_writer, tmpdir):
+def test_tensorboard_finalize(summary_writer, tmpdir) -> None:
     """Test that the SummaryWriter closes in finalize."""
     logger = TensorBoardLogger(save_dir=tmpdir)
     logger.finalize("any")
@@ -295,7 +295,7 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
     summary_writer().close.assert_called()
 
 
-def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir) -> None:
     model = BoringModel()
     logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
@@ -308,7 +308,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmpdir):
+def test_tensorboard_with_symlink(log, tmpdir) -> None:
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
     and relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
@@ -324,7 +324,7 @@ def test_tensorboard_with_symlink(log, tmpdir):
     log.warning.assert_not_called()
 
 
-def test_tensorboard_missing_folder_warning(tmpdir, caplog):
+def test_tensorboard_missing_folder_warning(tmpdir, caplog) -> None:
     """Verify that the logger throws a warning for invalid directory."""
 
     name = "fake_dir"

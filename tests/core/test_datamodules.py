@@ -39,7 +39,7 @@ if _OMEGACONF_AVAILABLE:
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
-def test_can_prepare_data(local_rank, node_rank):
+def test_can_prepare_data(local_rank, node_rank) -> None:
     dm = Mock(spec=LightningDataModule)
     dm.prepare_data_per_node = True
     trainer = Trainer()
@@ -98,7 +98,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_called_once()
 
 
-def test_hooks_no_recursion_error():
+def test_hooks_no_recursion_error() -> None:
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
@@ -114,27 +114,27 @@ def test_hooks_no_recursion_error():
         dm.prepare_data()
 
 
-def test_helper_boringdatamodule():
+def test_helper_boringdatamodule() -> None:
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_helper_boringdatamodule_with_verbose_setup():
+def test_helper_boringdatamodule_with_verbose_setup() -> None:
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup("fit")
     dm.setup("test")
 
 
-def test_dm_add_argparse_args(tmpdir):
+def test_dm_add_argparse_args(tmpdir) -> None:
     parser = ArgumentParser()
     parser = BoringDataModule.add_argparse_args(parser)
     args = parser.parse_args(["--data_dir", str(tmpdir)])
     assert args.data_dir == str(tmpdir)
 
 
-def test_dm_init_from_argparse_args(tmpdir):
+def test_dm_init_from_argparse_args(tmpdir) -> None:
     parser = ArgumentParser()
     parser = BoringDataModule.add_argparse_args(parser)
     args = parser.parse_args(["--data_dir", str(tmpdir)])
@@ -144,12 +144,12 @@ def test_dm_init_from_argparse_args(tmpdir):
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
-def test_dm_pickle_after_init():
+def test_dm_pickle_after_init() -> None:
     dm = BoringDataModule()
     pickle.dumps(dm)
 
 
-def test_train_loop_only(tmpdir):
+def test_train_loop_only(tmpdir) -> None:
     reset_seed()
 
     dm = ClassifDataModule()
@@ -170,7 +170,7 @@ def test_train_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.0
 
 
-def test_train_val_loop_only(tmpdir):
+def test_train_val_loop_only(tmpdir) -> None:
     reset_seed()
 
     dm = ClassifDataModule()
@@ -188,7 +188,7 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.0
 
 
-def test_dm_checkpoint_save_and_load(tmpdir):
+def test_dm_checkpoint_save_and_load(tmpdir) -> None:
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
@@ -237,7 +237,7 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
-def test_full_loop(tmpdir):
+def test_full_loop(tmpdir) -> None:
     reset_seed()
 
     dm = ClassifDataModule()
@@ -266,7 +266,7 @@ def test_full_loop(tmpdir):
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_dm_apply_batch_transfer_handler(get_module_mock):
+def test_dm_apply_batch_transfer_handler(get_module_mock) -> None:
     expected_device = torch.device("cuda", 0)
 
     class CustomBatch:
@@ -328,7 +328,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
+def test_dm_reload_dataloaders_every_n_epochs(tmpdir) -> None:
     """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative
     integer."""
 
@@ -357,10 +357,10 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
 
 
 class DummyDS(torch.utils.data.Dataset):
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> int:
         return 1
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 100
 
 
@@ -370,7 +370,7 @@ class DummyIDS(torch.utils.data.IterableDataset):
 
 
 @pytest.mark.parametrize("iterable", (False, True))
-def test_dm_init_from_datasets_dataloaders(iterable):
+def test_dm_init_from_datasets_dataloaders(iterable) -> None:
     ds = DummyIDS if iterable else DummyDS
 
     train_ds = ds()
@@ -427,19 +427,19 @@ def test_dm_init_from_datasets_dataloaders(iterable):
 
 # all args
 class DataModuleWithHparams_0(LightningDataModule):
-    def __init__(self, arg0, arg1, kwarg0=None):
+    def __init__(self, arg0, arg1, kwarg0=None) -> None:
         super().__init__()
         self.save_hyperparameters()
 
 
 # single arg
 class DataModuleWithHparams_1(LightningDataModule):
-    def __init__(self, arg0, *args, **kwargs):
+    def __init__(self, arg0, *args, **kwargs) -> None:
         super().__init__()
         self.save_hyperparameters(arg0)
 
 
-def test_hyperparameters_saving():
+def test_hyperparameters_saving() -> None:
     data = DataModuleWithHparams_0(10, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"arg0": 10, "arg1": "foo", "kwarg0": "bar"})
 
@@ -454,7 +454,7 @@ def test_hyperparameters_saving():
         assert data.hparams == OmegaConf.create({"hello": "world"})
 
 
-def test_define_as_dataclass():
+def test_define_as_dataclass() -> None:
     class BoringDataModule(LightningDataModule):
         def __init__(self, foo=None):
             super().__init__()
@@ -490,7 +490,7 @@ def test_define_as_dataclass():
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
 
 
-def test_inconsistent_prepare_data_per_node(tmpdir):
+def test_inconsistent_prepare_data_per_node(tmpdir) -> None:
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()

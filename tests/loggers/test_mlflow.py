@@ -35,7 +35,7 @@ def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, r
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_exists(client, mlflow, tmpdir):
+def test_mlflow_logger_exists(client, mlflow, tmpdir) -> None:
     """Test launching three independent loggers with either same or different experiment name."""
 
     run1 = MagicMock()
@@ -88,7 +88,7 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_run_name_setting(client, mlflow, tmpdir):
+def test_mlflow_run_name_setting(client, mlflow, tmpdir) -> None:
     """Test that the run_name argument makes the MLFLOW_RUN_NAME tag."""
 
     tags = resolve_tags({MLFLOW_RUN_NAME: "run-name-1"})
@@ -115,7 +115,7 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_log_dir(client, mlflow, tmpdir):
+def test_mlflow_log_dir(client, mlflow, tmpdir) -> None:
     """Test that the trainer saves checkpoints in the logger's save dir."""
 
     # simulate experiment creation with mlflow client mock
@@ -140,7 +140,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert trainer.log_dir == logger.save_dir
 
 
-def test_mlflow_logger_dirs_creation(tmpdir):
+def test_mlflow_logger_dirs_creation(tmpdir) -> None:
     """Test that the logger creates the folders and files in the right place."""
     if not _MLFLOW_AVAILABLE:
         pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
@@ -182,7 +182,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
+def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir) -> None:
     """Test that the logger experiment_id retrieved only once."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     _ = logger.experiment
@@ -193,7 +193,7 @@ def test_mlflow_experiment_id_retrieved_once(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
+def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir) -> None:
     """Test that the logger raises warning with special characters not accepted by MLFlow."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     metrics = {"[some_metric]": 10}
@@ -204,7 +204,7 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
+def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir) -> None:
     """Test that the logger raises warning with special characters not accepted by MLFlow."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
     value = "test" * 100
@@ -218,7 +218,7 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.time")
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
+def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir) -> None:
     """Test that the logger calls methods on the mlflow experiment correctly."""
     time.return_value = 1
 

@@ -22,7 +22,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_disabled_checkpointing(tmpdir):
+def test_disabled_checkpointing(tmpdir) -> None:
     # no callback
     trainer = Trainer(max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
@@ -34,7 +34,7 @@ def test_disabled_checkpointing(tmpdir):
 @pytest.mark.parametrize(
     ["epochs", "val_check_interval", "expected"], [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
 )
-def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
+def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int) -> None:
 
     model = BoringModel()
     trainer = Trainer(
@@ -56,7 +56,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
     ["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 6)]
 )
 @pytest.mark.parametrize("save_last", (False, True))
-def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int, save_last: bool):
+def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float, expected: int, save_last: bool) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -89,7 +89,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 @mock.patch("torch.save")
 @RunIf(standalone=True, min_gpus=2)
 @pytest.mark.parametrize(["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
-def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))

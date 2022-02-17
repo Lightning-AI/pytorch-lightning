@@ -19,7 +19,7 @@ import pytest
 
 
 @pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"SLURM_PROCID": "0"}])
-def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]):
+def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]) -> None:
     """Test that SLURM environment variables are properly checked for rank_zero_only."""
     from pytorch_lightning.utilities.rank_zero import _get_rank, rank_zero_only
 
@@ -39,7 +39,7 @@ def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]):
 
 
 @pytest.mark.parametrize("rank_key,rank", [("RANK", "1"), ("SLURM_PROCID", "2"), ("LOCAL_RANK", "3")])
-def test_rank_zero_none_set(rank_key, rank):
+def test_rank_zero_none_set(rank_key, rank) -> None:
     """Test that function is not called when rank environment variables are not global zero."""
 
     with mock.patch.dict(os.environ, {rank_key: rank}):
@@ -63,7 +63,7 @@ def test_rank_zero_none_set(rank_key, rank):
         ({"SLURM_PROCID": "2", "LOCAL_RANK": "1", "RANK": "0"}, 0),
     ],
 )
-def test_rank_zero_priority(environ, expected_rank):
+def test_rank_zero_priority(environ, expected_rank) -> None:
     """Test the priority in which the rank gets determined when multiple environment variables are available."""
     with mock.patch.dict(os.environ, environ):
         from pytorch_lightning.utilities.rank_zero import _get_rank

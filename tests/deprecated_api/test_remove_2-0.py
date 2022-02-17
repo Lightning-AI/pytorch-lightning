@@ -19,7 +19,7 @@ from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.helpers import BoringModel
 
 
-def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir) -> None:
     # test resume_from_checkpoint still works until v2.0 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -20,7 +22,7 @@ from pytorch_lightning import LightningModule
 
 
 class ClassificationModel(LightningModule):
-    def __init__(self, lr=0.01):
+    def __init__(self, lr: float=0.01) -> None:
         super().__init__()
 
         self.lr = lr
@@ -48,7 +50,7 @@ class ClassificationModel(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return [optimizer], []
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
@@ -56,25 +58,25 @@ class ClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True)
 
-    def predict_step(self, batch, batch_idx):
+    def predict_step(self, batch, batch_idx: int):
         x, _ = batch
         return self.forward(x)
 
 
 class RegressionModel(LightningModule):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         setattr(self, "layer_0", nn.Linear(16, 64))
         setattr(self, "layer_0a", torch.nn.ReLU())
@@ -101,7 +103,7 @@ class RegressionModel(LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
         return [optimizer], []
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         out = self.forward(x)
         loss = F.mse_loss(out, y)
@@ -109,13 +111,13 @@ class RegressionModel(LightningModule):
         self.log("train_MSE", self.train_mse(out, y), prog_bar=True)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = batch
         out = self.forward(x)
         self.log("val_loss", F.mse_loss(out, y), prog_bar=False)
         self.log("val_MSE", self.valid_mse(out, y), prog_bar=True)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         out = self.forward(x)
         self.log("test_loss", F.mse_loss(out, y), prog_bar=False)

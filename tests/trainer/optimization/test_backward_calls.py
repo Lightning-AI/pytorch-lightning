@@ -9,7 +9,7 @@ from tests.helpers import BoringModel
 
 @pytest.mark.parametrize("num_steps", [1, 2, 3])
 @patch("torch.Tensor.backward")
-def test_backward_count_simple(torch_backward, num_steps):
+def test_backward_count_simple(torch_backward, num_steps) -> None:
     """Test that backward is called exactly once per step."""
     model = BoringModel()
     trainer = Trainer(max_steps=num_steps)
@@ -23,7 +23,7 @@ def test_backward_count_simple(torch_backward, num_steps):
 
 
 @patch("torch.Tensor.backward")
-def test_backward_count_with_grad_accumulation(torch_backward):
+def test_backward_count_with_grad_accumulation(torch_backward) -> None:
     """Test that backward is called the correct number of times when accumulating gradients."""
     model = BoringModel()
     trainer = Trainer(max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2)
@@ -38,7 +38,7 @@ def test_backward_count_with_grad_accumulation(torch_backward):
 
 
 @patch("torch.Tensor.backward")
-def test_backward_count_with_closure(torch_backward):
+def test_backward_count_with_closure(torch_backward) -> None:
     """Using a closure (e.g. with LBFGS) should lead to no extra backward calls."""
 
     class TestModel(BoringModel):

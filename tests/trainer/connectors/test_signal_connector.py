@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 
 @RunIf(skip_windows=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_signal_handlers_restored_in_teardown():
+def test_signal_handlers_restored_in_teardown() -> None:
     """Test that the SignalConnector restores the previously configured handler on teardown."""
     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
 
@@ -45,7 +45,7 @@ def test_signal_handlers_restored_in_teardown():
 @pytest.mark.parametrize("register_handler", [False, True])
 @pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
-def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
+def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir) -> None:
 
     if register_handler:
 
@@ -78,7 +78,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
-def test_auto_requeue_flag(auto_requeue):
+def test_auto_requeue_flag(auto_requeue) -> None:
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
     connector = SignalConnector(trainer)
     connector.register_signal_handlers()
@@ -98,25 +98,25 @@ def test_auto_requeue_flag(auto_requeue):
     connector.teardown()
 
 
-def _registering_signals():
+def _registering_signals() -> None:
     trainer = Trainer()
     trainer._signal_connector.register_signal_handlers()
 
 
 @RunIf(skip_windows=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_signal_connector_in_thread():
+def test_signal_connector_in_thread() -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
             assert future.exception() is None
 
 
-def signal_handler():
+def signal_handler() -> None:
     pass
 
 
 class SignalHandlers:
-    def signal_handler(self):
+    def signal_handler(self) -> None:
         pass
 
 
@@ -130,7 +130,7 @@ class SignalHandlers:
         (SignalHandlers().signal_handler, True),
     ],
 )
-def test_has_already_handler(handler, expected_return):
+def test_has_already_handler(handler, expected_return) -> None:
     """Test that the SignalConnector detects whether a signal handler is already attached."""
     with mock.patch("pytorch_lightning.trainer.connectors.signal_connector.signal.getsignal", return_value=handler):
         assert SignalConnector._has_already_handler(signal.SIGTERM) is expected_return

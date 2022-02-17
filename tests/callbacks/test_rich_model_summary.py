@@ -25,14 +25,14 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(rich=True)
-def test_rich_model_summary_callback():
+def test_rich_model_summary_callback() -> None:
     trainer = Trainer(callbacks=RichProgressBar())
 
     assert any(isinstance(cb, RichModelSummary) for cb in trainer.callbacks)
     assert isinstance(trainer.progress_bar_callback, RichProgressBar)
 
 
-def test_rich_progress_bar_import_error(monkeypatch):
+def test_rich_progress_bar_import_error(monkeypatch) -> None:
     import pytorch_lightning.callbacks.rich_model_summary as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
@@ -43,7 +43,7 @@ def test_rich_progress_bar_import_error(monkeypatch):
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.rich_model_summary.Console.print", autospec=True)
 @mock.patch("pytorch_lightning.callbacks.rich_model_summary.Table.add_row", autospec=True)
-def test_rich_summary_tuples(mock_table_add_row, mock_console):
+def test_rich_summary_tuples(mock_table_add_row, mock_console) -> None:
     """Ensure that tuples are converted into string, and print is called correctly."""
     model_summary = RichModelSummary()
 

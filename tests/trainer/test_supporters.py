@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
-def test_tensor_running_accum_reset():
+def test_tensor_running_accum_reset() -> None:
     """Test that reset would set all attributes to the initialization state."""
 
     window_length = 10
@@ -59,7 +59,7 @@ def test_tensor_running_accum_reset():
     assert not accum.rotated
 
 
-def test_cycle_iterator():
+def test_cycle_iterator() -> None:
     """Test the cycling function of `CycleIterator`"""
 
     iterator = CycleIterator(range(100), 1000)
@@ -70,7 +70,7 @@ def test_cycle_iterator():
     assert idx == len(iterator) - 1
 
 
-def test_none_length_cycle_iterator():
+def test_none_length_cycle_iterator() -> None:
     """Test the infinite cycling function of `CycleIterator`"""
     iterator = CycleIterator(range(100))
     assert iterator.__len__() == float("inf")
@@ -91,7 +91,7 @@ def test_none_length_cycle_iterator():
         ([TensorDataset(torch.randn(10, 3, 2)), TensorDataset(torch.randn(20, 5, 6))]),
     ],
 )
-def test_combined_dataset(dataset_1, dataset_2):
+def test_combined_dataset(dataset_1, dataset_2) -> None:
     """Verify the length of the CombinedDataset."""
     datasets = [dataset_1, dataset_2]
     combined_dataset = CombinedDataset(datasets)
@@ -100,13 +100,13 @@ def test_combined_dataset(dataset_1, dataset_2):
     assert combined_dataset.min_len == len(combined_dataset) == 10
 
 
-def test_combined_dataset_length_mode_error():
+def test_combined_dataset_length_mode_error() -> None:
     dset = CombinedDataset([range(10)])
     with pytest.raises(MisconfigurationException, match="Invalid Mode"):
         dset._calc_num_data([range(10)], "test")
 
 
-def test_combined_loader_iterator_dict_min_size():
+def test_combined_loader_iterator_dict_min_size() -> None:
     """Test `CombinedLoaderIterator` given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -123,25 +123,25 @@ def test_combined_loader_iterator_dict_min_size():
     assert idx == min(len(loaders["a"]), len(loaders["b"])) - 1
 
 
-def test_combined_loader_init_mode_error():
+def test_combined_loader_init_mode_error() -> None:
     """Test the ValueError when constructing `CombinedLoader`"""
     with pytest.raises(MisconfigurationException, match="Invalid Mode"):
         CombinedLoader([range(10)], "testtt")
 
 
-def test_combined_loader_loader_type_error():
+def test_combined_loader_loader_type_error() -> None:
     """Test the ValueError when wrapping the loaders."""
     with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
         CombinedLoader(None, "max_size_cycle")
 
 
-def test_combined_loader_calc_length_mode_error():
+def test_combined_loader_calc_length_mode_error() -> None:
     """Test the ValueError when calculating the number of batches."""
     with pytest.raises(TypeError, match="Expected data to be int, Sequence or Mapping, but got NoneType"):
         CombinedLoader._calc_num_batches(None)
 
 
-def test_combined_loader_dict_min_size():
+def test_combined_loader_dict_min_size() -> None:
     """Test `CombinedLoader` of mode 'min_size' given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -160,7 +160,7 @@ def test_combined_loader_dict_min_size():
     assert idx == len(combined_loader) - 1
 
 
-def test_combined_loader_dict_max_size_cycle():
+def test_combined_loader_dict_max_size_cycle() -> None:
     """Test `CombinedLoader` of mode 'max_size_cycle' given mapping loaders."""
     loaders = {
         "a": torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -179,7 +179,7 @@ def test_combined_loader_dict_max_size_cycle():
     assert idx == len(combined_loader) - 1
 
 
-def test_combined_loader_sequence_min_size():
+def test_combined_loader_sequence_min_size() -> None:
     """Test `CombinedLoader` of mode 'min_size' given sequence loaders."""
     loaders = [
         torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -198,7 +198,7 @@ def test_combined_loader_sequence_min_size():
 
 
 class TestIterableDataset(IterableDataset):
-    def __init__(self, size: int = 10):
+    def __init__(self, size: int = 10) -> None:
         self.size = size
 
     def __iter__(self):
@@ -212,7 +212,7 @@ class TestIterableDataset(IterableDataset):
 
 @pytest.mark.parametrize("mode", ["min_size", "max_size_cycle"])
 @pytest.mark.parametrize("use_multiple_dataloaders", [False, True])
-def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloaders):
+def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloaders) -> None:
     """Test `CombinedLoader` of mode 'min_size' given sequence loaders."""
     if use_multiple_dataloaders:
         loaders = [
@@ -242,7 +242,7 @@ def test_combined_loader_sequence_iterable_dataset(mode, use_multiple_dataloader
 
 
 @pytest.mark.parametrize("lengths", [[4, 6], [5, 5], [6, 4]])
-def test_combined_loader_sequence_with_map_and_iterable(lengths):
+def test_combined_loader_sequence_with_map_and_iterable(lengths) -> None:
     class MyIterableDataset(IterableDataset):
         def __init__(self, size: int = 10):
             self.size = size
@@ -274,7 +274,7 @@ def test_combined_loader_sequence_with_map_and_iterable(lengths):
     assert counter == max(x, y)
 
 
-def test_combined_loader_sequence_max_size_cycle():
+def test_combined_loader_sequence_max_size_cycle() -> None:
     """Test `CombinedLoader` of mode 'max_size_cycle' given sequence loaders."""
     loaders = [
         torch.utils.data.DataLoader(range(10), batch_size=4),
@@ -305,7 +305,7 @@ def test_combined_loader_sequence_max_size_cycle():
         ({**{str(i): i for i in range(10)}, "nested": list(range(20))}, max, 19),
     ],
 )
-def test_nested_calc_num_data(input_data, compute_func, expected_length):
+def test_nested_calc_num_data(input_data, compute_func, expected_length) -> None:
     calculated_length = _nested_calc_num_data(input_data, compute_func)
 
     assert calculated_length == expected_length
@@ -318,7 +318,7 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 def test_combined_data_loader_validation_test(
     cuda_available_mock, device_count_mock, use_fault_tolerant, replace_sampler_ddp, tmpdir
-):
+) -> None:
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
@@ -439,7 +439,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
 @pytest.mark.parametrize("use_combined_loader", [False, True])
 def test_combined_dataloader_for_training_with_ddp(
     replace_sampler_ddp: bool, is_min_size_mode: bool, use_combined_loader: bool
-):
+) -> None:
     """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
     samplers."""
     mode = "min_size" if is_min_size_mode else "max_size_cycle"

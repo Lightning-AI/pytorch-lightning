@@ -20,7 +20,7 @@ from tests.helpers import BoringModel
 
 
 class ParameterSharingModule(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer_1 = nn.Linear(32, 10, bias=False)
         self.layer_2 = nn.Linear(10, 32, bias=False)
@@ -38,12 +38,12 @@ class ParameterSharingModule(BoringModel):
     ["model", "expected_shared_params"],
     [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
-def test_find_shared_parameters(model, expected_shared_params):
+def test_find_shared_parameters(model, expected_shared_params) -> None:
 
     assert expected_shared_params == find_shared_parameters(model())
 
 
-def test_set_shared_parameters():
+def test_set_shared_parameters() -> None:
     model = ParameterSharingModule()
     set_shared_parameters(model, [["layer_1.weight", "layer_3.weight"]])
 

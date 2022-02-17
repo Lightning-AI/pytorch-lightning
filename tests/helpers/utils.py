@@ -26,7 +26,7 @@ from tests import _TEMP_PATH, RANDOM_PORTS
 from tests.helpers.boring_model import BoringModel
 
 
-def get_default_logger(save_dir, version=None):
+def get_default_logger(save_dir, version=None) -> TensorBoardLogger:
     # set up logger object without actually saving logs
     logger = TensorBoardLogger(save_dir, name="lightning_logs", version=version)
     return logger
@@ -52,29 +52,29 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=BoringModel):
+def load_model_from_checkpoint(logger, root_weights_dir, module_class: Type[BoringModel]):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, "loading model failed"
     return trained_model
 
 
-def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
+def assert_ok_model_acc(trainer, key: str="test_acc", thr: float=0.5) -> None:
     # this model should get 0.80+ acc
     acc = trainer.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed(seed=0):
+def reset_seed(seed: Optional[int]=0) -> None:
     seed_everything(seed)
 
 
-def set_random_main_port():
+def set_random_main_port() -> None:
     reset_seed()
     port = RANDOM_PORTS.pop()
     os.environ["MASTER_PORT"] = str(port)
 
 
-def init_checkpoint_callback(logger):
+def init_checkpoint_callback(logger) -> ModelCheckpoint:
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
 

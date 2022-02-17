@@ -40,7 +40,7 @@ from tests.helpers.runif import RunIf
         ("predicting", "predict_step"),
     ],
 )
-def test_lightning_wrapper_module_methods(wrapper_class, stage):
+def test_lightning_wrapper_module_methods(wrapper_class, stage) -> None:
     """Test that the LightningWrapper redirects .forward() to the LightningModule methods."""
     pl_module = Mock(spec=LightningModule)
     pl_module.trainer = Mock()
@@ -67,13 +67,13 @@ def test_lightning_wrapper_module_methods(wrapper_class, stage):
         [torch.ones(3, 4, 5), torch.ones(3, 4, 5)],
     ],
 )
-def test_unsqueeze_scalar_tensor(inp, expected):
+def test_unsqueeze_scalar_tensor(inp, expected) -> None:
     """Test that the utility function unsqueezes only scalar tensors."""
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
 
 
 @RunIf(min_gpus=2)
-def test_lightning_parallel_module_unsqueeze_scalar():
+def test_lightning_parallel_module_unsqueeze_scalar() -> None:
     """Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors."""
 
     class TestModel(BoringModel):
@@ -110,13 +110,13 @@ def test_lightning_parallel_module_unsqueeze_scalar():
 @pytest.mark.parametrize(
     "inp,expected", [[1.0, torch.tensor([1.0])], [2, torch.tensor([2.0])], [True, torch.tensor([True])]]
 )
-def test_python_scalar_to_tensor(inp, expected):
+def test_python_scalar_to_tensor(inp, expected) -> None:
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-def test_lightning_parallel_module_python_scalar_conversion(device):
+def test_lightning_parallel_module_python_scalar_conversion(device) -> None:
     """Test that LightningParallelModule can convert Python scalars to tensors."""
 
     class TestModel(BoringModel):
@@ -148,7 +148,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
         (lambda x: [x, (x, x)], lambda x: x[1][0]),
     ],
 )
-def test_lightning_parallel_module_device_access(nest, unnest):
+def test_lightning_parallel_module_device_access(nest, unnest) -> None:
     """Test that self.device returns the correct value in replicas of DataParallel."""
 
     class DeviceAccessModel(LightningModule):
@@ -182,7 +182,7 @@ def test_lightning_parallel_module_device_access(nest, unnest):
 
 
 @RunIf(min_gpus=2)
-def test_lightning_parallel_module_device_access_warning():
+def test_lightning_parallel_module_device_access_warning() -> None:
     """Test that we show a warning when the device can't be inferred from the input."""
 
     class DeviceAccessModel(LightningModule):

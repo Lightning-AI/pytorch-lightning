@@ -15,7 +15,7 @@
 from tests.models.data.horovod.train_default_model import run_test_from_config
 
 
-def test_horovod_model_script(tmpdir):
+def test_horovod_model_script(tmpdir) -> None:
     """This just for testing/debugging horovod script without horovod..."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),

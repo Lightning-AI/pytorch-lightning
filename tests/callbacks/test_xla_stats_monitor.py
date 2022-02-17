@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
-def test_xla_stats_monitor(tmpdir):
+def test_xla_stats_monitor(tmpdir) -> None:
     """Test XLA stats are logged using a logger."""
 
     model = BoringModel()
@@ -56,7 +56,7 @@ def test_xla_stats_monitor(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_xla_stats_monitor_no_logger(tmpdir):
+def test_xla_stats_monitor_no_logger(tmpdir) -> None:
     """Test XLAStatsMonitor with no logger in Trainer."""
 
     model = BoringModel()

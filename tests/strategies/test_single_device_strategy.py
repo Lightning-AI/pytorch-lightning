@@ -22,7 +22,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_single_cpu():
+def test_single_cpu() -> None:
     """Tests if device is set correctly for single CPU strategy."""
     trainer = Trainer()
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
@@ -37,7 +37,7 @@ class BoringModelGPU(BoringModel):
 
 
 @RunIf(skip_windows=True, min_gpus=1)
-def test_single_gpu():
+def test_single_gpu() -> None:
     """Tests if device is set correctly when training and after teardown for single GPU strategy."""
     trainer = Trainer(gpus=1, fast_dev_run=True)
     # assert training strategy attributes for device setting
@@ -58,7 +58,7 @@ class MockOptimizer:
     ...
 
 
-def test_strategy_pickle():
+def test_strategy_pickle() -> None:
     strategy = SingleDeviceStrategy("cpu")
     optimizer = MockOptimizer()
 

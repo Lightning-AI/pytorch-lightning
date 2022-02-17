@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
@@ -19,7 +21,7 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class DeterministicModel(LightningModule):
-    def __init__(self, weights=None):
+    def __init__(self, weights=None) -> None:
         super().__init__()
 
         self.training_step_called = False
@@ -54,7 +56,7 @@ class DeterministicModel(LightningModule):
 
         return out
 
-    def count_num_graphs(self, result, num_graphs=0):
+    def count_num_graphs(self, result, num_graphs: int=0):
         for k, v in result.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:
                 num_graphs += 1
@@ -110,7 +112,7 @@ class DeterministicModel(LightningModule):
         scheduler = {"scheduler": lr_scheduler, "interval": "step", "monitor": "pbar_acc1"}
         return [optimizer], [scheduler]
 
-    def backward(self, loss, optimizer, optimizer_idx):
+    def backward(self, loss, optimizer, optimizer_idx: Optional[int]) -> None:
         if self.assert_backward:
             if self.trainer.precision == 16:
                 assert loss > 171 * 1000
@@ -121,7 +123,7 @@ class DeterministicModel(LightningModule):
 
 
 class DummyDataset(Dataset):
-    def __len__(self):
+    def __len__(self) -> int:
         return 12
 
     def __getitem__(self, idx):

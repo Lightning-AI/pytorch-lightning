@@ -22,7 +22,7 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
 
 
-def main():
+def main() -> None:
     seed_everything(4321)
 
     parser = ArgumentParser(add_help=False)

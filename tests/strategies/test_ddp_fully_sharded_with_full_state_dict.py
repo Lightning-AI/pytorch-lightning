@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 from unittest import mock
 
 import pytest
@@ -18,7 +18,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel, wrap
 
 
-def test_invalid_on_cpu(tmpdir):
+def test_invalid_on_cpu(tmpdir) -> None:
     """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
@@ -32,7 +32,7 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(fairscale_fully_sharded=True)
-def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
+def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir) -> None:
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
     assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
@@ -40,7 +40,7 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
 
 
 class TestFSDPModel(BoringModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.layer: Optional[torch.nn.Module] = None
 
@@ -91,7 +91,7 @@ class TestFSDPModel(BoringModel):
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
-def test_fully_sharded_strategy_checkpoint(tmpdir):
+def test_fully_sharded_strategy_checkpoint(tmpdir) -> None:
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
@@ -100,7 +100,7 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
-def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
+def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir) -> None:
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     model = TestFSDPModel()
@@ -109,7 +109,7 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
+def _assert_save_equality(trainer, ckpt_path, cls: Type[TestFSDPModel]=TestFSDPModel) -> None:
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.strategy.lightning_module_state_dict()
 
@@ -121,7 +121,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
+def _run_multiple_stages(trainer, model, model_path: Optional[str] = None) -> None:
     trainer.fit(model)
 
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
@@ -138,7 +138,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
-def test_fsdp_gradient_clipping_raises(tmpdir):
+def test_fsdp_gradient_clipping_raises(tmpdir) -> None:
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
     model = BoringModel()
     trainer = Trainer(

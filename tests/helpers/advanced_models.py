@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Dict
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -29,7 +31,7 @@ if _TORCHVISION_AVAILABLE:
 
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim: int, img_shape: tuple):
+    def __init__(self, latent_dim: int, img_shape: tuple) -> None:
         super().__init__()
         self.img_shape = img_shape
 
@@ -56,7 +58,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, img_shape: tuple):
+    def __init__(self, img_shape: tuple) -> None:
         super().__init__()
 
         self.model = nn.Sequential(
@@ -79,8 +81,7 @@ class BasicGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
     def __init__(
-        self, hidden_dim: int = 128, learning_rate: float = 0.001, b1: float = 0.5, b2: float = 0.999, **kwargs
-    ):
+        self, hidden_dim: int = 128, learning_rate: float = 0.001, b1: float = 0.5, b2: float = 0.999, **kwargs) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
         self.learning_rate = learning_rate
@@ -162,7 +163,7 @@ class BasicGAN(LightningModule):
 
 
 class ParityModuleRNN(LightningModule):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.rnn = nn.LSTM(10, 20, batch_first=True)
         self.linear_out = nn.Linear(in_features=20, out_features=5)
@@ -172,7 +173,7 @@ class ParityModuleRNN(LightningModule):
         seq, last = self.rnn(x)
         return self.linear_out(seq)
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_nb) -> Dict[str, Any]:
         x, y = batch
         y_hat = self(x)
         loss = F.mse_loss(y_hat, y)
@@ -186,7 +187,7 @@ class ParityModuleRNN(LightningModule):
 
 
 class ParityModuleMNIST(LightningModule):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
         self.c_d1_bn = nn.BatchNorm1d(128)
@@ -203,7 +204,7 @@ class ParityModuleMNIST(LightningModule):
         x = self.c_d2(x)
         return x
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_nb) -> Dict[str, Any]:
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
@@ -217,7 +218,7 @@ class ParityModuleMNIST(LightningModule):
 
 
 class ParityModuleCIFAR(LightningModule):
-    def __init__(self, backbone="resnet101", hidden_dim=1024, learning_rate=1e-3, pretrained=True):
+    def __init__(self, backbone: str="resnet101", hidden_dim: int=1024, learning_rate: float=1e-3, pretrained: bool=True) -> None:
         super().__init__()
         self.save_hyperparameters()
 
@@ -232,7 +233,7 @@ class ParityModuleCIFAR(LightningModule):
             [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
         )
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         y_hat = self.backbone(x)
         y_hat = self.classifier(y_hat)

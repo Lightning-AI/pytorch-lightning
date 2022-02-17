@@ -28,7 +28,7 @@ class AllRankLogger(LightningLoggerBase):
     Logs are saved to local variable `logs`.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.logs = {}
         self.exp = object()
@@ -36,7 +36,7 @@ class AllRankLogger(LightningLoggerBase):
     def experiment(self) -> Any:
         return self.exp
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         self.logs.update(metrics)
 
     def version(self) -> Union[int, str]:
@@ -52,15 +52,15 @@ class AllRankLogger(LightningLoggerBase):
 class TestModel(BoringModel):
     log_name = "rank-{rank}"
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         self.log(self.log_name.format(rank=self.local_rank), 0)
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_all_rank_logging_ddp_cpu(tmpdir):
+def test_all_rank_logging_ddp_cpu(tmpdir) -> None:
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
@@ -80,7 +80,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_all_rank_logging_ddp_spawn(tmpdir):
+def test_all_rank_logging_ddp_spawn(tmpdir) -> None:
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
@@ -99,7 +99,7 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     trainer.fit(model)
 
 
-def test_first_logger_call_in_subprocess(tmpdir):
+def test_first_logger_call_in_subprocess(tmpdir) -> None:
     """Test that the Trainer does not call the logger too early.
 
     Only when the worker processes are initialized do we have access to the rank and know which one is the main process.
@@ -133,7 +133,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
     trainer.fit(model)
 
 
-def test_logger_after_fit_predict_test_calls(tmpdir):
+def test_logger_after_fit_predict_test_calls(tmpdir) -> None:
     """Make sure logger outputs are finalized after fit, prediction, and test calls."""
 
     class BufferLogger(LightningLoggerBase):

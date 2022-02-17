@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.deterministic_model import DeterministicModel
 
 
-def test__eval_step__flow(tmpdir):
+def test__eval_step__flow(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -79,7 +79,7 @@ def test__eval_step__flow(tmpdir):
     assert opt_closure_result.item() == 171
 
 
-def test__eval_step__eval_step_end__flow(tmpdir):
+def test__eval_step__eval_step_end__flow(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -142,7 +142,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert opt_closure_result.item() == 171
 
 
-def test__eval_step__epoch_end__flow(tmpdir):
+def test__eval_step__epoch_end__flow(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -195,7 +195,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
     assert model.validation_epoch_end_called
 
 
-def test__validation_step__step_end__epoch_end__flow(tmpdir):
+def test__validation_step__step_end__epoch_end__flow(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):

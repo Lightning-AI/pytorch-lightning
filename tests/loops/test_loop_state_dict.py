@@ -22,7 +22,7 @@ from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_loops_state_dict():
+def test_loops_state_dict() -> None:
     trainer = Trainer()
 
     fit_loop = FitLoop()
@@ -40,7 +40,7 @@ def test_loops_state_dict():
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_loops_state_dict_structure():
+def test_loops_state_dict_structure() -> None:
     trainer = Trainer()
     trainer.train_dataloader = Mock()
     state_dict = trainer._checkpoint_connector._get_loops_state_dict()

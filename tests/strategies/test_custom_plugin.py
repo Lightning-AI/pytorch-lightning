@@ -24,14 +24,14 @@ from tests.helpers.runif import RunIf
 
 
 class CustomParallelStrategy(DDPStrategy):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.
         self.sync_batchnorm = None
 
 
 @RunIf(skip_windows=True)
-def test_sync_batchnorm_set(tmpdir):
+def test_sync_batchnorm_set(tmpdir) -> None:
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
     strategy = CustomParallelStrategy()
@@ -42,7 +42,7 @@ def test_sync_batchnorm_set(tmpdir):
 
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])
-def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers):
+def test_strategy_lightning_restore_optimizer_and_schedulers(tmpdir, restore_optimizer_and_schedulers) -> None:
     class TestStrategy(SingleDeviceStrategy):
         load_optimizer_state_dict_called = False
 

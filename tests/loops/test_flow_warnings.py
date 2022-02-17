@@ -23,7 +23,7 @@ class TestModel(BoringModel):
         return acc
 
 
-def test_no_depre_without_epoch_end(tmpdir):
+def test_no_depre_without_epoch_end(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     model = TestModel()

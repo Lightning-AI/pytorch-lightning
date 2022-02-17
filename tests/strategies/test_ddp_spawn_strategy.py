@@ -20,6 +20,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.strategies.ddp_spawn import _FakeQueue
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -32,7 +33,7 @@ class BoringModelDDPCPU(BoringModel):
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
-    def __init__(self, name: str, val: float):
+    def __init__(self, name: str, val: float) -> None:
         super().__init__()
         self.name = name
         self.val = val
@@ -41,17 +42,17 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
-    def add_to_queue(self, queue) -> None:
+    def add_to_queue(self, queue: _FakeQueue) -> None:
         queue.put("test_val")
         return super().add_to_queue(queue)
 
-    def get_from_queue(self, queue) -> None:
+    def get_from_queue(self, queue: _FakeQueue) -> None:
         self.test_val = queue.get()
         return super().get_from_queue(queue)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_ddp_cpu():
+def test_ddp_cpu() -> None:
     """Tests if device is set correctly when training for DDPSpawnStrategy."""
     trainer = Trainer(devices=2, accelerator="cpu", fast_dev_run=True)
     # assert training type plugin attributes for device setting
@@ -65,7 +66,7 @@ def test_ddp_cpu():
 
 
 @RunIf(min_gpus=2)
-def test_ddp_spawn_extra_parameters(tmpdir):
+def test_ddp_spawn_extra_parameters(tmpdir) -> None:
     """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
     with Lightning Module (deprecated way)."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
@@ -83,17 +84,17 @@ def test_ddp_spawn_extra_parameters(tmpdir):
 
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
-    def add_to_queue(self, trainer, queue) -> None:
+    def add_to_queue(self, trainer: Trainer, queue: _FakeQueue) -> None:
         queue.put("new_test_val")
         return super().add_to_queue(trainer, queue)
 
-    def get_from_queue(self, trainer: Trainer, queue) -> None:
+    def get_from_queue(self, trainer: Trainer, queue: _FakeQueue) -> None:
         self.new_test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_ddp_spawn_add_get_queue(tmpdir):
+def test_ddp_spawn_add_get_queue(tmpdir) -> None:
     """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
 
     ddp_spawn_strategy = TestDDPSpawnStrategy()
@@ -130,7 +131,7 @@ class BoringModelDDP(BoringModel):
 
 
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
-def test_ddp_spawn_configure_ddp(tmpdir):
+def test_ddp_spawn_configure_ddp(tmpdir) -> None:
     """Tests with ddp spawn strategy."""
     trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
 
@@ -143,7 +144,7 @@ def test_ddp_spawn_configure_ddp(tmpdir):
 
 
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
-def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
+def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn) -> None:
     """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
     file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)

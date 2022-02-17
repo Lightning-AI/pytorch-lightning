@@ -25,7 +25,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_property_current_epoch():
+def test_property_current_epoch() -> None:
     """Test that the current_epoch in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.current_epoch == 0
@@ -35,7 +35,7 @@ def test_property_current_epoch():
     assert model.current_epoch == 123
 
 
-def test_property_global_step():
+def test_property_global_step() -> None:
     """Test that the global_step in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.global_step == 0
@@ -45,7 +45,7 @@ def test_property_global_step():
     assert model.global_step == 123
 
 
-def test_property_global_rank():
+def test_property_global_rank() -> None:
     """Test that the global rank in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.global_rank == 0
@@ -55,7 +55,7 @@ def test_property_global_rank():
     assert model.global_rank == 123
 
 
-def test_property_local_rank():
+def test_property_local_rank() -> None:
     """Test that the local rank in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.local_rank == 0
@@ -65,7 +65,7 @@ def test_property_local_rank():
     assert model.local_rank == 123
 
 
-def test_property_logger(tmpdir):
+def test_property_logger(tmpdir) -> None:
     """Test that the logger in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.logger is None
@@ -76,7 +76,7 @@ def test_property_logger(tmpdir):
     assert model.logger == logger
 
 
-def test_property_loggers(tmpdir):
+def test_property_loggers(tmpdir) -> None:
     """Test that loggers in LightningModule is accessible via the Trainer."""
     model = BoringModel()
     assert model.loggers == []
@@ -87,7 +87,7 @@ def test_property_loggers(tmpdir):
     assert model.loggers == [logger]
 
 
-def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
+def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
             return super().training_step(batch, batch_idx)
@@ -253,7 +253,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_device_placement(tmpdir):
+def test_device_placement(tmpdir) -> None:
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
@@ -274,7 +274,7 @@ def test_device_placement(tmpdir):
 
 
 @RunIf(min_torch="1.10", skip_windows=True)
-def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
+def test_sharded_tensor_state_dict(tmpdir, single_process_pg) -> None:
     from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
@@ -306,7 +306,7 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
     ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
 
 
-def test_lightning_module_configure_gradient_clipping(tmpdir):
+def test_lightning_module_configure_gradient_clipping(tmpdir) -> None:
     """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
 
     class TestModel(BoringModel):
@@ -336,7 +336,7 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
                 assert p.grad.max() <= model.custom_gradient_clip_val
 
 
-def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir):
+def test_lightning_module_configure_gradient_clipping_different_argument_values(tmpdir) -> None:
     """Test that setting gradient clipping arguments in `Trainer` and cusotmizing gradient clipping inside
     `configure_gradient_clipping` with different values raises an exception."""
 

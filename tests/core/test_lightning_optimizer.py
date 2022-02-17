@@ -24,7 +24,7 @@ from tests.helpers.boring_model import BoringModel
 
 
 @pytest.mark.parametrize("auto", (True, False))
-def test_lightning_optimizer(tmpdir, auto):
+def test_lightning_optimizer(tmpdir, auto) -> None:
     """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
     class TestModel(BoringModel):
@@ -46,7 +46,7 @@ def test_lightning_optimizer(tmpdir, auto):
     assert str(lightning_opt) == "Lightning" + str(lightning_opt.optimizer)
 
 
-def test_init_optimizers_resets_lightning_optimizers(tmpdir):
+def test_init_optimizers_resets_lightning_optimizers(tmpdir) -> None:
     """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
 
     def compare_optimizers():
@@ -67,7 +67,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     compare_optimizers()
 
 
-def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir):
+def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdir) -> None:
     """Test that the user can use our LightningOptimizer.
 
     Not recommended.
@@ -125,7 +125,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
     assert adam["zero_grad"].call_count == 8
 
 
-def test_state(tmpdir):
+def test_state(tmpdir) -> None:
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
@@ -161,7 +161,7 @@ def test_state(tmpdir):
     assert optimizer.state == lightning_optimizer.state
 
 
-def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
+def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir) -> None:
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
@@ -195,7 +195,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     assert sgd_zero_grad.call_count == 10
 
 
-def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
+def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir) -> None:
     """Test overriding step works in automatic_optimization."""
 
     class TestModel(BoringModel):
@@ -244,7 +244,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     assert adam["zero_grad"].call_count == limit_train_batches
 
 
-def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
+def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir) -> None:
     """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
     automatic_optimization."""
 
@@ -266,7 +266,7 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
 
 
 class OptimizerWithHooks(Optimizer):
-    def __init__(self, model):
+    def __init__(self, model) -> None:
         self._fwd_handles = []
         self._bwd_handles = []
         self.params = []
@@ -291,19 +291,19 @@ class OptimizerWithHooks(Optimizer):
 
         super().__init__(self.params, {"lr": 0.01})
 
-    def _save_input(self, mod, i):
+    def _save_input(self, mod, i) -> None:
         """Saves input of layer."""
         if mod.training:
             self.state[mod]["x"] = i[0]
 
-    def _save_grad_output(self, mod, _, grad_output):
+    def _save_grad_output(self, mod, _, grad_output) -> None:
         """Saves grad on output of layer to grad is scaled with batch_size since gradient is spread over samples in
         mini batch."""
         batch_size = grad_output[0].shape[0]
         if mod.training:
             self.state[mod]["grad"] = grad_output[0] * batch_size
 
-    def step(self, closure=None):
+    def step(self, closure=None) -> bool:
         closure()
         for group in self.param_groups:
             _ = self.state[group["mod"]]["x"]
@@ -311,7 +311,7 @@ class OptimizerWithHooks(Optimizer):
         return True
 
 
-def test_lightning_optimizer_keeps_hooks(tmpdir):
+def test_lightning_optimizer_keeps_hooks(tmpdir) -> None:
     model = BoringModel()
     optimizer = OptimizerWithHooks(model)
     lightning_optimizer = LightningOptimizer(optimizer)
@@ -320,7 +320,7 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
     assert len(optimizer._fwd_handles) == 1
 
 
-def test_params_groups_and_state_are_accessible(tmpdir):
+def test_params_groups_and_state_are_accessible(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             output = self.layer(batch)

@@ -24,7 +24,7 @@ from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 @pytest.mark.parametrize("device", [torch.device("cuda", 0)])
 @pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
 @RunIf(min_gpus=1)
-def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
+def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths: bool, device) -> None:
     data_iterator, _ = get_dummy_torchtext_data_iterator(num_samples=3, batch_size=3, include_lengths=include_lengths)
     data_iter = iter(data_iterator)
     batch = next(data_iter)
@@ -43,5 +43,5 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
 
 @pytest.mark.parametrize("include_lengths", [False, True])
 @pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
-def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths):
+def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths) -> None:
     test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device("cpu"))

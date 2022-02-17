@@ -14,6 +14,7 @@
 import inspect
 import pickle
 from argparse import ArgumentParser, Namespace
+from typing import List
 from unittest import mock
 
 import pytest
@@ -25,7 +26,7 @@ from tests.helpers.runif import RunIf
 
 
 @mock.patch("argparse.ArgumentParser.parse_args")
-def test_default_args(mock_argparse, tmpdir):
+def test_default_args(mock_argparse, tmpdir) -> None:
     """Tests default argument parser for Trainer."""
     mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
@@ -44,7 +45,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 
 @pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
-def test_add_argparse_args_redefined(cli_args: list):
+def test_add_argparse_args_redefined(cli_args: list) -> None:
     """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parent_parser=parser)
@@ -65,7 +66,7 @@ def test_add_argparse_args_redefined(cli_args: list):
 
 
 @pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
-def test_add_argparse_args(cli_args: list):
+def test_add_argparse_args(cli_args: list) -> None:
     """Simple test ensuring Trainer.add_argparse_args works."""
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser)
@@ -78,7 +79,7 @@ def test_add_argparse_args(cli_args: list):
     assert Trainer.from_argparse_args(args)
 
 
-def test_get_init_arguments_and_types():
+def test_get_init_arguments_and_types() -> None:
     """Asserts a correctness of the `get_init_arguments_and_types` Trainer classmethod."""
     args = argparse.get_init_arguments_and_types(Trainer)
     parameters = inspect.signature(Trainer).parameters
@@ -92,7 +93,7 @@ def test_get_init_arguments_and_types():
 
 
 @pytest.mark.parametrize("cli_args", [["--callbacks=1", "--logger"], ["--foo", "--bar=1"]])
-def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
+def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch) -> None:
     """Asserts thar an error raised in case of passing not default cli arguments."""
 
     class _UnkArgError(Exception):
@@ -134,7 +135,7 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
         ),
     ],
 )
-def test_argparse_args_parsing(cli_args, expected):
+def test_argparse_args_parsing(cli_args: List[str], expected) -> None:
     """Test multi type argument with bool."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -151,7 +152,7 @@ def test_argparse_args_parsing(cli_args, expected):
     "cli_args,expected",
     [("", False), ("--fast_dev_run=0", False), ("--fast_dev_run=True", True), ("--fast_dev_run 2", 2)],
 )
-def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
+def test_argparse_args_parsing_fast_dev_run(cli_args: List[str], expected) -> None:
     """Test multi type argument with bool."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -166,7 +167,7 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
     [("", None, None), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [0])],
 )
 @RunIf(min_gpus=1)
-def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_device_ids):
+def test_argparse_args_parsing_devices(cli_args: List[str], expected_parsed, expected_device_ids) -> None:
     """Test multi type argument with bool."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -188,7 +189,7 @@ def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_devic
         ({"logger": False}, {"enable_checkpointing": True}),
     ],
 )
-def test_init_from_argparse_args(cli_args, extra_args):
+def test_init_from_argparse_args(cli_args, extra_args) -> None:
     unknown_args = dict(unknown_arg=0)
 
     # unknown args in the argparser/namespace should be ignored

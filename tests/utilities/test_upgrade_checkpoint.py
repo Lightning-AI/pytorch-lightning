@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
         ),
     ],
 )
-def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
+def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint) -> None:
     filepath = os.path.join(tmpdir, "model.ckpt")
     torch.save(old_checkpoint, filepath)
     upgrade_checkpoint(filepath)

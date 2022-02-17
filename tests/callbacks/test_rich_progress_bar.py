@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_callback():
+def test_rich_progress_bar_callback() -> None:
     trainer = Trainer(callbacks=RichProgressBar())
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
@@ -36,7 +36,7 @@ def test_rich_progress_bar_callback():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_refresh_rate_enabled():
+def test_rich_progress_bar_refresh_rate_enabled() -> None:
     progress_bar = RichProgressBar(refresh_rate=1)
     assert progress_bar.is_enabled
     assert not progress_bar.is_disabled
@@ -47,7 +47,7 @@ def test_rich_progress_bar_refresh_rate_enabled():
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("dataset", [RandomDataset(32, 64), RandomIterableDataset(32, 64)])
-def test_rich_progress_bar(tmpdir, dataset):
+def test_rich_progress_bar(tmpdir, dataset) -> None:
     class TestModel(BoringModel):
         def train_dataloader(self):
             return DataLoader(dataset=dataset)
@@ -91,7 +91,7 @@ def test_rich_progress_bar(tmpdir, dataset):
     assert mocked.call_count == 1
 
 
-def test_rich_progress_bar_import_error(monkeypatch):
+def test_rich_progress_bar_import_error(monkeypatch) -> None:
     import pytorch_lightning.callbacks.progress.rich_progress as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
@@ -100,7 +100,7 @@ def test_rich_progress_bar_import_error(monkeypatch):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_custom_theme(tmpdir):
+def test_rich_progress_bar_custom_theme(tmpdir) -> None:
     """Test to ensure that custom theme styles are used."""
     with mock.patch.multiple(
         "pytorch_lightning.callbacks.progress.rich_progress",
@@ -130,7 +130,7 @@ def test_rich_progress_bar_custom_theme(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_keyboard_interrupt(tmpdir):
+def test_rich_progress_bar_keyboard_interrupt(tmpdir) -> None:
     """Test to ensure that when the user keyboard interrupts, we close the progress bar."""
 
     class TestModel(BoringModel):
@@ -154,7 +154,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_configure_columns():
+def test_rich_progress_bar_configure_columns() -> None:
     from rich.progress import TextColumn
 
     custom_column = TextColumn("[progress.description]Testing Rich!")
@@ -173,7 +173,7 @@ def test_rich_progress_bar_configure_columns():
 
 @RunIf(rich=True)
 @pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
-def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
+def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count) -> None:
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
 
@@ -194,7 +194,7 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
 
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
-def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
+def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir) -> None:
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=4,
@@ -206,7 +206,7 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 
 @RunIf(rich=True)
 @pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 7), (4, 7), (7, 4)]))
-def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count):
+def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count) -> None:
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -236,7 +236,7 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("limit_val_batches", (1, 5))
-def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
+def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches) -> None:
     model = BoringModel()
 
     progress_bar = RichProgressBar()
@@ -257,7 +257,7 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
+def test_rich_progress_bar_counter_with_val_check_interval(tmpdir) -> None:
     """Test the completed and total counter for rich progress bar when using val_check_interval."""
     progress_bar = RichProgressBar()
     model = BoringModel()
@@ -286,7 +286,7 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_metric_display_task_id(tmpdir):
+def test_rich_progress_bar_metric_display_task_id(tmpdir) -> None:
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
             res = super().training_step(*args, **kwargs)
@@ -308,7 +308,7 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
+def test_rich_progress_bar_correct_value_epoch_end(tmpdir) -> None:
     """Rich counterpart to test_tqdm_progress_bar::test_tqdm_progress_bar_correct_value_epoch_end."""
 
     class MockedProgressBar(RichProgressBar):

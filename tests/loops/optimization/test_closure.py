@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def test_optimizer_step_no_closure_raises(tmpdir):
+def test_optimizer_step_no_closure_raises(tmpdir) -> None:
     class TestModel(BoringModel):
         def optimizer_step(
             self, epoch=None, batch_idx=None, optimizer=None, optimizer_idx=None, optimizer_closure=None, **_

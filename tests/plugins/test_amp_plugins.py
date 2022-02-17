@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from typing import Dict
 from unittest import mock
 
 import pytest
@@ -57,7 +58,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
 )
-def test_amp_apex_ddp(mocked_device_count, mocked_is_available, strategy, gpus, amp, custom_plugin, plugin_cls):
+def test_amp_apex_ddp(mocked_device_count, mocked_is_available, strategy, gpus, amp, custom_plugin, plugin_cls) -> None:
     plugin = None
     if custom_plugin:
         plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
@@ -88,7 +89,7 @@ class TestPrecisionModel(BoringModel):
         inv_scale = 1 / scale
         self.original_grads = [p * inv_scale for p in grads]
 
-    def check_grads_unscaled(self, optimizer=None):
+    def check_grads_unscaled(self, optimizer=None) -> None:
         if optimizer is not None:
             scaler = self.trainer.precision_plugin.scaler
             state = scaler._per_optimizer_states[id(optimizer)]
@@ -99,13 +100,13 @@ class TestPrecisionModel(BoringModel):
         for actual, expected in zip(grads, self.original_grads):
             torch.testing.assert_allclose(actual, expected)
 
-    def check_grads_clipped(self):
+    def check_grads_clipped(self) -> None:
         parameters = list(self.parameters())
         assert len(parameters) == len(self.clipped_parameters)
         for actual, expected in zip(parameters, self.clipped_parameters):
             torch.testing.assert_allclose(actual.grad, expected.grad)
 
-    def on_before_optimizer_step(self, optimizer, *_):
+    def on_before_optimizer_step(self, optimizer, *_) -> None:
         self.check_grads_unscaled(optimizer)
         # manually clip
         self.clipped_parameters = []
@@ -116,27 +117,27 @@ class TestPrecisionModel(BoringModel):
         clip_val = self.trainer.gradient_clip_val
         torch.nn.utils.clip_grad_value_(self.clipped_parameters, clip_val)
 
-    def log_grad_norm(self, grad_norm_dict):
+    def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         self.check_grads_unscaled()
         assert len(grad_norm_dict)
 
-    def configure_gradient_clipping(self, *args, **kwargs):
+    def configure_gradient_clipping(self, *args, **kwargs) -> None:
         # let lightning clip
         super().configure_gradient_clipping(*args, **kwargs)
         # check clipping worked as expected
         self.check_grads_clipped()
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+    def optimizer_step(self, epoch: int, batch_idx: int, optimizer, optimizer_idx: int, closure, **_) -> None:
         # pass self as a kwarg
         optimizer.step(closure, pl_module=self)
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> TestClippingOptimizer:
         return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
-def test_amp_gradient_unscale(tmpdir, accum: int):
+def test_amp_gradient_unscale(tmpdir, accum: int) -> None:
     model = TestPrecisionModel()
 
     trainer = Trainer(
@@ -160,7 +161,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
 
 
 @RunIf(min_gpus=1)
-def test_amp_skip_optimizer(tmpdir):
+def test_amp_skip_optimizer(tmpdir) -> None:
     """Test that optimizers can be skipped when using amp."""
 
     class CustomBoringModel(BoringModel):
@@ -193,7 +194,7 @@ def test_amp_skip_optimizer(tmpdir):
 
 @RunIf(min_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
-def test_amp_apex_ddp_fit(amp_level, tmpdir):
+def test_amp_apex_ddp_fit(amp_level, tmpdir) -> None:
     class CustomBoringModel(BoringModel):
         def training_step(self, batch, batch_idx):
             assert self.layer.weight.dtype == torch.float16
@@ -217,7 +218,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
 
 @RunIf(min_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
-def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
+def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir) -> None:
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -233,7 +234,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 
 @RunIf(min_torch="1.10")
-def test_cpu_amp_precision_context_manager(tmpdir):
+def test_cpu_amp_precision_context_manager(tmpdir) -> None:
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
     plugin = NativeMixedPrecisionPlugin("bf16", "cpu")
     assert plugin.device == "cpu"
@@ -244,7 +245,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
-def test_precision_selection_raises(monkeypatch):
+def test_precision_selection_raises(monkeypatch) -> None:
     with pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
     ):

@@ -16,7 +16,7 @@ import pytest
 from pytorch_lightning.utilities.enums import _AcceleratorType, GradClipAlgorithmType, ModelSummaryMode, PrecisionType
 
 
-def test_consistency():
+def test_consistency() -> None:
     assert _AcceleratorType.TPU not in ("GPU", "CPU")
     assert _AcceleratorType.TPU in ("TPU", "CPU")
     assert _AcceleratorType.TPU in ("tpu", "CPU")
@@ -26,7 +26,7 @@ def test_consistency():
     assert _AcceleratorType.TPU in {"tpu", "CPU"}
 
 
-def test_precision_supported_types():
+def test_precision_supported_types() -> None:
     assert PrecisionType.supported_types() == ["16", "32", "64", "bf16", "mixed"]
     assert PrecisionType.supported_type(16)
     assert PrecisionType.supported_type("16")
@@ -34,7 +34,7 @@ def test_precision_supported_types():
     assert not PrecisionType.supported_type("invalid")
 
 
-def test_model_summary_mode():
+def test_model_summary_mode() -> None:
     assert ModelSummaryMode.supported_types() == ["top", "full"]
     assert ModelSummaryMode.TOP in ("top", "full")
     assert ModelSummaryMode.get_max_depth("top") == 1
@@ -44,7 +44,7 @@ def test_model_summary_mode():
         ModelSummaryMode.get_max_depth("invalid")
 
 
-def test_gradient_clip_algorithms():
+def test_gradient_clip_algorithms() -> None:
     assert GradClipAlgorithmType.supported_types() == ["value", "norm"]
     assert GradClipAlgorithmType.supported_type("norm")
     assert GradClipAlgorithmType.supported_type("value")

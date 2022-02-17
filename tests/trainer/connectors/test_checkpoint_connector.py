@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pathlib import Path
+from typing import Any, Dict, Union
 from unittest import mock
 from unittest.mock import Mock
 
@@ -27,16 +29,16 @@ from tests.helpers import BoringModel
 
 # TODO: remove HPCHookedModel in v1.8
 class HPCHookedModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.hpc_save_called = 0
         self.hpc_load_called = 0
 
-    def on_hpc_save(self, checkpoint):
+    def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
         assert "state_dict" in checkpoint
         self.hpc_save_called += 1
 
-    def on_hpc_load(self, checkpoint):
+    def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
         assert "state_dict" in checkpoint
         self.hpc_load_called += 1
 
@@ -46,7 +48,7 @@ class HPCHookedModel(BoringModel):
     "pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks",
     return_value=True,
 )
-def test_hpc_hook_calls(mock_slurm_env, tmpdir):
+def test_hpc_hook_calls(mock_slurm_env, tmpdir: Union[Path, str]) -> None:
     model = HPCHookedModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
     environment = trainer._accelerator_connector.cluster_environment
@@ -74,7 +76,7 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     assert model.hpc_load_called == 1
 
 
-def test_preloaded_checkpoint_lifecycle(tmpdir):
+def test_preloaded_checkpoint_lifecycle(tmpdir) -> None:
     """Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
@@ -105,7 +107,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
 
-def test_hpc_restore_attempt(tmpdir):
+def test_hpc_restore_attempt(tmpdir) -> None:
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
@@ -135,7 +137,7 @@ def test_hpc_restore_attempt(tmpdir):
         assert param.abs().sum() > 0
 
 
-def test_hpc_max_ckpt_version(tmpdir):
+def test_hpc_max_ckpt_version(tmpdir: Union[Path, str]) -> None:
     """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
@@ -153,7 +155,7 @@ def test_hpc_max_ckpt_version(tmpdir):
     )
 
 
-def test_loops_restore(tmpdir):
+def test_loops_restore(tmpdir) -> None:
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)

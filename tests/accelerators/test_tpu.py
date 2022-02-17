@@ -33,7 +33,7 @@ from tests.helpers.utils import pl_multi_process_test
 
 
 class WeightSharingModule(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer_1 = nn.Linear(32, 10, bias=False)
         self.layer_2 = nn.Linear(10, 32, bias=False)
@@ -49,7 +49,7 @@ class WeightSharingModule(BoringModel):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_resume_training_on_cpu(tmpdir):
+def test_resume_training_on_cpu(tmpdir) -> None:
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
@@ -71,7 +71,7 @@ def test_resume_training_on_cpu(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_if_test_works_after_train(tmpdir):
+def test_if_test_works_after_train(tmpdir) -> None:
     """Ensure that .test() works after .fit()"""
 
     # Train a model on TPU
@@ -82,7 +82,7 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu():
+def test_accelerator_tpu() -> None:
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
@@ -97,7 +97,7 @@ def test_accelerator_tpu():
 
 
 @RunIf(tpu=True)
-def test_accelerator_cpu_with_tpu_cores_flag():
+def test_accelerator_cpu_with_tpu_cores_flag() -> None:
 
     trainer = Trainer(accelerator="cpu", tpu_cores=8)
 
@@ -106,7 +106,7 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu_with_auto():
+def test_accelerator_tpu_with_auto() -> None:
 
     trainer = Trainer(accelerator="auto", tpu_cores=8)
 
@@ -115,7 +115,7 @@ def test_accelerator_tpu_with_auto():
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu_with_devices():
+def test_accelerator_tpu_with_devices() -> None:
 
     trainer = Trainer(accelerator="tpu", devices=8)
 
@@ -125,7 +125,7 @@ def test_accelerator_tpu_with_devices():
 
 
 @RunIf(tpu=True)
-def test_accelerator_auto_with_devices_tpu():
+def test_accelerator_auto_with_devices_tpu() -> None:
 
     trainer = Trainer(accelerator="auto", devices=8)
 
@@ -134,7 +134,7 @@ def test_accelerator_auto_with_devices_tpu():
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu_with_tpu_cores_priority():
+def test_accelerator_tpu_with_tpu_cores_priority() -> None:
     """Test for checking `tpu_cores` flag takes priority over `devices`."""
 
     tpu_cores = 8
@@ -145,14 +145,14 @@ def test_accelerator_tpu_with_tpu_cores_priority():
 
 
 @RunIf(tpu=True)
-def test_set_devices_if_none_tpu():
+def test_set_devices_if_none_tpu() -> None:
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert trainer.devices == 8
 
 
 @RunIf(tpu=True)
-def test_manual_optimization_tpus(tmpdir):
+def test_manual_optimization_tpus(tmpdir) -> None:
     class ManualOptimizationModel(BoringModel):
 
         count = 0
@@ -225,26 +225,26 @@ def test_manual_optimization_tpus(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_ddp_cpu_not_supported_on_tpus():
+def test_ddp_cpu_not_supported_on_tpus() -> None:
     with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
         Trainer(accelerator="ddp_cpu")
 
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "tpu_spawn_debug"])
-def test_strategy_choice_tpu_str(tmpdir, strategy):
+def test_strategy_choice_tpu_str(tmpdir, strategy) -> None:
     trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
-def test_strategy_choice_tpu_strategy(tmpdir):
+def test_strategy_choice_tpu_strategy(tmpdir) -> None:
     trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
-def test_auto_parameters_tying_tpus(tmpdir):
+def test_auto_parameters_tying_tpus(tmpdir) -> None:
 
     model = WeightSharingModule()
     shared_params = find_shared_parameters(model)
@@ -258,7 +258,7 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_auto_parameters_tying_tpus_nested_module(tmpdir):
+def test_auto_parameters_tying_tpus_nested_module(tmpdir) -> None:
     class SubModule(nn.Module):
         def __init__(self, layer):
             super().__init__()
@@ -289,7 +289,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-def test_tpu_invalid_raises():
+def test_tpu_invalid_raises() -> None:
     training_type_plugin = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=Mock())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=training_type_plugin)
@@ -299,7 +299,7 @@ def test_tpu_invalid_raises():
         Trainer(strategy=training_type_plugin)
 
 
-def test_tpu_invalid_raises_set_precision_with_strategy():
+def test_tpu_invalid_raises_set_precision_with_strategy() -> None:
     accelerator = TPUAccelerator()
     training_type_plugin = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=object())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
@@ -314,21 +314,21 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
 
 
 @RunIf(tpu=True)
-def test_xla_checkpoint_plugin_being_default():
+def test_xla_checkpoint_plugin_being_default() -> None:
     trainer = Trainer(tpu_cores=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
 @RunIf(tpu=True)
 @patch("pytorch_lightning.strategies.tpu_spawn.xm")
-def test_mp_device_dataloader_attribute(_):
+def test_mp_device_dataloader_attribute(_) -> None:
     dataset = RandomDataset(32, 64)
     dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))
     assert dataloader.dataset == dataset
 
 
 @RunIf(tpu=True)
-def test_devices_auto_choice_tpu():
+def test_devices_auto_choice_tpu() -> None:
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 8
     assert trainer.tpu_cores == 8

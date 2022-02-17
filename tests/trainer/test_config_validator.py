@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
 
-def test_wrong_train_setting(tmpdir):
+def test_wrong_train_setting(tmpdir) -> None:
     """
     * Test that an error is thrown when no `train_dataloader()` is defined
     * Test that an error is thrown when no `training_step()` is defined
@@ -37,7 +37,7 @@ def test_wrong_train_setting(tmpdir):
         trainer.fit(model)
 
 
-def test_wrong_configure_optimizers(tmpdir):
+def test_wrong_configure_optimizers(tmpdir) -> None:
     """Test that an error is thrown when no `configure_optimizers()` is defined."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
@@ -47,7 +47,7 @@ def test_wrong_configure_optimizers(tmpdir):
         trainer.fit(model)
 
 
-def test_fit_val_loop_config(tmpdir):
+def test_fit_val_loop_config(tmpdir) -> None:
     """When either val loop or val data are missing raise warning."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
@@ -64,7 +64,7 @@ def test_fit_val_loop_config(tmpdir):
         trainer.fit(model)
 
 
-def test_eval_loop_config(tmpdir):
+def test_eval_loop_config(tmpdir) -> None:
     """When either eval step or eval data is missing."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
@@ -112,7 +112,7 @@ def test_eval_loop_config(tmpdir):
 
 
 @pytest.mark.parametrize("datamodule", [False, True])
-def test_trainer_predict_verify_config(tmpdir, datamodule):
+def test_trainer_predict_verify_config(tmpdir, datamodule) -> None:
     class TestModel(LightningModule):
         def __init__(self):
             super().__init__()
@@ -144,7 +144,7 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
     assert results[0][0].shape == torch.Size([1, 2])
 
 
-def test_trainer_manual_optimization_config(tmpdir):
+def test_trainer_manual_optimization_config(tmpdir) -> None:
     """Test error message when requesting Trainer features unsupported with manual optimization."""
     model = BoringModel()
     model.automatic_optimization = False

@@ -27,20 +27,20 @@ def _make_rankfile(tmp_path):
 
 
 @mock.patch.dict(os.environ, {"LSB_JOBID": "1234"})
-def test_missing_lsb_djob_rankfile():
+def test_missing_lsb_djob_rankfile() -> None:
     """Test an error when the LSB_DJOB_RANKFILE cannot be found."""
     with pytest.raises(ValueError, match="Did not find the environment variable `LSB_DJOB_RANKFILE`"):
         LSFEnvironment()
 
 
 @mock.patch.dict(os.environ, {"LSB_DJOB_RANKFILE": "", "LSB_JOBID": "1234"})
-def test_empty_lsb_djob_rankfile():
+def test_empty_lsb_djob_rankfile() -> None:
     """Test an error when the LSB_DJOB_RANKFILE is not populated."""
     with pytest.raises(ValueError, match="The environment variable `LSB_DJOB_RANKFILE` is empty"):
         LSFEnvironment()
 
 
-def test_missing_lsb_job_id(tmp_path):
+def test_missing_lsb_job_id(tmp_path) -> None:
     """Test an error when the job id cannot be found."""
     with mock.patch.dict(os.environ, {"LSB_DJOB_RANKFILE": _make_rankfile(tmp_path)}), pytest.raises(
         ValueError, match="Could not find job id in environment variable LSB_JOBID"
@@ -48,7 +48,7 @@ def test_missing_lsb_job_id(tmp_path):
         LSFEnvironment()
 
 
-def test_manual_main_port_and_address(tmp_path):
+def test_manual_main_port_and_address(tmp_path) -> None:
     """Test a user can set the port manually through the MASTER_PORT env variable."""
     environ = {
         "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
@@ -62,7 +62,7 @@ def test_manual_main_port_and_address(tmp_path):
         assert env.main_port == 10234
 
 
-def test_attributes_from_environment_variables(tmp_path):
+def test_attributes_from_environment_variables(tmp_path) -> None:
     """Test that the LSF environment takes the attributes from the environment variables."""
     environ = {
         "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
@@ -86,7 +86,7 @@ def test_attributes_from_environment_variables(tmp_path):
         assert LSFEnvironment.detect()
 
 
-def test_node_rank(tmp_path):
+def test_node_rank(tmp_path) -> None:
     environ = {
         "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
         "LSB_JOBID": "1234",
@@ -99,7 +99,7 @@ def test_node_rank(tmp_path):
         assert env.node_rank() == 2
 
 
-def test_detect():
+def test_detect() -> None:
     """Test the detection of a LSF environment configuration."""
     with mock.patch.dict(os.environ, {}):
         assert not LSFEnvironment.detect()

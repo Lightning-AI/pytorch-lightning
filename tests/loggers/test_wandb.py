@@ -25,7 +25,7 @@ from tests.helpers.utils import no_warning_call
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_logger_init(wandb, monkeypatch):
+def test_wandb_logger_init(wandb, monkeypatch) -> None:
     """Verify that basic functionality of wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -88,7 +88,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_pickle(wandb, tmpdir):
+def test_wandb_pickle(wandb, tmpdir) -> None:
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -125,7 +125,7 @@ def test_wandb_pickle(wandb, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
+def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir) -> None:
     """Test that the logger creates the folders and files in the right place."""
     import pytorch_lightning.loggers.wandb as imports
 
@@ -161,7 +161,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_log_model(wandb, monkeypatch, tmpdir):
+def test_wandb_log_model(wandb, monkeypatch, tmpdir) -> None:
     """Test that the logger creates the folders and files in the right place."""
     import pytorch_lightning.loggers.wandb as imports
 
@@ -226,7 +226,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_log_media(wandb, tmpdir):
+def test_wandb_log_media(wandb, tmpdir) -> None:
     """Test that the logger creates the folders and files in the right place."""
 
     wandb.run = None
@@ -295,7 +295,7 @@ def test_wandb_log_media(wandb, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_logger_offline_log_model(wandb, tmpdir):
+def test_wandb_logger_offline_log_model(wandb, tmpdir) -> None:
     """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)

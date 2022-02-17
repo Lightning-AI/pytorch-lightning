@@ -14,6 +14,7 @@
 import operator
 import os
 from collections import namedtuple
+from typing import List, Union
 from unittest import mock
 from unittest.mock import patch
 
@@ -33,12 +34,12 @@ from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
-PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
+PL_VERSION_LT_1_5: bool = _compare_version("pytorch_lightning", operator.lt, "1.5")
 PRETEND_N_OF_GPUS = 16
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_none_backend(tmpdir):
+def test_multi_gpu_none_backend(tmpdir) -> None:
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
     tutils.set_random_main_port()
     trainer_options = dict(
@@ -57,7 +58,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("gpus", [1, [0], [1]])
-def test_single_gpu_model(tmpdir, gpus):
+def test_single_gpu_model(tmpdir, gpus) -> None:
     """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -73,7 +74,7 @@ def test_single_gpu_model(tmpdir, gpus):
 
 
 @pytest.fixture
-def mocked_device_count(monkeypatch):
+def mocked_device_count(monkeypatch) -> None:
     def device_count():
         return PRETEND_N_OF_GPUS
 
@@ -85,7 +86,7 @@ def mocked_device_count(monkeypatch):
 
 
 @pytest.fixture
-def mocked_device_count_0(monkeypatch):
+def mocked_device_count_0(monkeypatch) -> None:
     def device_count():
         return 0
 
@@ -103,7 +104,7 @@ def mocked_device_count_0(monkeypatch):
         pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
     ],
 )
-def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, strategy):
+def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, strategy) -> None:
     assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
 
 
@@ -114,7 +115,7 @@ def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, strateg
         pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
     ],
 )
-def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strategy):
+def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strategy) -> None:
     assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
 
 
@@ -129,7 +130,7 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strat
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, strategy):
+def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, strategy) -> None:
     assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
 
 
@@ -141,7 +142,7 @@ def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, strateg
         pytest.param(0, None, "ddp", id="None is None"),
     ],
 )
-def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, strategy):
+def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, strategy) -> None:
     assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
 
 
@@ -158,7 +159,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
         ("-1", None, "ddp"),
     ],
 )
-def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, strategy):
+def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, strategy) -> None:
     with pytest.raises(MisconfigurationException):
         Trainer(gpus=gpus, strategy=strategy)
 
@@ -173,7 +174,7 @@ def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_
         pytest.param([1, 2], 1, id="[1, 2] gpus, expect gpu root device to be 1."),
     ],
 )
-def test_determine_root_gpu_device(gpus, expected_root_gpu):
+def test_determine_root_gpu_device(gpus: List[int], expected_root_gpu) -> None:
     assert device_parser.determine_root_gpu_device(gpus) == expected_root_gpu
 
 
@@ -196,29 +197,29 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
         pytest.param("-1", list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     ],
 )
-def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
+def test_parse_gpu_ids(mocked_device_count, gpus: Union[None, List[int], int, str], expected_gpu_ids) -> None:
     assert device_parser.parse_gpu_ids(gpus) == expected_gpu_ids
 
 
 @pytest.mark.parametrize("gpus", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
-def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
+def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus: Union[None, List[int], int, str]) -> None:
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
 
 
 @pytest.mark.parametrize("gpus", [[1, 2, 19], -1, "-1"])
-def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, gpus):
+def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, gpus: Union[None, List[int], int, str]) -> None:
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
 
 
-def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
+def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count) -> None:
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids([1, 2, 19])
 
 
 @pytest.mark.parametrize("gpus", [-1, "-1"])
-def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, gpus):
+def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, gpus: Union[None, List[int], int, str]) -> None:
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(gpus)
 
@@ -237,7 +238,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0"])
-def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
+def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus: Union[None, List[int], int, str]) -> None:
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
@@ -247,7 +248,7 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
 
 
 @RunIf(min_gpus=1)
-def test_single_gpu_batch_parse():
+def test_single_gpu_batch_parse() -> None:
     trainer = Trainer(gpus=1)
 
     # non-transferrable types
@@ -339,7 +340,7 @@ def test_single_gpu_batch_parse():
 
 
 @RunIf(min_gpus=1)
-def test_non_blocking():
+def test_non_blocking() -> None:
     """Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects."""
     trainer = Trainer()
 

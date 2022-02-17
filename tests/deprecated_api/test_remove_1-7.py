@@ -43,25 +43,25 @@ from tests.loggers.test_base import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
+def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir) -> None:
     model = BoringModel()
     with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
         model.summarize(max_depth=1)
 
 
-def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
+def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir) -> None:
     _soft_unimport_module("pytorch_lightning.core.memory")
     with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
         from pytorch_lightning.core.memory import LayerSummary, ModelSummary  # noqa: F401
 
 
-def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
+def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir) -> None:
     _soft_unimport_module("pytorch_lightning.core.memory")
     with pytest.deprecated_call(match="to `pytorch_lightning.utilities.memory` since v1.5"):
         from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F401
 
 
-def test_v1_7_0_deprecated_model_size():
+def test_v1_7_0_deprecated_model_size() -> None:
     model = BoringModel()
     with pytest.deprecated_call(
         match="LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7"
@@ -69,7 +69,7 @@ def test_v1_7_0_deprecated_model_size():
         _ = model.model_size
 
 
-def test_v1_7_0_datamodule_transform_properties(tmpdir):
+def test_v1_7_0_datamodule_transform_properties(tmpdir) -> None:
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `train_transforms` was deprecated in v1.5"):
         dm.train_transforms = "a"
@@ -87,13 +87,13 @@ def test_v1_7_0_datamodule_transform_properties(tmpdir):
         _ = LightningDataModule(test_transforms="c", dims=(1, 1, 1))
 
 
-def test_v1_7_0_datamodule_size_property(tmpdir):
+def test_v1_7_0_datamodule_size_property(tmpdir) -> None:
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `size` was deprecated in v1.5"):
         dm.size()
 
 
-def test_v1_7_0_datamodule_dims_property(tmpdir):
+def test_v1_7_0_datamodule_dims_property(tmpdir) -> None:
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
         _ = dm.dims
@@ -101,7 +101,7 @@ def test_v1_7_0_datamodule_dims_property(tmpdir):
         _ = LightningDataModule(dims=(1, 1, 1))
 
 
-def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
+def test_v1_7_0_moved_get_progress_bar_dict(tmpdir) -> None:
     class TestModel(BoringModel):
         def get_progress_bar_dict(self):
             items = super().get_progress_bar_dict()
@@ -124,18 +124,18 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
         _ = trainer.progress_bar_dict
 
 
-def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
+def test_v1_7_0_trainer_prepare_data_per_node(tmpdir) -> None:
     with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
         _ = Trainer(prepare_data_per_node=False)
 
 
-def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
+def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
         _ = Trainer(stochastic_weight_avg=True)
 
 
 @pytest.mark.parametrize("terminate_on_nan", [True, False])
-def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
+def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan) -> None:
     with pytest.deprecated_call(
         match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
     ):
@@ -151,7 +151,7 @@ def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
         trainer.terminate_on_nan = True
 
 
-def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
+def test_v1_7_0_deprecated_on_task_dataloader(tmpdir) -> None:
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
             print("on_train_dataloader")
@@ -198,12 +198,12 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
-def test_v1_7_0_test_tube_logger(_, tmpdir):
+def test_v1_7_0_test_tube_logger(_: TestTubeLogger, tmpdir) -> None:
     with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
         _ = TestTubeLogger(tmpdir)
 
 
-def test_v1_7_0_on_interrupt(tmpdir):
+def test_v1_7_0_on_interrupt(tmpdir) -> None:
     class HandleInterruptCallback(Callback):
         def on_keyboard_interrupt(self, trainer, pl_module):
             print("keyboard interrupt")
@@ -226,12 +226,12 @@ def test_v1_7_0_on_interrupt(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_process_position_trainer_constructor(tmpdir):
+def test_v1_7_0_process_position_trainer_constructor(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(process_position=5\)` is deprecated in v1.5"):
         _ = Trainer(process_position=5)
 
 
-def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
+def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(flush_logs_every_n_steps=10\)` is deprecated in v1.5"):
         _ = Trainer(flush_logs_every_n_steps=10)
 
@@ -244,7 +244,7 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         ...
 
 
-def test_v1_7_0_deprecate_add_get_queue(tmpdir):
+def test_v1_7_0_deprecate_add_get_queue(tmpdir) -> None:
     model = BoringCallbackDDPSpawnModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
@@ -255,12 +255,12 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir):
+def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(progress_bar_refresh_rate=1\)` is deprecated in v1.5"):
         _ = Trainer(progress_bar_refresh_rate=1)
 
 
-def test_v1_7_0_lightning_logger_base_close(tmpdir):
+def test_v1_7_0_lightning_logger_base_close(tmpdir) -> None:
     logger = CustomLogger()
     with pytest.deprecated_call(
         match="`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
@@ -273,19 +273,19 @@ def test_v1_7_0_lightning_logger_base_close(tmpdir):
         logger.close()
 
 
-def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
+def test_v1_7_0_deprecate_lightning_distributed(tmpdir) -> None:
     with pytest.deprecated_call(match="LightningDistributed is deprecated in v1.5 and will be removed in v1.7."):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
 
 
-def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
+def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback=True\)` is deprecated in v1.5"):
         _ = Trainer(checkpoint_callback=True)
 
 
-def test_v1_7_0_old_on_train_batch_start(tmpdir):
+def test_v1_7_0_old_on_train_batch_start(tmpdir) -> None:
     class OldSignature(Callback):
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             ...
@@ -305,7 +305,7 @@ def test_v1_7_0_old_on_train_batch_start(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_old_on_train_batch_end(tmpdir):
+def test_v1_7_0_old_on_train_batch_end(tmpdir) -> None:
     class OldSignature(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             ...
@@ -325,7 +325,7 @@ def test_v1_7_0_old_on_train_batch_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
+def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir) -> None:
     class TestModel(BoringModel):
         def on_post_move_to_device(self):
             print("on_post_move_to_device")
@@ -340,7 +340,7 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_deprecate_parameter_validation():
+def test_v1_7_0_deprecate_parameter_validation() -> None:
 
     _soft_unimport_module("pytorch_lightning.core.decorators")
     with pytest.deprecated_call(
@@ -349,17 +349,17 @@ def test_v1_7_0_deprecate_parameter_validation():
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
 
 
-def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
+def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag() -> None:
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         Trainer(accelerator="ddp_spawn")
 
 
-def test_v1_7_0_passing_strategy_to_plugins_flag():
+def test_v1_7_0_passing_strategy_to_plugins_flag() -> None:
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         Trainer(plugins="ddp_spawn")
 
 
-def test_v1_7_0_weights_summary_trainer(tmpdir):
+def test_v1_7_0_weights_summary_trainer(tmpdir) -> None:
     with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
         t = Trainer(weights_summary="full")
 
@@ -374,37 +374,37 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
         t.weights_summary = "blah"
 
 
-def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
+def test_v1_7_0_trainer_log_gpu_memory(tmpdir) -> None:
     with pytest.deprecated_call(
         match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
     ):
         _ = Trainer(log_gpu_memory="min_max")
 
 
-def test_v1_7_0_deprecated_slurm_job_id():
+def test_v1_7_0_deprecated_slurm_job_id() -> None:
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
         trainer.slurm_job_id
 
 
 @RunIf(min_gpus=1)
-def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
+def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir) -> None:
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
         _ = GPUStatsMonitor()
 
 
 @RunIf(tpu=True)
-def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir) -> None:
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
 
 
-def test_v1_7_0_progress_bar():
+def test_v1_7_0_progress_bar() -> None:
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         _ = ProgressBar()
 
 
-def test_v1_7_0_deprecated_max_steps_none(tmpdir):
+def test_v1_7_0_deprecated_max_steps_none(tmpdir) -> None:
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         _ = Trainer(max_steps=None)
 
@@ -413,7 +413,7 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
         trainer.fit_loop.max_steps = None
 
 
-def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
+def test_v1_7_0_deprecate_lr_sch_names(tmpdir) -> None:
     model = BoringModel()
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=[lr_monitor])
@@ -432,7 +432,7 @@ def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
         TorchElasticEnvironment,
     ],
 )
-def test_v1_7_0_cluster_environment_master_address(cls):
+def test_v1_7_0_cluster_environment_master_address(cls) -> None:
     class MyClusterEnvironment(cls):
         def master_address(self):
             pass
@@ -452,7 +452,7 @@ def test_v1_7_0_cluster_environment_master_address(cls):
         TorchElasticEnvironment,
     ],
 )
-def test_v1_7_0_cluster_environment_master_port(cls):
+def test_v1_7_0_cluster_environment_master_port(cls) -> None:
     class MyClusterEnvironment(cls):
         def master_port(self):
             pass
@@ -471,7 +471,7 @@ def test_v1_7_0_cluster_environment_master_port(cls):
         (TorchElasticEnvironment, "is_using_torchelastic"),
     ],
 )
-def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
+def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path) -> None:
     class MyClusterEnvironment(cls):
         @staticmethod
         def is_using_kubeflow():
@@ -500,7 +500,7 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
                 MyClusterEnvironment()
 
 
-def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
+def test_v1_7_0_index_batch_sampler_wrapper_batch_indices() -> None:
     sampler = IndexBatchSamplerWrapper(Mock())
     with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         _ = sampler.batch_indices
@@ -509,7 +509,7 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
         sampler.batch_indices = []
 
 
-def test_v1_7_0_post_dispatch_hook():
+def test_v1_7_0_post_dispatch_hook() -> None:
     class CustomPlugin(SingleDeviceStrategy):
         def post_dispatch(self, trainer):
             pass

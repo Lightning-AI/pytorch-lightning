@@ -57,8 +57,7 @@ class MNIST(Dataset):
     cache_folder_name = "complete"
 
     def __init__(
-        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
-    ):
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs) -> None:
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -91,7 +90,7 @@ class MNIST(Dataset):
             existing = existing and os.path.isfile(os.path.join(data_folder, fname))
         return existing
 
-    def prepare_data(self, download: bool = True):
+    def prepare_data(self, download: bool = True) -> None:
         if download and not self._check_exists(self.cached_folder_path):
             self._download(self.cached_folder_path)
         if not self._check_exists(self.cached_folder_path):
@@ -149,7 +148,7 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
+    def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs) -> None:
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
@@ -186,7 +185,7 @@ class TrialMNIST(MNIST):
 
 
 class AverageDataset(Dataset):
-    def __init__(self, dataset_len=300, sequence_len=100):
+    def __init__(self, dataset_len: int=300, sequence_len: int=100) -> None:
         self.dataset_len = dataset_len
         self.sequence_len = sequence_len
         self.input_seq = torch.randn(dataset_len, sequence_len, 10)
@@ -201,7 +200,7 @@ class AverageDataset(Dataset):
 
 
 class SklearnDataset(Dataset):
-    def __init__(self, x, y, x_type, y_type):
+    def __init__(self, x, y, x_type, y_type) -> None:
         self.x = x
         self.y = y
         self._x_type = x_type
@@ -210,5 +209,5 @@ class SklearnDataset(Dataset):
     def __getitem__(self, idx):
         return torch.tensor(self.x[idx], dtype=self._x_type), torch.tensor(self.y[idx], dtype=self._y_type)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.y)

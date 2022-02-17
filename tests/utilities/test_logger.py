@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.logger import (
 )
 
 
-def test_convert_params():
+def test_convert_params() -> None:
     """Test conversion of params to a dict."""
 
     # Test normal dict, make sure it is unchanged
@@ -56,7 +56,7 @@ def test_convert_params():
     assert params["gpus"] is None
 
 
-def test_flatten_dict():
+def test_flatten_dict() -> None:
     """Validate flatten_dict can handle nested dictionaries and argparse Namespace."""
 
     # Test basic dict flattening with custom delimiter
@@ -92,7 +92,7 @@ def test_flatten_dict():
     assert "gpus" not in params
 
 
-def test_sanitize_callable_params():
+def test_sanitize_callable_params() -> None:
     """Callback function are not serializiable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
@@ -122,7 +122,7 @@ def test_sanitize_callable_params():
     assert params["wrapper_something_wo_name"] == "<lambda>"
 
 
-def test_sanitize_params():
+def test_sanitize_params() -> None:
     """Verify sanitize params converts various types to loggable strings."""
 
     params = {
@@ -153,7 +153,7 @@ def test_sanitize_params():
     assert torch.equal(params["tensor"], torch.ones(3))
 
 
-def test_add_prefix():
+def test_add_prefix() -> None:
     """Verify add_prefix modifies the dict keys correctly."""
 
     metrics = {"metric1": 1, "metric2": 2}

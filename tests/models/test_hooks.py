@@ -13,12 +13,14 @@
 # limitations under the License.
 from functools import partial, update_wrapper
 from inspect import getmembers, isfunction
+from typing import Dict, Set
 from unittest import mock
 from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from typing_extensions import SupportsIndex
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
@@ -26,7 +28,7 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
-def test_on_before_zero_grad_called(tmpdir, max_steps):
+def test_on_before_zero_grad_called(tmpdir, max_steps) -> None:
     class CurrentTestModel(BoringModel):
         on_before_zero_grad_called = 0
 
@@ -45,7 +47,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     assert 0 == model.on_before_zero_grad_called
 
 
-def test_training_epoch_end_metrics_collection(tmpdir):
+def test_training_epoch_end_metrics_collection(tmpdir) -> None:
     """Test that progress bar metrics also get collected at the end of an epoch."""
     num_epochs = 3
 
@@ -77,7 +79,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         assert metrics[f"epoch_metric_{i}"] == i
 
 
-def test_training_epoch_end_metrics_collection_on_override(tmpdir):
+def test_training_epoch_end_metrics_collection_on_override(tmpdir) -> None:
     """Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch."""
 
     class OverriddenModel(BoringModel):
@@ -116,7 +118,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_apply_batch_transfer_handler(model_getter_mock):
+def test_apply_batch_transfer_handler(model_getter_mock) -> None:
     expected_device = torch.device("cuda", 0)
 
     class CustomBatch:
@@ -171,7 +173,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_transfer_batch_hook_ddp(tmpdir):
+def test_transfer_batch_hook_ddp(tmpdir) -> None:
     """Test custom data are properly moved to the right device using ddp."""
 
     class CustomBatch:
@@ -208,12 +210,12 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-def get_members(cls):
+def get_members(cls: object) -> Set[str]:
     return {h for h, _ in getmembers(cls, predicate=isfunction) if not h.startswith("_")}
 
 
 class HookedCallback(Callback):
-    def __init__(self, called):
+    def __init__(self, called) -> None:
         def call(hook, fn, *args, **kwargs):
             out = fn(*args, **kwargs)
             d = {"name": f"Callback.{hook}"}
@@ -230,12 +232,12 @@ class HookedCallback(Callback):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def on_save_checkpoint(*args, **kwargs):
+    def on_save_checkpoint(*args, **kwargs) -> Dict[str, bool]:
         return {"foo": True}
 
 
 class HookedModel(BoringModel):
-    def __init__(self, called):
+    def __init__(self, called) -> None:
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         # remove non-hooks
@@ -265,11 +267,11 @@ class HookedModel(BoringModel):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def validation_epoch_end(self, *args, **kwargs):
+    def validation_epoch_end(self, *args, **kwargs) -> None:
         # `BoringModel` does not have a return for `validation_step_end` so this would fail
         pass
 
-    def test_epoch_end(self, *args, **kwargs):
+    def test_epoch_end(self, *args, **kwargs) -> None:
         # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
 
@@ -280,8 +282,7 @@ class HookedModel(BoringModel):
 
     @staticmethod
     def _auto_train_batch(
-        trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
-    ):
+        trainer, model, batches, device=torch.device("cpu"), current_epoch: int=0, current_batch: int=0, **kwargs):
         using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
@@ -375,7 +376,7 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _eval_epoch(fn, trainer, model, batches, key, device=torch.device("cpu")):
+    def _eval_epoch(fn, trainer, model, batches: SupportsIndex, key, device=torch.device("cpu")):
         outputs = {key: ANY}
         return [
             dict(name="Callback.on_epoch_start", args=(trainer, model)),
@@ -445,7 +446,7 @@ class HookedModel(BoringModel):
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", (True, False))
-def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
+def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization) -> None:
     called = []
 
     class TestModel(HookedModel):
@@ -568,7 +569,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     assert called == expected
 
 
-def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
+def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir) -> None:
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
@@ -669,7 +670,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
 @pytest.mark.parametrize(
     ["verb", "noun", "dataloader", "key"], [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
-def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
+def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key) -> None:
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
@@ -719,7 +720,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     assert called == expected
 
 
-def test_trainer_model_hook_system_predict(tmpdir):
+def test_trainer_model_hook_system_predict(tmpdir) -> None:
     called = []
     model = HookedModel(called)
     callback = HookedCallback(called)
@@ -767,7 +768,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
 # TODO: add test for tune
 
 
-def test_hooks_with_different_argument_names(tmpdir):
+def test_hooks_with_different_argument_names(tmpdir) -> None:
     """Test that argument names can be anything in the hooks."""
 
     class CustomBoringModel(BoringModel):
@@ -814,7 +815,7 @@ def test_hooks_with_different_argument_names(tmpdir):
     assert all(len(x) == 5 for x in preds)
 
 
-def test_trainer_datamodule_hook_system(tmpdir):
+def test_trainer_datamodule_hook_system(tmpdir) -> None:
     """Test the LightningDataModule hook system."""
 
     class HookedDataModule(BoringDataModule):

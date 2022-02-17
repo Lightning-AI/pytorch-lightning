@@ -81,7 +81,7 @@ def test_prefetch_iterator(use_combined_loader):
     assert not list(iterator)
 
 
-def test_misconfiguration_error():
+def test_misconfiguration_error() -> None:
 
     fetcher = DataFetcher()
     with pytest.raises(
@@ -136,12 +136,12 @@ class RandomIndicesDataset(Dataset):
     def __getitem__(self, index):
         return torch.randint(EMB_DIM, [BATCH_SIZE])
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 16
 
 
 class RecommenderModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = None
         self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
@@ -175,7 +175,7 @@ class RecommenderModel(BoringModel):
 
 
 @RunIf(min_gpus=1, min_torch="1.8.0")
-def test_trainer_num_prefetch_batches(tmpdir):
+def test_trainer_num_prefetch_batches(tmpdir) -> None:
 
     model = RecommenderModel()
 
@@ -222,7 +222,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
 @RunIf(min_torch="1.8.0")
-def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
+def test_fetching_dataloader_iter(automatic_optimization, tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
             super().__init__(*args, **kwargs)
@@ -321,7 +321,7 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
-def test_stop_iteration(trigger_stop_iteration, tmpdir):
+def test_stop_iteration(trigger_stop_iteration, tmpdir) -> None:
     """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
@@ -394,7 +394,7 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
         trainer.fit(m)
 
 
-def test_transfer_hooks_with_unpacking(tmpdir):
+def test_transfer_hooks_with_unpacking(tmpdir) -> None:
 
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 

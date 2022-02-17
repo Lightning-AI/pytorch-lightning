@@ -17,7 +17,7 @@ import string
 from tests.helpers.imports import Dataset, Example, Field, Iterator
 
 
-def _generate_random_string(length: int = 10):
+def _generate_random_string(length: int = 10) -> str:
     return "".join(random.choices(string.ascii_letters, k=length))
 
 

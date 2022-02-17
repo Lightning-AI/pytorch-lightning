@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -20,7 +22,7 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterabl
 from tests.helpers.utils import no_warning_call
 
 
-def test_extract_batch_size():
+def test_extract_batch_size() -> None:
     """Tests the behavior of extracting the batch size."""
 
     def _check_warning_not_raised(data, expected):
@@ -90,7 +92,7 @@ def test_has_iterable_dataset():
     assert not has_iterable_dataset(DataLoader(MockDatasetWithoutIterableDataset(1, 1)))
 
 
-def test_has_len():
+def test_has_len() -> None:
     assert has_len(DataLoader(RandomDataset(1, 1)))
 
     with pytest.raises(ValueError, match="`Dataloader` returned 0 length."):
@@ -99,7 +101,7 @@ def test_has_len():
     assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
 
 
-def test_get_len():
+def test_get_len() -> None:
     assert get_len(DataLoader(RandomDataset(1, 1))) == 1
 
     value = get_len(DataLoader(RandomIterableDataset(1, 1)))
@@ -108,7 +110,7 @@ def test_get_len():
     assert value == float("inf")
 
 
-def test_has_len_all_rank():
+def test_has_len_all_rank() -> None:
     trainer = Trainer(fast_dev_run=True)
     model = BoringModel()
 
@@ -118,7 +120,7 @@ def test_has_len_all_rank():
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.strategy, model)
 
 
-def test_update_dataloader_typerror_custom_exception():
+def test_update_dataloader_typerror_custom_exception() -> None:
     class BadImpl(DataLoader):
         def __init__(self, foo, *args, **kwargs):
             self.foo = foo
@@ -150,7 +152,7 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_dataloader_init_method():
+def test_replace_dataloader_init_method() -> None:
     """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
     sets them as attributes."""
 
@@ -177,7 +179,7 @@ def test_replace_dataloader_init_method():
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
-def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
+def test_dataloader_kwargs_replacement_with_iterable_dataset(mode: Optional[RunningStage]) -> None:
     """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
     dataset = RandomIterableDataset(7, 100)
     dataloader = DataLoader(dataset, batch_size=32)

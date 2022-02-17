@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -8,7 +9,7 @@ import pytorch_lightning.utilities.seed as seed_utils
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_seed_stays_same_with_multiple_seed_everything_calls():
+def test_seed_stays_same_with_multiple_seed_everything_calls() -> None:
     """Ensure that after the initial seed everything, the seed stays the same for the same run."""
     with pytest.warns(UserWarning, match="No seed found"):
         seed_utils.seed_everything()
@@ -23,14 +24,14 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
 
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "2020"}, clear=True)
-def test_correct_seed_with_environment_variable():
+def test_correct_seed_with_environment_variable() -> None:
     """Ensure that the PL_GLOBAL_SEED environment is read."""
     assert seed_utils.seed_everything() == 2020
 
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", new=lambda *_: 123)
-def test_invalid_seed():
+def test_invalid_seed() -> None:
     """Ensure that we still fix the seed even if an invalid seed is given."""
     with pytest.warns(UserWarning, match="Invalid seed found"):
         seed = seed_utils.seed_everything()
@@ -40,14 +41,14 @@ def test_invalid_seed():
 @mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch.object(seed_utils, attribute="_select_seed_randomly", new=lambda *_: 123)
 @pytest.mark.parametrize("seed", (10e9, -10e9))
-def test_out_of_bounds_seed(seed):
+def test_out_of_bounds_seed(seed: Optional[int]) -> None:
     """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
     with pytest.warns(UserWarning, match="is not in bounds"):
         actual = seed_utils.seed_everything(seed)
     assert actual == 123
 
 
-def test_reset_seed_no_op():
+def test_reset_seed_no_op() -> None:
     """Test that the reset_seed function is a no-op when seed_everything() was not used."""
     assert "PL_GLOBAL_SEED" not in os.environ
     seed_before = torch.initial_seed()
@@ -57,7 +58,7 @@ def test_reset_seed_no_op():
 
 
 @pytest.mark.parametrize("workers", (True, False))
-def test_reset_seed_everything(workers):
+def test_reset_seed_everything(workers: bool) -> None:
     """Test that we can reset the seed to the initial value set by seed_everything()"""
     assert "PL_GLOBAL_SEED" not in os.environ
     assert "PL_SEED_WORKERS" not in os.environ

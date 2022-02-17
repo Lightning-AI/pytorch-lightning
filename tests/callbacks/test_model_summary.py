@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks import ModelSummary
 from tests.helpers.boring_model import BoringModel
 
 
-def test_model_summary_callback_present_trainer():
+def test_model_summary_callback_present_trainer() -> None:
 
     trainer = Trainer()
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
@@ -29,7 +29,7 @@ def test_model_summary_callback_present_trainer():
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
 
-def test_model_summary_callback_with_weights_summary_none():
+def test_model_summary_callback_with_weights_summary_none() -> None:
     with pytest.deprecated_call(match=r"weights_summary=None\)` is deprecated"):
         trainer = Trainer(weights_summary=None)
     assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
@@ -45,7 +45,7 @@ def test_model_summary_callback_with_weights_summary_none():
     assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
 
-def test_model_summary_callback_with_weights_summary():
+def test_model_summary_callback_with_weights_summary() -> None:
     trainer = Trainer(weights_summary="top")
     model_summary_callback = list(filter(lambda cb: isinstance(cb, ModelSummary), trainer.callbacks))[0]
     assert model_summary_callback._max_depth == 1
@@ -56,13 +56,13 @@ def test_model_summary_callback_with_weights_summary():
     assert model_summary_callback._max_depth == -1
 
 
-def test_model_summary_callback_override_weights_summary_flag():
+def test_model_summary_callback_override_weights_summary_flag() -> None:
     with pytest.deprecated_call(match=r"weights_summary=None\)` is deprecated"):
         trainer = Trainer(callbacks=ModelSummary(), weights_summary=None)
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
 
-def test_custom_model_summary_callback_summarize(tmpdir):
+def test_custom_model_summary_callback_summarize(tmpdir) -> None:
     class CustomModelSummary(ModelSummary):
         @staticmethod
         def summarize(

@@ -23,7 +23,7 @@ from tests.helpers.runif import RunIf
 
 @RunIf(min_torch="1.8")
 @RunIf(min_gpus=1)
-def test_get_torch_gpu_stats(tmpdir):
+def test_get_torch_gpu_stats(tmpdir) -> None:
     """Test GPU get_device_stats with Pytorch >= 1.8.0."""
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = GPUAccelerator().get_device_stats(current_device)
@@ -35,7 +35,7 @@ def test_get_torch_gpu_stats(tmpdir):
 
 @RunIf(max_torch="1.7")
 @RunIf(min_gpus=1)
-def test_get_nvidia_gpu_stats(tmpdir):
+def test_get_nvidia_gpu_stats(tmpdir) -> None:
     """Test GPU get_device_stats with Pytorch < 1.8.0."""
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = GPUAccelerator().get_device_stats(current_device)
@@ -47,7 +47,7 @@ def test_get_nvidia_gpu_stats(tmpdir):
 
 @RunIf(min_gpus=1)
 @mock.patch("torch.cuda.set_device")
-def test_set_cuda_device(set_device_mock, tmpdir):
+def test_set_cuda_device(set_device_mock, tmpdir) -> None:
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -63,5 +63,5 @@ def test_set_cuda_device(set_device_mock, tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_gpu_availability():
+def test_gpu_availability() -> None:
     assert GPUAccelerator.is_available()

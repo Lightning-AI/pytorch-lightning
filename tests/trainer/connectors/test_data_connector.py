@@ -25,7 +25,7 @@ from tests.helpers.boring_model import RandomDataset
 
 
 class NoDataLoaderModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.train_dataloader = None
         self.val_dataloader = None
@@ -43,13 +43,13 @@ class NoDataLoaderModel(BoringModel):
         (BoringDataModule(), True),
     ],
 )
-def test_dataloader_source_available(instance, available):
+def test_dataloader_source_available(instance, available) -> None:
     """Test the availability check for _DataLoaderSource."""
     source = _DataLoaderSource(instance=instance, name="train_dataloader")
     assert source.is_defined() is available
 
 
-def test_dataloader_source_direct_access():
+def test_dataloader_source_direct_access() -> None:
     """Test requesting a dataloader when the source is already a dataloader."""
     dataloader = BoringModel().train_dataloader()
     source = _DataLoaderSource(instance=dataloader, name="any")
@@ -58,7 +58,7 @@ def test_dataloader_source_direct_access():
     assert source.dataloader() is dataloader
 
 
-def test_dataloader_source_request_from_module():
+def test_dataloader_source_request_from_module() -> None:
     """Test requesting a dataloader from a module works."""
     module = BoringModel()
     module.trainer = Trainer()
@@ -71,7 +71,7 @@ def test_dataloader_source_request_from_module():
     module.foo.assert_called_once()
 
 
-def test_eval_distributed_sampler_warning(tmpdir):
+def test_eval_distributed_sampler_warning(tmpdir) -> None:
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
 
     model = BoringModel()
@@ -88,7 +88,7 @@ def test_eval_distributed_sampler_warning(tmpdir):
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
-def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
+def test_eval_shuffle_with_distributed_sampler_replacement(shuffle) -> None:
     """Test that shuffle is not changed if set to True."""
 
     class CustomModel(BoringModel):

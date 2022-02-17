@@ -12,64 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
 class BatchHookObserverCallback(Callback):
-    def on_train_batch_start(self, trainer, pl_module, batch, *args):
+    def on_train_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_validation_batch_start(self, trainer, pl_module, batch, *args):
+    def on_validation_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_validation_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_test_batch_start(self, trainer, pl_module, batch, *args):
+    def on_test_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_test_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_predict_batch_start(self, trainer, pl_module, batch, *args):
+    def on_predict_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, *args) -> None:
         assert batch.device == pl_module.device
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_predict_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, *args) -> None:
         assert batch.device == pl_module.device
 
 
 class BatchHookObserverModel(BoringModel):
-    def on_train_batch_start(self, batch, *args):
+    def on_train_batch_start(self, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_train_batch_end(self, outputs, batch, *args):
+    def on_train_batch_end(self, outputs, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_validation_batch_start(self, batch, *args):
+    def on_validation_batch_start(self, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_validation_batch_end(self, outputs, batch, *args):
+    def on_validation_batch_end(self, outputs, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_test_batch_start(self, batch, *args):
+    def on_test_batch_start(self, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_test_batch_end(self, outputs, batch, *args):
+    def on_test_batch_end(self, outputs, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_predict_batch_start(self, batch, *args):
+    def on_predict_batch_start(self, batch, *args) -> None:
         assert batch.device == self.device
 
-    def on_predict_batch_end(self, outputs, batch, *args):
+    def on_predict_batch_end(self, outputs, batch, *args) -> None:
         assert batch.device == self.device
 
 
 @RunIf(min_gpus=1)
-def test_callback_batch_on_device(tmpdir):
+def test_callback_batch_on_device(tmpdir) -> None:
     """Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
 
     batch_callback = BatchHookObserverCallback()

@@ -22,6 +22,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
@@ -39,7 +40,7 @@ from tests.loggers.test_mlflow import mock_mlflow_run_creation
 from tests.loggers.test_neptune import create_neptune_mock
 
 
-def _get_logger_args(logger_class, save_dir):
+def _get_logger_args(logger_class: object, save_dir):
     logger_args = {}
     if "save_dir" in inspect.getfullargspec(logger_class).args:
         logger_args.update(save_dir=str(save_dir))
@@ -59,7 +60,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger
 
 
-def test_loggers_fit_test_all(tmpdir, monkeypatch):
+def test_loggers_fit_test_all(tmpdir, monkeypatch) -> None:
     """Verify that basic functionality of all loggers."""
 
     _test_loggers_fit_test(tmpdir, TensorBoardLogger)
@@ -89,7 +90,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
-def _test_loggers_fit_test(tmpdir, logger_class):
+def _test_loggers_fit_test(tmpdir, logger_class) -> None:
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -162,7 +163,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
-def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
+def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch) -> None:
     """Test the combinations of save_dir, weights_save_path and default_root_dir."""
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
@@ -187,7 +188,7 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
 
 
-def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
+def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class) -> None:
     class TestLogger(logger_class):
         # for this test it does not matter what these attributes are
         # so we standardize them to make testing easier
@@ -244,7 +245,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
         # The NeptuneLogger gets tested for pickling in its own test.
     ],
 )
-def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
+def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class) -> None:
     """Test that the logger objects can be pickled.
 
     This test only makes sense if the packages are installed.
@@ -260,7 +261,7 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
+def _test_loggers_pickle(tmpdir, monkeypatch, logger_class) -> None:
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
@@ -296,7 +297,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
         pytest.param(dict(max_epochs=3, auto_lr_find=True), id="LR-Finder"),
     ],
 )
-def test_logger_reset_correctly(tmpdir, extra_params):
+def test_logger_reset_correctly(tmpdir, extra_params) -> None:
     """Test that the tuners do not alter the logger reference."""
 
     class CustomModel(BoringModel):
@@ -320,7 +321,7 @@ class RankZeroLoggerCheck(Callback):
     # this class has to be defined outside the test function, otherwise we get pickle error
     # due to the way ddp process is launched
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+    def on_train_batch_start(self, trainer: Trainer, pl_module: LightningModule, batch, batch_idx: int) -> None:
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
             assert not is_dummy
@@ -333,7 +334,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize(
     "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger]
 )
-def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class) -> None:
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
     try:
@@ -346,7 +347,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+def _test_logger_created_on_rank_zero_only(tmpdir, logger_class) -> None:
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = BoringModel()
@@ -363,7 +364,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-def test_logger_with_prefix_all(tmpdir, monkeypatch):
+def test_logger_with_prefix_all(tmpdir, monkeypatch) -> None:
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
 
@@ -416,7 +417,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-def test_logger_default_name(tmpdir):
+def test_logger_default_name(tmpdir) -> None:
     """Test that the default logger name is lightning_logs."""
 
     # CSV

@@ -24,7 +24,7 @@ from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase])
-def test_wrapper_device_dtype(wrapper_class):
+def test_wrapper_device_dtype(wrapper_class) -> None:
     model = BoringModel()
     wrapped_model = wrapper_class(model)
 
@@ -32,7 +32,7 @@ def test_wrapper_device_dtype(wrapper_class):
     assert model.dtype == torch.float16
 
 
-def test_unwrap_lightning_module():
+def test_unwrap_lightning_module() -> None:
     model = BoringModel()
     wrapped_model = _LightningPrecisionModuleWrapperBase(model)
     wrapped_model = _LightningModuleWrapperBase(wrapped_model)

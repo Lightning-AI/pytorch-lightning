@@ -19,7 +19,7 @@ from fsspec.implementations.local import LocalFileSystem
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
-def test_get_filesystem_custom_filesystem():
+def test_get_filesystem_custom_filesystem() -> None:
     _DUMMY_PRFEIX = "dummy"
 
     class DummyFileSystem(LocalFileSystem):
@@ -30,5 +30,5 @@ def test_get_filesystem_custom_filesystem():
     assert isinstance(get_filesystem(output_file), DummyFileSystem)
 
 
-def test_get_filesystem_local_filesystem():
+def test_get_filesystem_local_filesystem() -> None:
     assert isinstance(get_filesystem("tmpdir/tmp_file"), LocalFileSystem)

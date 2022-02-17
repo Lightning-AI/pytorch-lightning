@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import time
-from typing import Type
+from typing import Any, Dict, Type
 
 import pytest
 import torch
@@ -33,7 +33,7 @@ class SeedTrainLoaderModel(BoringModel):
 
 
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx) -> None:
         # manual
         # access your optimizers with use_pl_optimizer=False. Default is True
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
@@ -69,7 +69,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
 
 class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx) -> Dict[str, Any]:
         output = self.layer(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -119,7 +119,7 @@ def plugin_parity_test(
     gpus: int = 0,
     precision: int = 32,
     max_percent_speed_diff: float = 0.1,
-):
+) -> None:
     """Ensures that the trained model is identical to the standard DDP implementation. Also checks for speed/memory
     regressions, we should expect always less memory but performance to fluctuate.
 
@@ -199,7 +199,7 @@ def plugin_parity_test(
         ),
     ],
 )
-def test_ddp_spawn_sharded_strategy(kwargs):
+def test_ddp_spawn_sharded_strategy(kwargs) -> None:
     if kwargs["gpus"] > 1:
         # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
         kwargs["max_percent_speed_diff"] = 0.25

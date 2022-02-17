@@ -17,7 +17,7 @@ from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.imports import _compare_version
 
 
-def test_module_exists():
+def test_module_exists() -> None:
     """Test if the some 3rd party libs are available."""
     assert _module_available("torch")
     assert _module_available("torch.nn.parallel")
@@ -26,7 +26,7 @@ def test_module_exists():
     assert not _module_available("asdf.bla.asdf")
 
 
-def test_compare_version(monkeypatch):
+def test_compare_version(monkeypatch) -> None:
     from pytorch_lightning.utilities.imports import torch
 
     monkeypatch.setattr(torch, "__version__", "1.8.9")

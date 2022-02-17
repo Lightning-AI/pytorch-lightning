@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Optional
 
 import fsspec
 import pytest
@@ -21,8 +22,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel
 
-GCS_BUCKET_PATH = os.getenv("GCS_BUCKET_PATH", None)
-_GCS_BUCKET_PATH_AVAILABLE = GCS_BUCKET_PATH is not None
+GCS_BUCKET_PATH: Optional[str] = os.getenv("GCS_BUCKET_PATH", None)
+_GCS_BUCKET_PATH_AVAILABLE: bool = GCS_BUCKET_PATH is not None
 
 gcs_fs = fsspec.filesystem("gs") if _GCS_BUCKET_PATH_AVAILABLE else None
 
@@ -31,13 +32,13 @@ def gcs_path_join(dir_path):
     return GCS_BUCKET_PATH + str(dir_path)
 
 
-def gcs_rm_dir(dir_path):
+def gcs_rm_dir(dir_path) -> bool:
     gcs_fs.rm(dir_path, recursive=True)
     return True
 
 
 @pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
-def test_gcs_model_checkpoint_contents(tmpdir):
+def test_gcs_model_checkpoint_contents(tmpdir) -> None:
     dir_path = gcs_path_join(tmpdir)
 
     model = BoringModel()
@@ -68,7 +69,7 @@ def test_gcs_model_checkpoint_contents(tmpdir):
 
 
 @pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
-def test_gcs_logging(tmpdir):
+def test_gcs_logging(tmpdir) -> None:
     dir_path = gcs_path_join(tmpdir)
 
     name = "tb_versioning"
@@ -91,7 +92,7 @@ def test_gcs_logging(tmpdir):
 
 
 @pytest.mark.skipif(not _GCS_BUCKET_PATH_AVAILABLE, reason="Test requires GCS bucket path")
-def test_gcs_save_hparams_to_yaml_file(tmpdir):
+def test_gcs_save_hparams_to_yaml_file(tmpdir) -> None:
     dir_path = gcs_path_join(tmpdir)
 
     model = BoringModel()

@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
     ["auto_select_gpus", "gpus", "expected_error"],
     [(True, 0, MisconfigurationException), (True, -1, None), (False, 0, None), (False, -1, None)],
 )
-def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select_gpus, gpus, expected_error):
+def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select_gpus, gpus, expected_error) -> None:
     if expected_error:
         with pytest.raises(
             expected_error,
@@ -47,7 +47,7 @@ def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select
     ["nb", "expected_gpu_idxs", "expected_error"],
     [(0, [], MisconfigurationException), (-1, list(range(torch.cuda.device_count())), None), (1, [0], None)],
 )
-def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
+def test_pick_multiple_gpus(nb: int, expected_gpu_idxs, expected_error) -> None:
     if expected_error:
         with pytest.raises(
             expected_error,

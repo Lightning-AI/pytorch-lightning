@@ -24,11 +24,11 @@ from tests.helpers.runif import RunIf
 
 
 class EmptyLite(LightningLite):
-    def run(self):
+    def run(self) -> None:
         pass
 
 
-def test_lite_module_wraps():
+def test_lite_module_wraps() -> None:
     """Test that the wrapped module is accessible via the property."""
     module = Mock()
     assert _LiteModule(module, Mock()).module is module
@@ -50,7 +50,7 @@ def test_lite_module_wraps():
         pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10")),
     ],
 )
-def test_lite_module_forward_conversion(precision, input_type, expected_type):
+def test_lite_module_forward_conversion(precision, input_type, expected_type) -> None:
     """Test that the LiteModule performs autocasting on the input tensors and during forward()."""
     lite = EmptyLite(precision=precision, accelerator="gpu", devices=1)
     device = torch.device("cuda", 0)
@@ -70,7 +70,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
     "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_gpus=1))]
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
-def test_lite_module_device_dtype_propagation(device, dtype):
+def test_lite_module_device_dtype_propagation(device, dtype) -> None:
     """Test that the LiteModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
 
     class DeviceModule(DeviceDtypeModuleMixin):
@@ -87,7 +87,7 @@ def test_lite_module_device_dtype_propagation(device, dtype):
     assert lite_module.dtype == dtype
 
 
-def test_lite_dataloader_iterator():
+def test_lite_dataloader_iterator() -> None:
     """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader (no automatic
     device placement)."""
     dataloader = DataLoader(range(5), batch_size=2)
@@ -116,7 +116,7 @@ def test_lite_dataloader_iterator():
         pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_gpus=1)),
     ],
 )
-def test_lite_dataloader_device_placement(src_device, dest_device):
+def test_lite_dataloader_device_placement(src_device, dest_device) -> None:
     """Test that the LiteDataLoader moves data to the device in its iterator."""
     sample0 = torch.tensor(0, device=src_device)
     sample1 = torch.tensor(1, device=src_device)
@@ -133,7 +133,7 @@ def test_lite_dataloader_device_placement(src_device, dest_device):
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
-def test_lite_optimizer_wraps():
+def test_lite_optimizer_wraps() -> None:
     """Test that the LiteOptimizer fully wraps the optimizer."""
     optimizer_cls = torch.optim.SGD
     optimizer = Mock(spec=optimizer_cls)
@@ -142,7 +142,7 @@ def test_lite_optimizer_wraps():
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
-def test_lite_optimizer_state_dict():
+def test_lite_optimizer_state_dict() -> None:
     """Test that the LiteOptimizer calls into the strategy to collect the state."""
     optimizer = Mock()
     strategy = Mock()
@@ -151,7 +151,7 @@ def test_lite_optimizer_state_dict():
     strategy.optimizer_state.assert_called_with(optimizer)
 
 
-def test_lite_optimizer_steps():
+def test_lite_optimizer_steps() -> None:
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
     strategy = Mock()

@@ -31,7 +31,7 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDat
 from tests.helpers.runif import RunIf
 
 
-def test__training_step__log(tmpdir):
+def test__training_step__log(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
@@ -96,7 +96,7 @@ def test__training_step__log(tmpdir):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-def test__training_step__epoch_end__log(tmpdir):
+def test__training_step__epoch_end__log(tmpdir) -> None:
     """Tests that training_epoch_end can log."""
 
     class TestModel(BoringModel):
@@ -137,7 +137,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
-def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
+def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs) -> None:
     """Tests that training_step_end and training_epoch_end can log."""
 
     class TestModel(BoringModel):
@@ -183,7 +183,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
 @pytest.mark.parametrize(
     ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
-def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
+def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result) -> None:
     """Tests that log works correctly with different tensor types."""
 
     class TestModel(BoringModel):
@@ -213,7 +213,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     assert trainer.logged_metrics["bar"] == result
 
 
-def test_different_batch_types_for_sizing(tmpdir):
+def test_different_batch_types_for_sizing(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
@@ -250,7 +250,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch", "n_step", "n_epoch"}
 
 
-def test_log_works_in_train_callback(tmpdir):
+def test_log_works_in_train_callback(tmpdir) -> None:
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
@@ -364,7 +364,7 @@ def test_log_works_in_train_callback(tmpdir):
 
 
 class LoggingSyncDistModel(BoringModel):
-    def __init__(self, fake_result):
+    def __init__(self, fake_result) -> None:
         super().__init__()
         self.fake_result = fake_result
 
@@ -396,7 +396,7 @@ class LoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True, skip_49370=True))])
-def test_logging_sync_dist_true(tmpdir, devices):
+def test_logging_sync_dist_true(tmpdir, devices: int) -> None:
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -434,7 +434,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_logging_sync_dist_true_ddp(tmpdir):
+def test_logging_sync_dist_true_ddp(tmpdir) -> None:
     """Tests to ensure that the sync_dist flag works with ddp."""
 
     class TestLoggingSyncDistModel(BoringModel):
@@ -468,7 +468,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics["bar"] == 2
 
 
-def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
+def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str) -> None:
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
@@ -509,7 +509,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
     assert model.callback_on_train_end_called
 
 
-def test_logging_in_callbacks_with_log_function(tmpdir):
+def test_logging_in_callbacks_with_log_function(tmpdir) -> None:
     """Tests ensure self.log can be used directly in callbacks."""
 
     class LoggingCallback(callbacks.Callback):
@@ -553,7 +553,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_metric_are_properly_reduced(tmpdir):
+def test_metric_are_properly_reduced(tmpdir) -> None:
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
@@ -596,7 +596,7 @@ def test_metric_are_properly_reduced(tmpdir):
 @pytest.mark.parametrize(
     "value", [None, dict(a=None), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
 )
-def test_log_none_raises(tmpdir, value):
+def test_log_none_raises(tmpdir, value) -> None:
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", value)
@@ -608,7 +608,7 @@ def test_log_none_raises(tmpdir, value):
         trainer.fit(model)
 
 
-def test_logging_raises(tmpdir):
+def test_logging_raises(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
@@ -665,7 +665,7 @@ def test_logging_raises(tmpdir):
         trainer.fit(model)
 
 
-def test_sanity_metrics_are_reset(tmpdir):
+def test_sanity_metrics_are_reset(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             output = super().validation_step(batch, batch_idx)
@@ -691,7 +691,7 @@ def test_sanity_metrics_are_reset(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_move_metrics_to_cpu(tmpdir):
+def test_move_metrics_to_cpu(tmpdir) -> None:
     class TestModel(BoringModel):
         def on_before_backward(self, loss: torch.Tensor) -> None:
             assert loss.device.type == "cuda"
@@ -708,7 +708,7 @@ def test_move_metrics_to_cpu(tmpdir):
     trainer.fit(TestModel())
 
 
-def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
+def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir) -> None:
     class TestModel(BoringModel):
         def on_train_epoch_end(self):
             assert all(v == 3 for v in self.trainer.callback_metrics.values())

@@ -17,7 +17,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from tests.loggers.test_base import CustomLogger
 
 
-def test_trainer_loggers_property():
+def test_trainer_loggers_property() -> None:
     """Test for correct initialization of loggers in Trainer."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
@@ -44,7 +44,7 @@ def test_trainer_loggers_property():
     assert type(trainer.loggers[0]) == TensorBoardLogger
 
 
-def test_trainer_loggers_setters():
+def test_trainer_loggers_setters() -> None:
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()

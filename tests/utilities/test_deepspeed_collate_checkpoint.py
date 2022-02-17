@@ -23,7 +23,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_collate_checkpoint(tmpdir):
+def test_deepspeed_collate_checkpoint(tmpdir) -> None:
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()
     trainer = Trainer(
@@ -46,7 +46,7 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         _assert_checkpoint_equal(model, output_path)
 
 
-def _assert_checkpoint_equal(model, output_path):
+def _assert_checkpoint_equal(model, output_path) -> None:
     assert os.path.exists(output_path)
     single_output = torch.load(output_path)
     state_dict = model.state_dict()

@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 
 
 @mock.patch.dict(os.environ, {})
-def test_default_attributes():
+def test_default_attributes() -> None:
     """Test the default attributes when no environment variables are set."""
     env = LightningEnvironment()
     assert not env.creates_processes_externally
@@ -32,7 +32,7 @@ def test_default_attributes():
 
 
 @mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "500", "LOCAL_RANK": "2", "NODE_RANK": "3"})
-def test_attributes_from_environment_variables():
+def test_attributes_from_environment_variables() -> None:
     """Test that the default cluster environment takes the attributes from the environment variables."""
     env = LightningEnvironment()
     assert env.main_address == "1.2.3.4"
@@ -50,7 +50,7 @@ def test_attributes_from_environment_variables():
 @pytest.mark.parametrize(
     "environ, creates_processes_externally", [({}, False), (dict(LOCAL_RANK="2"), True), (dict(NODE_RANK="1"), False)]
 )
-def test_manual_user_launch(environ, creates_processes_externally):
+def test_manual_user_launch(environ, creates_processes_externally) -> None:
     """Test that the environment switches to manual user mode when LOCAL_RANK env variable detected."""
     with mock.patch.dict(os.environ, environ):
         env = LightningEnvironment()
@@ -58,7 +58,7 @@ def test_manual_user_launch(environ, creates_processes_externally):
 
 
 @mock.patch.dict(os.environ, {"GROUP_RANK": "1"})
-def test_node_rank_from_group_rank():
+def test_node_rank_from_group_rank() -> None:
     """Test that the GROUP_RANK substitutes NODE_RANK."""
     env = LightningEnvironment()
     assert "NODE_RANK" not in os.environ
@@ -66,7 +66,7 @@ def test_node_rank_from_group_rank():
 
 
 @mock.patch.dict(os.environ, {})
-def test_random_master_port():
+def test_random_master_port() -> None:
     """Test randomly chosen main port when no main port was given by user."""
     env = LightningEnvironment()
     port = env.main_port
@@ -76,7 +76,7 @@ def test_random_master_port():
 
 
 @mock.patch.dict(os.environ, {"WORLD_SIZE": "1"})
-def test_teardown():
+def test_teardown() -> None:
     """Test that the GROUP_RANK substitutes NODE_RANK."""
     env = LightningEnvironment()
     assert "WORLD_SIZE" in os.environ
@@ -84,5 +84,5 @@ def test_teardown():
     assert "WORLD_SIZE" not in os.environ
 
 
-def test_detect():
+def test_detect() -> None:
     assert LightningEnvironment.detect()

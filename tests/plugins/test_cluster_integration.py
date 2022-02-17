@@ -58,7 +58,7 @@ def environment_combinations():
     "strategy_cls",
     [DDPStrategy, DDPShardedStrategy, DDP2Strategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-def test_ranks_available_manual_strategy_selection(strategy_cls):
+def test_ranks_available_manual_strategy_selection(strategy_cls) -> None:
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
@@ -90,7 +90,7 @@ def test_ranks_available_manual_strategy_selection(strategy_cls):
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
-def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs):
+def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs) -> None:
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)

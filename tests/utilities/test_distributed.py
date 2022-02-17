@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from tests.helpers.runif import RunIf
 
 
-def _test_collect_states(rank, world_size):
+def _test_collect_states(rank, world_size) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
 
     torch.cuda.set_device(f"cuda:{rank}")
@@ -35,7 +35,7 @@ def _test_collect_states(rank, world_size):
 
 
 @RunIf(skip_windows=True, min_gpus=2, min_torch="1.10")
-def test_collect_states():
+def test_collect_states() -> None:
     """This test ensures state are properly collected across processes.
 
     This would be used to collect dataloader states as an example.

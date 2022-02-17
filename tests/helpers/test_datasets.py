@@ -24,7 +24,7 @@ from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
     "dataset_cls,args",
     [(MNIST, dict(root=_PATH_DATASETS)), (TrialMNIST, dict(root=_PATH_DATASETS)), (AverageDataset, {})],
 )
-def test_pickling_dataset_mnist(tmpdir, dataset_cls, args):
+def test_pickling_dataset_mnist(tmpdir, dataset_cls, args) -> None:
     mnist = dataset_cls(**args)
 
     mnist_pickled = pickle.dumps(mnist)

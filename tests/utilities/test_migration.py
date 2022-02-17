@@ -17,7 +17,7 @@ import pytorch_lightning
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 
 
-def test_patch_legacy_argparse_utils():
+def test_patch_legacy_argparse_utils() -> None:
     with pl_legacy_patch():
         from pytorch_lightning.utilities import argparse_utils
 
@@ -27,7 +27,7 @@ def test_patch_legacy_argparse_utils():
     assert "pytorch_lightning.utilities.argparse_utils" not in sys.modules
 
 
-def test_patch_legacy_gpus_arg_default():
+def test_patch_legacy_gpus_arg_default() -> None:
     with pl_legacy_patch():
         from pytorch_lightning.utilities.argparse import _gpus_arg_default
 

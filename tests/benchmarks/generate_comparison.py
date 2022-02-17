@@ -23,7 +23,7 @@ PATH_HERE = os.path.dirname(__file__)
 FIGURE_EXTENSION = ".png"
 
 
-def _main():
+def _main() -> None:
     import matplotlib.pylab as plt
     import pandas as pd
 

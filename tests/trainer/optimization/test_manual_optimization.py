@@ -13,6 +13,7 @@
 # limitations under the License.
 import collections
 from copy import deepcopy
+from typing import Type
 from unittest import mock
 from unittest.mock import ANY, call, patch
 
@@ -28,7 +29,7 @@ from tests.helpers.runif import RunIf
 
 
 class ManualOptModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 
@@ -76,7 +77,7 @@ class ManualOptModel(BoringModel):
         ),
     ],
 )
-def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
+def test_multiple_optimizers_manual_no_return(tmpdir, kwargs) -> None:
     apex_optimizer_patches = []
     apex_optimizer_steps = []
 
@@ -141,7 +142,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
 
 
-def test_multiple_optimizers_manual_return(tmpdir):
+def test_multiple_optimizers_manual_return(tmpdir) -> None:
     class TestModel(ManualOptModel):
         def training_step(self, batch, batch_idx):
             super().training_step(batch, batch_idx)
@@ -170,7 +171,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
     assert trainer.global_step == limit_train_batches * 2
 
 
-def test_multiple_optimizers_manual_log(tmpdir):
+def test_multiple_optimizers_manual_log(tmpdir) -> None:
     class TestModel(ManualOptModel):
         def training_step(self, batch, batch_idx):
             loss_2 = super().training_step(batch, batch_idx)
@@ -199,7 +200,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_multiple_optimizers_manual_native_amp(tmpdir):
+def test_multiple_optimizers_manual_native_amp(tmpdir) -> None:
     model = ManualOptModel()
     model.val_dataloader = None
 
@@ -227,15 +228,15 @@ class ManualOptimizationExtendedModel(BoringModel):
     called = collections.defaultdict(int)
     detach = False
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 
     @property
-    def should_update(self):
+    def should_update(self) -> bool:
         return self.count % 2 == 0
 
-    def on_train_batch_start(self, batch, batch_idx):
+    def on_train_batch_start(self, batch, batch_idx: int) -> None:
         self.called["on_train_batch_start"] += 1
         self.weight_before = self.layer.weight.clone()
 
@@ -256,7 +257,7 @@ class ManualOptimizationExtendedModel(BoringModel):
 
         return loss.detach() if self.detach else loss
 
-    def on_train_batch_end(self, outputs, batch, batch_idx):
+    def on_train_batch_end(self, outputs, batch, batch_idx: int) -> None:
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
@@ -276,14 +277,14 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert torch.all(self.layer.weight.grad == 0)
         self.count += 1
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         assert self.called["training_step"] == 10
         assert self.called["on_train_batch_start"] == 10
         assert self.called["on_train_batch_end"] == 10
 
 
 @RunIf(min_gpus=2)
-def test_manual_optimization_and_return_tensor(tmpdir):
+def test_manual_optimization_and_return_tensor(tmpdir) -> None:
     """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
     `training_step`"""
 
@@ -307,7 +308,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_manual_optimization_and_accumulated_gradient(tmpdir):
+def test_manual_optimization_and_accumulated_gradient(tmpdir) -> None:
     """This test verify that in `automatic_optimization=False`, step is being called only when we shouldn't
     accumulate."""
     seed_everything(234)
@@ -395,7 +396,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_multiple_optimizers_step(tmpdir):
+def test_multiple_optimizers_step(tmpdir) -> None:
     """Tests that `step` works with several optimizers."""
 
     class TestModel(ManualOptModel):
@@ -482,7 +483,7 @@ def test_multiple_optimizers_step(tmpdir):
     assert bwd_mock.call_count == limit_train_batches * 3
 
 
-def test_step_with_optimizer_closure(tmpdir):
+def test_step_with_optimizer_closure(tmpdir) -> None:
     """Tests that `step` works with optimizer_closure."""
 
     class TestModel(BoringModel):
@@ -550,7 +551,7 @@ def test_step_with_optimizer_closure(tmpdir):
     assert trainer.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-def test_step_with_optimizer_closure_2(tmpdir):
+def test_step_with_optimizer_closure_2(tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -593,7 +594,7 @@ def test_step_with_optimizer_closure_2(tmpdir):
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
-def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -667,7 +668,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
 
 class TesManualOptimizationDDPModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 
@@ -683,7 +684,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         torch_distrib.all_reduce(self.layer.weight.grad.data, async_op=False)
         return True
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> None:
 
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
@@ -739,7 +740,7 @@ class TesManualOptimizationDDPModel(BoringModel):
         optimizer_dis = torch.optim.Adam(self.layer.parameters(), lr=0.001)
         return [optimizer_gen, optimizer_dis]
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         # this is done here instead of in the calling function due to `spawn`
         sgd, adam = self.optimizers()
         self.sgd_step_patch = patch.object(sgd, "step", wraps=sgd.step)
@@ -747,14 +748,14 @@ class TesManualOptimizationDDPModel(BoringModel):
         self.adam_step_patch = patch.object(adam, "step", wraps=adam.step)
         self.adam_step_mock = self.adam_step_patch.start()
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         self.sgd_step_patch.stop()
         assert self.sgd_step_mock.call_count == 4
         self.adam_step_patch.stop()
         assert self.adam_step_mock.call_count == 2
 
 
-def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
+def train_manual_optimization(tmpdir, strategy, model_cls: Type[TesManualOptimizationDDPModel]=TesManualOptimizationDDPModel) -> None:
 
     seed_everything(42)
 
@@ -782,21 +783,21 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir) -> None:
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp")
 
 
 @RunIf(min_gpus=2)
-def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir) -> None:
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp_spawn")
 
 
 class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> None:
 
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
@@ -852,11 +853,11 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
+def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir) -> None:
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
 
 
-def test_lr_schedulers(tmpdir):
+def test_lr_schedulers(tmpdir) -> None:
     """Test `lr_schedulers()` returns the same objects in the same order as `configure_optimizers()` returns."""
 
     class TestModel(BoringModel):
@@ -887,7 +888,7 @@ def test_lr_schedulers(tmpdir):
 
 
 @pytest.mark.parametrize("scheduler_as_dict", [True, False])
-def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
+def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict) -> None:
     class TestModel(BoringModel):
         def __init__(self, scheduler_as_dict):
             super().__init__()
@@ -929,7 +930,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
         trainer.fit(model)
 
 
-def test_lr_scheduler_step_not_called(tmpdir):
+def test_lr_scheduler_step_not_called(tmpdir) -> None:
     """Test `lr_scheduler.step()` is not called in manual optimization."""
 
     class TestModel(BoringModel):
@@ -964,7 +965,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("precision", [16, 32])
-def test_multiple_optimizers_logging(precision, tmpdir):
+def test_multiple_optimizers_logging(precision, tmpdir) -> None:
     """Tests that metrics are properly being logged."""
 
     class TestModel(BoringModel):
@@ -1026,7 +1027,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
 
 
-def test_manual_optimization_training_step_signature(tmpdir):
+def test_manual_optimization_training_step_signature(tmpdir) -> None:
     """Test that Lightning raises an exception if the training_step signature has an optimier_idx by mistake."""
 
     class ConfusedAutomaticManualModel(ManualOptModel):

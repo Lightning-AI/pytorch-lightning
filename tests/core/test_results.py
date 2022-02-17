@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from tests.helpers.runif import RunIf
 
 
-def _setup_ddp(rank, worldsize):
+def _setup_ddp(rank, worldsize) -> None:
     import os
 
     os.environ["MASTER_ADDR"] = "localhost"
@@ -30,7 +30,7 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize):
+def _ddp_test_fn(rank, worldsize) -> None:
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
     sync = _Sync(sync_ddp_if_available, _should=True, _op="SUM")
@@ -39,7 +39,7 @@ def _ddp_test_fn(rank, worldsize):
 
 
 @RunIf(skip_windows=True)
-def test_result_reduce_ddp():
+def test_result_reduce_ddp() -> None:
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
     worldsize = 2

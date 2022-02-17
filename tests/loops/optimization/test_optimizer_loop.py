@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def test_closure_result_deepcopy():
+def test_closure_result_deepcopy() -> None:
     closure_loss = torch.tensor(123.45)
     result = ClosureResult(closure_loss)
 
@@ -43,7 +43,7 @@ def test_closure_result_deepcopy():
     assert result.loss.data_ptr() == copy["loss"].data_ptr()
 
 
-def test_closure_result_apply_accumulation():
+def test_closure_result_apply_accumulation() -> None:
     closure_loss = torch.tensor(25.0)
     result = ClosureResult.from_training_step_output(closure_loss, 5)
     assert result.loss == 5
@@ -52,7 +52,7 @@ def test_closure_result_apply_accumulation():
 @pytest.mark.parametrize(
     "case", [(5.0, "must return a Tensor, a dict, or None"), ({"a": 5}, "the 'loss' key needs to be present")]
 )
-def test_warning_invalid_trainstep_output(tmpdir, case):
+def test_warning_invalid_trainstep_output(tmpdir, case) -> None:
     output, match = case
 
     class InvalidTrainStepModel(BoringModel):
@@ -101,7 +101,7 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
         ),
     ],
 )
-def test_optimizer_frequencies(tmpdir, frequencies, expected):
+def test_optimizer_frequencies(tmpdir, frequencies, expected) -> None:
     """Test that the optimizer loop runs optimization for the correct optimizer and optimizer idx when different
     frequencies are requested."""
 
@@ -143,7 +143,7 @@ class CustomException(Exception):
 @pytest.mark.parametrize("stop_epoch", (0, 1))
 @pytest.mark.parametrize("stop_batch", (0, 1, 2))
 @pytest.mark.parametrize("n_optimizers,stop_optimizer", [(2, 0), (2, 1), (3, 2)])
-def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch):
+def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_optimizer, stop_epoch, stop_batch) -> None:
     """Test that Lightning can resume from a point where a training_step failed while in the middle of processing
     several optimizer steps for one batch.
 

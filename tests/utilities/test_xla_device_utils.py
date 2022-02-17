@@ -22,13 +22,13 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
-def test_tpu_device_absence():
+def test_tpu_device_absence() -> None:
     """Check tpu_device_exists returns False when torch_xla is not available."""
     assert not xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
 @RunIf(tpu=True)
-def test_tpu_device_presence():
+def test_tpu_device_presence() -> None:
     """Check tpu_device_exists returns True when TPU is available."""
     assert xla_utils.XLADeviceUtils.tpu_device_exists()
 
@@ -40,7 +40,7 @@ def sleep_fn(sleep_time: float) -> bool:
 
 @patch("pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT", 3)
 @pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
-def test_result_returns_within_timeout_seconds():
+def test_result_returns_within_timeout_seconds() -> None:
     """Check that pl_multi_process returns within 3 seconds."""
     fn = xla_utils.pl_multi_process(sleep_fn)
 

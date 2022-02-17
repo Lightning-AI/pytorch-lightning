@@ -30,7 +30,7 @@ from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = Sequential(
             OrderedDict(
@@ -59,14 +59,14 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
 def train_with_pruning_callback(
     tmpdir,
-    parameters_to_prune=False,
-    use_global_unstructured=False,
-    pruning_fn="l1_unstructured",
-    use_lottery_ticket_hypothesis=False,
+    parameters_to_prune: bool=False,
+    use_global_unstructured: bool=False,
+    pruning_fn: str="l1_unstructured",
+    use_lottery_ticket_hypothesis: bool=False,
     strategy=None,
-    accelerator="cpu",
-    devices=1,
-):
+    accelerator: str="cpu",
+    devices: int=1,
+) -> None:
     model = TestModel()
 
     # Weights are random. None is 0
@@ -125,7 +125,7 @@ def train_with_pruning_callback(
         assert torch.any(model.layer.mlp_2.weight == 0)
 
 
-def test_pruning_misconfiguration():
+def test_pruning_misconfiguration() -> None:
     with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
         ModelPruning(pruning_fn="l1_unstructured", parameter_names=["chocolate"])
     with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
@@ -150,7 +150,7 @@ def test_pruning_callback(
     parameters_to_prune: bool,
     pruning_fn: Union[str, pytorch_prune.BasePruningMethod],
     use_lottery_ticket_hypothesis: bool,
-):
+) -> None:
     train_with_pruning_callback(
         tmpdir,
         parameters_to_prune=parameters_to_prune,
@@ -163,7 +163,7 @@ def test_pruning_callback(
 @RunIf(standalone=True, min_gpus=2)
 @pytest.mark.parametrize("parameters_to_prune", (False, True))
 @pytest.mark.parametrize("use_global_unstructured", (False, True))
-def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured):
+def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured) -> None:
     train_with_pruning_callback(
         tmpdir,
         parameters_to_prune=parameters_to_prune,
@@ -175,19 +175,19 @@ def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructur
 
 
 @RunIf(min_gpus=2, skip_windows=True)
-def test_pruning_callback_ddp_spawn(tmpdir):
+def test_pruning_callback_ddp_spawn(tmpdir) -> None:
     train_with_pruning_callback(
         tmpdir, use_global_unstructured=True, strategy="ddp_spawn", accelerator="gpu", devices=2
     )
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_pruning_callback_ddp_cpu(tmpdir):
+def test_pruning_callback_ddp_cpu(tmpdir) -> None:
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
-def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
+def test_pruning_lth_callable(tmpdir, resample_parameters: bool) -> None:
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -226,7 +226,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
 
 
 @pytest.mark.parametrize("make_pruning_permanent", (False, True))
-def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
+def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool) -> None:
     model = TestModel()
     pruning_kwargs = {
         "parameters_to_prune": [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
@@ -279,7 +279,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 @pytest.mark.parametrize("save_on_train_epoch_end", (False, True))
 def test_permanent_when_model_is_saved_multiple_times(
     tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
-):
+) -> None:
     """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not
     the trained model if we want to continue with the same pruning buffers."""
     if prune_on_train_epoch_end and save_on_train_epoch_end:

@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_recursive_application_to_collection():
+def test_recursive_application_to_collection() -> None:
     ntc = namedtuple("Foo", ["bar"])
 
     @dataclasses.dataclass
@@ -232,7 +232,7 @@ def test_recursive_application_to_collection():
     assert reduced == defaultdict(int, {"a": "1", "b": "2", "c": "3"})
 
 
-def test_apply_to_collection_include_none():
+def test_apply_to_collection_include_none() -> None:
     to_reduce = [1, 2, 3.4, 5.6, 7, (8, 9.1, {10: 10})]
 
     def fn(x):
@@ -246,7 +246,7 @@ def test_apply_to_collection_include_none():
     assert reduced == [3.4, 5.6, (9.1, {})]
 
 
-def test_apply_to_collections():
+def test_apply_to_collections() -> None:
     to_reduce_1 = {"a": {"b": [1, 2]}, "c": 5}
     to_reduce_2 = {"a": {"b": [3, 4]}, "c": 6}
 
@@ -303,7 +303,7 @@ def test_apply_to_collections():
     assert reduced is None
 
 
-def test_apply_to_collection_frozen_dataclass():
+def test_apply_to_collection_frozen_dataclass() -> None:
     @dataclasses.dataclass(frozen=True)
     class Foo:
         input: torch.Tensor
@@ -315,7 +315,7 @@ def test_apply_to_collection_frozen_dataclass():
 
 
 @pytest.mark.parametrize("should_return", [False, True])
-def test_wrongly_implemented_transferable_data_type(should_return):
+def test_wrongly_implemented_transferable_data_type(should_return) -> None:
     class TensorObject:
         def __init__(self, tensor: torch.Tensor, should_return: bool = True):
             self.tensor = tensor

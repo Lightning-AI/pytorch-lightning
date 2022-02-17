@@ -15,17 +15,19 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from typing import Tuple
 from unittest.mock import call, MagicMock, patch
 
 import pytest
 import torch
 
 from pytorch_lightning import __version__, Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.helpers import BoringModel
 
 
-def fetchable_paths(value):
+def fetchable_paths(value) -> MagicMock:
     if value == "sys/id":
         return MagicMock(fetch=MagicMock(return_value="TEST-1"))
     elif value == "sys/name":
@@ -33,7 +35,7 @@ def fetchable_paths(value):
     return MagicMock()
 
 
-def create_neptune_mock():
+def create_neptune_mock() -> MagicMock:
     """Mock with provides nice `logger.name` and `logger.version` values.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
@@ -45,16 +47,16 @@ def create_neptune_mock():
 class Run:
     _project_name = "test-project"
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         # called once
         assert key == "source_code/integrations/pytorch-lightning"
         assert value == __version__
 
-    def wait(self):
+    def wait(self) -> None:
         # for test purposes
         pass
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> MagicMock:
         if item == "sys/name":
             return MagicMock(fetch=MagicMock(return_value="Test name"))
         elif item == "sys/id":
@@ -67,7 +69,7 @@ class Run:
 
 
 @pytest.fixture
-def tmpdir_unittest_fixture(request, tmpdir):
+def tmpdir_unittest_fixture(request, tmpdir) -> None:
     """Proxy for pytest `tmpdir` fixture between pytest and unittest.
     Resources:
      * https://docs.pytest.org/en/6.2.x/tmpdir.html#the-tmpdir-fixture
@@ -78,7 +80,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
 
 @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
-    def test_neptune_online(self, neptune):
+    def test_neptune_online(self, neptune) -> None:
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
 
@@ -92,7 +94,7 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
-    def test_online_with_custom_run(self, neptune):
+    def test_online_with_custom_run(self, neptune) -> None:
         created_run = Run()
         logger = NeptuneLogger(run=created_run)
 
@@ -102,7 +104,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(neptune.init.call_count, 0)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
-    def test_neptune_pickling(self, neptune):
+    def test_neptune_pickling(self, neptune) -> None:
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
         self.assertEqual(0, neptune.init.call_count)
@@ -114,7 +116,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
-    def test_online_with_wrong_kwargs(self, neptune):
+    def test_online_with_wrong_kwargs(self, neptune) -> None:
         """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
         in init."""
         with self.assertRaises(ValueError):
@@ -138,7 +140,7 @@ class TestNeptuneLogger(unittest.TestCase):
         NeptuneLogger(foo="bar")
 
     @staticmethod
-    def _get_logger_with_mocks(**kwargs):
+    def _get_logger_with_mocks(**kwargs) -> Tuple[NeptuneLogger, MagicMock, MagicMock]:
         logger = NeptuneLogger(**kwargs)
         run_instance_mock = MagicMock()
         logger._run_instance = run_instance_mock
@@ -148,14 +150,14 @@ class TestNeptuneLogger(unittest.TestCase):
 
         return logger, run_instance_mock, run_attr_mock
 
-    def test_neptune_additional_methods(self, neptune):
+    def test_neptune_additional_methods(self, neptune) -> None:
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
 
         logger.experiment["key1"].log(torch.ones(1))
         run_instance_mock.__getitem__.assert_called_once_with("key1")
         run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
-    def _fit_and_test(self, logger, model):
+    def _fit_and_test(self, logger, model: LightningModule) -> None:
         trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
         trainer.fit(model)
@@ -163,7 +165,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
-    def test_neptune_leave_open_experiment_after_fit(self, neptune):
+    def test_neptune_leave_open_experiment_after_fit(self, neptune) -> None:
         """Verify that neptune experiment was NOT closed after training."""
         # given
         logger, run_instance_mock, _ = self._get_logger_with_mocks(api_key="test", project="project")
@@ -178,7 +180,7 @@ class TestNeptuneLogger(unittest.TestCase):
         assert run_instance_mock.stop.call_count == 0
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
-    def test_neptune_log_metrics_on_trained_model(self, neptune):
+    def test_neptune_log_metrics_on_trained_model(self, neptune) -> None:
         """Verify that trained models do log data."""
         # given
         class LoggingModel(BoringModel):
@@ -198,7 +200,7 @@ class TestNeptuneLogger(unittest.TestCase):
         run_instance_mock.__getitem__.assert_any_call("training/some/key")
         run_instance_mock.__getitem__.return_value.log.assert_has_calls([call(42)])
 
-    def test_log_hyperparams(self, neptune):
+    def test_log_hyperparams(self, neptune) -> None:
         params = {"foo": "bar", "nested_foo": {"bar": 42}}
         test_variants = [
             ({}, "training/hyperparams"),
@@ -217,7 +219,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_called_once_with(hyperparams_key, params)
 
-    def test_log_metrics(self, neptune):
+    def test_log_metrics(self, neptune) -> None:
         metrics = {
             "foo": 42,
             "bar": 555,
@@ -244,7 +246,7 @@ class TestNeptuneLogger(unittest.TestCase):
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
             run_attr_mock.log.assert_has_calls([call(42), call(555)])
 
-    def test_log_model_summary(self, neptune):
+    def test_log_model_summary(self, neptune) -> None:
         model = BoringModel()
         test_variants = [
             ({}, "training/model/summary"),
@@ -265,7 +267,7 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
-    def test_after_save_checkpoint(self, neptune):
+    def test_after_save_checkpoint(self, neptune) -> None:
         test_variants = [
             ({}, "training/model"),
             ({"prefix": "custom_prefix"}, "custom_prefix/model"),
@@ -312,7 +314,7 @@ class TestNeptuneLogger(unittest.TestCase):
                 ]
             )
 
-    def test_save_dir(self, neptune):
+    def test_save_dir(self, neptune) -> None:
         # given
         logger = NeptuneLogger(api_key="test", project="project")
 
@@ -322,11 +324,11 @@ class TestNeptuneLogger(unittest.TestCase):
 
 class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
     @staticmethod
-    def _assert_legacy_usage(callback, *args, **kwargs):
+    def _assert_legacy_usage(callback, *args, **kwargs) -> None:
         with pytest.raises(ValueError):
             callback(*args, **kwargs)
 
-    def test_legacy_kwargs(self):
+    def test_legacy_kwargs(self) -> None:
         legacy_neptune_kwargs = [
             # NeptuneLegacyLogger kwargs
             "project_name",
@@ -357,7 +359,7 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
     @patch("pytorch_lightning.loggers.neptune.warnings")
     @patch("pytorch_lightning.loggers.neptune.NeptuneFile")
     @patch("pytorch_lightning.loggers.neptune.neptune")
-    def test_legacy_functions(self, neptune, neptune_file_mock, warnings_mock):
+    def test_legacy_functions(self, neptune, neptune_file_mock, warnings_mock) -> None:
         logger = NeptuneLogger(api_key="test", project="project")
 
         # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
@@ -394,7 +396,7 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
 
 
 class TestNeptuneLoggerUtils(unittest.TestCase):
-    def test__get_full_model_name(self):
+    def test__get_full_model_name(self) -> None:
         # given:
         SimpleCheckpoint = namedtuple("SimpleCheckpoint", ["dirpath"])
         test_input_data = [
@@ -410,7 +412,7 @@ class TestNeptuneLoggerUtils(unittest.TestCase):
         for expected_model_name, *key_and_path in test_input_data:
             self.assertEqual(NeptuneLogger._get_full_model_name(*key_and_path), expected_model_name)
 
-    def test__get_full_model_names_from_exp_structure(self):
+    def test__get_full_model_names_from_exp_structure(self) -> None:
         # given:
         input_dict = {
             "foo": {

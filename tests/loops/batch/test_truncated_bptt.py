@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from typing import Any, Dict
 
 import pytest
 import torch
@@ -24,7 +25,7 @@ from pytorch_lightning import LightningModule, Trainer
 class LSTMModel(LightningModule):
     """LSTM sequence-to-sequence model for testing TBPTT with automatic optimization."""
 
-    def __init__(self, truncated_bptt_steps=2, input_size=1, hidden_size=8):
+    def __init__(self, truncated_bptt_steps: int=2, input_size: int=1, hidden_size: int=8) -> None:
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -35,7 +36,7 @@ class LSTMModel(LightningModule):
     def configure_optimizers(self):
         return torch.optim.SGD(self.parameters(), lr=0.01)
 
-    def training_step(self, batch, batch_idx, hiddens):
+    def training_step(self, batch, batch_idx, hiddens) -> Dict[str, Any]:
         x, y = batch
         pred, hiddens = self.lstm(x, hiddens)
         loss = F.mse_loss(pred, y)
@@ -49,11 +50,11 @@ class LSTMModel(LightningModule):
 class ManualLSTMModel(LSTMModel):
     """LSTM sequence-to-sequence model for testing TBPTT with manual optimization."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx, hiddens):
+    def training_step(self, batch, batch_idx, hiddens) -> Dict[str, Any]:
         out = super().training_step(batch, batch_idx, hiddens)
         loss, hiddens = out["loss"], out["hiddens"]
         opt = self.optimizers()
@@ -64,7 +65,7 @@ class ManualLSTMModel(LSTMModel):
 
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
-def test_persistent_hidden_state_transfer(tmpdir, model_class):
+def test_persistent_hidden_state_transfer(tmpdir, model_class) -> None:
     """Test that the hidden state reference gets passed through from one training_step to the next and remains
     unmodified apart from detached grad_fn."""
 
@@ -107,7 +108,7 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
 
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
-def test_tbptt_split_shapes(tmpdir, model_class):
+def test_tbptt_split_shapes(tmpdir, model_class) -> None:
     """Test that the sequence data gets split correctly and that the outputs are correctly passed from hook to
     hook."""
     batch_size = 10
@@ -151,7 +152,7 @@ def test_tbptt_split_shapes(tmpdir, model_class):
 
 
 @pytest.mark.parametrize("model_class", (LSTMModel, ManualLSTMModel))
-def test_tbptt_logging(tmpdir, model_class):
+def test_tbptt_logging(tmpdir, model_class) -> None:
     """Test step-level and epoch-level logging works with TBPTT."""
 
     class TBPTTModel(model_class):

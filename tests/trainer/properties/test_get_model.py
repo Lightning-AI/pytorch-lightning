@@ -18,14 +18,14 @@ from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):
-    def on_fit_start(self):
+    def on_fit_start(self) -> None:
         assert self == self.trainer.lightning_module
 
-    def on_fit_end(self):
+    def on_fit_end(self) -> None:
         assert self == self.trainer.lightning_module
 
 
-def test_get_model(tmpdir):
+def test_get_model(tmpdir) -> None:
     """Tests that `trainer.lightning_module` extracts the model correctly."""
 
     model = TrainerGetModel()
@@ -38,7 +38,7 @@ def test_get_model(tmpdir):
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_get_model_ddp_cpu(tmpdir):
+def test_get_model_ddp_cpu(tmpdir) -> None:
     """Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu."""
 
     model = TrainerGetModel()
@@ -57,7 +57,7 @@ def test_get_model_ddp_cpu(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_get_model_gpu(tmpdir):
+def test_get_model_gpu(tmpdir) -> None:
     """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 
     model = TrainerGetModel()

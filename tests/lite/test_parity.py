@@ -37,7 +37,7 @@ from tests.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = torch.nn.Linear(32, 2, bias=False)
 
@@ -114,7 +114,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
         pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_torch="1.10", min_gpus=1)),
     ],
 )
-def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir) -> None:
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
@@ -137,7 +137,7 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
         assert torch.equal(w_pure, w_lite)
 
 
-def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir):
+def run(rank, model, train_dataloader, num_epochs: int, precision, accelerator, tmpdir) -> None:
     os.environ["LOCAL_RANK"] = str(rank)
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         torch.distributed.init_process_group("gloo", rank=rank, world_size=2)
@@ -166,7 +166,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         (32, "ddp_spawn", 2, "gpu"),
     ],
 )
-def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir: str) -> None:
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
@@ -197,7 +197,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
         (32, "ddp", 2, "gpu"),
     ],
 )
-def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
+def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir: str) -> None:
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()

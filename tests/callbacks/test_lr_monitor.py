@@ -26,7 +26,7 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
 
 
-def test_lr_monitor_single_lr(tmpdir):
+def test_lr_monitor_single_lr(tmpdir) -> None:
     """Test that learning rates are extracted and logged for single lr scheduler."""
     tutils.reset_seed()
 
@@ -45,7 +45,7 @@ def test_lr_monitor_single_lr(tmpdir):
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
-def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
+def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str) -> None:
     """Test that learning rates and momentum are extracted and logged for single lr scheduler."""
 
     class LogMomentumModel(BoringModel):
@@ -80,7 +80,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_log_momentum_no_momentum_optimizer(tmpdir):
+def test_log_momentum_no_momentum_optimizer(tmpdir) -> None:
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
@@ -107,7 +107,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
+def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir) -> None:
     """Test that learning rates are extracted and logged for no lr scheduler."""
     tutils.reset_seed()
 
@@ -131,7 +131,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
-def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
+def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str) -> None:
     """Test that learning rates and momentum are extracted and logged for no lr scheduler."""
 
     class LogMomentumModel(BoringModel):
@@ -165,7 +165,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
+def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir) -> None:
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
@@ -191,7 +191,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_lr_monitor_no_logger(tmpdir):
+def test_lr_monitor_no_logger(tmpdir) -> None:
     tutils.reset_seed()
 
     model = BoringModel()
@@ -204,7 +204,7 @@ def test_lr_monitor_no_logger(tmpdir):
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
-def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
+def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str) -> None:
     """Test that learning rates are extracted and logged for multi lr schedulers."""
     tutils.reset_seed()
 
@@ -249,7 +249,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
-def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
+def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str) -> None:
     """Test that learning rates are extracted and logged for multi optimizers but no lr scheduler."""
     tutils.reset_seed()
 
@@ -291,7 +291,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
-def test_lr_monitor_param_groups(tmpdir):
+def test_lr_monitor_param_groups(tmpdir) -> None:
     """Test that learning rates are extracted and logged for single lr scheduler."""
     tutils.reset_seed()
 
@@ -320,7 +320,7 @@ def test_lr_monitor_param_groups(tmpdir):
     assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
 
-def test_lr_monitor_custom_name(tmpdir):
+def test_lr_monitor_custom_name(tmpdir) -> None:
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
@@ -341,7 +341,7 @@ def test_lr_monitor_custom_name(tmpdir):
     assert list(lr_monitor.lrs) == ["my_logging_name"]
 
 
-def test_lr_monitor_custom_pg_name(tmpdir):
+def test_lr_monitor_custom_pg_name(tmpdir) -> None:
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD([{"params": list(self.layer.parameters()), "name": "linear"}], lr=0.1)
@@ -362,7 +362,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     assert list(lr_monitor.lrs) == ["lr-SGD/linear"]
 
 
-def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
+def test_lr_monitor_duplicate_custom_pg_names(tmpdir) -> None:
     tutils.reset_seed()
 
     class TestModel(BoringModel):
@@ -402,7 +402,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         trainer.fit(TestModel())
 
 
-def test_multiple_optimizers_basefinetuning(tmpdir):
+def test_multiple_optimizers_basefinetuning(tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -510,7 +510,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     assert lr_monitor.lrs["lr-Adam-1/pg3"] == expected
 
 
-def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
+def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir) -> None:
     """Test that the `LearningRateMonitor` is able to log correct keys with multiple param groups and no
     lr_scheduler."""
 

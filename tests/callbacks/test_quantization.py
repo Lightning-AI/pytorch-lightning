@@ -39,7 +39,7 @@ else:
 @pytest.mark.parametrize("fuse", [True, False])
 @pytest.mark.parametrize("convert", [True, False])
 @RunIf(quantization=True)
-def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
+def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool) -> None:
     """Parity test for quant model."""
     seed_everything(42)
     dm = RegressDataModule()
@@ -89,7 +89,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
 
 @RunIf(quantization=True)
-def test_quantize_torchscript(tmpdir):
+def test_quantize_torchscript(tmpdir) -> None:
     """Test converting to torchscipt."""
     dm = RegressDataModule()
     qmodel = RegressionModel()
@@ -105,7 +105,7 @@ def test_quantize_torchscript(tmpdir):
 
 
 @RunIf(quantization=True)
-def test_quantization_exceptions(tmpdir):
+def test_quantization_exceptions(tmpdir) -> None:
     """Test wrong fuse layers."""
     with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
         QuantizationAwareTraining(qconfig=["abc"])
@@ -129,11 +129,11 @@ def test_quantization_exceptions(tmpdir):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
 
-def custom_trigger_never(trainer):
+def custom_trigger_never(trainer) -> bool:
     return False
 
 
-def custom_trigger_even(trainer):
+def custom_trigger_even(trainer) -> bool:
     return trainer.current_epoch % 2 == 0
 
 
@@ -146,7 +146,7 @@ def custom_trigger_last(trainer):
     [(None, 9), (3, 3), (custom_trigger_never, 0), (custom_trigger_even, 5), (custom_trigger_last, 2)],
 )
 @RunIf(quantization=True)
-def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
+def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int) -> None:
     """Test  how many times the quant is called."""
     dm = RegressDataModule()
     qmodel = RegressionModel()
@@ -169,7 +169,7 @@ def _get_observer_enabled(fake_quant: FakeQuantizeBase):
     [("train", "validate", "test", "predict"), ("train",), ("validate",), ("test",), ("predict",), ()],
 )
 @RunIf(quantization=True)
-def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
+def test_quantization_disable_observers(tmpdir, observer_enabled_stages) -> None:
     """Test disabling observers."""
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(observer_enabled_stages=observer_enabled_stages)
@@ -205,7 +205,7 @@ def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
 
 
 @RunIf(quantization=True)
-def test_quantization_val_test_predict(tmpdir):
+def test_quantization_val_test_predict(tmpdir) -> None:
     """Test the default quantization aware training not affected by validating, testing and predicting."""
     seed_everything(42)
     num_features = 16

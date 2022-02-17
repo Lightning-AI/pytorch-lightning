@@ -19,7 +19,7 @@ from tests.helpers.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size, length) -> None:
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -31,7 +31,7 @@ class RandomDatasetA(Dataset):
 
 
 class RandomDatasetB(Dataset):
-    def __init__(self, size, length):
+    def __init__(self, size, length) -> None:
         self.len = length
         self.data = torch.randn(length, size)
 
@@ -42,7 +42,7 @@ class RandomDatasetB(Dataset):
         return self.len
 
 
-def test_multiple_eval_dataloaders_tuple(tmpdir):
+def test_multiple_eval_dataloaders_tuple(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
@@ -76,7 +76,7 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
     trainer.fit(model)
 
 
-def test_multiple_eval_dataloaders_list(tmpdir):
+def test_multiple_eval_dataloaders_list(tmpdir) -> None:
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):
             if dataloader_idx == 0:
@@ -106,7 +106,7 @@ def test_multiple_eval_dataloaders_list(tmpdir):
     trainer.fit(model)
 
 
-def test_multiple_optimizers_multiple_dataloaders(tmpdir):
+def test_multiple_optimizers_multiple_dataloaders(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):

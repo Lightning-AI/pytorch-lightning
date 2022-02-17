@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.environments import KubeflowEnvironment
 
 
 @mock.patch.dict(os.environ, {})
-def test_default_attributes():
+def test_default_attributes() -> None:
     """Test the default attributes when no environment variables are set."""
     env = KubeflowEnvironment()
     assert env.creates_processes_externally
@@ -51,7 +51,7 @@ def test_default_attributes():
         "RANK": "1",
     },
 )
-def test_attributes_from_environment_variables(caplog):
+def test_attributes_from_environment_variables(caplog) -> None:
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = KubeflowEnvironment()
     assert env.main_address == "1.2.3.4"
@@ -84,7 +84,7 @@ def test_attributes_from_environment_variables(caplog):
         "RANK": "1",
     },
 )
-def test_detect_kubeflow():
+def test_detect_kubeflow() -> None:
     assert KubeflowEnvironment.detect()
 
 
@@ -99,5 +99,5 @@ def test_detect_kubeflow():
         "GROUP_RANK": "1",
     },
 )
-def test_detect_torchelastic_over_kubeflow():
+def test_detect_torchelastic_over_kubeflow() -> None:
     assert not KubeflowEnvironment.detect()

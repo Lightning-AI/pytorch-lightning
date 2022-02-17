@@ -34,7 +34,7 @@ class BoringModel4QAdam(BoringModel):
 
 
 @RunIf(bagua=True, min_gpus=1)
-def test_bagua_default(tmpdir):
+def test_bagua_default(tmpdir) -> None:
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=1,
@@ -46,7 +46,7 @@ def test_bagua_default(tmpdir):
 
 
 @RunIf(bagua=True, min_gpus=2, standalone=True)
-def test_async_algorithm(tmpdir):
+def test_async_algorithm(tmpdir) -> None:
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm="async")
     trainer = Trainer(
@@ -66,7 +66,7 @@ def test_async_algorithm(tmpdir):
 @pytest.mark.parametrize(
     "algorithm", ["gradient_allreduce", "bytegrad", "qadam", "decentralized", "low_precision_decentralized"]
 )
-def test_configuration(algorithm, tmpdir):
+def test_configuration(algorithm, tmpdir) -> None:
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm=algorithm)
     trainer = Trainer(
@@ -91,7 +91,7 @@ def test_configuration(algorithm, tmpdir):
 
 
 @RunIf(bagua=True, min_gpus=1)
-def test_qadam_configuration(tmpdir):
+def test_qadam_configuration(tmpdir) -> None:
     model = BoringModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")
     trainer = Trainer(
@@ -112,7 +112,7 @@ def test_qadam_configuration(tmpdir):
         trainer.strategy.configure_ddp()
 
 
-def test_bagua_not_available(monkeypatch):
+def test_bagua_not_available(monkeypatch) -> None:
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)

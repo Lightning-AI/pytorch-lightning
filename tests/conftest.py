@@ -28,7 +28,7 @@ from tests import _PATH_DATASETS
 
 
 @pytest.fixture(scope="session")
-def datadir():
+def datadir() -> Path:
     return Path(_PATH_DATASETS)
 
 
@@ -169,7 +169,7 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(items) -> None:
     # filter out special tests
     if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
         items[:] = [

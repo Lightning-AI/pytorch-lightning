@@ -14,7 +14,7 @@
 from pytorch_lightning.utilities.types import _Stateful
 
 
-def test_stateful_protocol():
+def test_stateful_protocol() -> None:
     class StatefulClass:
         def state_dict(self):
             pass

@@ -17,7 +17,7 @@ from tests.helpers import BoringModel
         (None, 3, 10, -1),
     ],
 )
-def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_steps):
+def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_steps) -> None:
     """Tests that max_steps can be used without max_epochs."""
     model = BoringModel()
 
@@ -36,7 +36,7 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
         assert trainer.global_step == trainer.max_steps
 
 
-def test_max_epochs_not_set_warning():
+def test_max_epochs_not_set_warning() -> None:
     """Test that a warning is emitted when `max_epochs` was not set by the user."""
     with pytest.warns(PossibleUserWarning, match="`max_epochs` was not set. Setting it to 1000 epochs."):
         trainer = Trainer(max_epochs=None)

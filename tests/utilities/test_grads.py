@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
 from unittest.mock import Mock
 
 import pytest
@@ -53,7 +54,7 @@ from pytorch_lightning.utilities import grad_norm
         ),
     ],
 )
-def test_grad_norm(norm_type, expected):
+def test_grad_norm(norm_type: Union[float, int, str], expected) -> None:
     """Test utility function for computing the p-norm of individual parameter groups and norm in total."""
 
     class Model(nn.Module):
@@ -73,6 +74,6 @@ def test_grad_norm(norm_type, expected):
 
 
 @pytest.mark.parametrize("norm_type", [-1, 0])
-def test_grad_norm_invalid_norm_type(norm_type):
+def test_grad_norm_invalid_norm_type(norm_type: Union[float, int, str]) -> None:
     with pytest.raises(ValueError, match="`norm_type` must be a positive number or 'inf'"):
         grad_norm(Mock(), norm_type)

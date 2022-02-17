@@ -27,7 +27,7 @@ from tests.helpers.runif import RunIf
 
 @RunIf(min_torch="1.8")
 @RunIf(min_gpus=1)
-def test_device_stats_gpu_from_torch(tmpdir):
+def test_device_stats_gpu_from_torch(tmpdir) -> None:
     """Test GPU stats are logged using a logger with Pytorch >= 1.8.0."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
@@ -57,7 +57,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
 
 @RunIf(max_torch="1.7")
 @RunIf(min_gpus=1)
-def test_device_stats_gpu_from_nvidia(tmpdir):
+def test_device_stats_gpu_from_nvidia(tmpdir) -> None:
     """Test GPU stats are logged using a logger with Pytorch < 1.8.0."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
@@ -86,7 +86,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_device_stats_monitor_tpu(tmpdir):
+def test_device_stats_monitor_tpu(tmpdir) -> None:
     """Test TPU stats are logged using a logger."""
 
     model = BoringModel()
@@ -115,7 +115,7 @@ def test_device_stats_monitor_tpu(tmpdir):
     trainer.fit(model)
 
 
-def test_device_stats_monitor_no_logger(tmpdir):
+def test_device_stats_monitor_no_logger(tmpdir) -> None:
     """Test DeviceStatsMonitor with no logger in Trainer."""
 
     model = BoringModel()
@@ -134,7 +134,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         trainer.fit(model)
 
 
-def test_prefix_metric_keys(tmpdir):
+def test_prefix_metric_keys(tmpdir) -> None:
     """Test that metric key names are converted correctly."""
     metrics = {"1": 1.0, "2": 2.0, "3": 3.0}
     prefix = "foo"

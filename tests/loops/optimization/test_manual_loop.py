@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def test_manual_result():
+def test_manual_result() -> None:
     training_step_output = {"loss": torch.tensor(25.0, requires_grad=True), "something": "jiraffe"}
     result = ManualResult.from_training_step_output(training_step_output)
     asdict = result.asdict()
@@ -29,7 +29,7 @@ def test_manual_result():
     assert result.extra == asdict
 
 
-def test_warning_invalid_trainstep_output(tmpdir):
+def test_warning_invalid_trainstep_output(tmpdir) -> None:
     class InvalidTrainStepModel(BoringModel):
         def __init__(self):
             super().__init__()

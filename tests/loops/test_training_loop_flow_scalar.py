@@ -25,7 +25,7 @@ from tests.helpers.deterministic_model import DeterministicModel
 from tests.helpers.utils import no_warning_call
 
 
-def test__training_step__flow_scalar(tmpdir):
+def test__training_step__flow_scalar(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -57,7 +57,7 @@ def test__training_step__flow_scalar(tmpdir):
     assert not model.training_epoch_end_called
 
 
-def test__training_step__tr_step_end__flow_scalar(tmpdir):
+def test__training_step__tr_step_end__flow_scalar(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -96,7 +96,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
     assert not model.training_epoch_end_called
 
 
-def test__training_step__epoch_end__flow_scalar(tmpdir):
+def test__training_step__epoch_end__flow_scalar(tmpdir) -> None:
     """Tests that only training_step can be used."""
 
     class TestModel(DeterministicModel):
@@ -162,7 +162,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert opt_closure_result.item() == 171
 
 
-def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
+def test__training_step__step_end__epoch_end__flow_scalar(tmpdir) -> None:
     """Checks train_step + training_step_end + training_epoch_end (all with scalar return from train_step)."""
 
     class TestModel(DeterministicModel):
@@ -234,7 +234,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert opt_closure_result.item() == 171
 
 
-def test_train_step_no_return(tmpdir):
+def test_train_step_no_return(tmpdir) -> None:
     """Tests that only training_step raises a warning when nothing is returned in case of
     automatic_optimization."""
 
@@ -275,7 +275,7 @@ def test_train_step_no_return(tmpdir):
         trainer.fit(model)
 
 
-def test_training_step_no_return_when_even(tmpdir):
+def test_training_step_no_return_when_even(tmpdir) -> None:
     """Tests correctness when some training steps have been skipped."""
 
     class TestModel(BoringModel):
@@ -310,7 +310,7 @@ def test_training_step_no_return_when_even(tmpdir):
             assert out == []
 
 
-def test_training_step_none_batches(tmpdir):
+def test_training_step_none_batches(tmpdir) -> None:
     """Tests correctness when the train dataloader gives None for some steps."""
 
     class TestModel(BoringModel):

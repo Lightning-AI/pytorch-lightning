@@ -18,7 +18,7 @@ from tests.helpers.boring_model import BoringModel
 
 
 @pytest.mark.parametrize("single_cb", [False, True])
-def test_train_step_no_return(tmpdir, single_cb: bool):
+def test_train_step_no_return(tmpdir, single_cb: bool) -> None:
     """Tests that only training_step can be used."""
 
     class CB(Callback):
@@ -61,7 +61,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     trainer.fit(model)
 
 
-def test_free_memory_on_eval_outputs(tmpdir):
+def test_free_memory_on_eval_outputs(tmpdir) -> None:
     class CB(Callback):
         def on_train_epoch_end(self, trainer, pl_module):
             assert not trainer._evaluation_loop._outputs

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 import torch
@@ -29,19 +29,19 @@ from tests.helpers.runif import RunIf
 class EmptyModule(LightningModule):
     """A module that has no layers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.parameter = torch.rand(3, 3, requires_grad=True)
         self.example_input_array = torch.zeros(1, 2, 3, 4, 5)
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> Dict[str, Any]:
         return {"loss": self.parameter.sum()}
 
 
 class PreCalculatedModel(BoringModel):
     """A model with precalculated total params size in MB for FP16 and FP32."""
 
-    def __init__(self, precision: int = 32):
+    def __init__(self, precision: int = 32) -> None:
         super().__init__()
         # 32K params
         self.layer = nn.Linear(32, 1000, bias=False)
@@ -58,7 +58,7 @@ class PreCalculatedModel(BoringModel):
 class UnorderedModel(LightningModule):
     """A model in which the layers not defined in order of execution."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # note: the definition order is intentionally scrambled for this test
         self.layer2 = nn.Linear(10, 2)
@@ -81,7 +81,7 @@ class UnorderedModel(LightningModule):
 class MixedDtypeModel(LightningModule):
     """The parameters and inputs of this model have different dtypes."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.embed = nn.Embedding(10, 20)  # expects dtype long as input
         self.reduce = nn.Linear(20, 1)  # dtype: float
@@ -94,7 +94,7 @@ class MixedDtypeModel(LightningModule):
 class PartialScriptModel(LightningModule):
     """A model which contains scripted layers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer1 = torch.jit.script(nn.Linear(5, 3))
         self.layer2 = nn.Linear(3, 2)
@@ -107,7 +107,7 @@ class PartialScriptModel(LightningModule):
 class LazyModel(LightningModule):
     """A model which contains lazy layers with uninitialized parameters."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer1 = nn.LazyLinear(5)
         self.layer2 = nn.LazyLinear(2)
@@ -119,7 +119,7 @@ class LazyModel(LightningModule):
 class DeepNestedModel(LightningModule):
     """A model with deep nested layers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.branch1 = nn.Sequential(
             nn.Linear(5, 5),
@@ -139,7 +139,7 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
-def test_invalid_weights_summary():
+def test_invalid_weights_summary() -> None:
     """Test that invalid value for weights_summary raises an error."""
     model = LightningModule()
 
@@ -153,7 +153,7 @@ def test_invalid_weights_summary():
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_empty_model_summary_shapes(max_depth):
+def test_empty_model_summary_shapes(max_depth: int) -> None:
     """Test that the summary works for models that have no submodules."""
     model = EmptyModule()
     summary = summarize(model, max_depth=max_depth)
@@ -165,7 +165,7 @@ def test_empty_model_summary_shapes(max_depth):
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("max_depth", [-1, 1])
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-def test_linear_model_summary_shapes(device, max_depth):
+def test_linear_model_summary_shapes(device, max_depth: int) -> None:
     """Test that the model summary correctly computes the input- and output shapes."""
     model = UnorderedModel().to(device)
     model.train()
@@ -176,7 +176,7 @@ def test_linear_model_summary_shapes(device, max_depth):
     assert model.device == device
 
 
-def test_mixed_dtype_model_summary():
+def test_mixed_dtype_model_summary() -> None:
     """Test that the model summary works with models that have mixed input- and parameter dtypes."""
     model = MixedDtypeModel()
     summary = summarize(model)
@@ -185,7 +185,7 @@ def test_mixed_dtype_model_summary():
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0])
-def test_hooks_removed_after_summarize(max_depth):
+def test_hooks_removed_after_summarize(max_depth) -> None:
     """Test that all hooks were properly removed after summary, even ones that were not run."""
     model = UnorderedModel()
     summary = ModelSummary(model, max_depth=max_depth)
@@ -196,7 +196,7 @@ def test_hooks_removed_after_summarize(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_rnn_summary_shapes(max_depth):
+def test_rnn_summary_shapes(max_depth: int) -> None:
     """Test that the model summary works for RNNs."""
     model = ParityModuleRNN()
 
@@ -214,7 +214,7 @@ def test_rnn_summary_shapes(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_summary_parameter_count(max_depth):
+def test_summary_parameter_count(max_depth: int) -> None:
     """Test that the summary counts the number of parameters in every submodule."""
     model = UnorderedModel()
     summary = summarize(model, max_depth=max_depth)
@@ -228,7 +228,7 @@ def test_summary_parameter_count(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_summary_layer_types(max_depth):
+def test_summary_layer_types(max_depth: int) -> None:
     """Test that the summary displays the layer names correctly."""
     model = UnorderedModel()
     summary = summarize(model, max_depth=max_depth)
@@ -236,7 +236,7 @@ def test_summary_layer_types(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_summary_with_scripted_modules(max_depth):
+def test_summary_with_scripted_modules(max_depth: int) -> None:
     model = PartialScriptModel()
     summary = summarize(model, max_depth=max_depth)
     assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
@@ -257,7 +257,7 @@ def test_summary_with_scripted_modules(max_depth):
         ((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
     ],
 )
-def test_example_input_array_types(example_input, expected_size, max_depth):
+def test_example_input_array_types(example_input, expected_size, max_depth: int) -> None:
     """Test the types of example inputs supported for display in the summary."""
 
     class DummyModule(nn.Module):
@@ -280,7 +280,7 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_model_size(max_depth):
+def test_model_size(max_depth: int) -> None:
     """Test model size is calculated correctly."""
     model = PreCalculatedModel()
     summary = summarize(model, max_depth=max_depth)
@@ -288,7 +288,7 @@ def test_model_size(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-def test_empty_model_size(max_depth):
+def test_empty_model_size(max_depth: int) -> None:
     """Test empty model size is zero."""
     model = EmptyModule()
     summary = summarize(model, max_depth=max_depth)
@@ -296,7 +296,7 @@ def test_empty_model_size(max_depth):
 
 
 @RunIf(min_gpus=1)
-def test_model_size_precision(tmpdir):
+def test_model_size_precision(tmpdir) -> None:
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
 
@@ -308,7 +308,7 @@ def test_model_size_precision(tmpdir):
 
 
 @RunIf(min_torch="1.8")
-def test_lazy_model_summary():
+def test_lazy_model_summary() -> None:
     """Test that the model summary can work with lazy layers."""
     lazy_model = LazyModel()
     summary = ModelSummary(lazy_model)
@@ -329,7 +329,7 @@ def test_lazy_model_summary():
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
-def test_max_depth_param(max_depth):
+def test_max_depth_param(max_depth) -> None:
     """Test that only the modules up to the desired depth are shown."""
     model = DeepNestedModel()
     summary = ModelSummary(model, max_depth=max_depth)
@@ -339,13 +339,13 @@ def test_max_depth_param(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-99, -2, "invalid"])
-def test_raise_invalid_max_depth_value(max_depth):
+def test_raise_invalid_max_depth_value(max_depth: int) -> None:
     with pytest.raises(ValueError, match=f"`max_depth` can be -1, 0 or > 0, got {max_depth}"):
         summarize(DeepNestedModel(), max_depth=max_depth)
 
 
 @pytest.mark.parametrize("example_input", [None, torch.randn(4, 32)])
-def test_summary_data_output(example_input):
+def test_summary_data_output(example_input) -> None:
     """Ensure all items are converted to strings when getting summary data."""
 
     class TestModel(BoringModel):

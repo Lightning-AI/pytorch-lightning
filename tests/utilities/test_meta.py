@@ -19,20 +19,20 @@ from tests.helpers.runif import RunIf
 
 
 class MLP(nn.Module):
-    def __init__(self, num_layers: int):
+    def __init__(self, num_layers: int) -> None:
         super().__init__()
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_layers)] + [nn.Dropout(), nn.LayerNorm(1)])
 
 
 class BoringModel(LightningModule):
-    def __init__(self, num_layers: int):
+    def __init__(self, num_layers: int) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
 @RunIf(standalone=True, min_torch="1.10.0")
-def test_init_meta_context():
+def test_init_meta_context() -> None:
 
     with init_meta_context():
         m = nn.Linear(in_features=1, out_features=1)

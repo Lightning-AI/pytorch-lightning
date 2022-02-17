@@ -18,7 +18,7 @@ from pytorch_lightning.loops.utilities import _extract_hiddens
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def test_extract_hiddens():
+def test_extract_hiddens() -> None:
     # tbptt not enabled, no hiddens return
     training_step_output = 1  # anything
     hiddens = _extract_hiddens(training_step_output, 0)

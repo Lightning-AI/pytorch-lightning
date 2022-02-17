@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
@@ -19,7 +20,7 @@ if _FAIRSCALE_AVAILABLE:
 @pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
-def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
+def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir) -> None:
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded", gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
@@ -34,7 +35,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
-def test_sharded_ddp_choice(tmpdir, strategy, expected):
+def test_sharded_ddp_choice(tmpdir, strategy, expected) -> None:
     """Test to ensure that strategy is correctly chosen."""
     trainer = Trainer(fast_dev_run=True, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
@@ -44,14 +45,14 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
-def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
+def test_ddp_choice_sharded_amp(tmpdir, strategy, expected) -> None:
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
+def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir) -> None:
     """Test to ensure that checkpoint is saved correctly."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
@@ -68,7 +69,7 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
+def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir) -> None:
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
     trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
@@ -85,7 +86,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_finetune(tmpdir):
+def test_ddp_sharded_strategy_finetune(tmpdir) -> None:
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
     trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
@@ -100,7 +101,7 @@ def test_ddp_sharded_strategy_finetune(tmpdir):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
+def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir) -> None:
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
@@ -120,7 +121,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
+def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir) -> None:
     """Test to ensure that resuming from checkpoint works when downsizing number of GPUS."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, gpus=2)
@@ -138,7 +139,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
-def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
+def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir) -> None:
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
@@ -157,7 +158,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 
 @RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize("trainer_kwargs", (dict(num_processes=2), pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2))))
-def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
+def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs) -> None:
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, **trainer_kwargs)
@@ -167,11 +168,11 @@ def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
 
 
 class ManualBoringModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         opt = self.optimizers()
         opt.zero_grad()
         output = self(batch)
@@ -182,7 +183,7 @@ class ManualBoringModel(BoringModel):
 
 
 @RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
-def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
+def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir) -> None:
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded_spawn", fast_dev_run=2, gpus=2)
@@ -190,7 +191,7 @@ def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
 
 
 @RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
-def test_ddp_sharded_strategy_manual_optimization(tmpdir):
+def test_ddp_sharded_strategy_manual_optimization(tmpdir) -> None:
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
     trainer.fit(model)
@@ -218,7 +219,7 @@ class BoringModelSharded(BoringModel):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_configure_ddp(tmpdir):
+def test_configure_ddp(tmpdir) -> None:
     """Tests with ddp sharded strategy."""
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
 
@@ -233,7 +234,7 @@ def test_configure_ddp(tmpdir):
 @RunIf(skip_windows=True, fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_custom_kwargs_sharded(tmpdir, cls):
+def test_custom_kwargs_sharded(tmpdir, cls) -> None:
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     strategy = cls(reduce_fp16=True)
     strategy.model = Mock(spec=LightningModule)
@@ -251,7 +252,7 @@ def test_custom_kwargs_sharded(tmpdir, cls):
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
 @pytest.mark.parametrize("num_nodes", [1, 2])
-def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes):
+def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes: int) -> None:
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     strategy = DDPShardedStrategy(**params)
     strategy.num_nodes = num_nodes
@@ -271,7 +272,7 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_block_backward_sync(tmpdir):
+def test_block_backward_sync(tmpdir) -> None:
     strategy = DDPShardedStrategy()
     model = mock.MagicMock(spec=ShardedDataParallel)
     with mock.patch.object(strategy, "_model", model):

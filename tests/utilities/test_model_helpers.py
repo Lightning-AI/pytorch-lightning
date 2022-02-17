@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 
 
-def test_is_overridden():
+def test_is_overridden() -> None:
     model = BoringModel()
     datamodule = BoringDataModule()
 

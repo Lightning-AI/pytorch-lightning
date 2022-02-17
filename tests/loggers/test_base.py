@@ -20,8 +20,10 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import torch
+from _weakref import ReferenceType
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -30,7 +32,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 
 
-def test_logger_collection():
+def test_logger_collection() -> None:
     mock1 = MagicMock()
     mock2 = MagicMock()
 
@@ -57,7 +59,7 @@ def test_logger_collection():
     mock2.finalize.assert_called_once()
 
 
-def test_logger_collection_unique_names():
+def test_logger_collection_unique_names() -> None:
     unique_name = "name1"
     logger1 = CustomLogger(name=unique_name)
     logger2 = CustomLogger(name=unique_name)
@@ -67,13 +69,13 @@ def test_logger_collection_unique_names():
     assert logger.name == unique_name
 
 
-def test_logger_collection_names_order():
+def test_logger_collection_names_order() -> None:
     loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
     logger = LoggerCollection(loggers)
     assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
 
 
-def test_logger_collection_unique_versions():
+def test_logger_collection_unique_versions() -> None:
     unique_version = "1"
     logger1 = CustomLogger(version=unique_version)
     logger2 = CustomLogger(version=unique_version)
@@ -83,14 +85,14 @@ def test_logger_collection_unique_versions():
     assert logger.version == unique_version
 
 
-def test_logger_collection_versions_order():
+def test_logger_collection_versions_order() -> None:
     loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
     logger = LoggerCollection(loggers)
     assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
 
 
 class CustomLogger(LightningLoggerBase):
-    def __init__(self, experiment: str = "test", name: str = "name", version: str = "1"):
+    def __init__(self, experiment: str = "test", name: str = "name", version: str = "1") -> None:
         super().__init__()
         self._experiment = experiment
         self._name = name
@@ -101,19 +103,19 @@ class CustomLogger(LightningLoggerBase):
         self.after_save_checkpoint_called = False
 
     @property
-    def experiment(self):
+    def experiment(self) -> str:
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params):
+    def log_hyperparams(self, params: Namespace) -> None:
         self.hparams_logged = params
 
     @rank_zero_only
-    def log_metrics(self, metrics, step):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int]) -> None:
         self.metrics_logged = metrics
 
     @rank_zero_only
-    def finalize(self, status):
+    def finalize(self, status: str) -> None:
         self.finalized_status = status
 
     @property
@@ -123,18 +125,18 @@ class CustomLogger(LightningLoggerBase):
         return None
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self._version
 
-    def after_save_checkpoint(self, checkpoint_callback):
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         self.after_save_checkpoint_called = True
 
 
-def test_custom_logger(tmpdir):
+def test_custom_logger(tmpdir) -> None:
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -152,7 +154,7 @@ def test_custom_logger(tmpdir):
     assert logger.finalized_status == "success"
 
 
-def test_multiple_loggers(tmpdir):
+def test_multiple_loggers(tmpdir) -> None:
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -177,7 +179,7 @@ def test_multiple_loggers(tmpdir):
     assert logger2.finalized_status == "success"
 
 
-def test_multiple_loggers_pickle(tmpdir):
+def test_multiple_loggers_pickle(tmpdir) -> None:
     """Verify that pickling trainer with multiple loggers works."""
 
     logger1 = CustomLogger()
@@ -192,7 +194,7 @@ def test_multiple_loggers_pickle(tmpdir):
     assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
 
 
-def test_adding_step_key(tmpdir):
+def test_adding_step_key(tmpdir) -> None:
     class CustomTensorBoardLogger(TensorBoardLogger):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
@@ -225,7 +227,7 @@ def test_adding_step_key(tmpdir):
     trainer.fit(model)
 
 
-def test_with_accumulate_grad_batches():
+def test_with_accumulate_grad_batches() -> None:
     """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
 
     class StoreHistoryLogger(CustomLogger):
@@ -250,40 +252,40 @@ def test_with_accumulate_grad_batches():
     assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 
-def test_dummyexperiment_support_indexing():
+def test_dummyexperiment_support_indexing() -> None:
     """Test that the DummyExperiment can imitate indexing the experiment in a LoggerCollection."""
     experiment = DummyExperiment()
     assert experiment[0] == experiment
 
 
-def test_dummylogger_support_indexing():
+def test_dummylogger_support_indexing() -> None:
     """Test that the DummyLogger can imitate indexing of a LoggerCollection."""
     logger = DummyLogger()
     assert logger[0] == logger
 
 
-def test_dummylogger_empty_iterable():
+def test_dummylogger_empty_iterable() -> None:
     """Test that DummyLogger represents an empty iterable."""
     logger = DummyLogger()
     for _ in logger:
         assert False
 
 
-def test_dummylogger_noop_method_calls():
+def test_dummylogger_noop_method_calls() -> None:
     """Test that the DummyLogger methods can be called with arbitrary arguments."""
     logger = DummyLogger()
     logger.log_hyperparams("1", 2, three="three")
     logger.log_metrics("1", 2, three="three")
 
 
-def test_dummyexperiment_support_item_assignment():
+def test_dummyexperiment_support_item_assignment() -> None:
     """Test that the DummyExperiment supports item assignment."""
     experiment = DummyExperiment()
     experiment["variable"] = "value"
     assert experiment["variable"] != "value"  # this is only a stateless mock experiment
 
 
-def test_np_sanitization():
+def test_np_sanitization() -> None:
     class CustomParamsLogger(CustomLogger):
         def __init__(self):
             super().__init__()
@@ -324,7 +326,7 @@ def test_np_sanitization():
 
 @pytest.mark.parametrize("logger", [True, False])
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
-def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
+def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger) -> None:
     class TestModel(BoringModel):
         def __init__(self, param_one, param_two):
             super().__init__()
@@ -343,7 +345,7 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 
 
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
-def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
+def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self, hparams: Dict[str, Any]) -> None:
             super().__init__()

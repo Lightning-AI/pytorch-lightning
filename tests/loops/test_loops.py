@@ -32,7 +32,7 @@ from tests.helpers.runif import RunIf
 
 
 class NestedLoop(Loop):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.child_loop0 = None
         self.child_loop1 = None
@@ -41,19 +41,19 @@ class NestedLoop(Loop):
     def done(self) -> bool:
         return False
 
-    def connect(self, child0, child1):
+    def connect(self, child0, child1) -> None:
         self.child_loop0 = child0
         self.child_loop1 = child1
 
     def reset(self) -> None:
         pass
 
-    def advance(self, *args, **kwargs):
+    def advance(self, *args, **kwargs) -> None:
         pass
 
 
 @pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
-def test_connect_loops_direct(loop_name):
+def test_connect_loops_direct(loop_name) -> None:
     """Test Trainer references in loops on assignment."""
     loop = NestedLoop()
 
@@ -67,7 +67,7 @@ def test_connect_loops_direct(loop_name):
     assert loop.trainer is trainer
 
 
-def test_connect_loops_recursive():
+def test_connect_loops_recursive() -> None:
     """Test Trainer references in a nested loop assigned to a Trainer."""
     main_loop = NestedLoop()
     child0 = NestedLoop()
@@ -86,7 +86,7 @@ def test_connect_loops_recursive():
     assert child1.trainer is trainer
 
 
-def test_restarting_loops_recursive():
+def test_restarting_loops_recursive() -> None:
     class MyLoop(NestedLoop):
         def __init__(self, loop=None):
             super().__init__()
@@ -103,7 +103,7 @@ def test_restarting_loops_recursive():
     assert loop.child.child.restarting
 
 
-def test_connect_subloops(tmpdir):
+def test_connect_subloops(tmpdir) -> None:
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -120,7 +120,7 @@ def test_connect_subloops(tmpdir):
     assert new_batch_loop.trainer is trainer
 
 
-def test_replace_loops():
+def test_replace_loops() -> None:
     class TestLoop(TrainingEpochLoop):
         def __init__(self, foo):
             super().__init__()
@@ -167,7 +167,7 @@ class CustomException(Exception):
     pass
 
 
-def test_loop_restore():
+def test_loop_restore() -> None:
     class Simple(Loop):
         def __init__(self, dataset: Iterator):
             super().__init__()
@@ -230,7 +230,7 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
-def test_loop_hierarchy():
+def test_loop_hierarchy() -> None:
     @dataclass
     class SimpleProgress(BaseProgress):
         increment: int = 0
@@ -317,7 +317,7 @@ def test_loop_hierarchy():
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
-def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
+def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch: int) -> None:
     n_batches = 5
     n_epochs = 3
 
@@ -388,7 +388,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
 @pytest.mark.parametrize("stop_epoch", (1, 2))
 @pytest.mark.parametrize("stop_batch", (1, 2))
 @pytest.mark.parametrize("stop_optimizer", (1, 2))
-def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer, n_optimizers, tmpdir):
+def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, stop_optimizer: int, n_optimizers: int, tmpdir) -> None:
     stop_optimizer = stop_optimizer if stop_optimizer < n_optimizers else 0
     n_epochs = 3
     n_batches = 3
@@ -590,7 +590,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
-def test_loop_state_on_complete_run(n_optimizers, tmpdir):
+def test_loop_state_on_complete_run(n_optimizers, tmpdir) -> None:
     n_epochs = 3
     n_batches = 3
     accumulate_grad_batches = 1
@@ -727,7 +727,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-def test_fit_loop_reset(tmpdir):
+def test_fit_loop_reset(tmpdir) -> None:
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""
 
@@ -819,7 +819,7 @@ def test_fit_loop_reset(tmpdir):
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
-def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval, tmpdir):
+def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_interval: int, tmpdir) -> None:
     size, n_batches = 2, 4
     stop_batch = 1
     n_val_dataloaders = len(val_datasets)
@@ -974,7 +974,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 @RunIf(min_torch="1.8.0")
 @pytest.mark.parametrize("should_fail", [False, True])
 @pytest.mark.parametrize("persistent_workers", [pytest.param(False, marks=RunIf(slow=True)), True])
-def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
+def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers) -> None:
     # `num_workers == 1` uses `_MultiProcessingDataLoaderIter`
     # `persistent_workers` makes sure `self._iterator` gets set on the `DataLoader` instance
 

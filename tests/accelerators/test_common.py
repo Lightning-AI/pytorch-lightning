@@ -34,7 +34,7 @@ from tests.helpers.runif import RunIf
         pytest.param(dict(strategy="ddp_spawn", gpus=2), marks=RunIf(min_gpus=2)),
     ),
 )
-def test_evaluate(tmpdir, trainer_kwargs):
+def test_evaluate(tmpdir, trainer_kwargs) -> None:
     tutils.set_random_main_port()
     seed_everything(1)
     dm = ClassifDataModule()
@@ -56,7 +56,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
     torch.testing.assert_allclose(old_weights, new_weights)
 
 
-def test_model_parallel_setup_called(tmpdir):
+def test_model_parallel_setup_called(tmpdir) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -75,7 +75,7 @@ def test_model_parallel_setup_called(tmpdir):
 
 
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_auto_device_count(device_count_mock):
+def test_auto_device_count(device_count_mock) -> None:
     assert CPUAccelerator.auto_device_count() == 1
     assert GPUAccelerator.auto_device_count() == 2
     assert TPUAccelerator.auto_device_count() == 8

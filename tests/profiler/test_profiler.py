@@ -36,7 +36,7 @@ from tests.helpers.runif import RunIf
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
 
-def _get_python_cprofile_total_duration(profile):
+def _get_python_cprofile_total_duration(profile) -> int:
     return sum(x.inlinetime for x in profile.getstats())
 
 
@@ -49,13 +49,13 @@ def _sleep_generator(durations):
 
 
 @pytest.fixture
-def simple_profiler():
+def simple_profiler() -> SimpleProfiler:
     return SimpleProfiler()
 
 
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
+def test_simple_profiler_durations(simple_profiler, action: str, expected: list) -> None:
     """Ensure the reported durations are reasonably accurate."""
 
     for duration in expected:
@@ -69,7 +69,7 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
 
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
+def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list) -> None:
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
@@ -80,7 +80,7 @@ def test_simple_profiler_iterable_durations(simple_profiler, action: str, expect
     np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
 
 
-def test_simple_profiler_overhead(simple_profiler, n_iter=5):
+def test_simple_profiler_overhead(simple_profiler, n_iter: int=5) -> None:
     """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with simple_profiler.profile("no-op"):
@@ -90,7 +90,7 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     assert all(durations < PROFILER_OVERHEAD_MAX_TOLERANCE)
 
 
-def test_simple_profiler_value_errors(simple_profiler):
+def test_simple_profiler_value_errors(simple_profiler) -> None:
     """Ensure errors are raised where expected."""
 
     action = "test"
@@ -105,13 +105,13 @@ def test_simple_profiler_value_errors(simple_profiler):
     simple_profiler.stop(action)
 
 
-def test_simple_profiler_deepcopy(tmpdir):
+def test_simple_profiler_deepcopy(tmpdir) -> None:
     simple_profiler = SimpleProfiler(dirpath=tmpdir, filename="test")
     simple_profiler.describe()
     assert deepcopy(simple_profiler)
 
 
-def test_simple_profiler_dirpath(tmpdir):
+def test_simple_profiler_dirpath(tmpdir) -> None:
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
     assert profiler.dirpath is None
@@ -126,7 +126,7 @@ def test_simple_profiler_dirpath(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
-def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
+def test_simple_profiler_with_nonexisting_log_dir(tmpdir) -> None:
     """Ensure the profiler dirpath defaults to `trainer.log_dir`and creates it when not present."""
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
@@ -146,7 +146,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
-def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
+def test_simple_profiler_with_nonexisting_dirpath(tmpdir) -> None:
     """Ensure the profiler creates non-existing dirpath."""
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
@@ -163,7 +163,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_simple_profiler_distributed_files(tmpdir):
+def test_simple_profiler_distributed_files(tmpdir) -> None:
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
@@ -188,7 +188,7 @@ def test_simple_profiler_distributed_files(tmpdir):
         assert f.read_text("utf-8")
 
 
-def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
+def test_simple_profiler_logs(tmpdir, caplog, simple_profiler) -> None:
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
@@ -201,7 +201,7 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
 
 @pytest.mark.parametrize("extended", [True, False])
 @patch("time.monotonic", return_value=70)
-def test_simple_profiler_summary(tmpdir, extended):
+def test_simple_profiler_summary(tmpdir, extended) -> None:
     """Test the summary of `SimpleProfiler`."""
     profiler = SimpleProfiler(extended=extended)
     profiler.start_time = 63.0
@@ -270,13 +270,13 @@ def test_simple_profiler_summary(tmpdir, extended):
 
 
 @pytest.fixture
-def advanced_profiler(tmpdir):
+def advanced_profiler(tmpdir) -> AdvancedProfiler:
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
+def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list) -> None:
 
     for duration in expected:
         with advanced_profiler.profile(action):
@@ -291,7 +291,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
+def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list) -> None:
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
@@ -304,7 +304,7 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
 
 
 @pytest.mark.flaky(reruns=3)
-def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
+def test_advanced_profiler_overhead(advanced_profiler, n_iter: int=5) -> None:
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
@@ -316,7 +316,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     assert average_duration < PROFILER_OVERHEAD_MAX_TOLERANCE
 
 
-def test_advanced_profiler_describe(tmpdir, advanced_profiler):
+def test_advanced_profiler_describe(tmpdir, advanced_profiler) -> None:
     """ensure the profiler won't fail when reporting the summary."""
     # record at least one event
     with advanced_profiler.profile("test"):
@@ -328,7 +328,7 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     assert len(data) > 0
 
 
-def test_advanced_profiler_value_errors(advanced_profiler):
+def test_advanced_profiler_value_errors(advanced_profiler) -> None:
     """Ensure errors are raised where expected."""
 
     action = "test"
@@ -339,18 +339,18 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
-def test_advanced_profiler_deepcopy(advanced_profiler):
+def test_advanced_profiler_deepcopy(advanced_profiler) -> None:
     advanced_profiler.describe()
     assert deepcopy(advanced_profiler)
 
 
 @pytest.fixture
-def pytorch_profiler(tmpdir):
+def pytorch_profiler(tmpdir) -> PyTorchProfiler:
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @RunIf(max_torch="1.8.1")
-def test_pytorch_profiler_describe(pytorch_profiler):
+def test_pytorch_profiler_describe(pytorch_profiler) -> None:
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("on_test_start"):
         torch.tensor(0)
@@ -362,7 +362,7 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
-def test_advanced_profiler_cprofile_deepcopy(tmpdir):
+def test_advanced_profiler_cprofile_deepcopy(tmpdir) -> None:
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(
@@ -372,7 +372,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, standalone=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler) -> None:
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
     trainer = Trainer(
@@ -414,7 +414,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
 
 @pytest.mark.parametrize("fast_dev_run", [1, 2, 3, 4, 5])
 @pytest.mark.parametrize("boring_model_cls", [ManualOptimBoringModel, BoringModel])
-def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
+def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir) -> None:
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
     model = boring_model_cls()
@@ -436,7 +436,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
 
 @pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
 @pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
-def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
+def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir) -> None:
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = boring_model_cls()
@@ -454,7 +454,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
         assert any(f"{fn}-{pytorch_profiler.filename}" in f for f in files)
 
 
-def test_pytorch_profiler_nested(tmpdir):
+def test_pytorch_profiler_nested(tmpdir) -> None:
     """Ensure that the profiler handles nested context."""
 
     pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None)
@@ -478,7 +478,7 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
-def test_pytorch_profiler_logger_collection(tmpdir):
+def test_pytorch_profiler_logger_collection(tmpdir) -> None:
     """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer's logger is an
     instance of LoggerCollection.
 
@@ -502,7 +502,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
 
 @RunIf(min_gpus=1, standalone=True)
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir) -> None:
     """This test check emit_nvtx is correctly supported."""
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
@@ -511,7 +511,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     trainer.fit(model)
 
 
-def test_register_record_function(tmpdir):
+def test_register_record_function(tmpdir) -> None:
 
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
@@ -548,7 +548,7 @@ def test_register_record_function(tmpdir):
 
 
 @pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
-def test_profiler_teardown(tmpdir, cls):
+def test_profiler_teardown(tmpdir, cls) -> None:
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
     class TestCallback(Callback):
@@ -564,7 +564,7 @@ def test_profiler_teardown(tmpdir, cls):
     assert profiler._output_file is None
 
 
-def test_pytorch_profiler_deepcopy(tmpdir):
+def test_pytorch_profiler_deepcopy(tmpdir) -> None:
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", schedule=None)
     pytorch_profiler.start("on_train_start")
     torch.tensor(1)
@@ -584,13 +584,13 @@ def test_pytorch_profiler_deepcopy(tmpdir):
         ("pytorch", PyTorchProfiler),
     ],
 )
-def test_trainer_profiler_correct_args(profiler, expected):
+def test_trainer_profiler_correct_args(profiler, expected) -> None:
     kwargs = {"profiler": profiler} if profiler is not None else {}
     trainer = Trainer(**kwargs)
     assert isinstance(trainer.profiler, expected)
 
 
-def test_trainer_profiler_incorrect_str_arg():
+def test_trainer_profiler_incorrect_str_arg() -> None:
     with pytest.raises(
         MisconfigurationException,
         match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*",
@@ -616,7 +616,7 @@ def test_trainer_profiler_incorrect_str_arg():
         ({"limit_predict_batches": 4}, "predict"),
     ],
 )
-def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_config, trainer_fn):
+def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_config, trainer_fn) -> None:
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", max_epochs=1, **trainer_config)
     warning_cache.clear()
@@ -626,7 +626,7 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
         warning_cache.clear()
 
 
-def test_profile_callbacks(tmpdir):
+def test_profile_callbacks(tmpdir) -> None:
     """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
 
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")

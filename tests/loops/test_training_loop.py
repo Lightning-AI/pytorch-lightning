@@ -18,7 +18,7 @@ from pytorch_lightning import seed_everything, Trainer
 from tests.helpers import BoringModel
 
 
-def test_outputs_format(tmpdir):
+def test_outputs_format(tmpdir) -> None:
     """Tests that outputs objects passed to model hooks and methods are consistent and in the correct format."""
 
     class HookedModel(BoringModel):
@@ -58,7 +58,7 @@ def test_outputs_format(tmpdir):
     trainer.fit(model)
 
 
-def test_training_starts_with_seed(tmpdir):
+def test_training_starts_with_seed(tmpdir) -> None:
     """Test that the training always starts with the same random state (when using seed_everything)."""
 
     class SeededModel(BoringModel):
@@ -83,7 +83,7 @@ def test_training_starts_with_seed(tmpdir):
 
 
 @pytest.mark.parametrize(["max_epochs", "batch_idx_"], [(2, 5), (3, 8), (4, 12)])
-def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir) -> None:
     class CurrentModel(BoringModel):
         def on_train_batch_start(self, batch, batch_idx):
             if batch_idx == batch_idx_:
@@ -100,7 +100,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
         assert trainer.global_step == batch_idx_ * max_epochs
 
 
-def test_should_stop_mid_epoch(tmpdir):
+def test_should_stop_mid_epoch(tmpdir) -> None:
     """Test that training correctly stops mid epoch and that validation is still called at the right time."""
 
     class TestModel(BoringModel):
@@ -127,7 +127,7 @@ def test_should_stop_mid_epoch(tmpdir):
     assert model.validation_called_at == (0, 4)
 
 
-def test_warning_valid_train_step_end(tmpdir):
+def test_warning_valid_train_step_end(tmpdir) -> None:
     class ValidTrainStepEndModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self(batch)

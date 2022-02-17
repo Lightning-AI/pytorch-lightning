@@ -42,7 +42,7 @@ if _HOROVOD_AVAILABLE:
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
 
-def _run_horovod(trainer_options, on_gpu=False):
+def _run_horovod(trainer_options, on_gpu: bool=False) -> None:
     """Execute the training script across multiple workers in parallel."""
     num_processes = trainer_options.get("gpus", 2)
     # for Horovod, we interpret `gpus` to be set per worker
@@ -67,7 +67,7 @@ def _run_horovod(trainer_options, on_gpu=False):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
-def test_horovod_cpu(tmpdir):
+def test_horovod_cpu(tmpdir) -> None:
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -83,7 +83,7 @@ def test_horovod_cpu(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
-def test_horovod_cpu_clip_grad_by_value(tmpdir):
+def test_horovod_cpu_clip_grad_by_value(tmpdir) -> None:
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -100,7 +100,7 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
-def test_horovod_cpu_implicit(tmpdir):
+def test_horovod_cpu_implicit(tmpdir) -> None:
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -115,7 +115,7 @@ def test_horovod_cpu_implicit(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_multi_gpu(tmpdir):
+def test_horovod_multi_gpu(tmpdir) -> None:
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -132,7 +132,7 @@ def test_horovod_multi_gpu(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_multi_gpu_grad_by_value(tmpdir):
+def test_horovod_multi_gpu_grad_by_value(tmpdir) -> None:
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -154,7 +154,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
 # Check with (tgaddair) on Horovod issues if this feature is needed
 @pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
 @RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
-def test_horovod_apex(tmpdir):
+def test_horovod_apex(tmpdir) -> None:
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -173,7 +173,7 @@ def test_horovod_apex(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_amp(tmpdir):
+def test_horovod_amp(tmpdir) -> None:
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -192,7 +192,7 @@ def test_horovod_amp(tmpdir):
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
-def test_horovod_gather(tmpdir):
+def test_horovod_gather(tmpdir) -> None:
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -209,7 +209,7 @@ def test_horovod_gather(tmpdir):
 
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
-def test_horovod_transfer_batch_to_gpu(tmpdir):
+def test_horovod_transfer_batch_to_gpu(tmpdir) -> None:
     class TestTrainingStepModel(BoringModel):
         def training_step(self, batch, *args, **kwargs):
             assert str(batch.device) != "cpu"
@@ -234,7 +234,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True)
-def test_horovod_multi_optimizer(tmpdir):
+def test_horovod_multi_optimizer(tmpdir) -> None:
     model = BasicGAN()
 
     # fit model
@@ -267,7 +267,7 @@ def test_horovod_multi_optimizer(tmpdir):
 # todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True)
-def test_result_reduce_horovod(tmpdir):
+def test_result_reduce_horovod(tmpdir) -> None:
     """Make sure result logging works with Horovod.
 
     This test mirrors tests/core/test_results.py::_ddp_test_fn
@@ -318,7 +318,7 @@ def test_result_reduce_horovod(tmpdir):
 # todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True, num_gpus=2)
-def test_accuracy_metric_horovod():
+def test_accuracy_metric_horovod() -> None:
     num_batches = 10
     batch_size = 16
     threshold = 0.5
@@ -366,7 +366,7 @@ def test_accuracy_metric_horovod():
 
 
 @RunIf(skip_windows=True, horovod=True)
-def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
+def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)

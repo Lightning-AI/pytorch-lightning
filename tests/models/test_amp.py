@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -41,26 +42,26 @@ class AMPTestModel(BoringModel):
             prediction = prediction.float()
         return super().loss(batch, prediction)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self._step(batch)
         return {"loss": output}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self._step(batch)
         return {"x": output}
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self._step(batch)
         return {"y": output}
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=0):
         self._assert_autocast_enabled()
         output = self(batch)
         is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         return output
 
-    def _assert_autocast_enabled(self):
+    def _assert_autocast_enabled(self) -> None:
         if self.trainer.precision_plugin.device == "cpu":
             assert torch.is_autocast_cpu_enabled()
         else:
@@ -78,7 +79,7 @@ class AMPTestModel(BoringModel):
 )
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("num_processes", [1, 2])
-def test_amp_cpus(tmpdir, strategy, precision, num_processes):
+def test_amp_cpus(tmpdir, strategy, precision, num_processes) -> None:
     """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
@@ -98,7 +99,7 @@ def test_amp_cpus(tmpdir, strategy, precision, num_processes):
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("gpus", [1, 2])
-def test_amp_gpus(tmpdir, strategy, precision, gpus):
+def test_amp_gpus(tmpdir, strategy, precision, gpus) -> None:
     """Make sure combinations of AMP and training types work if supported."""
     tutils.reset_seed()
 
@@ -124,7 +125,7 @@ def test_amp_gpus(tmpdir, strategy, precision, gpus):
         "SLURM_PROCID": "0",
     },
 )
-def test_amp_gpu_ddp_slurm_managed(tmpdir):
+def test_amp_gpu_ddp_slurm_managed(tmpdir) -> None:
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
     tutils.set_random_main_port()
@@ -162,7 +163,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
-def test_amp_without_apex(bwd_mock, tmpdir):
+def test_amp_without_apex(bwd_mock, tmpdir) -> None:
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     model = BoringModel()
 
@@ -178,7 +179,7 @@ def test_amp_without_apex(bwd_mock, tmpdir):
 
 @RunIf(min_gpus=1, amp_apex=True)
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
-def test_amp_with_apex(bwd_mock, tmpdir):
+def test_amp_with_apex(bwd_mock, tmpdir) -> None:
     """Check calling apex scaling in training."""
 
     class CustomModel(BoringModel):

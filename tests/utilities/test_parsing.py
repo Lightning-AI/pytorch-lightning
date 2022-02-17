@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from typing import Callable, Tuple
 
 import pytest
 from torch.jit import ScriptModule
@@ -32,10 +33,10 @@ from pytorch_lightning.utilities.parsing import (
     str_to_bool_or_str,
 )
 
-unpicklable_function = lambda: None
+unpicklable_function: Callable[[], None] = lambda: None
 
 
-def model_cases():
+def model_cases() -> Tuple:
     class TestHparamsNamespace:
         learning_rate = 1
 
@@ -92,7 +93,7 @@ def model_cases():
     return model1, model2, model3, model4, model5, model6, model7
 
 
-def test_lightning_hasattr(tmpdir):
+def test_lightning_hasattr(tmpdir) -> None:
     """Test that the lightning_hasattr works in all cases."""
     model1, model2, model3, model4, model5, model6, model7 = models = model_cases()
     assert lightning_hasattr(model1, "learning_rate"), "lightning_hasattr failed to find namespace variable"
@@ -111,7 +112,7 @@ def test_lightning_hasattr(tmpdir):
         assert not lightning_hasattr(m, "this_attr_not_exist")
 
 
-def test_lightning_getattr(tmpdir):
+def test_lightning_getattr(tmpdir) -> None:
     """Test that the lightning_getattr works in all cases."""
     models = model_cases()
     for i, m in enumerate(models[:3]):
@@ -131,7 +132,7 @@ def test_lightning_getattr(tmpdir):
             lightning_getattr(m, "this_attr_not_exist")
 
 
-def test_lightning_setattr(tmpdir):
+def test_lightning_setattr(tmpdir) -> None:
     """Test that the lightning_setattr works in all cases."""
     models = model_cases()
     for m in models[:3]:
@@ -154,7 +155,7 @@ def test_lightning_setattr(tmpdir):
             lightning_setattr(m, "this_attr_not_exist", None)
 
 
-def test_str_to_bool_or_str():
+def test_str_to_bool_or_str() -> None:
     true_cases = ["y", "yes", "t", "true", "on", "1"]
     false_cases = ["n", "no", "f", "false", "off", "0"]
     other_cases = ["yyeess", "noooo", "lightning"]
@@ -169,7 +170,7 @@ def test_str_to_bool_or_str():
         assert str_to_bool_or_str(case) == case
 
 
-def test_str_to_bool():
+def test_str_to_bool() -> None:
     true_cases = ["y", "yes", "t", "true", "on", "1"]
     false_cases = ["n", "no", "f", "false", "off", "0"]
     other_cases = ["yyeess", "noooo", "lightning"]
@@ -185,7 +186,7 @@ def test_str_to_bool():
             str_to_bool(case)
 
 
-def test_str_to_bool_or_int():
+def test_str_to_bool_or_int() -> None:
     assert str_to_bool_or_int("0") is False
     assert str_to_bool_or_int("1") is True
     assert str_to_bool_or_int("true") is True
@@ -193,7 +194,7 @@ def test_str_to_bool_or_int():
     assert str_to_bool_or_int("abc") == "abc"
 
 
-def test_is_picklable(tmpdir):
+def test_is_picklable(tmpdir) -> None:
     # See the full list of picklable types at
     # https://docs.python.org/3/library/pickle.html#pickle-picklable
     class UnpicklableClass:
@@ -210,7 +211,7 @@ def test_is_picklable(tmpdir):
         assert is_picklable(case) is False
 
 
-def test_clean_namespace(tmpdir):
+def test_clean_namespace(tmpdir) -> None:
     # See the full list of picklable types at
     # https://docs.python.org/3/library/pickle.html#pickle-picklable
     class UnpicklableClass:
@@ -224,7 +225,7 @@ def test_clean_namespace(tmpdir):
     assert test_case == {"1": None, "2": True, "3": 123}
 
 
-def test_parse_class_init_keys(tmpdir):
+def test_parse_class_init_keys(tmpdir) -> None:
     class Class:
         def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
             pass
@@ -232,7 +233,7 @@ def test_parse_class_init_keys(tmpdir):
     assert parse_class_init_keys(Class) == ("self", "my_args", "my_kwargs")
 
 
-def test_get_init_args(tmpdir):
+def test_get_init_args(tmpdir) -> None:
     class AutomaticArgsModel:
         def __init__(self, anyarg, anykw=42, **kwargs):
             super().__init__()
@@ -250,7 +251,7 @@ def test_get_init_args(tmpdir):
     assert my_class.result == {}
 
 
-def test_collect_init_args():
+def test_collect_init_args() -> None:
     class AutomaticArgsParent:
         def __init__(self, anyarg, anykw=42, **kwargs):
             super().__init__()
@@ -269,7 +270,7 @@ def test_collect_init_args():
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
 
 
-def test_attribute_dict(tmpdir):
+def test_attribute_dict(tmpdir) -> None:
     # Test initialization
     inputs = {"key1": 1, "key2": "abc"}
     ad = AttributeDict(inputs)
@@ -287,7 +288,7 @@ def test_attribute_dict(tmpdir):
     assert ad.key1 == 123
 
 
-def test_flatten_dict(tmpdir):
+def test_flatten_dict(tmpdir) -> None:
     d = {"1": 1, "_": {"2": 2, "_": {"3": 3, "4": 4}}}
 
     expected = {"1": 1, "2": 2, "3": 3, "4": 4}

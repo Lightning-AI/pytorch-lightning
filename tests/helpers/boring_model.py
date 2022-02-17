@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
@@ -20,33 +20,33 @@ from pytorch_lightning import LightningDataModule, LightningModule
 
 
 class RandomDictDataset(Dataset):
-    def __init__(self, size: int, length: int):
+    def __init__(self, size: int, length: int) -> None:
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Dict[str, Any]:
         a = self.data[index]
         b = a + 2
         return {"a": a, "b": b}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.len
 
 
 class RandomDataset(Dataset):
-    def __init__(self, size: int, length: int):
+    def __init__(self, size: int, length: int) -> None:
         self.len = length
         self.data = torch.randn(length, size)
 
     def __getitem__(self, index):
         return self.data[index]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.len
 
 
 class RandomIterableDataset(IterableDataset):
-    def __init__(self, size: int, count: int):
+    def __init__(self, size: int, count: int) -> None:
         self.count = count
         self.size = size
 
@@ -56,7 +56,7 @@ class RandomIterableDataset(IterableDataset):
 
 
 class RandomIterableDatasetWithLen(IterableDataset):
-    def __init__(self, size: int, count: int):
+    def __init__(self, size: int, count: int) -> None:
         self.count = count
         self.size = size
 
@@ -64,12 +64,12 @@ class RandomIterableDatasetWithLen(IterableDataset):
         for _ in range(len(self)):
             yield torch.randn(self.size)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
 
 class BoringModel(LightningModule):
-    def __init__(self):
+    def __init__(self) -> None:
         """Testing PL Module.
 
         Use as follows:
@@ -100,7 +100,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -111,7 +111,7 @@ class BoringModel(LightningModule):
     def training_epoch_end(self, outputs) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
@@ -119,7 +119,7 @@ class BoringModel(LightningModule):
     def validation_epoch_end(self, outputs) -> None:
         torch.stack([x["x"] for x in outputs]).mean()
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> Dict[str, Any]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
@@ -146,14 +146,14 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
-    def __init__(self, data_dir: str = "./"):
+    def __init__(self, data_dir: str = "./") -> None:
         super().__init__()
         self.data_dir = data_dir
         self.non_picklable = None
         self.checkpoint_state: Optional[str] = None
         self.random_full = RandomDataset(32, 64 * 4)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         if stage == "fit" or stage is None:
             self.random_train = Subset(self.random_full, indices=range(64))
 
@@ -180,7 +180,7 @@ class BoringDataModule(LightningDataModule):
 
 
 class ManualOptimBoringModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 

@@ -33,7 +33,7 @@ CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
+def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module) -> None:
     # call the script
     call_training_script(ddp_model, CLI_ARGS, "fit", tmpdir, timeout=120, as_module=as_module)
 
@@ -47,7 +47,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
+def test_multi_gpu_model_ddp_test_only(tmpdir, as_module) -> None:
     # call the script
     call_training_script(ddp_model, CLI_ARGS, "test", tmpdir, as_module=as_module)
 
@@ -61,7 +61,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
 
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
+def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module) -> None:
     # call the script
     call_training_script(ddp_model, CLI_ARGS, "fit_test", tmpdir, timeout=20, as_module=as_module)
 
@@ -80,7 +80,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 @mock.patch("torch.cuda.is_available", return_value=True)
-def test_torch_distributed_backend_env_variables(tmpdir):
+def test_torch_distributed_backend_env_variables(tmpdir) -> None:
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
@@ -98,7 +98,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
 def test_ddp_torch_dist_is_available_in_setup(
     mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
-):
+) -> None:
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -114,7 +114,7 @@ def test_ddp_torch_dist_is_available_in_setup(
 
 @RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
-def test_ddp_wrapper(tmpdir, precision):
+def test_ddp_wrapper(tmpdir, precision) -> None:
     """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):

@@ -15,13 +15,13 @@
 
 
 class CustomInfDataloader:
-    def __init__(self, dataloader):
+    def __init__(self, dataloader) -> None:
         self.dataloader = dataloader
         self.iter = iter(dataloader)
         self.count = 0
         self.dataloader.num_workers = 0  # reduce chance for hanging pytest
 
-    def __iter__(self):
+    def __iter__(self) -> "CustomInfDataloader":
         self.count = 0
         return self
 

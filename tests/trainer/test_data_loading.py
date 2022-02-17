@@ -31,7 +31,7 @@ from tests.helpers.runif import RunIf
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("mode", (1, 2))
-def test_replace_distributed_sampler(tmpdir, mode):
+def test_replace_distributed_sampler(tmpdir, mode) -> None:
     class IndexedRandomDataset(RandomDataset):
         def __getitem__(self, index):
             return self.data[index]
@@ -97,19 +97,19 @@ def test_replace_distributed_sampler(tmpdir, mode):
 
 
 class TestSpawnBoringModel(BoringModel):
-    def __init__(self, num_workers):
+    def __init__(self, num_workers) -> None:
         super().__init__()
         self.num_workers = num_workers
 
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
 
-    def on_pretrain_routine_start(self):
+    def on_pretrain_routine_start(self) -> None:
         self._resout = StringIO()
         self.ctx = redirect_stderr(self._resout)
         self.ctx.__enter__()
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         def _get_warning_msg():
             dl = self.trainer.train_dataloader.loaders
             if hasattr(dl, "persistent_workers"):
@@ -131,18 +131,18 @@ class TestSpawnBoringModel(BoringModel):
 
 @RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
-def test_dataloader_warnings(tmpdir, num_workers):
+def test_dataloader_warnings(tmpdir, num_workers) -> None:
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
     assert trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
-def test_update_dataloader_raises():
+def test_update_dataloader_raises() -> None:
     with pytest.raises(ValueError, match="needs to subclass `torch.utils.data.DataLoader"):
         _update_dataloader(object(), object(), mode="fit")
 
 
-def test_dataloaders_with_missing_keyword_arguments():
+def test_dataloaders_with_missing_keyword_arguments() -> None:
     ds = RandomDataset(10, 20)
 
     class TestDataLoader(DataLoader):
@@ -205,7 +205,7 @@ def test_dataloaders_with_missing_keyword_arguments():
         _update_dataloader(loader, sampler, mode="predict")
 
 
-def test_update_dataloader_with_multiprocessing_context():
+def test_update_dataloader_with_multiprocessing_context() -> None:
     """This test verifies that replace_sampler conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
@@ -214,7 +214,7 @@ def test_update_dataloader_with_multiprocessing_context():
     assert new_data_loader.multiprocessing_context == train.multiprocessing_context
 
 
-def test_dataloader_reinit_for_subclass():
+def test_dataloader_reinit_for_subclass() -> None:
     class CustomDataLoader(DataLoader):
         def __init__(
             self,
@@ -289,12 +289,12 @@ class LoaderTestModel(BoringModel):
         assert len(self.trainer.test_dataloaders[0]) == 10
         return super().test_step(batch, batch_idx)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=0):
         assert len(self.trainer.predict_dataloaders[0]) == 10
         return super().predict_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
 
-def test_loader_detaching():
+def test_loader_detaching() -> None:
     """Checks that the loader has been reset after the entrypoint."""
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
@@ -336,14 +336,14 @@ def test_loader_detaching():
     assert len(model.test_dataloader()) == 64
 
 
-def test_pre_made_batches():
+def test_pre_made_batches() -> None:
     """Check that loader works with pre-made batches."""
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
     trainer = Trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
 
 
-def test_error_raised_with_float_limited_eval_batches():
+def test_error_raised_with_float_limited_eval_batches() -> None:
     """Test that an error is raised if there are not enough batches when passed with float value of
     limit_eval_batches."""
     model = BoringModel()
@@ -374,7 +374,7 @@ def test_error_raised_with_float_limited_eval_batches():
         ),
     ],
 )
-def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl) -> None:
     trainer = Trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)

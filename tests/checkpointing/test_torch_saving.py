@@ -20,7 +20,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_model_torch_save(tmpdir):
+def test_model_torch_save(tmpdir) -> None:
     """Test to ensure torch save does not fail for model and trainer."""
     model = BoringModel()
     num_epochs = 1
@@ -35,7 +35,7 @@ def test_model_torch_save(tmpdir):
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_model_torch_save_ddp_cpu(tmpdir):
+def test_model_torch_save_ddp_cpu(tmpdir) -> None:
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
     num_epochs = 1
@@ -51,7 +51,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_model_torch_save_ddp_cuda(tmpdir):
+def test_model_torch_save_ddp_cuda(tmpdir) -> None:
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()
     num_epochs = 1

@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import Generic, List, TypeVar
+from typing import Generic, List, Type, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -19,13 +19,13 @@ from pytorch_lightning.utilities.argparse import (
 
 
 class ArgparseExample:
-    def __init__(self, a: int = 0, b: str = "", c: bool = False):
+    def __init__(self, a: int = 0, b: str = "", c: bool = False) -> None:
         self.a = a
         self.b = b
         self.c = c
 
 
-def test_from_argparse_args():
+def test_from_argparse_args() -> None:
     args = Namespace(a=1, b="test", c=True, d="not valid")
     my_instance = from_argparse_args(ArgparseExample, args)
     assert my_instance.a == 1
@@ -38,7 +38,7 @@ def test_from_argparse_args():
     mock_trainer.parse_argparser.assert_called_once_with(parser)
 
 
-def test_parse_argparser():
+def test_parse_argparser() -> None:
     args = Namespace(a=1, b="test", c=None, d="not valid")
     new_args = parse_argparser(ArgparseExample, args)
     assert new_args.a == 1
@@ -47,7 +47,7 @@ def test_parse_argparser():
     assert new_args.d == "not valid"
 
 
-def test_parse_args_from_docstring_normal():
+def test_parse_args_from_docstring_normal() -> None:
     args_help = _parse_args_from_docstring(
         """Constrain image dataset
 
@@ -84,7 +84,7 @@ def test_parse_args_from_docstring_normal():
     assert args_help["normalize"] == "mean and std deviation of the MNIST dataset."
 
 
-def test_parse_args_from_docstring_empty():
+def test_parse_args_from_docstring_empty() -> None:
     args_help = _parse_args_from_docstring(
         """Constrain image dataset
 
@@ -98,7 +98,7 @@ def test_parse_args_from_docstring_empty():
     assert len(args_help.keys()) == 0
 
 
-def test_get_abbrev_qualified_cls_name():
+def test_get_abbrev_qualified_cls_name() -> None:
     assert _get_abbrev_qualified_cls_name(Trainer) == "pl.Trainer"
 
     class NestedClass:
@@ -115,7 +115,7 @@ class AddArgparseArgsExampleClass:
         my_parameter: A thing.
     """
 
-    def __init__(self, my_parameter: int = 0):
+    def __init__(self, my_parameter: int = 0) -> None:
         pass
 
     @staticmethod
@@ -124,7 +124,7 @@ class AddArgparseArgsExampleClass:
 
 
 class AddArgparseArgsExampleClassViaInit:
-    def __init__(self, my_parameter: int = 0):
+    def __init__(self, my_parameter: int = 0) -> None:
         """
         Args:
             my_parameter: A thing.
@@ -133,7 +133,7 @@ class AddArgparseArgsExampleClassViaInit:
 
 
 class AddArgparseArgsExampleClassNoDoc:
-    def __init__(self, my_parameter: int = 0):
+    def __init__(self, my_parameter: int = 0) -> None:
         pass
 
 
@@ -143,11 +143,11 @@ class AddArgparseArgsExampleClassGeneric:
     class SomeClass(Generic[T]):
         pass
 
-    def __init__(self, invalid_class: SomeClass):
+    def __init__(self, invalid_class: SomeClass) -> None:
         pass
 
 
-def extract_help_text(parser):
+def extract_help_text(parser) -> str:
     help_str_buffer = io.StringIO()
     parser.print_help(file=help_str_buffer)
     help_str_buffer.seek(0)
@@ -162,7 +162,7 @@ def extract_help_text(parser):
         [AddArgparseArgsExampleClassNoDoc, "AddArgparseArgsExampleClassNoDoc"],
     ],
 )
-def test_add_argparse_args(cls, name):
+def test_add_argparse_args(cls: Type[Trainer], name) -> None:
     """Tests that ``add_argparse_args`` handles argument groups correctly, and can be parsed."""
     parser = ArgumentParser()
     parser_main = parser.add_argument_group("main")
@@ -186,13 +186,13 @@ def test_add_argparse_args(cls, name):
     assert args.my_parameter == 2
 
 
-def test_negative_add_argparse_args():
+def test_negative_add_argparse_args() -> None:
     with pytest.raises(RuntimeError, match="Please only pass an ArgumentParser instance."):
         parser = ArgumentParser()
         add_argparse_args(AddArgparseArgsExampleClass, parser.add_argument_group("bad workflow"))
 
 
-def test_add_argparse_args_no_argument_group():
+def test_add_argparse_args_no_argument_group() -> None:
     """Tests that ``add_argparse_args(..., use_argument_group=False)`` (old workflow) handles argument groups
     correctly, and can be parsed."""
     parser = ArgumentParser()
@@ -213,18 +213,18 @@ def test_add_argparse_args_no_argument_group():
     assert args.my_parameter == 2
 
 
-def test_gpus_allowed_type():
+def test_gpus_allowed_type() -> None:
     assert _gpus_allowed_type("1,2") == "1,2"
     assert _gpus_allowed_type("1") == 1
 
 
-def test_int_or_float_type():
+def test_int_or_float_type() -> None:
     assert isinstance(_int_or_float_type("0.0"), float)
     assert isinstance(_int_or_float_type("0"), int)
 
 
 @pytest.mark.parametrize(["arg", "expected"], [["--precision=16", 16], ["--precision=bf16", "bf16"]])
-def test_precision_parsed_correctly(arg, expected):
+def test_precision_parsed_correctly(arg, expected) -> None:
     """Test to ensure that the precision flag is passed correctly when adding argparse args."""
     parser = ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
@@ -233,6 +233,6 @@ def test_precision_parsed_correctly(arg, expected):
     assert args.precision == expected
 
 
-def test_precision_type():
+def test_precision_type() -> None:
     assert _precision_allowed_type("bf16") == "bf16"
     assert _precision_allowed_type("16") == 16

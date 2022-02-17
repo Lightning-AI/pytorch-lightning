@@ -13,17 +13,19 @@
 # limitations under the License.
 from pathlib import Path
 from re import escape
+from typing import Any, Dict, Type
 from unittest.mock import call, Mock
 
 import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
 
-def test_callbacks_configured_in_model(tmpdir):
+def test_callbacks_configured_in_model(tmpdir) -> None:
     """Test the callback system with callbacks added through the model hook."""
 
     model_callback_mock = Mock(spec=Callback, model=Callback())
@@ -77,7 +79,7 @@ def test_callbacks_configured_in_model(tmpdir):
         assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
 
 
-def test_configure_callbacks_hook_multiple_calls(tmpdir):
+def test_configure_callbacks_hook_multiple_calls(tmpdir) -> None:
     """Test that subsequent calls to `configure_callbacks` do not change the callbacks list."""
     model_callback_mock = Mock(spec=Callback, model=Callback())
 
@@ -108,21 +110,21 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
 
 
 class OldStatefulCallback(Callback):
-    def __init__(self, state):
+    def __init__(self, state) -> None:
         self.state = state
 
     @property
-    def state_key(self):
+    def state_key(self) -> Type["OldStatefulCallback"]:
         return type(self)
 
     def on_save_checkpoint(self, *args):
         return {"state": self.state}
 
-    def on_load_checkpoint(self, trainer, pl_module, callback_state):
+    def on_load_checkpoint(self, trainer: Trainer, pl_module: LightningModule, callback_state: Dict[str, Any]) -> None:
         self.state = callback_state["state"]
 
 
-def test_resume_callback_state_saved_by_type(tmpdir):
+def test_resume_callback_state_saved_by_type(tmpdir) -> None:
     """Test that a legacy checkpoint that didn't use a state key before can still be loaded."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -137,7 +139,7 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     assert callback.state == 111
 
 
-def test_resume_incomplete_callbacks_list_warning(tmpdir):
+def test_resume_incomplete_callbacks_list_warning(tmpdir) -> None:
     model = BoringModel()
     callback0 = ModelCheckpoint(monitor="epoch")
     callback1 = ModelCheckpoint(monitor="global_step")

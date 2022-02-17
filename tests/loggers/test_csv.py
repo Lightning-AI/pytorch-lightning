@@ -22,7 +22,7 @@ from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 
 
-def test_file_logger_automatic_versioning(tmpdir):
+def test_file_logger_automatic_versioning(tmpdir) -> None:
     """Verify that automatic versioning works."""
 
     root_dir = tmpdir.mkdir("exp")
@@ -34,7 +34,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     assert logger.version == 2
 
 
-def test_file_logger_manual_versioning(tmpdir):
+def test_file_logger_manual_versioning(tmpdir) -> None:
     """Verify that manual versioning works."""
 
     root_dir = tmpdir.mkdir("exp")
@@ -47,7 +47,7 @@ def test_file_logger_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
-def test_file_logger_named_version(tmpdir):
+def test_file_logger_named_version(tmpdir) -> None:
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
 
     exp_name = "exp"
@@ -63,7 +63,7 @@ def test_file_logger_named_version(tmpdir):
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_file_logger_no_name(tmpdir, name):
+def test_file_logger_no_name(tmpdir, name) -> None:
     """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
@@ -72,7 +72,7 @@ def test_file_logger_no_name(tmpdir, name):
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_file_logger_log_metrics(tmpdir, step_idx):
+def test_file_logger_log_metrics(tmpdir, step_idx) -> None:
     logger = CSVLogger(tmpdir)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
@@ -85,7 +85,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_file_logger_log_hyperparams(tmpdir):
+def test_file_logger_log_hyperparams(tmpdir) -> None:
     logger = CSVLogger(tmpdir)
     hparams = {
         "float": 0.3,
@@ -104,7 +104,7 @@ def test_file_logger_log_hyperparams(tmpdir):
     assert all(n in params for n in hparams)
 
 
-def test_flush_n_steps(tmpdir):
+def test_flush_n_steps(tmpdir) -> None:
     logger = CSVLogger(tmpdir, flush_logs_every_n_steps=2)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.save = MagicMock()

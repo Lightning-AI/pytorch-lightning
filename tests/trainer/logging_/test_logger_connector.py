@@ -30,7 +30,7 @@ from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
 
-def test_fx_validator(tmpdir):
+def test_fx_validator(tmpdir) -> None:
     funcs_name = get_members(Callback)
 
     callbacks_func = {
@@ -154,7 +154,7 @@ def test_fx_validator(tmpdir):
 
 
 class HookedCallback(Callback):
-    def __init__(self, not_supported):
+    def __init__(self, not_supported) -> None:
         def call(hook, trainer, model=None, *_, **__):
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
@@ -173,7 +173,7 @@ class HookedCallback(Callback):
 
 
 class HookedModel(BoringModel):
-    def __init__(self, not_supported):
+    def __init__(self, not_supported) -> None:
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         pl_module_hooks.difference_update(
@@ -207,7 +207,7 @@ class HookedModel(BoringModel):
             setattr(self, h, partial(call, h, attr))
 
 
-def test_fx_validator_integration(tmpdir):
+def test_fx_validator_integration(tmpdir) -> None:
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors."""
     not_supported = {
         None: "`self.trainer` reference is not registered",
@@ -288,7 +288,7 @@ def test_fx_validator_integration(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_epoch_results_cache_dp(tmpdir):
+def test_epoch_results_cache_dp(tmpdir) -> None:
 
     root_device = torch.device("cuda", 0)
 
@@ -347,7 +347,7 @@ def test_epoch_results_cache_dp(tmpdir):
     trainer.test(model)
 
 
-def test_can_return_tensor_with_more_than_one_element(tmpdir):
+def test_can_return_tensor_with_more_than_one_element(tmpdir) -> None:
     """Ensure {validation,test}_step return values are not included as callback metrics.
 
     #6623
@@ -378,7 +378,7 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
     trainer.test(model)
 
 
-def test_logging_to_progress_bar_with_reserved_key(tmpdir):
+def test_logging_to_progress_bar_with_reserved_key(tmpdir) -> None:
     """Test that logging a metric with a reserved name to the progress bar raises a warning."""
 
     class TestModel(BoringModel):
@@ -394,7 +394,7 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
 
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
-def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
+def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx) -> None:
     """test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
@@ -428,7 +428,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
         assert "val_loss_custom_naming_1" in logged
 
 
-def test_metrics_reset(tmpdir):
+def test_metrics_reset(tmpdir) -> None:
     """Tests that metrics are reset correctly after the end of the train/val/test epoch."""
 
     class TestModel(LightningModule):
@@ -537,7 +537,7 @@ def test_metrics_reset(tmpdir):
     _assert_called(model, "test", "test")
 
 
-def test_result_collection_on_tensor_with_mean_reduction():
+def test_result_collection_on_tensor_with_mean_reduction() -> None:
     result_collection = _ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
     values = torch.arange(1, 10)
@@ -636,7 +636,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
 
 
-def test_logged_metrics_has_logged_epoch_value(tmpdir):
+def test_logged_metrics_has_logged_epoch_value(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("epoch", -batch_idx, logger=True)
@@ -650,7 +650,7 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir):
     assert trainer.logged_metrics == {"epoch": -1}
 
 
-def test_result_collection_batch_size_extraction():
+def test_result_collection_batch_size_extraction() -> None:
     fx_name = "training_step"
     log_val = torch.tensor(7.0)
 
@@ -671,7 +671,7 @@ def test_result_collection_batch_size_extraction():
     assert results["training_step.train_log"].cumulated_batch_size == 1
 
 
-def test_result_collection_no_batch_size_extraction():
+def test_result_collection_no_batch_size_extraction() -> None:
     results = _ResultCollection(training=True, device="cpu")
     results.batch = torch.randn(1, 4)
     fx_name = "training_step"

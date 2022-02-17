@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def _patch_comet_atexit(monkeypatch):
+def _patch_comet_atexit(monkeypatch) -> None:
     """Prevent comet logger from trying to print at exit, since pytest's stdout/stderr redirection breaks it."""
     import atexit
 
@@ -31,7 +31,7 @@ def _patch_comet_atexit(monkeypatch):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_logger_online(comet):
+def test_comet_logger_online(comet) -> None:
     """Test comet online with mocks."""
     # Test api_key given
     with patch("pytorch_lightning.loggers.comet.CometExperiment") as comet_experiment:
@@ -74,7 +74,7 @@ def test_comet_logger_online(comet):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_logger_no_api_key_given(comet):
+def test_comet_logger_no_api_key_given(comet) -> None:
     """Test that CometLogger fails to initialize if both api key and save_dir are missing."""
     with pytest.raises(MisconfigurationException, match="requires either api_key or save_dir"):
         comet.config.get_api_key.return_value = None
@@ -82,7 +82,7 @@ def test_comet_logger_no_api_key_given(comet):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_logger_experiment_name(comet):
+def test_comet_logger_experiment_name(comet) -> None:
     """Test that Comet Logger experiment name works correctly."""
 
     api_key = "key"
@@ -99,7 +99,7 @@ def test_comet_logger_experiment_name(comet):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_logger_manual_experiment_key(comet):
+def test_comet_logger_manual_experiment_key(comet) -> None:
     """Test that Comet Logger respects manually set COMET_EXPERIMENT_KEY."""
 
     api_key = "key"
@@ -128,7 +128,7 @@ def test_comet_logger_manual_experiment_key(comet):
 
 @patch("pytorch_lightning.loggers.comet.CometOfflineExperiment")
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch):
+def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch) -> None:
     """Test that the logger creates the folders and files in the right place."""
     _patch_comet_atexit(monkeypatch)
 
@@ -161,7 +161,7 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_name_default(comet):
+def test_comet_name_default(comet) -> None:
     """Test that CometLogger.name don't create an Experiment and returns a default value."""
 
     api_key = "key"
@@ -174,7 +174,7 @@ def test_comet_name_default(comet):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_name_project_name(comet):
+def test_comet_name_project_name(comet) -> None:
     """Test that CometLogger.name does not create an Experiment and returns project name if passed."""
 
     api_key = "key"
@@ -188,7 +188,7 @@ def test_comet_name_project_name(comet):
 
 
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_version_without_experiment(comet):
+def test_comet_version_without_experiment(comet) -> None:
     """Test that CometLogger.version does not create an Experiment."""
 
     api_key = "key"
@@ -215,7 +215,7 @@ def test_comet_version_without_experiment(comet):
 
 @patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
+def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch) -> None:
     """Test that CometLogger removes the epoch key from the metrics dict and passes it as argument."""
     _patch_comet_atexit(monkeypatch)
     logger = CometLogger(project_name="test", save_dir=tmpdir)
@@ -225,7 +225,7 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
 
 @patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch("pytorch_lightning.loggers.comet.comet_ml")
-def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
+def test_comet_metrics_safe(comet, tmpdir, monkeypatch) -> None:
     """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
     _patch_comet_atexit(monkeypatch)
     logger = CometLogger(project_name="test", save_dir=tmpdir)

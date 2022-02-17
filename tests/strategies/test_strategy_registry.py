@@ -28,7 +28,7 @@ from pytorch_lightning.strategies import (
 from tests.helpers.runif import RunIf
 
 
-def test_strategy_registry_with_new_strategy():
+def test_strategy_registry_with_new_strategy() -> None:
     class TestStrategy:
 
         distributed_backend = "test_strategy"
@@ -63,7 +63,7 @@ def test_strategy_registry_with_new_strategy():
         ("deepspeed_stage_3_offload", {"stage": 3, "offload_parameters": True, "offload_optimizer": True}),
     ],
 )
-def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params):
+def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params) -> None:
 
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["init_params"] == init_params
@@ -72,14 +72,14 @@ def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params)
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
-def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
+def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy) -> None:
 
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision=16)
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_strategy_registry(tmpdir):
+def test_tpu_spawn_debug_strategy_registry(tmpdir) -> None:
 
     strategy = "tpu_spawn_debug"
 
@@ -92,7 +92,7 @@ def test_tpu_spawn_debug_strategy_registry(tmpdir):
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
-def test_fsdp_strategy_registry(tmpdir):
+def test_fsdp_strategy_registry(tmpdir) -> None:
 
     strategy = "fsdp"
 
@@ -113,7 +113,7 @@ def test_fsdp_strategy_registry(tmpdir):
         ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy):
+def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy) -> None:
 
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
 
@@ -124,7 +124,7 @@ def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, str
     assert StrategyRegistry[strategy_name]["strategy"] == strategy
 
 
-def test_custom_registered_strategy_to_strategy_flag():
+def test_custom_registered_strategy_to_strategy_flag() -> None:
     class CustomCheckpointIO(CheckpointIO):
         def save_checkpoint(self, checkpoint, path):
             pass

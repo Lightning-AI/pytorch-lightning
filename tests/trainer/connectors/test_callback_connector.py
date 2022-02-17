@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from typing import Dict
 
 import torch
 
@@ -29,7 +30,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from tests.helpers import BoringModel
 
 
-def test_checkpoint_callbacks_are_last(tmpdir):
+def test_checkpoint_callbacks_are_last(tmpdir) -> None:
     """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
     checkpoint1 = ModelCheckpoint(tmpdir)
     checkpoint2 = ModelCheckpoint(tmpdir)
@@ -83,24 +84,24 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 
 class StatefulCallback0(Callback):
-    def on_save_checkpoint(self, *args):
+    def on_save_checkpoint(self, *args) -> Dict[str, int]:
         return {"content0": 0}
 
 
 class StatefulCallback1(Callback):
-    def __init__(self, unique=None, other=None):
+    def __init__(self, unique=None, other=None) -> None:
         self._unique = unique
         self._other = other
 
     @property
-    def state_key(self):
+    def state_key(self) -> str:
         return self._generate_state_key(unique=self._unique)
 
     def on_save_checkpoint(self, *args):
         return {"content1": self._unique}
 
 
-def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
+def test_all_callback_states_saved_before_checkpoint_callback(tmpdir) -> None:
     """Test that all callback states get saved even if the ModelCheckpoint is not given as last and when there are
     multiple callbacks of the same type."""
 
@@ -137,7 +138,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     )
 
 
-def test_attach_model_callbacks():
+def test_attach_model_callbacks() -> None:
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
 
     def _attach_callbacks(trainer_callbacks, model_callbacks):
@@ -201,7 +202,7 @@ def test_attach_model_callbacks():
     assert trainer.callbacks == [progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
 
 
-def test_attach_model_callbacks_override_info(caplog):
+def test_attach_model_callbacks_override_info(caplog) -> None:
     """Test that the logs contain the info about overriding callbacks returned by configure_callbacks."""
     model = LightningModule()
     model.configure_callbacks = lambda: [LearningRateMonitor(), EarlyStopping(monitor="foo")]

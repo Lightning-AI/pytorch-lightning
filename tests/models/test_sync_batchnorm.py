@@ -26,7 +26,7 @@ from tests.helpers.utils import set_random_main_port
 
 
 class SyncBNModule(LightningModule):
-    def __init__(self, gpu_count=1, **kwargs):
+    def __init__(self, gpu_count: int=1, **kwargs) -> None:
         super().__init__()
 
         self.gpu_count = gpu_count
@@ -71,7 +71,7 @@ class SyncBNModule(LightningModule):
 # TODO: Fatal Python error: Bus error
 @pytest.mark.skip(reason="Fatal Python error: Bus error")
 @RunIf(min_gpus=2, standalone=True)
-def test_sync_batchnorm_ddp(tmpdir):
+def test_sync_batchnorm_ddp(tmpdir) -> None:
     seed_everything(234)
     set_random_main_port()
 

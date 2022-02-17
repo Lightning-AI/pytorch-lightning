@@ -23,7 +23,7 @@ from tests.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+def test_multi_gpu_early_stop_ddp_spawn(tmpdir) -> None:
     tutils.set_random_main_port()
 
     trainer_options = dict(
@@ -42,7 +42,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_ddp_spawn(tmpdir):
+def test_multi_gpu_model_ddp_spawn(tmpdir) -> None:
     tutils.set_random_main_port()
 
     trainer_options = dict(
@@ -64,7 +64,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
+def test_ddp_all_dataloaders_passed_to_fit(tmpdir) -> None:
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_main_port()
 

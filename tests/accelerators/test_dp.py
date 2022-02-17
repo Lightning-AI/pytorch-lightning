@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -32,7 +33,7 @@ from tests.helpers.simple_models import ClassificationModel
 
 
 class CustomClassificationModelDP(ClassificationModel):
-    def _step(self, batch, batch_idx):
+    def _step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         logits = self(x)
         return {"logits": logits, "y": y}
@@ -48,15 +49,15 @@ class CustomClassificationModelDP(ClassificationModel):
     def test_step(self, batch, batch_idx):
         return self._step(batch, batch_idx)
 
-    def validation_step_end(self, outputs):
+    def validation_step_end(self, outputs) -> None:
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
 
-    def test_step_end(self, outputs):
+    def test_step_end(self, outputs) -> None:
         self.log("test_acc", self.test_acc(outputs["logits"], outputs["y"]))
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_early_stop_dp(tmpdir):
+def test_multi_gpu_early_stop_dp(tmpdir) -> None:
     """Make sure DDP works.
 
     with early stopping
@@ -80,7 +81,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_multi_gpu_model_dp(tmpdir):
+def test_multi_gpu_model_dp(tmpdir) -> None:
     tutils.set_random_main_port()
 
     trainer_options = dict(
@@ -111,7 +112,7 @@ class ReductionTestModel(BoringModel):
     def test_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    def add_outputs(self, output, device):
+    def add_outputs(self, output, device) -> None:
         output.update(
             {
                 "reduce_int": torch.tensor(device.index, dtype=torch.int, device=device),
@@ -134,19 +135,19 @@ class ReductionTestModel(BoringModel):
         self.add_outputs(output, batch.device)
         return output
 
-    def training_epoch_end(self, outputs):
+    def training_epoch_end(self, outputs) -> None:
         assert outputs[0]["loss"].shape == torch.Size([])
         self._assert_extra_outputs(outputs)
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs) -> None:
         assert outputs[0]["x"].shape == torch.Size([2])
         self._assert_extra_outputs(outputs)
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs) -> None:
         assert outputs[0]["y"].shape == torch.Size([2])
         self._assert_extra_outputs(outputs)
 
-    def _assert_extra_outputs(self, outputs):
+    def _assert_extra_outputs(self, outputs) -> None:
         out = outputs[0]["reduce_int"]
         assert torch.eq(out, torch.tensor([0, 1], device="cuda:0")).all()
         assert out.dtype is torch.int
@@ -158,7 +159,7 @@ class ReductionTestModel(BoringModel):
 
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
-def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_device_count, tmpdir):
+def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_device_count, tmpdir) -> None:
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
 
     class CustomModel(BoringModel):
@@ -198,7 +199,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_de
 
 
 @RunIf(min_gpus=2)
-def test_dp_training_step_dict(tmpdir):
+def test_dp_training_step_dict(tmpdir) -> None:
     """This test verifies that dp properly reduces dictionaries."""
     model = ReductionTestModel()
     model.training_step_end = None
@@ -216,7 +217,7 @@ def test_dp_training_step_dict(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_dp_batch_not_moved_to_device_explicitly(tmpdir):
+def test_dp_batch_not_moved_to_device_explicitly(tmpdir) -> None:
     """Test that with DP, batch is not moved to the device explicitly."""
 
     class CustomModel(BoringModel):

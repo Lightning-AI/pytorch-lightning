@@ -36,7 +36,7 @@ class CustomCheckpointIO(CheckpointIO):
         os.remove(path)
 
 
-def test_checkpoint_plugin_called(tmpdir):
+def test_checkpoint_plugin_called(tmpdir) -> None:
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading."""
     checkpoint_plugin = CustomCheckpointIO()
     checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)

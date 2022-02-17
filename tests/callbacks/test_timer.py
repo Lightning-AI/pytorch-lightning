@@ -26,7 +26,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_trainer_flag(caplog):
+def test_trainer_flag(caplog) -> None:
     class TestModel(BoringModel):
         def on_fit_start(self):
             raise SystemExit()
@@ -62,12 +62,12 @@ def test_trainer_flag(caplog):
         (dict(weeks=52, days=1), timedelta(weeks=52, days=1)),
     ],
 )
-def test_timer_parse_duration(duration, expected):
+def test_timer_parse_duration(duration, expected) -> None:
     timer = Timer(duration=duration)
     assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
 
 
-def test_timer_interval_choice():
+def test_timer_interval_choice() -> None:
     Timer(duration=timedelta(), interval="step")
     Timer(duration=timedelta(), interval="epoch")
     with pytest.raises(MisconfigurationException, match="Unsupported parameter value"):
@@ -75,7 +75,7 @@ def test_timer_interval_choice():
 
 
 @patch("pytorch_lightning.callbacks.timer.time")
-def test_timer_time_remaining(time_mock):
+def test_timer_time_remaining(time_mock) -> None:
     """Test that the timer tracks the elapsed and remaining time correctly."""
     start_time = time.monotonic()
     duration = timedelta(seconds=10)
@@ -103,7 +103,7 @@ def test_timer_time_remaining(time_mock):
     assert round(timer.time_elapsed()) == 3
 
 
-def test_timer_stops_training(tmpdir, caplog):
+def test_timer_stops_training(tmpdir, caplog) -> None:
     """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
@@ -119,7 +119,7 @@ def test_timer_stops_training(tmpdir, caplog):
 
 
 @pytest.mark.parametrize("interval", ["step", "epoch"])
-def test_timer_zero_duration_stop(tmpdir, interval):
+def test_timer_zero_duration_stop(tmpdir, interval) -> None:
     """Test that the timer stops training immediately after the first check occurs."""
     model = BoringModel()
     duration = timedelta(0)
@@ -131,7 +131,7 @@ def test_timer_zero_duration_stop(tmpdir, interval):
 
 
 @pytest.mark.parametrize("min_steps,min_epochs", [(None, 2), (3, None), (3, 2)])
-def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
+def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs) -> None:
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
@@ -144,7 +144,7 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     assert timer.time_elapsed() > duration.total_seconds()
 
 
-def test_timer_resume_training(tmpdir):
+def test_timer_resume_training(tmpdir) -> None:
     """Test that the timer can resume together with the Trainer."""
     model = BoringModel()
     timer = Timer(duration=timedelta(milliseconds=200))
@@ -171,7 +171,7 @@ def test_timer_resume_training(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_timer_track_stages(tmpdir):
+def test_timer_track_stages(tmpdir) -> None:
     """Test that the timer tracks time also for other stages (train/val/test)."""
     # note: skipped on windows because time resolution of time.monotonic() is not high enough for this fast test
     model = BoringModel()

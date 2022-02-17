@@ -2,7 +2,7 @@ import contextlib
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 from unittest import mock
 
 import pytest
@@ -31,7 +31,7 @@ if _DEEPSPEED_AVAILABLE:
 
 
 class ModelParallelBoringModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = None
 
@@ -48,11 +48,11 @@ class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
 
 
 class ModelParallelBoringModelManualOptim(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.layer = None
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> None:
         opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
@@ -71,7 +71,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-def test_deepspeed_lightning_module(tmpdir):
+def test_deepspeed_lightning_module(tmpdir) -> None:
     """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly."""
 
     model = BoringModel()
@@ -87,7 +87,7 @@ def test_deepspeed_lightning_module(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_deepspeed_lightning_module_precision(tmpdir):
+def test_deepspeed_lightning_module_precision(tmpdir) -> None:
     """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
     16."""
 
@@ -109,7 +109,7 @@ def test_deepspeed_lightning_module_precision(tmpdir):
 
 
 @pytest.fixture
-def deepspeed_config():
+def deepspeed_config() -> Dict[str, Dict[str, Union[Dict[str, float], str]]]:
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
         "scheduler": {
@@ -126,7 +126,7 @@ def deepspeed_zero_config(deepspeed_config):
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ("deepspeed", DeepSpeedStrategy))
-def test_deepspeed_strategy_string(tmpdir, strategy):
+def test_deepspeed_strategy_string(tmpdir, strategy) -> None:
     """Test to ensure that the strategy can be passed via string or instance, and parallel devices is correctly
     set."""
 
@@ -139,7 +139,7 @@ def test_deepspeed_strategy_string(tmpdir, strategy):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
+def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config) -> None:
     """Test to ensure that the strategy can be passed via a string with an environment variable."""
     config_path = os.path.join(tmpdir, "temp.json")
     with open(config_path, "w") as f:
@@ -160,7 +160,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
     "amp_backend",
     ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
-def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
+def test_deepspeed_precision_choice(amp_backend, precision, tmpdir) -> None:
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -176,7 +176,7 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_with_invalid_config_path(tmpdir):
+def test_deepspeed_with_invalid_config_path(tmpdir) -> None:
     """Test to ensure if we pass an invalid config path we throw an exception."""
 
     with pytest.raises(
@@ -186,7 +186,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
+def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config) -> None:
     """Test to ensure if we pass an env variable, we load the config from the path."""
     config_path = os.path.join(tmpdir, "temp.json")
     with open(config_path, "w") as f:
@@ -197,7 +197,7 @@ def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_defaults(tmpdir):
+def test_deepspeed_defaults(tmpdir) -> None:
     """Ensure that defaults are correctly set as a config for DeepSpeed if no arguments are passed."""
     strategy = DeepSpeedStrategy()
     assert strategy.config is not None
@@ -205,7 +205,7 @@ def test_deepspeed_defaults(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_warn_deepspeed_ignored(tmpdir):
+def test_warn_deepspeed_ignored(tmpdir) -> None:
     class TestModel(BoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
             return loss.backward()
@@ -233,7 +233,7 @@ def test_warn_deepspeed_ignored(tmpdir):
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @mock.patch("pytorch_lightning.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
-def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value):
+def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value) -> None:
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
@@ -267,7 +267,7 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, moc
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_run_configure_optimizers(tmpdir):
+def test_deepspeed_run_configure_optimizers(tmpdir) -> None:
     """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation), whilst using
     configure_optimizers for optimizers and schedulers."""
 
@@ -304,7 +304,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_config(tmpdir, deepspeed_zero_config):
+def test_deepspeed_config(tmpdir, deepspeed_zero_config) -> None:
     """Test to ensure deepspeed works correctly when passed a DeepSpeed config object including
     optimizers/schedulers and saves the model weights to load correctly."""
 
@@ -333,7 +333,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_custom_precision_params(tmpdir):
+def test_deepspeed_custom_precision_params(tmpdir) -> None:
     """Ensure if we modify the FP16 parameters via the DeepSpeedStrategy, the deepspeed config contains these
     changes."""
 
@@ -356,7 +356,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
+def test_deepspeed_custom_activation_checkpointing_params(tmpdir) -> None:
     """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
     ds = DeepSpeedStrategy(
         partition_activations=True,
@@ -372,7 +372,7 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
+def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir) -> None:
     """Ensure if we modify the activation checkpointing parameters, we pass these to
     deepspeed.checkpointing.configure correctly."""
     ds = DeepSpeedStrategy(
@@ -402,7 +402,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True)
-def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
+def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config) -> None:
     """Ensure if we use a config and turn off offload_optimizer, that this is set to False within the config."""
 
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
@@ -427,7 +427,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu(tmpdir):
+def test_deepspeed_multigpu(tmpdir) -> None:
     """Test to ensure that DeepSpeed with multiple GPUs works and deepspeed distributed is initialized
     correctly."""
     model = BoringModel()
@@ -443,14 +443,14 @@ def test_deepspeed_multigpu(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_fp32_works(tmpdir):
+def test_deepspeed_fp32_works(tmpdir) -> None:
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="deepspeed_stage_3", fast_dev_run=True)
     trainer.fit(model)
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_stage_3_save_warning(tmpdir):
+def test_deepspeed_stage_3_save_warning(tmpdir) -> None:
     """Test to ensure that DeepSpeed Stage 3 gives a warning when saving on rank zero."""
     model = BoringModel()
     trainer = Trainer(
@@ -470,7 +470,7 @@ def test_deepspeed_stage_3_save_warning(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_single_file(tmpdir):
+def test_deepspeed_multigpu_single_file(tmpdir) -> None:
     """Test to ensure that DeepSpeed loads from a single file checkpoint."""
     model = BoringModel()
     checkpoint_path = os.path.join(tmpdir, "model.pt")
@@ -501,7 +501,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
 
 
 class ModelParallelClassificationModel(LightningModule):
-    def __init__(self, lr: float = 0.01, num_blocks: int = 5):
+    def __init__(self, lr: float = 0.01, num_blocks: int = 5) -> None:
         super().__init__()
         self.lr = lr
         self.num_blocks = num_blocks
@@ -524,7 +524,7 @@ class ModelParallelClassificationModel(LightningModule):
         logits = F.softmax(x, dim=1)
         return logits
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> Dict[str, Any]:
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
@@ -532,19 +532,19 @@ class ModelParallelClassificationModel(LightningModule):
         self.log("train_acc", self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("val_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("val_acc", self.valid_acc(logits, y), prog_bar=True, sync_dist=True)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         self.log("test_loss", F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log("test_acc", self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=0):
         x, y = batch
         logits = self.forward(x)
         self.test_acc(logits, y)
@@ -570,7 +570,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
     def automatic_optimization(self) -> bool:
         return False
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> None:
         x, y = batch
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
@@ -583,7 +583,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config) -> None:
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -596,7 +596,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config) -> None:
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModelManualOptim()
     model.training_epoch_end = None
@@ -611,7 +611,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches) -> None:
     seed_everything(1)
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -647,7 +647,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
+def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir) -> None:
     """Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning that the
     optimizer state and scheduler states cannot be restored."""
     dm = ClassifDataModule()
@@ -674,7 +674,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
+def test_deepspeed_multigpu_stage_3_resume_training(tmpdir) -> None:
     """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
@@ -738,7 +738,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 
 @pytest.mark.parametrize("offload_optimizer", [False, True])
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer) -> None:
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
     seed_everything(42)
 
@@ -775,7 +775,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_test(tmpdir):
+def test_deepspeed_multigpu_test(tmpdir) -> None:
     """Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -787,7 +787,7 @@ def test_deepspeed_multigpu_test(tmpdir):
 # TODO(Sean): Once partial parameter partitioning is supported this test should be re-enabled
 @pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
+def test_deepspeed_multigpu_partial_partition_parameters(tmpdir) -> None:
     """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_sharded_model``
     correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
 
@@ -814,7 +814,7 @@ def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_test_rnn(tmpdir):
+def test_deepspeed_multigpu_test_rnn(tmpdir) -> None:
     """Test to ensure that turning off explicit partitioning of the entire module for ZeRO Stage 3 works when
     training with certain layers which will crash with explicit partitioning."""
 
@@ -840,7 +840,7 @@ def test_deepspeed_multigpu_test_rnn(tmpdir):
 @RunIf(deepspeed=True)
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
-def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, platform):
+def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, platform) -> None:
     """Test to ensure that we setup distributed communication using correctly.
 
     When using windows, ranks environment variables should not be set, and deepspeed should handle this.
@@ -863,7 +863,7 @@ def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmpdir, pl
         assert os.environ["LOCAL_RANK"] == str(trainer.strategy.local_rank)
 
 
-def _assert_save_model_is_equal(model, tmpdir, trainer):
+def _assert_save_model_is_equal(model, tmpdir, trainer) -> None:
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
@@ -885,7 +885,7 @@ def _assert_save_model_is_equal(model, tmpdir, trainer):
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_multigpu_no_schedulers(tmpdir):
+def test_deepspeed_multigpu_no_schedulers(tmpdir) -> None:
     """Test to ensure ZeRO Stage 3 works with a parallel model and no schedulers."""
     model = ModelParallelBoringModelNoSchedulers()
     trainer = Trainer(
@@ -897,7 +897,7 @@ def test_deepspeed_multigpu_no_schedulers(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_skip_backward_raises(tmpdir):
+def test_deepspeed_skip_backward_raises(tmpdir) -> None:
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             return None
@@ -909,7 +909,7 @@ def test_deepspeed_skip_backward_raises(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_setup_train_dataloader(tmpdir):
+def test_deepspeed_setup_train_dataloader(tmpdir) -> None:
     """Test DeepSpeed works when setup is required to call in the DataModule."""
 
     class TestSetupIsCalledDataModule(LightningDataModule):
@@ -950,7 +950,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 @pytest.mark.parametrize("max_epoch", [2])
 @pytest.mark.parametrize("limit_train_batches", [2])
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interval):
+def test_scheduler_step_count(mock_step, max_epoch: int, limit_train_batches, interval):
     """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
     set to step or epoch."""
 
@@ -982,7 +982,7 @@ def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interva
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_configure_gradient_clipping(tmpdir):
+def test_deepspeed_configure_gradient_clipping(tmpdir) -> None:
     """Test to ensure that a warning is raised when `LightningModule.configure_gradient_clipping` is overridden in
     case of deepspeed."""
 
@@ -1003,7 +1003,7 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_deepspeed_gradient_clip_by_value(tmpdir):
+def test_deepspeed_gradient_clip_by_value(tmpdir) -> None:
     """Test to ensure that an exception is raised when using `gradient_clip_algorithm='value'`."""
     model = BoringModel()
     trainer = Trainer(
@@ -1017,7 +1017,7 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
-def test_different_accumulate_grad_batches_fails(tmpdir):
+def test_different_accumulate_grad_batches_fails(tmpdir) -> None:
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accumulate_grad_batches={1: 2}, gpus=1, strategy="deepspeed")
     with pytest.raises(
@@ -1027,7 +1027,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True)
-def test_specific_gpu_device_id(tmpdir):
+def test_specific_gpu_device_id(tmpdir) -> None:
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert model.device.index == 1
@@ -1063,7 +1063,7 @@ def test_specific_gpu_device_id(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, standalone=True, min_torch="1.10.0")
-def test_deepspeed_with_meta_device(tmpdir):
+def test_deepspeed_with_meta_device(tmpdir) -> None:
     with init_meta_context():
         model = BoringModel()
     assert model.layer.weight.device.type == "meta"

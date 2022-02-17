@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.memory import get_model_size_mb, recursive_deta
 from tests.helpers import BoringModel
 
 
-def test_recursive_detach():
+def test_recursive_detach() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     x = {"foo": torch.tensor(0, device=device), "bar": {"baz": torch.tensor(1.0, device=device, requires_grad=True)}}
     y = recursive_detach(x, to_cpu=True)
@@ -34,7 +34,7 @@ def test_recursive_detach():
     assert not y["bar"]["baz"].requires_grad
 
 
-def test_get_model_size_mb():
+def test_get_model_size_mb() -> None:
     model = BoringModel()
 
     size_bytes = get_model_size_mb(model)
@@ -43,7 +43,7 @@ def test_get_model_size_mb():
     assert math.isclose(size_bytes, 0.001319, rel_tol=0.1)
 
 
-def test_get_sparse_model_size_mb():
+def test_get_sparse_model_size_mb() -> None:
     class BoringSparseModel(BoringModel):
         def __init__(self):
             super().__init__()

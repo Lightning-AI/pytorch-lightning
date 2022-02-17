@@ -21,7 +21,7 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 
 
 @mock.patch.dict(os.environ, {})
-def test_default_attributes():
+def test_default_attributes() -> None:
     """Test the default attributes when no environment variables are set."""
     env = SLURMEnvironment()
     assert env.creates_processes_externally
@@ -53,7 +53,7 @@ def test_default_attributes():
         "SLURM_JOB_NAME": "JOB",
     },
 )
-def test_attributes_from_environment_variables(caplog):
+def test_attributes_from_environment_variables(caplog) -> None:
     """Test that the SLURM cluster environment takes the attributes from the environment variables."""
     env = SLURMEnvironment()
     assert env.auto_requeue is True
@@ -83,14 +83,14 @@ def test_attributes_from_environment_variables(caplog):
     "slurm_node_list,expected",
     [("alpha,beta,gamma", "alpha"), ("alpha beta gamma", "alpha"), ("1.2.3.[100-110]", "1.2.3.100")],
 )
-def test_master_address_from_slurm_node_list(slurm_node_list, expected):
+def test_master_address_from_slurm_node_list(slurm_node_list, expected) -> None:
     """Test extracting the main node from different formats for the SLURM_NODELIST."""
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()
         assert env.main_address == expected
 
 
-def test_detect():
+def test_detect() -> None:
     """Test the detection of a SLURM environment configuration."""
     with mock.patch.dict(os.environ, {}):
         assert not SLURMEnvironment.detect()

@@ -26,20 +26,20 @@ from tests.helpers.runif import RunIf
 
 
 class DummyPredictionWriter(BasePredictionWriter):
-    def write_on_batch_end(self, *args, **kwargs):
+    def write_on_batch_end(self, *args, **kwargs) -> None:
         pass
 
-    def write_on_epoch_end(self, *args, **kwargs):
+    def write_on_epoch_end(self, *args, **kwargs) -> None:
         pass
 
 
-def test_prediction_writer_invalid_write_interval():
+def test_prediction_writer_invalid_write_interval() -> None:
     """Test that configuring an unknown interval name raises an error."""
     with pytest.raises(MisconfigurationException, match=r"`write_interval` should be one of \['batch"):
         DummyPredictionWriter("something")
 
 
-def test_prediction_writer_hook_call_intervals(tmpdir):
+def test_prediction_writer_hook_call_intervals(tmpdir) -> None:
     """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined
     interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
@@ -84,7 +84,7 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
 
 
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
-def test_prediction_writer_batch_indices(tmpdir, num_workers):
+def test_prediction_writer_batch_indices(tmpdir, num_workers) -> None:
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
 
@@ -110,7 +110,7 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
     )
 
 
-def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
+def test_prediction_writer_partial_support_for_combined_loader(tmpdir) -> None:
     """Test partial support for CombinedLoader: prediction works but sample indices don't get tracked."""
     pl.loops.epoch.prediction_epoch_loop.warning_cache.clear()
 

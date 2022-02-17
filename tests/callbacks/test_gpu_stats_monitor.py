@@ -28,7 +28,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(min_gpus=1)
-def test_gpu_stats_monitor(tmpdir):
+def test_gpu_stats_monitor(tmpdir) -> None:
     """Test GPU stats are logged using a logger."""
     model = BoringModel()
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
@@ -64,7 +64,7 @@ def test_gpu_stats_monitor(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_gpu_stats_monitor_no_queries(tmpdir):
+def test_gpu_stats_monitor_no_queries(tmpdir) -> None:
     """Test GPU logger doesn't fail if no "nvidia-smi" queries are to be performed."""
     model = BoringModel()
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
@@ -95,7 +95,7 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
-def test_gpu_stats_monitor_cpu_machine(tmpdir):
+def test_gpu_stats_monitor_cpu_machine(tmpdir) -> None:
     """Test GPUStatsMonitor on CPU machine."""
     with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"), pytest.deprecated_call(
         match="GPUStatsMonitor` callback was deprecated in v1.5"
@@ -104,7 +104,7 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_gpu_stats_monitor_no_logger(tmpdir):
+def test_gpu_stats_monitor_no_logger(tmpdir) -> None:
     """Test GPUStatsMonitor with no logger in Trainer."""
     model = BoringModel()
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
@@ -119,7 +119,7 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
 
 
 @RunIf(min_gpus=1)
-def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
+def test_gpu_stats_monitor_no_gpu_warning(tmpdir) -> None:
     """Test GPUStatsMonitor raises a warning when not training on GPU device."""
     model = BoringModel()
     with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
@@ -131,7 +131,7 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
         trainer.fit(model)
 
 
-def test_gpu_stats_monitor_parse_gpu_stats():
+def test_gpu_stats_monitor_parse_gpu_stats() -> None:
     logs = GPUStatsMonitor._parse_gpu_stats([1, 2], [[3, 4, 5], [6, 7]], [("gpu", "a"), ("memory", "b")])
     expected = {
         "device_id: 1/gpu (a)": 3,
@@ -145,7 +145,7 @@ def test_gpu_stats_monitor_parse_gpu_stats():
 @mock.patch.dict(os.environ, {})
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_mock, is_available_mock):
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_mock, is_available_mock) -> None:
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 0])
     expected = ["1", "0"]
     assert gpu_ids == expected
@@ -154,7 +154,7 @@ def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_m
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "3,2,4"})
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=3)
-def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_integers(device_count_mock, is_available_mock):
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_integers(device_count_mock, is_available_mock) -> None:
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
     expected = ["2", "4"]
     assert gpu_ids == expected
@@ -163,7 +163,7 @@ def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_integers(device_coun
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "GPU-01a23b4c,GPU-56d78e9f,GPU-02a46c8e"})
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=3)
-def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_uuids(device_count_mock, is_available_mock):
+def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_uuids(device_count_mock, is_available_mock) -> None:
     gpu_ids = GPUStatsMonitor._get_gpu_ids([1, 2])
     expected = ["GPU-56d78e9f", "GPU-02a46c8e"]
     assert gpu_ids == expected

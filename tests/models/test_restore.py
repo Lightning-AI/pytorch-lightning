@@ -16,7 +16,8 @@ import logging as log
 import os
 import pickle
 from copy import deepcopy
-from typing import Generic, Mapping, TypeVar
+from pathlib import Path
+from typing import Any, Dict, Generic, Mapping, TypeVar, Union
 from unittest import mock
 
 import cloudpickle
@@ -28,6 +29,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -37,25 +39,25 @@ from tests.loops.test_loops import CustomException
 
 
 class ModelTrainerPropertyParity(Callback):
-    def _check_properties(self, trainer, pl_module):
+    def _check_properties(self, trainer, pl_module) -> None:
         assert trainer.global_step == pl_module.global_step
         assert trainer.current_epoch == pl_module.current_epoch
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._check_properties(trainer, pl_module)
 
-    def on_train_batch_start(self, trainer, pl_module, *args, **kwargs):
+    def on_train_batch_start(self, trainer: Trainer, pl_module: LightningModule, *args, **kwargs) -> None:
         self._check_properties(trainer, pl_module)
 
-    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs):
+    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, *args, **kwargs) -> None:
         self._check_properties(trainer, pl_module)
 
-    def on_train_end(self, trainer, pl_module):
+    def on_train_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self._check_properties(trainer, pl_module)
 
 
 class ValTestLossBoringModel(BoringModel):
-    def __init__(self, batch_size=4):
+    def __init__(self, batch_size: int=4) -> None:
         super().__init__()
         self.save_hyperparameters()
 
@@ -74,7 +76,7 @@ T = TypeVar("T")
 
 
 class GenericParentValTestLossBoringModel(Generic[T], ValTestLossBoringModel):
-    def __init__(self, batch_size: int = 4):
+    def __init__(self, batch_size: int = 4) -> None:
         super().__init__(batch_size=batch_size)
 
 
@@ -83,7 +85,7 @@ class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
 
 
 class CustomClassificationModelDP(ClassificationModel):
-    def _step(self, batch):
+    def _step(self, batch) -> Dict[str, Any]:
         x, y = batch
         logits = self(x)
         return {"logits": logits, "y": y}
@@ -99,11 +101,11 @@ class CustomClassificationModelDP(ClassificationModel):
     def test_step(self, batch, batch_idx):
         return self._step(batch)
 
-    def validation_step_end(self, outputs):
+    def validation_step_end(self, outputs) -> None:
         self.log("val_acc", self.valid_acc(outputs["logits"], outputs["y"]))
 
 
-def test_model_properties_fit_ckpt_path(tmpdir):
+def test_model_properties_fit_ckpt_path(tmpdir) -> None:
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
@@ -123,7 +125,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
     trainer.fit(model, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
-def test_trainer_properties_restore_ckpt_path(tmpdir):
+def test_trainer_properties_restore_ckpt_path(tmpdir) -> None:
     """Test that required trainer properties are set correctly when resuming from checkpoint in different
     phases."""
 
@@ -221,7 +223,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
         trainer_fn(model, datamodule=dm, ckpt_path=resume_ckpt)
 
 
-def test_correct_step_and_epoch(tmpdir):
+def test_correct_step_and_epoch(tmpdir) -> None:
     model = BoringModel()
     first_max_epochs = 2
     train_batches = 2
@@ -264,7 +266,7 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.global_step == max_epochs * train_batches + 1
 
 
-def test_fit_twice(tmpdir):
+def test_fit_twice(tmpdir) -> None:
     epochs = []
 
     class TestModel(BoringModel):
@@ -287,7 +289,7 @@ def test_fit_twice(tmpdir):
     assert epochs == [0, 1, 2, 3]
 
 
-def test_try_resume_from_non_existing_checkpoint(tmpdir):
+def test_try_resume_from_non_existing_checkpoint(tmpdir) -> None:
     """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
     trainer = Trainer()
@@ -299,11 +301,11 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_pretrain_routine_end(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self.callbacks = deepcopy(trainer.callbacks)
 
 
-def test_callbacks_state_fit_ckpt_path(tmpdir):
+def test_callbacks_state_fit_ckpt_path(tmpdir) -> None:
     """Test that resuming from a checkpoint restores callbacks that persist state."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -347,7 +349,7 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
                 assert getattr(before, attribute) == getattr(after, attribute)
 
 
-def test_callbacks_references_fit_ckpt_path(tmpdir):
+def test_callbacks_references_fit_ckpt_path(tmpdir) -> None:
     """Test that resuming from a checkpoint sets references as expected."""
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -376,7 +378,7 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_running_test_pretrained_model_distrib_dp(tmpdir):
+def test_running_test_pretrained_model_distrib_dp(tmpdir) -> None:
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_main_port()
@@ -424,7 +426,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
+def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir) -> None:
     """Verify `test()` on pretrained model."""
     tutils.set_random_main_port()
     dm = ClassifDataModule()
@@ -471,7 +473,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         tpipes.run_model_prediction(pretrained_model, dataloader, min_acc=0.1)
 
 
-def test_running_test_pretrained_model_cpu(tmpdir):
+def test_running_test_pretrained_model_cpu(tmpdir) -> None:
     """Verify test() on pretrained model."""
     tutils.reset_seed()
     dm = ClassifDataModule()
@@ -510,7 +512,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
 
 @pytest.mark.parametrize("model_template", [ValTestLossBoringModel, GenericValTestLossBoringModel])
-def test_load_model_from_checkpoint(tmpdir, model_template):
+def test_load_model_from_checkpoint(tmpdir, model_template) -> None:
     """Verify test() on pretrained model."""
     tutils.reset_seed()
     model = model_template()
@@ -557,7 +559,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
 
 
 @RunIf(min_gpus=2)
-def test_dp_resume(tmpdir):
+def test_dp_resume(tmpdir: Union[Path, str]) -> None:
     """Make sure DP continues training correctly."""
     model = CustomClassificationModelDP(lr=0.1)
     dm = ClassifDataModule()
@@ -633,7 +635,7 @@ def test_dp_resume(tmpdir):
     model.unfreeze()
 
 
-def test_model_saving_loading(tmpdir):
+def test_model_saving_loading(tmpdir) -> None:
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     model = BoringModel()
 
@@ -682,7 +684,7 @@ def test_model_saving_loading(tmpdir):
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt) -> None:
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -724,7 +726,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
-def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt) -> None:
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv("TORCH_HOME", tmpdir)
@@ -768,14 +770,14 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         CurrentModel.load_from_checkpoint(checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True)
 
 
-def test_model_pickle(tmpdir):
+def test_model_pickle(tmpdir) -> None:
     model = BoringModel()
     pickle.dumps(model)
     cloudpickle.dumps(model)
 
 
 class ExceptionModel(BoringModel):
-    def __init__(self, stop_batch_idx):
+    def __init__(self, stop_batch_idx) -> None:
         super().__init__()
         self.stop_batch_idx = stop_batch_idx
 
@@ -796,7 +798,7 @@ class ShouldStopModel(ExceptionModel):
 
 @pytest.mark.parametrize("stop_in_the_middle", (True, False))
 @pytest.mark.parametrize("model_cls", (ExceptionModel, ShouldStopModel))
-def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls):
+def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls) -> None:
     """Test that a warning is raised if training is restarted from mid-epoch."""
     limit_train_batches = 8
     trainer_kwargs = {

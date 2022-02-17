@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from argparse import ArgumentParser
+from typing import List
 from unittest import mock
 
 import pytest
@@ -50,7 +51,7 @@ class SerialLoaderBoringModel(BoringModel):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_1(tmpdir):
+def test_model_tpu_cores_1(tmpdir) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -69,7 +70,7 @@ def test_model_tpu_cores_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_index(tmpdir, tpu_core):
+def test_model_tpu_index(tmpdir, tpu_core) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -88,7 +89,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_8(tmpdir):
+def test_model_tpu_cores_8(tmpdir) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -107,7 +108,7 @@ def test_model_tpu_cores_8(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_1(tmpdir):
+def test_model_16bit_tpu_cores_1(tmpdir) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -127,7 +128,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_index(tmpdir, tpu_core):
+def test_model_16bit_tpu_index(tmpdir, tpu_core) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -147,7 +148,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_8(tmpdir):
+def test_model_16bit_tpu_cores_8(tmpdir) -> None:
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -167,7 +168,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_early_stop(tmpdir):
+def test_model_tpu_early_stop(tmpdir) -> None:
     """Test if single TPU core training works."""
 
     class CustomBoringModel(BoringModel):
@@ -193,7 +194,7 @@ def test_model_tpu_early_stop(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_grad_norm(tmpdir):
+def test_tpu_grad_norm(tmpdir) -> None:
     """Test if grad_norm works on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -212,7 +213,7 @@ def test_tpu_grad_norm(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_clip_grad_by_value(tmpdir):
+def test_tpu_clip_grad_by_value(tmpdir) -> None:
     """Test if clip_gradients by value works on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -232,7 +233,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_dataloaders_passed_to_fit(tmpdir):
+def test_dataloaders_passed_to_fit(tmpdir) -> None:
     """Test if dataloaders passed to trainer works on TPU."""
     tutils.reset_seed()
     model = BoringModel()
@@ -247,19 +248,19 @@ def test_dataloaders_passed_to_fit(tmpdir):
     [(1, None), (8, None), ([1], 1), ([8], 8)],
 )
 @RunIf(tpu=True)
-def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
+def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id) -> None:
     """Test if trainer.tpu_id is set as expected."""
     assert Trainer(tpu_cores=tpu_cores)._accelerator_connector.tpu_id == expected_tpu_id
 
 
-def test_tpu_misconfiguration():
+def test_tpu_misconfiguration() -> None:
     """Test if trainer.tpu_id is set as expected."""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
         Trainer(tpu_cores=[1, 8])
 
 
 @pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
-def test_exception_when_no_tpu_found(tmpdir):
+def test_exception_when_no_tpu_found(tmpdir) -> None:
     """Test if exception is thrown when xla devices are not available."""
 
     with pytest.raises(MisconfigurationException, match="No TPU devices were found."):
@@ -268,14 +269,14 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
+def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores) -> None:
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
     assert isinstance(Trainer(tpu_cores=tpu_cores).accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_broadcast_on_tpu():
+def test_broadcast_on_tpu() -> None:
     """Checks if an object from the main process is broadcasted to other processes correctly."""
 
     def test_broadcast(rank):
@@ -307,7 +308,7 @@ def test_broadcast_on_tpu():
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected) -> None:
     if error_expected:
         with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
             Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
@@ -322,7 +323,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_cores_with_argparse(cli_args, expected):
+def test_tpu_cores_with_argparse(cli_args: List[str], expected) -> None:
     """Test passing tpu_cores in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
@@ -337,7 +338,7 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_reduce():
+def test_tpu_reduce() -> None:
     """Test tpu spawn reduce operation."""
 
     def test_reduce(rank):
@@ -362,7 +363,7 @@ def test_tpu_reduce():
 @pl_multi_process_test
 @pytest.mark.parametrize("clip_val", [10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir) -> None:
     """Ensure that clip gradients is only called if the value is greater than 0.
 
     TODO: Fix (test fails with parametrize)
@@ -389,7 +390,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_if_test_works_with_checkpoint_false(tmpdir):
+def test_if_test_works_with_checkpoint_false(tmpdir) -> None:
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
 
     # Train a model on TPU
@@ -401,7 +402,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_sync_dist():
+def test_tpu_sync_dist() -> None:
     """Test tpu spawn sync dist operation."""
 
     def test_sync_dist(_):
@@ -415,7 +416,7 @@ def test_tpu_sync_dist():
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_debug_mode(tmpdir):
+def test_tpu_debug_mode(tmpdir) -> None:
     """Test if debug mode works on TPU."""
 
     class DebugModel(BoringModel):
@@ -442,7 +443,7 @@ def test_tpu_debug_mode(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_host_world_size(tmpdir):
+def test_tpu_host_world_size(tmpdir) -> None:
     """Test Host World size env setup on TPU."""
 
     class DebugModel(BoringModel):
@@ -468,7 +469,7 @@ def test_tpu_host_world_size(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_device_type_when_training_plugin_tpu_passed(tmpdir):
+def test_device_type_when_training_plugin_tpu_passed(tmpdir) -> None:
 
     trainer = Trainer(strategy=TPUSpawnStrategy(), tpu_cores=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)

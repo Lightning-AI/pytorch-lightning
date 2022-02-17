@@ -21,7 +21,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.models.test_hooks import get_members
 
 
-def test_lambda_call(tmpdir):
+def test_lambda_call(tmpdir) -> None:
     seed_everything(42)
 
     class CustomModel(BoringModel):

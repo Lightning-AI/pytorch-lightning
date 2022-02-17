@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_input_output(modelclass):
+def test_torchscript_input_output(modelclass) -> None:
     """Test that scripted LightningModule forward works."""
     model = modelclass()
 
@@ -45,7 +45,7 @@ def test_torchscript_input_output(modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_example_input_output_trace(modelclass):
+def test_torchscript_example_input_output_trace(modelclass) -> None:
     """Test that traced LightningModule forward works with example_input_array."""
     model = modelclass()
 
@@ -63,7 +63,7 @@ def test_torchscript_example_input_output_trace(modelclass):
     assert torch.allclose(script_output, model_output)
 
 
-def test_torchscript_input_output_trace():
+def test_torchscript_input_output_trace() -> None:
     """Test that traced LightningModule forward works with example_inputs."""
     model = BoringModel()
     example_inputs = torch.randn(1, 32)
@@ -80,7 +80,7 @@ def test_torchscript_input_output_trace():
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-def test_torchscript_device(device):
+def test_torchscript_device(device) -> None:
     """Test that scripted module is on the correct device."""
     model = BoringModel().to(device)
     model.example_input_array = torch.randn(5, 32)
@@ -91,7 +91,7 @@ def test_torchscript_device(device):
     assert script_output.device == device
 
 
-def test_torchscript_retain_training_state():
+def test_torchscript_retain_training_state() -> None:
     """Test that torchscript export does not alter the training mode of original model."""
     model = BoringModel()
     model.train(True)
@@ -105,7 +105,7 @@ def test_torchscript_retain_training_state():
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_properties(modelclass):
+def test_torchscript_properties(modelclass) -> None:
     """Test that scripted LightningModule has unnecessary methods removed."""
     model = modelclass()
     script = model.to_torchscript()
@@ -115,7 +115,7 @@ def test_torchscript_properties(modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_save_load(tmpdir, modelclass):
+def test_torchscript_save_load(tmpdir, modelclass) -> None:
     """Test that scripted LightningModule is correctly saved and can be loaded."""
     model = modelclass()
     output_file = str(tmpdir / "model.pt")
@@ -125,7 +125,7 @@ def test_torchscript_save_load(tmpdir, modelclass):
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
-def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
+def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass) -> None:
     """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
 
     _DUMMY_PRFEIX = "dummy"
@@ -147,7 +147,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
-def test_torchcript_invalid_method(tmpdir):
+def test_torchcript_invalid_method(tmpdir) -> None:
     """Test that an error is thrown with invalid torchscript method."""
     model = BoringModel()
     model.train(True)
@@ -156,7 +156,7 @@ def test_torchcript_invalid_method(tmpdir):
         model.to_torchscript(method="temp")
 
 
-def test_torchscript_with_no_input(tmpdir):
+def test_torchscript_with_no_input(tmpdir) -> None:
     """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None

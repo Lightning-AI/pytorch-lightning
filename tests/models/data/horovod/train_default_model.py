@@ -23,7 +23,7 @@ import sys
 import torch
 
 # this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
-PYTHONPATH = os.getenv("PYTHONPATH", "")
+PYTHONPATH: str = os.getenv("PYTHONPATH", "")
 if ":" in PYTHONPATH:
     sys.path = PYTHONPATH.split(":") + sys.path
 
@@ -44,7 +44,7 @@ parser.add_argument("--trainer-options", required=True)
 parser.add_argument("--on-gpu", action="store_true", default=False)
 
 
-def run_test_from_config(trainer_options, on_gpu, check_size=True):
+def run_test_from_config(trainer_options, on_gpu, check_size: bool=True) -> None:
     """Trains the default model with the given config."""
     set_random_main_port()
     reset_seed()
@@ -106,5 +106,5 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
     run_test_from_config(json.loads(args.trainer_options), args.on_gpu)

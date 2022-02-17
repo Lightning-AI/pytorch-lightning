@@ -21,7 +21,7 @@ from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, 
 
 def run_model_test_without_loggers(
     trainer_options: dict, model: LightningModule, data: LightningDataModule = None, min_acc: float = 0.50
-):
+) -> None:
     reset_seed()
 
     # fit model
@@ -51,7 +51,7 @@ def run_model_test(
     version=None,
     with_hpc: bool = True,
     min_acc: float = 0.25,
-):
+) -> None:
     reset_seed()
     save_dir = trainer_options["default_root_dir"]
 
@@ -93,7 +93,7 @@ def run_model_test(
 
 
 @torch.no_grad()
-def run_model_prediction(trained_model, dataloader, min_acc=0.50):
+def run_model_prediction(trained_model, dataloader, min_acc: float=0.50) -> None:
     orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()

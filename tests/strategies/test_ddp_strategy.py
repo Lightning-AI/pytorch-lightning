@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -34,7 +35,7 @@ class BoringModelGPU(BoringModel):
 
 
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
-def test_ddp_with_2_gpus():
+def test_ddp_with_2_gpus() -> None:
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
@@ -53,18 +54,18 @@ def test_ddp_with_2_gpus():
 
 
 class BarrierModel(BoringModel):
-    def setup(self, stage=None):
+    def setup(self, stage: Optional[str]=None) -> None:
         assert not isinstance(self.trainer.strategy.model, DistributedDataParallel)
         self.trainer.strategy.barrier("barrier before model is wrapped")
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         assert isinstance(self.trainer.strategy.model, DistributedDataParallel)
         self.trainer.strategy.barrier("barrier after model is wrapped")
 
 
 @RunIf(min_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
-def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
+def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir) -> None:
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
@@ -74,7 +75,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_incorrect_ddp_script_spawning(tmpdir):
+def test_incorrect_ddp_script_spawning(tmpdir) -> None:
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
@@ -97,7 +98,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_configure_ddp():
+def test_ddp_configure_ddp() -> None:
     """Tests with ddp strategy."""
     model = BoringModel()
     ddp_strategy = DDPStrategy()

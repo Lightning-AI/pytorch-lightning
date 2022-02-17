@@ -25,13 +25,13 @@ from pytorch_lightning.trainer.progress import (
 )
 
 
-def test_tracker_reset():
+def test_tracker_reset() -> None:
     p = StartedTracker(ready=1, started=2)
     p.reset()
     assert p == StartedTracker()
 
 
-def test_tracker_reset_on_restart():
+def test_tracker_reset_on_restart() -> None:
     t = StartedTracker(ready=3, started=3, completed=2)
     t.reset_on_restart()
     assert t == StartedTracker(ready=2, started=2, completed=2)
@@ -42,7 +42,7 @@ def test_tracker_reset_on_restart():
 
 
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
-def test_progress_increment(attr):
+def test_progress_increment(attr) -> None:
     p = Progress()
     fn = getattr(p, f"increment_{attr}")
     fn()
@@ -51,13 +51,13 @@ def test_progress_increment(attr):
     assert p.current == expected
 
 
-def test_progress_from_defaults():
+def test_progress_from_defaults() -> None:
     actual = Progress.from_defaults(StartedTracker, completed=5)
     expected = Progress(total=StartedTracker(completed=5), current=StartedTracker(completed=5))
     assert actual == expected
 
 
-def test_progress_increment_sequence():
+def test_progress_increment_sequence() -> None:
     """Test sequence for incrementing."""
     batch = Progress()
 
@@ -78,7 +78,7 @@ def test_progress_increment_sequence():
     assert batch.current == ProcessedTracker(ready=1, started=1, processed=1, completed=1)
 
 
-def test_progress_raises():
+def test_progress_raises() -> None:
     with pytest.raises(ValueError, match="instances should be of the same class"):
         Progress(ReadyCompletedTracker(), ProcessedTracker())
 
@@ -89,7 +89,7 @@ def test_progress_raises():
         p.increment_processed()
 
 
-def test_optimizer_progress_default_factory():
+def test_optimizer_progress_default_factory() -> None:
     """Ensure that the defaults are created appropriately.
 
     If `default_factory` was not used, the default would be shared between instances.
@@ -102,7 +102,7 @@ def test_optimizer_progress_default_factory():
     assert p2.step.total.completed == 0
 
 
-def test_deepcopy():
+def test_deepcopy() -> None:
     _ = deepcopy(BaseProgress())
     _ = deepcopy(Progress())
     _ = deepcopy(ProcessedTracker())

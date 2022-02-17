@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict, List, Union
 from unittest.mock import patch
 
 import pytest
@@ -62,7 +63,7 @@ _out13 = {"loss": 1.3}
         ),
     ],
 )
-def test_prepare_outputs_training_epoch_end_automatic(num_optimizers, batch_outputs, expected):
+def test_prepare_outputs_training_epoch_end_automatic(num_optimizers: int, batch_outputs: List[List[Union[Dict[int, Dict[str, Any]], Dict[str, Any]]]], expected) -> None:
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of automatic optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
@@ -88,7 +89,7 @@ def test_prepare_outputs_training_epoch_end_automatic(num_optimizers, batch_outp
         ([[_out00, _out01], [_out02, _out03], [], [_out10]], [[_out00, _out01], [_out02, _out03], [_out10]]),
     ],
 )
-def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
+def test_prepare_outputs_training_epoch_end_manual(batch_outputs: List[List[Union[Dict[int, Dict[str, Any]], Dict[str, Any]]]], expected) -> None:
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of manual optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
@@ -114,7 +115,7 @@ def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
         (2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]]),
     ],
 )
-def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_outputs, expected):
+def test_prepare_outputs_training_batch_end_automatic(num_optimizers: int, batch_end_outputs: List[Union[Dict[int, Dict[str, Any]], Dict[str, Any]]], expected) -> None:
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of automatic optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
@@ -136,7 +137,7 @@ def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_
         ([_out00, _out01, None, _out03], [_out00, _out01, _out03]),
     ],
 )
-def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
+def test_prepare_outputs_training_batch_end_manual(batch_end_outputs: List[Union[Dict[int, Dict[str, Any]], Dict[str, Any]]], expected) -> None:
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of manual optimization."""
     prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
@@ -147,7 +148,7 @@ def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
     assert prepared == expected
 
 
-def test_no_val_on_train_epoch_loop_restart(tmpdir):
+def test_no_val_on_train_epoch_loop_restart(tmpdir) -> None:
     """Test that training validation loop doesn't get triggered at the beginning of a restart."""
     trainer_kwargs = {
         "max_epochs": 1,

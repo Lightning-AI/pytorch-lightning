@@ -25,7 +25,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from tests.helpers.boring_model import BoringModel
 
 
-def test_default_level_for_hooks_that_support_logging():
+def test_default_level_for_hooks_that_support_logging() -> None:
     def _make_assertion(model, hooks, result_mock, on_step, on_epoch, extra_kwargs):
         for hook in hooks:
             model._current_fx_name = hook

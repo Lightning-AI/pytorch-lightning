@@ -19,7 +19,7 @@ from tests.helpers import BoringModel
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
 @pytest.mark.parametrize("denominator", [1, 3, 4])
-def test_val_check_interval(tmpdir, max_epochs, denominator):
+def test_val_check_interval(tmpdir, max_epochs, denominator: int) -> None:
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()

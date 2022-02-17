@@ -23,7 +23,7 @@ from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
+def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches) -> None:
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
         trainer = Trainer(
@@ -48,7 +48,7 @@ def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batch
         ({0: 2, 2: 1}, 5 + 5 + 10 + 10),
     ],
 )
-def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count):
+def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_batches, expected_call_count) -> None:
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
         trainer = Trainer(
@@ -66,7 +66,7 @@ def test_trainer_accumulate_grad_batches_dict_zero_grad(tmpdir, accumulate_grad_
         assert sgd_zero_grad.call_count == expected_call_count
 
 
-def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
+def test_trainer_accumulate_grad_batches_with_callback(tmpdir) -> None:
     with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         model = BoringModel()
         trainer = Trainer(
@@ -91,7 +91,7 @@ def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
         {0: 2, "2": 1},
     ],
 )
-def test_invalid_keys_for_grad_accum_scheduler(scheduling):
+def test_invalid_keys_for_grad_accum_scheduler(scheduling) -> None:
     with pytest.raises(MisconfigurationException, match="Epoch should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
 
@@ -103,6 +103,6 @@ def test_invalid_keys_for_grad_accum_scheduler(scheduling):
         {0: 2, 2: "2"},
     ],
 )
-def test_invalid_values_for_grad_accum_scheduler(scheduling):
+def test_invalid_values_for_grad_accum_scheduler(scheduling) -> None:
     with pytest.raises(MisconfigurationException, match="Accumulation factor should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)

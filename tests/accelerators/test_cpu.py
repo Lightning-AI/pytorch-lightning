@@ -14,7 +14,7 @@ from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.helpers.boring_model import BoringModel
 
 
-def test_restore_checkpoint_after_pre_setup_default():
+def test_restore_checkpoint_after_pre_setup_default() -> None:
     """Assert default for restore_checkpoint_after_setup is False."""
     plugin = SingleDeviceStrategy(
         accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
@@ -22,12 +22,12 @@ def test_restore_checkpoint_after_pre_setup_default():
     assert not plugin.restore_checkpoint_after_setup
 
 
-def test_availability():
+def test_availability() -> None:
     assert CPUAccelerator.is_available()
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
-def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
+def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup) -> None:
     """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre-
     dispatch is called."""
 

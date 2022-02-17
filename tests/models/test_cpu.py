@@ -25,7 +25,7 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
-def test_cpu_slurm_save_load(tmpdir):
+def test_cpu_slurm_save_load(tmpdir) -> None:
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
 
@@ -97,7 +97,7 @@ def test_cpu_slurm_save_load(tmpdir):
     trainer.fit(model)
 
 
-def test_early_stopping_cpu_model(tmpdir):
+def test_early_stopping_cpu_model(tmpdir) -> None:
     class ModelTrainVal(BoringModel):
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
@@ -126,7 +126,7 @@ def test_early_stopping_cpu_model(tmpdir):
 
 
 @RunIf(skip_windows=True, skip_49370=True)
-def test_multi_cpu_model_ddp(tmpdir):
+def test_multi_cpu_model_ddp(tmpdir) -> None:
     """Make sure DDP works."""
     tutils.set_random_main_port()
 
@@ -146,7 +146,7 @@ def test_multi_cpu_model_ddp(tmpdir):
     tpipes.run_model_test(trainer_options, model, data=dm, on_gpu=False)
 
 
-def test_lbfgs_cpu_model(tmpdir):
+def test_lbfgs_cpu_model(tmpdir) -> None:
     """Test each of the trainer options.
 
     Testing LBFGS optimizer
@@ -171,7 +171,7 @@ def test_lbfgs_cpu_model(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
 
 
-def test_default_logger_callbacks_cpu_model(tmpdir):
+def test_default_logger_callbacks_cpu_model(tmpdir) -> None:
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -191,7 +191,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     model.unfreeze()
 
 
-def test_running_test_after_fitting(tmpdir):
+def test_running_test_after_fitting(tmpdir) -> None:
     """Verify test() on fitted model."""
 
     class ModelTrainValTest(BoringModel):
@@ -234,7 +234,7 @@ def test_running_test_after_fitting(tmpdir):
     tutils.assert_ok_model_acc(trainer, key="test_loss", thr=0.5)
 
 
-def test_running_test_no_val(tmpdir):
+def test_running_test_no_val(tmpdir) -> None:
     """Verify `test()` works on a model with no `val_dataloader`.
 
     It performs train and test only
@@ -278,7 +278,7 @@ def test_running_test_no_val(tmpdir):
     tutils.assert_ok_model_acc(trainer, key="test_loss")
 
 
-def test_simple_cpu(tmpdir):
+def test_simple_cpu(tmpdir) -> None:
     """Verify continue training session on CPU."""
     model = BoringModel()
 
@@ -290,7 +290,7 @@ def test_simple_cpu(tmpdir):
     assert trainer.state.finished, "amp + ddp model failed to complete"
 
 
-def test_cpu_model(tmpdir):
+def test_cpu_model(tmpdir) -> None:
     """Make sure model trains on CPU."""
     trainer_options = dict(
         default_root_dir=tmpdir, enable_progress_bar=False, max_epochs=1, limit_train_batches=4, limit_val_batches=4
@@ -300,7 +300,7 @@ def test_cpu_model(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_all_features_cpu_model(tmpdir):
+def test_all_features_cpu_model(tmpdir) -> None:
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,

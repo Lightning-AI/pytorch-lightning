@@ -26,7 +26,7 @@ class MultiOptModel(BoringModel):
         return opt_a, opt_b
 
 
-def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
+def test_unbalanced_logging_with_multiple_optimizers(tmpdir) -> None:
     """This tests ensures reduction works in unbalanced logging settings."""
 
     class TestModel(MultiOptModel):
@@ -55,7 +55,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
         torch.testing.assert_allclose(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
 
 
-def test_multiple_optimizers(tmpdir):
+def test_multiple_optimizers(tmpdir) -> None:
     class TestModel(MultiOptModel):
 
         seen = [False, False]
@@ -84,7 +84,7 @@ def test_multiple_optimizers(tmpdir):
     assert all(model.seen)
 
 
-def test_multiple_optimizers_manual(tmpdir):
+def test_multiple_optimizers_manual(tmpdir) -> None:
     class TestModel(MultiOptModel):
         def __init__(self):
             super().__init__()
@@ -124,7 +124,7 @@ def test_multiple_optimizers_manual(tmpdir):
     assert model.training_step_called
 
 
-def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
+def test_multiple_optimizers_no_opt_idx_argument(tmpdir) -> None:
     """Test that an error is raised if no optimizer_idx is present when multiple optimizeres are passed in case of
     automatic_optimization."""
 
@@ -138,7 +138,7 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
         trainer.fit(TestModel())
 
 
-def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
+def test_custom_optimizer_step_with_multiple_optimizers(tmpdir) -> None:
     """This tests ensures custom optimizer_step works, even when optimizer.step is not called for a particular
     optimizer."""
 
