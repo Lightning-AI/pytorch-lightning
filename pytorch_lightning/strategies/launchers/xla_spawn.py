@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
+from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnLauncher, _SpawnOutput
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -42,7 +43,16 @@ class _XLASpawnLauncher(_SpawnLauncher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+
+    Args:
+        strategy: A reference to the strategy that is used together with this launcher
+        start_method: Start method for `~torch_xla.distributed.xla_multiprocessing.spawn`. Accepted options are
+            ``'spawn'`` or ``'fork'``.
     """
+
+    def __init__(self, strategy: Strategy, start_method: str = "fork") -> None:
+        super().__init__(strategy)
+        self._start_method = start_method
 
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -60,12 +70,13 @@ class _XLASpawnLauncher(_SpawnLauncher):
                 into the function.
         """
         trainer = kwargs.pop("trainer", None)
-        context = mp.get_context(self._strategy.start_method or "fork")
+        context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            **self._strategy.get_mp_spawn_kwargs()
+            nprocs=len(self._strategy.parallel_devices),
+            start_method=self._start_method,
         )
         spawn_output = return_queue.get()
         if trainer is None:
