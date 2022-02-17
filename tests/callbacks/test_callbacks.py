@@ -192,7 +192,7 @@ class AllStatefulCallback(Callback):
         assert checkpoint["callbacks_state_dict"][self.state_key] == {"state": 111}
         assert "callbacks_deprecated_hook_states" in checkpoint
         assert checkpoint["callbacks_deprecated_hook_states"][self.state_key] == {"deprecated_state": 10}
-        self.on_load_checkpoint_new_ran = True
+        self.on_load_checkpoint_new_ran = 1
 
 
 def test_resume_callback_state_all(tmpdir):
@@ -217,4 +217,4 @@ def test_resume_callback_state_all(tmpdir):
         trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
     assert callback.deprecated_hook_state == 10
-    assert callback.on_load_checkpoint_new_ran == True
+    assert callback.on_load_checkpoint_new_ran == 1
