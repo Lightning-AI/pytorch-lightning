@@ -102,26 +102,6 @@ def test_horovod_cpu_accumulate_grad_batches(tmpdir):
 
 
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
-def test_horovod_cpu_accumulate_grad_batches_different(tmpdir):
-    """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
-    Strategy on multi-cpus."""
-    model = ClassificationModel()
-    trainer = Trainer(
-        default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=4,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accumulate_grad_batches={0: 4, 2: 2},
-        strategy="horovod",
-    )
-    with pytest.raises(MisconfigurationException):
-        trainer.fit(model)
-
-
-@RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -191,7 +171,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_horovod_multi_gpu_accumulate_grad_batches_different(tmpdir):
+def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
     model = ClassificationModel()
