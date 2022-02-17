@@ -172,6 +172,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for Habana Accelerator (HPU) ([#11808](https://github.com/PyTorchLightning/pytorch-lightning/pull/11808))
 
+- Added support for dataclasses in `apply_to_collections` ([#11889](https://github.com/PyTorchLightning/pytorch-lightning/pull/11889))
+
+
 
 ### Changed
 
