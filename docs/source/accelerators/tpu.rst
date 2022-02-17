@@ -372,7 +372,7 @@ Example Metrics report:
 
 
 A lot of PyTorch operations aren't lowered to XLA, which could lead to significant slowdown of the training process.
-These operations are moved to the CPU memory and evaluated, and then the results are transfered back to the XLA device(s).
+These operations are moved to the CPU memory and evaluated, and then the results are transferred back to the XLA device(s).
 By using the `tpu_spawn_debug` Strategy, users could create a metrics report to diagnose issues.
 
 The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):

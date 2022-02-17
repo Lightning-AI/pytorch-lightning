@@ -34,7 +34,7 @@ class LSFEnvironment(ClusterEnvironment):
       The LSF assigned job ID
 
     ``LSB_DJOB_RANKFILE``
-      The OpenMPI compatibile rank file for the LSF job
+      The OpenMPI compatible rank file for the LSF job
 
     ``JSM_NAMESPACE_LOCAL_RANK``
       The node local rank for the task. This environment variable is set by ``jsrun``
