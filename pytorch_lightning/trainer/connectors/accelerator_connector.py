@@ -172,6 +172,7 @@ class AcceleratorConnector:
         self._set_devices_if_none()
 
         self.strategy = self.final_strategy()
+        self.strategy._configure_launcher()
         self.accelerator = self.strategy.accelerator
         self._check_plugin_compatibility()
 
