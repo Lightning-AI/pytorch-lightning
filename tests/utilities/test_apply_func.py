@@ -333,6 +333,10 @@ def test_apply_to_collections_dataclass():
     with pytest.raises(AssertionError, match="Dataclasses fields does not match"):
         apply_to_collections(to_reduce_1, model_example, (torch.Tensor, numbers.Number, np.ndarray), fn)
 
+    classvar = WithClassVar(torch.arange(3)) # dataclass with same number but different type of fields
+    with pytest.raises(AssertionError, match="Dataclasses fields does not match"):
+        apply_to_collections(to_reduce_1, classvar, (torch.Tensor, numbers.Number, np.ndarray), fn)
+
 
 def test_apply_to_collection_frozen_dataclass():
     @dataclasses.dataclass(frozen=True)
