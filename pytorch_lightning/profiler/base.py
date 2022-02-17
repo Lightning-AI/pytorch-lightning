@@ -47,6 +47,24 @@ class AbstractProfiler(ABC):
     def teardown(self, **kwargs: Any) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
+    @contextmanager
+    def profile(self, action_name: str) -> Generator:
+        """Yields a context manager to encapsulate the scope of a profiled action.
+
+        Example::
+
+            with self.profile('load training data'):
+                # load training data code
+
+        The profiler will start once you've entered the context and will automatically
+        stop once you exit the code block.
+        """
+        try:
+            self.start(action_name)
+            yield action_name
+        finally:
+            self.stop(action_name)
+
 
 class BaseProfiler(AbstractProfiler):
     """If you wish to write a custom profiler, you should inherit from this class."""
