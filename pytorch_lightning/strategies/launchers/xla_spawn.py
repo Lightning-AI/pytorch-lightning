@@ -14,12 +14,11 @@
 import os
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnLauncher, _SpawnOutput
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -31,6 +30,9 @@ if _TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
 else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
+
+if TYPE_CHECKING:
+    from pytorch_lightning.strategies import Strategy
 
 
 class _XLASpawnLauncher(_SpawnLauncher):
@@ -50,7 +52,7 @@ class _XLASpawnLauncher(_SpawnLauncher):
             ``'spawn'`` or ``'fork'``.
     """
 
-    def __init__(self, strategy: Strategy, start_method: str = "fork") -> None:
+    def __init__(self, strategy: "Strategy", start_method: str = "fork") -> None:
         super().__init__(strategy)
         self._start_method = start_method
 
