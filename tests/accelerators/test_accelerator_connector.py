@@ -942,11 +942,11 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
     assert trainer.gpus == 2
-    
+
 
 def test_passing_zero_and_empty_list_to_devices_flag():
     with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
         Trainer(accelerator="gpu", devices=0)
-        
+
     with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
         Trainer(accelerator="gpu", devices=[])

@@ -361,7 +361,7 @@ class AcceleratorConnector:
         self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
         )
-        
+
         if self._devices_flag in ([], 0, "0", "0,"):
             rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
             self._accelerator_flag = "cpu"
