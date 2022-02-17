@@ -451,6 +451,8 @@ class AcceleratorConnector:
         elif self._accelerator_flag == "gpu":
             self.accelerator = GPUAccelerator()
             self._set_devices_flag_if_auto_passed()
+            # TODO add device availablity check for all devices, not only GPU
+            self._check_device_availability()
             if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
                 self._devices_flag = int(self._devices_flag)
                 self._parallel_devices = (
@@ -459,7 +461,7 @@ class AcceleratorConnector:
                     else []
                 )
             else:
-                self._parallel_devices = [torch.device("cuda", i) for i in self._devices_flag]
+                self._parallel_devices = [torch.device("cuda", i) for i in self._devices_flag]  # type: ignore
 
         elif self._accelerator_flag == "cpu":
             self.accelerator = CPUAccelerator()
@@ -478,6 +480,12 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or not self._devices_flag:
             self._devices_flag = self.accelerator.auto_device_count()
+
+    def _check_device_availability(self) -> None:
+        if not self.accelerator.is_available():
+            raise MisconfigurationException(
+                f"You requested {self._accelerator_flag}, " f"but {self._accelerator_flag} is not available"
+            )
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
@@ -514,7 +522,7 @@ class AcceleratorConnector:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
             device = (
-                device_parser.determine_root_gpu_device(self._parallel_devices)
+                device_parser.determine_root_gpu_device(self._parallel_devices)  # type: ignore
                 if self._accelerator_flag == "gpu"
                 else "cpu"
             )

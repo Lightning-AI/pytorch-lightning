@@ -582,8 +582,8 @@ class EarlyExitTestModel(BoringModel):
     (
         # dict(strategy="ddp_spawn")
         # dict(strategy="ddp")
-        # !! old accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
-        # this test never worked with DDPSpawnStrategy
+        # the previous accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
+        # TODO revisit this test as it never worked with DDP or DDPSpawn
         dict(strategy="single_device"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),

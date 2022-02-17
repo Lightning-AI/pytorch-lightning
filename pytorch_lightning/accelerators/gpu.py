@@ -82,7 +82,8 @@ class GPUAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        return torch.cuda.device_count() > 0
+        print(torch.cuda.is_available() and torch.cuda.device_count() > 0)
+        return torch.cuda.is_available() and torch.cuda.device_count() > 0
 
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> dict[str, float]:

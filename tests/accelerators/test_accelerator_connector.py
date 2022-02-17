@@ -453,12 +453,11 @@ def test_accelerator_cpu(mack_gpu_avalible):
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="You requested gpu"):
         trainer = Trainer(gpus=1)
-    # with pytest.raises(MisconfigurationException):
-    #     trainer = Trainer(accelerator="gpu")
-
-    with pytest.raises(MisconfigurationException, match="You requested GPUs:"):
+    with pytest.raises(MisconfigurationException, match="You requested gpu, but gpu is not available"):
+        trainer = Trainer(accelerator="gpu")
+    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
 
@@ -470,9 +469,6 @@ def test_accelerator_gpu():
     assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
-    # with pytest.raises(
-    #     MisconfigurationException, match="You passed `accelerator='gpu'`, but you didn't pass `gpus` to `Trainer`"
-    # ):
     trainer = Trainer(accelerator="gpu")
 
     trainer = Trainer(accelerator="auto", gpus=1)
