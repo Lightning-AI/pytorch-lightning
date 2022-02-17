@@ -96,7 +96,6 @@ class DDPStrategy(ParallelStrategy):
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
 
-
     @property
     def is_distributed(self) -> bool:
         return True
