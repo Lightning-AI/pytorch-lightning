@@ -41,7 +41,7 @@ class _SpawnLauncher(_Launcher):
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
 
-    Arguments:
+    Args:
         strategy: A reference to the strategy that is used together with this launcher.
     """
 
