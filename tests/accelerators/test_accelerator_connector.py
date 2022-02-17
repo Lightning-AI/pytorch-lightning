@@ -446,7 +446,7 @@ def test_accelerator_choice_multi_node_gpu(
 
 
 @mock.patch("torch.cuda.is_available", return_value=False)
-def test_accelerator_cpu(mack_gpu_avalible):
+def test_accelerator_cpu(_):
 
     trainer = Trainer(accelerator="cpu")
 
@@ -471,6 +471,7 @@ def test_accelerator_gpu():
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="gpu")
+    assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="auto", gpus=1)
 
@@ -573,8 +574,8 @@ def test_devices_with_cpu_only_supports_integer():
 
     with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
         trainer = Trainer(accelerator="cpu", devices="1,3")
-        assert isinstance(trainer.accelerator, CPUAccelerator)
-        assert trainer.devices == 1
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])

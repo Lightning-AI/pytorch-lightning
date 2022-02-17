@@ -506,6 +506,7 @@ def test_accelerator_ipu():
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="ipu")
+    assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="auto", ipus=8)
 

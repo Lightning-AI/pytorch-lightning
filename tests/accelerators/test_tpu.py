@@ -91,6 +91,7 @@ def test_accelerator_tpu():
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
     trainer = Trainer(accelerator="tpu")
+    assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
