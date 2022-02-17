@@ -40,6 +40,23 @@ class DDPShardedStrategy(DDPStrategy):
     distributed_backend = _StrategyType.DDP_SHARDED
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        # share ddp pids to all processes
+        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
         if "reduce_buffer_size" not in self._ddp_kwargs:
