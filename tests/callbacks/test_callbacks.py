@@ -189,14 +189,14 @@ class AllStatefulCallback(Callback):
 
     def on_load_checkpoint_new(self, trainer, pl_module, checkpoint) -> None:
         assert "callbacks_state_dict" in checkpoint
-        assert  checkpoint["callbacks_state_dict"][self.state_key] == {"state": 111}
+        assert checkpoint["callbacks_state_dict"][self.state_key] == {"state": 111}
         assert "callbacks_deprecated_hook_states" in checkpoint
-        assert  checkpoint["callbacks_deprecated_hook_states"][self.state_key] == {"deprecated_state": 10}
+        assert checkpoint["callbacks_deprecated_hook_states"][self.state_key] == {"deprecated_state": 10}
         self.on_load_checkpoint_new_ran = True
 
 
 def test_resume_callback_state_all(tmpdir):
-    """Test all Stateful protocol and CheckpointHooks are supported"""
+    """Test all Stateful protocol and CheckpointHooks are supported."""
     # TODO: remove on_save_checkpoint() -> dict
     # and on_load_checkpoint(callback_state) support in v1.8
     model = BoringModel()
