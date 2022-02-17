@@ -325,7 +325,7 @@ def test_apply_to_collections_dataclass():
         label=torch.tensor([7.0, 8.0, 9.0]),
     )
 
-    # different types 
+    # different types
     with pytest.raises(AssertionError, match="Expected inputs to be dataclasses of the same type"):
         apply_to_collections(to_reduce_1, [1, 2], (torch.Tensor, numbers.Number, np.ndarray), fn)
 
