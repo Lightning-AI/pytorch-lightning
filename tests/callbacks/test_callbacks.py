@@ -13,6 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 from re import escape
+from typing import Optional
 from unittest.mock import call, Mock
 
 import pytest
@@ -164,3 +165,57 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
     )
     with no_warning_call(UserWarning, match="Please add the following callbacks:"):
         trainer.fit(model, ckpt_path=ckpt_path)
+
+
+class AllStatefulCallback(Callback):
+    def __init__(self, state):
+        self.state = state
+
+    @property
+    def state_key(self):
+        return type(self)
+
+    def state_dict(self):
+        return {"state": self.state}
+
+    def load_state_dict(self, state_dict) -> None:
+        self.state = state_dict["state"]
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"deprecated_state": 10}
+
+    def on_load_checkpoint(self, trainer, pl_module, callback_state) -> None:
+        assert callback_state == {"deprecated_state": 10}
+        self.deprecated_hook_state = 10
+
+    def on_load_checkpoint_new(self, trainer, pl_module, checkpoint) -> None:
+        assert "callbacks_state_dict" in checkpoint
+        assert  checkpoint["callbacks_state_dict"][self.state_key] == {"state": 111}
+        assert "callbacks_deprecated_hook_states" in checkpoint
+        assert  checkpoint["callbacks_deprecated_hook_states"][self.state_key] == {"deprecated_state": 10}
+        self.on_load_checkpoint_new_ran = True
+
+
+def test_resume_callback_state_all(tmpdir):
+    """Test all Stateful protocol and CheckpointHooks are supported"""
+    # TODO: remove on_save_checkpoint() -> dict
+    # and on_load_checkpoint(callback_state) support in v1.8
+    model = BoringModel()
+    callback = AllStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    with pytest.deprecated_call(
+        match="Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
+        " will be removed in v1.8. Please use `Callback.state_dict` instead,"
+        " or new method signature `Callback.on_save_checkpoint -> None`."
+    ):
+        trainer.fit(model)
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
+
+    callback = AllStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    with pytest.deprecated_call():
+        trainer.fit(model, ckpt_path=ckpt_path)
+    assert callback.state == 111
+    assert callback.deprecated_hook_state == 10
+    assert callback.on_load_checkpoint_new_ran == True
