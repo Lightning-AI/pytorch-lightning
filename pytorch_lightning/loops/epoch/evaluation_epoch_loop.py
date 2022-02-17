@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from dataclasses import asdict
 from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional
 
@@ -27,7 +26,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
-    MergedIteratorState,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
@@ -165,18 +163,16 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self._data_fetcher is None
-            or self._num_completed_batches_reached()  # did not finish
-            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self._data_fetcher is not None
+            and not self._num_completed_batches_reached()  # did not finish
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            state = CombinedLoader._state_dict_fn(self._data_fetcher.dataloader_iter, self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        # TODO: this should use `pytorch_lightning/trainer/supporters.py::CombinedLoader._state_dict_fn`
-        state_to_save = "state" if self._has_completed() else "previous_state"
-        state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
-        if state:
-            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:

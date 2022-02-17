@@ -190,7 +190,7 @@ class LightningLite(ABC):
             *dataloaders: A single dataloader or a sequence of dataloaders.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -214,7 +214,7 @@ class LightningLite(ABC):
             dataloader: The dataloader to accelerate.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 

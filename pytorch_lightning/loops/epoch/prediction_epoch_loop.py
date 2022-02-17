@@ -91,7 +91,7 @@ class PredictionEpochLoop(Loop):
         """
         batch_idx, batch = next(dataloader_iter)
         self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
-        # we need to truncate the list of batch indicies due to prefetching in the dataloader and Lightning
+        # we need to truncate the list of batch indices due to prefetching in the dataloader and Lightning
         self._seen_batch_indices = self._seen_batch_indices[: (self.batch_progress.current.completed + 1)]
 
         if batch is None:

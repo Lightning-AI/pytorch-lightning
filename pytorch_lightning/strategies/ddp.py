@@ -152,7 +152,7 @@ class DDPStrategy(ParallelStrategy):
             self.model = self.configure_sync_batchnorm(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
+        trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 

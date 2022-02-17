@@ -25,7 +25,7 @@ But when it comes to actual training, there's a lot of boilerplate code involved
 set of integrations you might need to do by yourself.
 
 PyTorch Lightning solves these for you. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
-Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training accross multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
+Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training across multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
 and a lot more.
 
 Code organization is the core of Lightning. It leaves the research logic to you and automates the rest.

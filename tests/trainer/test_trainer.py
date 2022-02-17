@@ -486,7 +486,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
 
     # if max_steps is positive and max_epochs is negative, use max_steps
     trainer_kwargs["max_epochs"] = -1
@@ -843,7 +843,7 @@ def test_disabled_training(tmpdir):
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
 
@@ -880,7 +880,7 @@ def test_disabled_validation(tmpdir):
 
     # check that limit_val_batches=0 turns off validation
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
@@ -891,7 +891,7 @@ def test_disabled_validation(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
@@ -1571,7 +1571,7 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
-    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
+    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 5, True)],
 )
 def test_disabled_training_for_insufficient_limit_train_batches(
     tmpdir, limit_train_batches, global_step, num_training_batches, current_epoch, should_train

@@ -1118,6 +1118,8 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
+        self.__setup_profiler()
+
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1260,7 +1262,6 @@ class Trainer(
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
-        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -2004,6 +2005,7 @@ class Trainer(
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
+        # TODO: this is actually an optional return
         return self.strategy.lightning_module
 
     @property
@@ -2433,7 +2435,7 @@ class Trainer(
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> Optional[int]:
+    def min_epochs(self) -> int:
         return self.fit_loop.min_epochs
 
     @property
