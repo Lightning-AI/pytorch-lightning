@@ -105,7 +105,6 @@ class AcceleratorConnector:
         precision,
         amp_type,
         amp_level,
-        hmp_params,
         plugins,
     ):
         # initialization
@@ -138,7 +137,6 @@ class AcceleratorConnector:
         self.precision = precision
         self.amp_type = amp_type.lower() if isinstance(amp_type, str) else None
         self.amp_level = amp_level
-        self.hmp_params = hmp_params
 
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._strategy: Optional[Strategy] = None
@@ -690,7 +688,7 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self.precision!r})` is not supported."
                 )
-            return HPUPrecisionPlugin(self.precision, self.hmp_params)
+            return HPUPrecisionPlugin(self.precision)
 
         if self._strategy_type == _StrategyType.DEEPSPEED or isinstance(self._strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self.precision, self.amp_type, self.amp_level)

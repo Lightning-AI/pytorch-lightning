@@ -187,7 +187,6 @@ class Trainer(
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
-        hmp_params: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
@@ -391,8 +390,6 @@ class Trainer(
 
             hpus: How many HPUs to train on.
 
-            hmp_params: list of habana mixed precision parameters
-
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
@@ -459,7 +456,6 @@ class Trainer(
             precision,
             amp_backend,
             amp_level,
-            hmp_params,
             plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)

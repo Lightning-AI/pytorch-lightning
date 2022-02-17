@@ -19,6 +19,8 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins.precision.hpu_precision import HPUPrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -33,11 +35,13 @@ class HPUStrategy(SingleDeviceStrategy):
         self,
         device: int,
         checkpoint_io: Optional[HPUCheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
+        hmp_params: Optional[str] = None,
     ):
 
-        device = torch.device("hpu")
+        device = device
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
-        super().__init__(device, checkpoint_io=checkpoint_io)
+        super().__init__(device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()

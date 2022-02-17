@@ -25,6 +25,7 @@ from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu import HPUStrategy
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _AcceleratorType, _HPU_AVAILABLE
@@ -175,14 +176,16 @@ def test_optimization(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_mixed_precision(tmpdir):
+def test_mixed_precision(tmpdir, hmp_params):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert trainer.strategy.model.precision == "bf16"
             raise SystemExit
 
     model = HPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, precision="bf16", callbacks=TestCallback())
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)),
+                      default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
+    assert isinstance(trainer.strategy, HPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
     with pytest.raises(SystemExit):
@@ -190,7 +193,7 @@ def test_mixed_precision(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_pure_half_precision(tmpdir):
+def test_pure_half_precision(tmpdir, hmp_params):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.strategy.model.precision == 16
@@ -200,7 +203,8 @@ def test_pure_half_precision(tmpdir):
 
     model = HPUModel()
     model = model.half()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, precision=16, callbacks=TestCallback())
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)),
+                      default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
 
     assert isinstance(trainer.strategy, HPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
@@ -295,12 +299,21 @@ def test_accelerator_cpu_with_hpus_flag():
 
 
 @RunIf(hpu=True)
-def test_accelerator_hpu_with_devices():
-    """HPU does not support isinstance(trainer.training_type_plugin, HPUPlugin) yet."""
+def test_accelerator_hpu_with_single_device():
+
+    trainer = Trainer(accelerator="hpu", devices=1)
+
+    assert trainer.hpus == 1
+    assert isinstance(trainer.strategy, HPUStrategy)
+    assert isinstance(trainer.accelerator, HPUAccelerator)
+
+
+def test_accelerator_hpu_with_multiple_devices():
 
     trainer = Trainer(accelerator="hpu", devices=8)
 
     assert trainer.hpus == 8
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
@@ -332,9 +345,21 @@ def test_set_devices_if_none_hpu():
 
 
 @RunIf(hpu=True)
+def test_strategy_choice_hpu_plugin(tmpdir):
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
+    assert isinstance(trainer.strategy, HPUStrategy)
+
+
+@RunIf(hpu=True)
+def test_strategy_choice_hpu_ddp_plugin(tmpdir):
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=8)
+    assert isinstance(trainer.strategy, HPUStrategy)
+
+
+@RunIf(hpu=True)
 def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), hpus=8)
+    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
     assert isinstance(trainer.strategy, HPUStrategy)
     assert trainer._device_type == _AcceleratorType.HPU
     assert isinstance(trainer.accelerator, HPUAccelerator)
