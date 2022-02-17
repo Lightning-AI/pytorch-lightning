@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.cli import LightningCLI
 
 
 class ImageClassifier(LightningModule):
-    def __init__(self, model, lr: float=1.0, gamma: float=0.7, batch_size: int=32) -> None:
+    def __init__(self, model, lr: float = 1.0, gamma: float = 0.7, batch_size: int = 32) -> None:
         super().__init__()
         self.save_hyperparameters(ignore="model")
         self.model = model or Net()
@@ -57,7 +57,7 @@ class ImageClassifier(LightningModule):
 
 
 class MNISTDataModule(LightningDataModule):
-    def __init__(self, batch_size: int=32) -> None:
+    def __init__(self, batch_size: int = 32) -> None:
         super().__init__()
         self.save_hyperparameters()
 

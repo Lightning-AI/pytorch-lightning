@@ -97,7 +97,7 @@ class SimpleMLP(LightningModule):
         return DataLoader(RandomGetItemDataset(3, 1))
 
 
-def _run_training(default_root_dir: str=".", max_epochs: int=3, fail_on_step: int = -1, ckpt_path=None):
+def _run_training(default_root_dir: str = ".", max_epochs: int = 3, fail_on_step: int = -1, ckpt_path=None):
     model = SimpleMLP(fail_on_step=fail_on_step)
     trainer = Trainer(default_root_dir=default_root_dir, max_epochs=max_epochs)
     trainer.fit(model, ckpt_path=ckpt_path)

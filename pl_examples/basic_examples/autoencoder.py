@@ -131,7 +131,7 @@ class LitAutoEncoder(pl.LightningModule):
     def test_step(self, batch, batch_idx) -> None:
         self._common_step(batch, batch_idx, "test")
 
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=None):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
         x = self._prepare_batch(batch)
         return self(x)
 

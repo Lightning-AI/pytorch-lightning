@@ -185,7 +185,8 @@ class SegModel(pl.LightningModule):
         num_layers: int = 3,
         features_start: int = 64,
         bilinear: bool = False,
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.data_path = data_path
         self.batch_size = batch_size

@@ -49,7 +49,8 @@ class _MNIST(Dataset):
     cache_folder_name = "complete"
 
     def __init__(
-        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs) -> None:
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
+    ) -> None:
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -155,7 +156,9 @@ class MNISTDataModule(LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        *args, **kwargs) -> None:
+        *args,
+        **kwargs,
+    ) -> None:
         """
         Args:
             data_dir: where to save/load the data

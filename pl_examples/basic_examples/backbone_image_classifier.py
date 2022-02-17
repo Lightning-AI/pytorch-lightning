@@ -40,7 +40,7 @@ class Backbone(torch.nn.Module):
     )
     """
 
-    def __init__(self, hidden_dim: int=128) -> None:
+    def __init__(self, hidden_dim: int = 128) -> None:
         super().__init__()
         self.l1 = torch.nn.Linear(28 * 28, hidden_dim)
         self.l2 = torch.nn.Linear(hidden_dim, 10)
@@ -91,7 +91,7 @@ class LitClassifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         self.log("test_loss", loss)
 
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int=None):
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = None):
         x, y = batch
         return self(x)
 

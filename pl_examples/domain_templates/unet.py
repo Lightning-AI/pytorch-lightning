@@ -35,7 +35,9 @@ class UNet(nn.Module):
     )
     """
 
-    def __init__(self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False) -> None:
+    def __init__(
+        self, num_classes: int = 19, num_layers: int = 5, features_start: int = 64, bilinear: bool = False
+    ) -> None:
         """
         Args:
             num_classes: Number of output classes required (default 19 for KITTI dataset)

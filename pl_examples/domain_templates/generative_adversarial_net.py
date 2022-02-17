@@ -128,7 +128,7 @@ class GAN(LightningModule):
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
     @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group: bool=True) -> ArgumentParser:
+    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group: bool = True) -> ArgumentParser:
         if use_argument_group:
             parser = parent_parser.add_argument_group("pl.GAN")
             parser_out = parent_parser

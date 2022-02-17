@@ -42,7 +42,7 @@ LIGHTNING_LOGO = """
 """
 
 
-def nice_print(msg, last: bool=False) -> None:
+def nice_print(msg, last: bool = False) -> None:
     print()
     print("\033[0;35m" + msg + "\033[0m")
     if last:

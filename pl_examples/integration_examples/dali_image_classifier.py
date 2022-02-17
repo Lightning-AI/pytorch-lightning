@@ -90,12 +90,12 @@ class DALIClassificationLoader(DALIClassificationIterator):
     def __init__(
         self,
         pipelines,
-        size: int=-1,
+        size: int = -1,
         reader_name=None,
-        auto_reset: bool=False,
-        fill_last_batch: bool=True,
-        dynamic_shape: bool=False,
-        last_batch_padded: bool=False,
+        auto_reset: bool = False,
+        fill_last_batch: bool = True,
+        dynamic_shape: bool = False,
+        last_batch_padded: bool = False,
     ) -> None:
         if NEW_DALI_API:
             last_batch_policy = LastBatchPolicy.FILL if fill_last_batch else LastBatchPolicy.DROP

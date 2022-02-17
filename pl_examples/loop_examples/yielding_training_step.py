@@ -115,7 +115,7 @@ class YieldLoop(OptimizerLoop):
 class GAN(GANTemplate):
 
     # This training_step method is now a Python generator
-    def training_step(self, batch, batch_idx, optimizer_idx: int=0) -> Generator:
+    def training_step(self, batch, batch_idx, optimizer_idx: int = 0) -> Generator:
         imgs, _ = batch
         z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
         z = z.type_as(imgs)
