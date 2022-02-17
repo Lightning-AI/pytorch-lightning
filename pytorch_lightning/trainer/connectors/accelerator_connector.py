@@ -209,7 +209,7 @@ class AcceleratorConnector:
 
         1. strategy: strategy, accelerator and plugin can all be set to strategies
         2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
-            set self.accelerator_flag accordingly. If the value is strategy related (instance or string),
+            set self._accelerator_flag accordingly. If the value is strategy related (instance or string),
             it gets handled by 1.
         3. precision: The final value of the precision flag may be determined either by the precision argument or
             by a plugin instance.
@@ -239,18 +239,19 @@ class AcceleratorConnector:
                 )
             if isinstance(accelerator, str) and accelerator in self._registered_strategies and strategy != accelerator:
                 raise MisconfigurationException(
-                    "strategy str already set through strategy flag, but have also passed in through accelerator"
+                    f"strategy {strategy} already set through `strategy` flag,"
+                    f" but have also passed {accelerator} in through the accelerator flag."
                 )
             if plugins:
                 for plugin in plugins:
                     if isinstance(plugin, Strategy):
                         raise MisconfigurationException(
-                            f"You have passed `Trainer(strategy)`"
+                            f"You have passed `Trainer(strategy={strategy})`"
                             f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
                     if isinstance(plugin, str) and plugin in self._registered_strategies:
                         raise MisconfigurationException(
-                            f"You have passed `Trainer(strategy)`"
+                            f"You have passed `Trainer(strategy={strategy})`"
                             f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
                         )
 
@@ -269,7 +270,7 @@ class AcceleratorConnector:
         if precision is not None:
             if str(precision) not in self._precision_types:
                 raise MisconfigurationException(
-                    f"Precision {repr(precision)} is invalid. " f"Allowed precision values: {self._precision_types}"
+                    f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
             self._precision_flag = precision
 
@@ -292,7 +293,7 @@ class AcceleratorConnector:
                     self._cluster_environment_flag = plugin
                 else:
                     raise MisconfigurationException(
-                        f"Found invalid type for plugin {plugin}. Expected a precision or training type plugin."
+                        f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
                     )
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
