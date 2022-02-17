@@ -25,88 +25,89 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+@dataclasses.dataclass
+class Feature:
+    input_ids: torch.Tensor
+    segment_ids: np.ndarray
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Feature):
+            return NotImplemented
+        else:
+            return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
+
+@dataclasses.dataclass
+class ModelExample:
+    example_ids: List[str]
+    feature: Feature
+    label: torch.Tensor
+    some_constant: int = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.some_constant = 7
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, ModelExample):
+            return NotImplemented
+        else:
+            return (
+                self.example_ids == o.example_ids
+                and self.feature == o.feature
+                and torch.equal(self.label, o.label)
+                and self.some_constant == o.some_constant
+            )
+
+@dataclasses.dataclass
+class WithClassVar:
+    class_var: ClassVar[int] = 0
+    dummy: Any
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, WithClassVar):
+            return NotImplemented
+        elif isinstance(self.dummy, torch.Tensor):
+            return torch.equal(self.dummy, o.dummy)
+        else:
+            return self.dummy == o.dummy
+
+@dataclasses.dataclass
+class WithInitVar:
+    dummy: Any
+    override: InitVar[Optional[Any]] = None
+
+    def __post_init__(self, override: Optional[Any]):
+        if override is not None:
+            self.dummy = override
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, WithInitVar):
+            return NotImplemented
+        elif isinstance(self.dummy, torch.Tensor):
+            return torch.equal(self.dummy, o.dummy)
+        else:
+            return self.dummy == o.dummy
+
+@dataclasses.dataclass
+class WithClassAndInitVar:
+    class_var: ClassVar[torch.Tensor] = torch.tensor(0)
+    dummy: Any
+    override: InitVar[Optional[Any]] = torch.tensor(1)
+
+    def __post_init__(self, override: Optional[Any]):
+        if override is not None:
+            self.dummy = override
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, WithClassAndInitVar):
+            return NotImplemented
+        elif isinstance(self.dummy, torch.Tensor):
+            return torch.equal(self.dummy, o.dummy)
+        else:
+            return self.dummy == o.dummy
+
+
 def test_recursive_application_to_collection():
     ntc = namedtuple("Foo", ["bar"])
-
-    @dataclasses.dataclass
-    class Feature:
-        input_ids: torch.Tensor
-        segment_ids: np.ndarray
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, Feature):
-                return NotImplemented
-            else:
-                return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
-
-    @dataclasses.dataclass
-    class ModelExample:
-        example_ids: List[str]
-        feature: Feature
-        label: torch.Tensor
-        some_constant: int = dataclasses.field(init=False)
-
-        def __post_init__(self):
-            self.some_constant = 7
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, ModelExample):
-                return NotImplemented
-            else:
-                return (
-                    self.example_ids == o.example_ids
-                    and self.feature == o.feature
-                    and torch.equal(self.label, o.label)
-                    and self.some_constant == o.some_constant
-                )
-
-    @dataclasses.dataclass
-    class WithClassVar:
-        class_var: ClassVar[int] = 0
-        dummy: Any
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, WithClassVar):
-                return NotImplemented
-            elif isinstance(self.dummy, torch.Tensor):
-                return torch.equal(self.dummy, o.dummy)
-            else:
-                return self.dummy == o.dummy
-
-    @dataclasses.dataclass
-    class WithInitVar:
-        dummy: Any
-        override: InitVar[Optional[Any]] = None
-
-        def __post_init__(self, override: Optional[Any]):
-            if override is not None:
-                self.dummy = override
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, WithInitVar):
-                return NotImplemented
-            elif isinstance(self.dummy, torch.Tensor):
-                return torch.equal(self.dummy, o.dummy)
-            else:
-                return self.dummy == o.dummy
-
-    @dataclasses.dataclass
-    class WithClassAndInitVar:
-        class_var: ClassVar[torch.Tensor] = torch.tensor(0)
-        dummy: Any
-        override: InitVar[Optional[Any]] = torch.tensor(1)
-
-        def __post_init__(self, override: Optional[Any]):
-            if override is not None:
-                self.dummy = override
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, WithClassAndInitVar):
-                return NotImplemented
-            elif isinstance(self.dummy, torch.Tensor):
-                return torch.equal(self.dummy, o.dummy)
-            else:
-                return self.dummy == o.dummy
 
     model_example = ModelExample(
         example_ids=["i-1", "i-2", "i-3"],
@@ -304,38 +305,6 @@ def test_apply_to_collections():
 
 
 def test_apply_to_collections_dataclass():
-    @dataclasses.dataclass
-    class Feature:
-        input_ids: torch.Tensor
-        segment_ids: np.ndarray
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, Feature):
-                return NotImplemented
-            else:
-                return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
-
-    @dataclasses.dataclass
-    class ModelExample:
-        example_ids: List[str]
-        feature: Feature
-        label: torch.Tensor
-        some_constant: int = dataclasses.field(init=False)
-
-        def __post_init__(self):
-            self.some_constant = 7
-
-        def __eq__(self, o: object) -> bool:
-            if not isinstance(o, ModelExample):
-                return NotImplemented
-            else:
-                return (
-                    self.example_ids == o.example_ids
-                    and self.feature == o.feature
-                    and torch.equal(self.label, o.label)
-                    and self.some_constant == o.some_constant
-                )
-
     to_reduce_1 = Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0]))
     to_reduce_2 = Feature(input_ids=torch.tensor([1.0, 2.0, 3.0]), segment_ids=np.array([4.0, 5.0, 6.0]))
 
