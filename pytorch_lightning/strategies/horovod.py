@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -26,7 +26,6 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -37,7 +36,7 @@ if _HOROVOD_AVAILABLE:
 class HorovodStrategy(ParallelStrategy):
     """Plugin for Horovod distributed training integration."""
 
-    distributed_backend = _StrategyType.HOROVOD
+    strategy_name = "horovod"
 
     def __init__(
         self,
@@ -85,7 +84,7 @@ class HorovodStrategy(ParallelStrategy):
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 
-        if not self.lightning_module.trainer.training:
+        if not trainer.training:
             # no need to setup optimizers
             return
 
@@ -195,6 +194,14 @@ class HorovodStrategy(ParallelStrategy):
     def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
         opt_params = {p for group in optimizer.param_groups for p in group.get("params", [])}
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()
