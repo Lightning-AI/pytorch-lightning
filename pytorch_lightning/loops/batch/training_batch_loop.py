@@ -16,7 +16,7 @@ from typing import Any, List, Optional, Tuple, Union
 from deprecate import void
 from torch import Tensor
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
