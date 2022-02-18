@@ -1578,7 +1578,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
 
 def test_isolate_rng():
-    """Test that the isolate_rng context manager isolates the random state form the outer scope."""
+    """Test that the isolate_rng context manager isolates the random state from the outer scope."""
     # torch
     torch.rand(1)
     with isolate_rng():
