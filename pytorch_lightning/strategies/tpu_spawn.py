@@ -140,12 +140,16 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def is_distributed(self) -> bool:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
+
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank()
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
@@ -266,7 +270,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         Args:
             filepath: Path to checkpoint
         """
-        if self.tpu_local_core_rank == 0:
+        if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
