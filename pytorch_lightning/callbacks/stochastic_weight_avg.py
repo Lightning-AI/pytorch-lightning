@@ -144,9 +144,12 @@ class StochasticWeightAveraging(Callback):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if len(trainer.optimizers) != 1:
             raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
-
         if len(trainer.lr_scheduler_configs) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
+        if trainer.lr_scheduler_configs[0].interval != "epoch":
+            raise ValueError("SWA is only supported with an epoch-level schedule.")
+        if trainer.lr_scheduler_configs[0].interval != 1:
+            raise ValueError("SWA currently only supports running on every epoch.")
 
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
@@ -180,6 +183,7 @@ class StochasticWeightAveraging(Callback):
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
+            # this assertion is here in case the `LRSchedulerConfig` defaults change
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
             if trainer.lr_scheduler_configs:
