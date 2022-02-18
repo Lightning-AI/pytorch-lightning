@@ -104,7 +104,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """``ApexMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
 
-        Lightning will auto-restore ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.load_state_dict``
+        Lightning will automatically restore ``ApexMixedPrecisionPlugin``'s state with ``ApexMixedPrecisionPlugin.load_state_dict``
         instead
         """
         amp.load_state_dict(state_dict)
