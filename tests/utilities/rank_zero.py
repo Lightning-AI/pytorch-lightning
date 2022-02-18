@@ -53,3 +53,19 @@ def test_rank_zero_none_set(rank_key, rank):
 
         x = foo()
         assert x is None
+
+
+@pytest.mark.parametrize(
+    "environ,expected_rank",
+    [
+        ({"SLURM_PROCID": "2"}, 2),
+        ({"SLURM_PROCID": "2", "LOCAL_RANK": "1"}, 1),
+        ({"SLURM_PROCID": "2", "LOCAL_RANK": "1", "RANK": "0"}, 0),
+    ],
+)
+def test_rank_zero_priority(environ, expected_rank):
+    """Test the priority in which the rank gets determined when multiple environment variables are available."""
+    with mock.patch.dict(os.environ, environ):
+        from pytorch_lightning.utilities.rank_zero import _get_rank
+
+        assert _get_rank() == expected_rank

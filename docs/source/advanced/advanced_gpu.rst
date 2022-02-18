@@ -113,7 +113,7 @@ To reach larger parameter sizes and be memory efficient, we have to shard parame
     This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
     This is a limitation of Fully Sharded Training that will be resolved in the future.
 
-Enabling Module Sharding for Maximum Memory Effeciency
+Enabling Module Sharding for Maximum Memory Efficiency
 """"""""""""""""""""""""""""""""""""""""""""""""""""""
 
 To activate parameter sharding, you must wrap your model using provided ``wrap`` or ``auto_wrap`` functions as described below. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` and ``auto_wrap`` parameters are passed correctly.
@@ -228,7 +228,7 @@ Below is a summary of all the configurations of DeepSpeed.
 
 * :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, parameters and optionally activations**. Increases distributed communication volume, but provides even more memory improvement
 
-* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, parameters and optionally activations to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but even more signficant memory improvement.
+* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, parameters and optionally activations to CPU**. Increases distributed communication volume and GPU-CPU device transfer, but even more significant memory improvement.
 
 * :ref:`deepspeed-activation-checkpointing` - **Free activations after forward pass**. Increases computation, but provides memory improvement for all stages.
 

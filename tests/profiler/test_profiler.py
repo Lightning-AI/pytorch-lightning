@@ -284,9 +284,9 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)
@@ -298,9 +298,9 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     for _ in advanced_profiler.profile_iterable(iterable, action):
         pass
 
-    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)

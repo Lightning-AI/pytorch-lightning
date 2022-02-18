@@ -92,7 +92,7 @@ class BoringModelTPU(BoringModel):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_one_core():
-    """Tests if device/debug flag is set correctely when training and after teardown for TPUSpawnStrategy."""
+    """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
     trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
     # assert training strategy attributes for device setting
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
