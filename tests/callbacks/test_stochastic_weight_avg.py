@@ -192,6 +192,25 @@ def test_swa_raises():
     with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            [optimizer], [lr_scheduler] = super().configure_optimizers()
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": lr_scheduler, "frequency": 2}}
+
+    trainer = Trainer(callbacks=StochasticWeightAveraging())
+    model = TestModel()
+    with pytest.raises(ValueError, match="on every epoch"):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            [optimizer], [lr_scheduler] = super().configure_optimizers()
+            return {"optimizer": optimizer, "lr_scheduler": {"scheduler": lr_scheduler, "interval": "step"}}
+
+    model = TestModel()
+    with pytest.raises(ValueError, match="epoch-level schedule"):
+        trainer.fit(model)
+
 
 @pytest.mark.parametrize("stochastic_weight_avg", [False, True])
 @pytest.mark.parametrize("use_callbacks", [False, True])
