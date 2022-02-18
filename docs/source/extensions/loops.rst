@@ -80,7 +80,7 @@ The core research logic is simply shifted to the :class:`~pytorch_lightning.core
         loss.backward()
         optimizer.step()
 
-Under the hood, the above loop is implemented using the :class:`~pytorch_lightning.loops.base.Loop` API like so:
+Under the hood, the above loop is implemented using the :class:`~pytorch_lightning.loops.loop.Loop` API like so:
 
 .. code-block:: python
 
@@ -182,7 +182,7 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 Creating a New Loop From Scratch
 --------------------------------
 
-You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
+You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.loop.Loop` base class.
 You will need to override a minimum of two things:
 
 .. code-block:: python
