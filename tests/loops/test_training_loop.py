@@ -16,6 +16,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -195,6 +196,20 @@ def test_validation_check_interval_exceed_data_length_wrong(tmpdir):
             max_steps=200,
             val_check_interval=100,
             check_val_every_n_epoch=1,
+            num_sanity_val_steps=0,
+        )
+        trainer.fit(model)
+
+
+def test_validation_check_interval_float_wrong(tmpdir):
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_steps=200,
+            val_check_interval=0.5,
+            check_val_every_n_epoch=None,
             num_sanity_val_steps=0,
         )
         trainer.fit(model)

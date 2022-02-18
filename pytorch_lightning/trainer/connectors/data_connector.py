@@ -67,6 +67,7 @@ class DataConnector:
     def on_trainer_init(
         self,
         reload_dataloaders_every_n_epochs: int,
+        val_check_interval: Union[int, float],
         check_val_every_n_epoch: Optional[int] = None,
         prepare_data_per_node: Optional[bool] = None,
     ) -> None:
@@ -83,6 +84,12 @@ class DataConnector:
         if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
                 f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+            )
+
+        if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
+            raise MisconfigurationException(
+                f"val_check_interval should be an integer when check_val_every_n_epoch={check_val_every_n_epoch}. "
+                f"Found val_check_interval={val_check_interval}"
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch

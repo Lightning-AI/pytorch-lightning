@@ -517,6 +517,7 @@ class Trainer(
         # init data flags
         self._data_connector.on_trainer_init(
             reload_dataloaders_every_n_epochs,
+            val_check_interval,
             check_val_every_n_epoch,
             prepare_data_per_node,
         )
