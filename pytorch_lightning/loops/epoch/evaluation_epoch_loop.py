@@ -19,7 +19,7 @@ from typing import Any, Dict, Iterator, Optional
 from deprecate import void
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
