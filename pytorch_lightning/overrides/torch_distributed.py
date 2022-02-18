@@ -139,7 +139,11 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     elif is_hpu_backend:
         current_device = torch.device("hpu")
         # Workaround: HPU doesn't not support long tensors for collectives
-        object_sizes_tensor = object_sizes_tensor.int()
+        if (object_sizes_tensor.type() == "torch.LongTensor") or \
+           (object_sizes_tensor.type() == "torch.hpu.LongTensor"):
+            object_sizes_tensor = object_sizes_tensor.int()
+        else:
+            print("unhandled hpu object_sizes_tensor type :: ", object_sizes_tensor.type())
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     # Broadcast object sizes

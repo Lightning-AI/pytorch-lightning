@@ -382,7 +382,6 @@ class DDPStrategy(ParallelStrategy):
         if self.global_rank != src:
             obj = [None]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
-
         return obj[0]
 
     def pre_backward(self, closure_loss: torch.Tensor) -> None:

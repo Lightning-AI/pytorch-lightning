@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import torch
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.distributed import Backend, get_backend
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import (
@@ -130,9 +131,15 @@ def sync_ddp(
     else:
         op = reduce_op
 
-    # WA for HPU. HPU doesn't support Long types
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
     if _HPU_AVAILABLE:
-        result = result.float()
+        group_backend = get_backend(group)
+        dist_backend = os.environ.get("PL_TORCH_DISTRIBUTED_BACKEND")
+        is_hpu_backend = group_backend == torch.distributed.Backend(str(dist_backend))
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or \
+               (result.type() == "torch.hpu.LongTensor"):
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -341,7 +348,6 @@ def init_dist_connection(
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
-
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
