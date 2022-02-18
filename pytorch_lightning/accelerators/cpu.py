@@ -93,4 +93,5 @@ def get_cpu_process_metrics() -> dict[str, float]:
         CPUDeviceStatsEnum.CPU_PERCENT: psutil.cpu_percent(),
         CPUDeviceStatsEnum.CPU_SWAP_PERCENT: psutil.swap_memory().percent,
     }
-    return metrics
+    # Convert the keys from enum to strs
+    return {str(k): v for k, v in metrics.items()}
