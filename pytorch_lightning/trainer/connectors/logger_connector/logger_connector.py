@@ -125,13 +125,12 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if self._override_agg_and_log_metrics:
-            for logger in self.trainer.loggers:
+        for logger in self.trainer.loggers:
+            if self._override_agg_and_log_metrics:
                 logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
-        else:
-            for logger in self.trainer.loggers:
+            else:
                 logger.log_metrics(metrics=scalar_metrics, step=step)
-        self.trainer.logger.save()
+            logger.save()
 
     """
     Evaluation metric updates

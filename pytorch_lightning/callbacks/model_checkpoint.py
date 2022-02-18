@@ -595,7 +595,6 @@ class ModelCheckpoint(Callback):
                     if isinstance(trainer.logger.version, str)
                     else f"version_{trainer.logger.version}"
                 )
-                # TODO: Find out what ckpt_path should be with multiple loggers
                 ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
             else:
                 ckpt_path = os.path.join(save_dir, "checkpoints")
