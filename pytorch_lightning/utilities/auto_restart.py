@@ -520,7 +520,7 @@ def patch_dataloader_iterator(
 
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
-    """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
+    """Wrap default collate function to retrieve captured dataset state dict when fault tolerant is enabled."""
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     collate_fn = dataloader.collate_fn
     if not fault_tolerant_mode.is_enabled or (
@@ -686,7 +686,7 @@ class _StatefulDataLoaderIter:
                 num_batches_fetched=self.num_batches_fetched,
             )
         ]
-        # ensures there is an alignement between the sampler state and currently fetched batch
+        # ensures there is an alignment between the sampler state and currently fetched batch
         assert sampler_state_idx == self.num_batches_fetched
         self._data_fetcher._store_dataloader_iter_state(self, state)
         return batch

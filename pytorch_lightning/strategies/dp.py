@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
@@ -22,7 +22,6 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
@@ -31,7 +30,7 @@ class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
-    distributed_backend = _StrategyType.DP
+    strategy_name = "dp"
 
     def __init__(
         self,
@@ -148,6 +147,14 @@ class DataParallelStrategy(ParallelStrategy):
             output = self.reduce(output)
 
         return output
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()

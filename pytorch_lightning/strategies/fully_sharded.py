@@ -23,7 +23,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
+    strategy_name = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -98,7 +98,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Defautl: True).
+                (Default: True).
         """
 
         super().__init__(
@@ -211,4 +211,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )
