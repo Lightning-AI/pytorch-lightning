@@ -20,6 +20,7 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -532,3 +533,37 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
         Trainer(logger=[logger, logger3])
     # Should have no deprecation warning
     Trainer(logger=[logger2, logger3])
+
+def test_v1_8_0_precplugin_checkpointhooks(tmpdir):
+    class PrecisionPluginSaveHook(PrecisionPlugin):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
+
+    class PrecisionPluginLoadHook(PrecisionPlugin):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+    model = BoringModel()
+
+    precplugin_save = PrecisionPluginSaveHook()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        plugins=[precplugin_save]
+    )
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model)
+
+    precplugin_load = PrecisionPluginLoadHook()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        plugins=[precplugin_load]
+    )
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        trainer.fit(model)
