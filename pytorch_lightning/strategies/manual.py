@@ -78,19 +78,19 @@ class ManualParallelStrategy(ParallelStrategy):
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
-            return self.model.training_step(*args, **kwargs)
+            return self.lightning_module.training_step(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            return self.model.validation_step(*args, **kwargs)
+            return self.lightning_module.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
-            return self.model.test_step(*args, **kwargs)
+            return self.lightning_module.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
-            return self.model.predict_step(*args, **kwargs)
+            return self.lightning_module.predict_step(*args, **kwargs)
 
     def teardown(self) -> None:
         self.precision_plugin.teardown()
