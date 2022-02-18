@@ -590,7 +590,7 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
                 "max_steps": 1,
                 "max_epochs": 1,
                 "strategy": strategy,
-                "accelerator": "cpu",
+                "accelerator": "auto",
                 "devices": 1,
             },
         )
