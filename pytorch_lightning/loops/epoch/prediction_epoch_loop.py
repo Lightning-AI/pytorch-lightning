@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 import torch
 from deprecate import void
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.apply_func import move_data_to_device
