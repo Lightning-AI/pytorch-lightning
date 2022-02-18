@@ -258,13 +258,15 @@ class NeptuneLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        *, api_key: Optional[str] = None,
+        *,
+        api_key: Optional[str] = None,
         project: Optional[str] = None,
         name: Optional[str] = None,
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
-        **neptune_run_kwargs) -> None:
+        **neptune_run_kwargs,
+    ) -> None:
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         if neptune is None:
@@ -522,7 +524,7 @@ class NeptuneLogger(LightningLoggerBase):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
-    def log_model_summary(self, model, max_depth: int=-1) -> None:
+    def log_model_summary(self, model, max_depth: int = -1) -> None:
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = neptune.types.File.from_content(
             content=model_str, extension="txt"
@@ -616,7 +618,7 @@ class NeptuneLogger(LightningLoggerBase):
         return self._run_short_id
 
     @staticmethod
-    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception: bool=False) -> None:
+    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception: bool = False) -> None:
         msg_suffix = (
             f"If you are looking for the Neptune logger using legacy Python API,"
             f" it's still available as part of neptune-contrib package:\n"
@@ -636,7 +638,9 @@ class NeptuneLogger(LightningLoggerBase):
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None) -> None:
+    def log_metric(
+        self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None
+    ) -> None:
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
         if torch.is_tensor(metric_value):

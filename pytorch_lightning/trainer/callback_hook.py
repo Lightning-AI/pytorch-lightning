@@ -373,7 +373,7 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_batch_end(self, self.lightning_module)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx: int=0) -> None:
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx: int = 0) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -390,7 +390,7 @@ class TrainerCallbackHookMixin(ABC):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int=0) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int = 0) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.8.

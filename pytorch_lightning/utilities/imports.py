@@ -99,13 +99,17 @@ _APEX_AVAILABLE: bool = _module_available("apex.amp")
 _BAGUA_AVAILABLE: bool = _package_available("bagua")
 _DEEPSPEED_AVAILABLE: bool = _package_available("deepspeed")
 _FAIRSCALE_AVAILABLE: bool = not _IS_WINDOWS and _module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE: bool = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
+_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE: bool = _FAIRSCALE_AVAILABLE and _compare_version(
+    "fairscale", operator.ge, "0.3.3"
+)
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE: bool = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE: bool = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE: bool = _module_available("horovod.torch")
 _HYDRA_AVAILABLE: bool = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE: bool = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE: bool = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
+_JSONARGPARSE_AVAILABLE: bool = _package_available("jsonargparse") and _compare_version(
+    "jsonargparse", operator.ge, "4.0.0"
+)
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE: bool = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9: bool = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")

@@ -94,7 +94,8 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ""

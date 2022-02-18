@@ -68,7 +68,8 @@ class BaguaStrategy(DDPStrategy):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        **bagua_kwargs: Any) -> None:
+        **bagua_kwargs: Any,
+    ) -> None:
         """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
         distributed training algorithms and system optimizations.
 

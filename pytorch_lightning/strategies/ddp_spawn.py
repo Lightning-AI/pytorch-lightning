@@ -59,7 +59,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

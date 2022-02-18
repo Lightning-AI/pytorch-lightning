@@ -1606,7 +1606,7 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx: int=0) -> None:
+    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx: int = 0) -> None:
         r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
         the original function in TrainerCallbackHookMixin: #9816 and #11148.
         """
@@ -1617,7 +1617,7 @@ class Trainer(
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int=0) -> None:
+    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int = 0) -> None:
         r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
         the original function in TrainerCallbackHookMixin: #9816 and #11148.
         """

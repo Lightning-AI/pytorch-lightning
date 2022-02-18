@@ -492,7 +492,7 @@ class CombinedLoader:
         return iterator
 
     @staticmethod
-    def _calc_num_batches(loaders: Any, mode: str="min_size") -> Union[int, float]:
+    def _calc_num_batches(loaders: Any, mode: str = "min_size") -> Union[int, float]:
         """Compute the length (aka the number of batches) of `CombinedLoader`.
 
         Args:

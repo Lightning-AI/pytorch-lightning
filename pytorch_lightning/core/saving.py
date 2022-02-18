@@ -37,7 +37,11 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log: logging.Logger = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES: Tuple[Type[AttributeDict], Type[MutableMapping], Type[Namespace]] = (AttributeDict, MutableMapping, Namespace)
+ALLOWED_CONFIG_TYPES: Tuple[Type[AttributeDict], Type[MutableMapping], Type[Namespace]] = (
+    AttributeDict,
+    MutableMapping,
+    Namespace,
+)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -361,7 +365,9 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml: Union[Path, str], hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
+def save_hparams_to_yaml(
+    config_yaml: Union[Path, str], hparams: Union[dict, Namespace], use_omegaconf: bool = True
+) -> None:
     """
     Args:
         config_yaml: path to new YAML file

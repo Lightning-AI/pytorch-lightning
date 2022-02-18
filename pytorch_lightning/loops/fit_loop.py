@@ -268,7 +268,8 @@ class FitLoop(Loop[None]):
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
         if self._data_fetcher:
             self._data_fetcher.setup(
-                dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
+                dataloader,
+                batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0),
             )
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)

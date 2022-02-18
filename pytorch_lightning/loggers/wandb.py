@@ -259,7 +259,8 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         if wandb is None:
             raise ModuleNotFoundError(
                 "You want to use `wandb` logger which is not installed yet,"

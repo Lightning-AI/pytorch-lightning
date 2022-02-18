@@ -140,7 +140,8 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
-        **kwargs) -> None:
+        **kwargs,
+    ) -> None:
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
