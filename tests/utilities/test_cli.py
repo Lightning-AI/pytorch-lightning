@@ -324,7 +324,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
     class TestModel(BoringModel):
         def on_fit_start(self):
             # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
-            assert isinstance(self.trainer._accelerator_connector._cluster_environment, SLURMEnvironment)
+            assert isinstance(self.trainer._accelerator_connector.cluster_environment, SLURMEnvironment)
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.plugins={json.dumps(plugins)}"]):
@@ -580,8 +580,11 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        dict(strategy="ddp_spawn"),
-        dict(strategy="ddp"),
+        # dict(strategy="ddp_spawn")
+        # dict(strategy="ddp")
+        # the previous accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
+        # TODO revisit this test as it never worked with DDP or DDPSpawn
+        dict(strategy="single_device"),
         pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
     ),
 )

@@ -138,7 +138,7 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: int = 1,
+        num_processes: Optional[int] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
@@ -435,23 +435,23 @@ class Trainer(
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
         self._accelerator_connector = AcceleratorConnector(
-            num_processes,
-            devices,
-            tpu_cores,
-            ipus,
-            accelerator,
-            strategy,
-            gpus,
-            gpu_ids,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_backend,
-            amp_level,
-            plugins,
+            num_processes=num_processes,
+            devices=devices,
+            tpu_cores=tpu_cores,
+            ipus=ipus,
+            accelerator=accelerator,
+            strategy=strategy,
+            gpus=gpus,
+            gpu_ids=gpu_ids,
+            num_nodes=num_nodes,
+            sync_batchnorm=sync_batchnorm,
+            benchmark=benchmark,
+            replace_sampler_ddp=replace_sampler_ddp,
+            deterministic=deterministic,
+            precision=precision,
+            amp_type=amp_backend,
+            amp_level=amp_level,
+            plugins=plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
@@ -1964,12 +1964,12 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> _StrategyType:
-        return self._accelerator_connector._strategy_type
+    def _strategy_type(self) -> str:
+        return self.strategy.strategy_name
 
     @property
     def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
+        return self._accelerator_connector.device_type
 
     @property
     def num_nodes(self) -> int:
@@ -2001,7 +2001,9 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_device_ids
+        return (
+            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        )
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
