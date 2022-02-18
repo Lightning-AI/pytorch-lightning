@@ -110,7 +110,11 @@ class ProgressBarBase(Callback):
 
         total_val_batches = 0
         if self.trainer.enable_validation:
-            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            is_val_epoch = (
+                True
+                if self.trainer.check_val_every_n_epoch is None
+                else (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            )
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
 
         return total_val_batches

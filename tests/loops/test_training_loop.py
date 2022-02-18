@@ -13,9 +13,10 @@
 # limitations under the License.
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 
 
 def test_outputs_format(tmpdir):
@@ -142,3 +143,98 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
+
+
+def test_validation_check_interval_exceed_data_length_correct(tmpdir):
+    batch_size = 32
+    data_samples_train = 10
+    data_samples_val = 1
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at_step = set()
+
+        def training_step(self, batch, batch_idx):
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, *args):
+            self.validation_called_at_step.add(int(self.trainer.global_step))
+            return super().validation_step(*args)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(batch_size, data_samples_train))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(batch_size, data_samples_val))
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=data_samples_train * 3,
+        val_check_interval=15,
+        check_val_every_n_epoch=None,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model)
+
+    # with a data length of 10, a val_check_interval of 15, and max_steps=30, we
+    # should have validated twice
+    assert trainer.current_epoch == 3
+    assert trainer.global_step == 30
+    assert list(model.validation_called_at_step) == [14, 29]
+
+
+def test_validation_check_interval_exceed_data_length_wrong(tmpdir):
+    model = BoringModel()
+
+    with pytest.raises(ValueError):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_steps=200,
+            val_check_interval=100,
+            check_val_every_n_epoch=1,
+            num_sanity_val_steps=0,
+        )
+        trainer.fit(model)
+
+
+def test_validation_loop_every_5_epochs(tmpdir):
+    batch_size = 32
+    data_samples_train = 10
+    data_samples_val = 1
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at_step = set()
+
+        def training_step(self, batch, batch_idx):
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, *args):
+            self.validation_called_at_step.add(int(self.trainer.global_step))
+            return super().validation_step(*args)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(batch_size, data_samples_train))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(batch_size, data_samples_val))
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=data_samples_train * 9,
+        check_val_every_n_epoch=5,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model)
+
+    # with a data length of 10, a val_check_interval of 15, and max_steps=30, we
+    # should have validated twice
+    assert trainer.current_epoch == 9
+    assert trainer.global_step == 90
+    assert list(model.validation_called_at_step) == [49]

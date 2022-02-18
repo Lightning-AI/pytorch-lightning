@@ -66,8 +66,8 @@ class DataConnector:
 
     def on_trainer_init(
         self,
-        check_val_every_n_epoch: int,
         reload_dataloaders_every_n_epochs: int,
+        check_val_every_n_epoch: Optional[int] = None,
         prepare_data_per_node: Optional[bool] = None,
     ) -> None:
         self.trainer.datamodule = None
@@ -80,7 +80,7 @@ class DataConnector:
             )
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
-        if not isinstance(check_val_every_n_epoch, int):
+        if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
                 f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
             )

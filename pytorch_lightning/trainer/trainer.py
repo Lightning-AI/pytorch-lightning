@@ -149,7 +149,7 @@ class Trainer(
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
-        check_val_every_n_epoch: int = 1,
+        check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
@@ -239,7 +239,8 @@ class Trainer(
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
 
-            check_val_every_n_epoch: Check val every n train epochs.
+            check_val_every_n_epoch: Check val every n train epochs. If `None`, validation will be done based on
+            `val_check_interval`, and potentially exceed the number of batches in the training set.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
@@ -391,6 +392,8 @@ class Trainer(
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
+                This value can only be higher than the amount of batches in the data loader when
+                `check_val_every_n_epoch=None`, otherwise no validation is done.
 
             enable_model_summary: Whether to enable model summarization by default.
 
@@ -513,8 +516,8 @@ class Trainer(
 
         # init data flags
         self._data_connector.on_trainer_init(
-            check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
+            check_val_every_n_epoch,
             prepare_data_per_node,
         )
 
@@ -1133,7 +1136,7 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        fr"""
+        rf"""
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
@@ -1822,11 +1825,13 @@ class Trainer(
         # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
-            if self.val_check_batch > self.num_training_batches:
+            if self.val_check_batch > self.num_training_batches and self.check_val_every_n_epoch is not None:
                 raise ValueError(
                     f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
                     f"to the number of the training batches ({self.num_training_batches}). "
-                    "If you want to disable validation set `limit_val_batches` to 0.0 instead."
+                    "If you want to disable validation set `limit_val_batches` to 0.0 instead. "
+                    "If you want to validate based on the step count instead of the epoch count, "
+                    "set `check_val_every_n_epoch=None`."
                 )
         else:
             if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
