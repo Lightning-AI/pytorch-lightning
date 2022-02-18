@@ -21,13 +21,10 @@ import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
-from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.strategies.hpu import HPUStrategy
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _AcceleratorType, _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -130,7 +127,7 @@ def test_no_warning_plugin(tmpdir):
 @RunIf(hpu=True)
 def test_all_stages(tmpdir, hpus):
     model = HPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices="auto")
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -329,7 +326,7 @@ def test_accelerator_hpu_with_multiple_devices():
     trainer = Trainer(accelerator="hpu", devices=8)
 
     assert trainer.hpus == 8
-    assert isinstance(trainer.strategy, DDPStrategy)
+    assert isinstance(trainer.strategy, HPUParallelStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
@@ -340,6 +337,7 @@ def test_accelerator_auto_with_devices_hpu():
 
     assert trainer._device_type == "hpu"
     assert trainer.hpus == 8
+    assert isinstance(trainer.strategy, HPUParallelStrategy)
 
 
 @RunIf(hpu=True)
@@ -367,9 +365,9 @@ def test_strategy_choice_hpu_plugin(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_strategy_choice_hpu_ddp_plugin(tmpdir):
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=8)
-    assert isinstance(trainer.strategy, HPUStrategy)
+def test_strategy_choice_hpu_parallel_plugin(tmpdir):
+    trainer = Trainer(strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")]*8), accelerator="hpu", devices=8)
+    assert isinstance(trainer.strategy, HPUParallelStrategy)
 
 
 @RunIf(hpu=True)

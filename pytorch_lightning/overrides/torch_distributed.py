@@ -19,6 +19,7 @@ if torch.distributed.is_available():
     from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
 
 # The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
+# the distributed backend and tensor type updates for habana backend is done here before broadcast
 
 # https://github.com/pytorch/pytorch/blob/1.10.1/torch/distributed/distributed_c10d.py#L256
 def _rank_not_in_group(group: ProcessGroup):

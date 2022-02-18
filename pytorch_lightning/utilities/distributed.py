@@ -342,13 +342,6 @@ def init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
 
-    # TBD: move this to a hpu based ddp plugin
-    # local rank mapping for device open is needed for hpu devices
-    if torch_distributed_backend == "hccl" and _HPU_AVAILABLE:
-        import habana_frameworks.torch.core.hccl
-
-        os.environ["ID"] = str(cluster_environment.local_rank())
-
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 

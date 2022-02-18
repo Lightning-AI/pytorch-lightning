@@ -60,6 +60,7 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     HorovodStrategy,
     HPUStrategy,
+    HPUParallelStrategy,
     IPUStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -804,7 +805,11 @@ class AcceleratorConnector:
         elif self.use_ipu:
             plugin = IPUStrategy(parallel_devices=self.parallel_devices)
         elif self.use_hpu:
-            plugin = HPUStrategy(device=torch.device("hpu"))
+            if len(self.parallel_devices) > 1 :
+                plugin = HPUParallelStrategy(
+                    parallel_devices=self.parallel_devices)
+            else:
+                plugin = HPUStrategy(device=torch.device("hpu"))
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDeviceStrategy(device=single_gpu_ordinal if self.use_gpu else "cpu")
@@ -888,7 +893,7 @@ class AcceleratorConnector:
             if self.has_horovodrun():
                 self._set_horovod_backend()
             elif self.num_hpus > 1 and not _use_cpu:
-                self.distributed_backend = _StrategyType.DDP
+                self.distributed_backend = _StrategyType.HPU_PARALLEL
             elif self.num_gpus == 0 and self.num_nodes > 1:
                 self._strategy_type = _StrategyType.DDP
             elif self.num_gpus == 0 and self.num_processes > 1:
@@ -928,7 +933,7 @@ class AcceleratorConnector:
             self._device_type = _AcceleratorType.IPU
         elif self.has_hpu and not _use_cpu:
             self._device_type = _AcceleratorType.HPU
-            self._strategy_type = _StrategyType.DDP
+            self._strategy_type = _StrategyType.HPU_PARALLEL
         elif self.distributed_backend and self._strategy_type is None:
             self._strategy_type = _StrategyType(self.distributed_backend)
 
@@ -967,7 +972,7 @@ class AcceleratorConnector:
         if self._device_type == _AcceleratorType.GPU and self._strategy_type == _StrategyType.DDP2:
             self.num_processes = self.num_nodes
 
-        if self._device_type == _AcceleratorType.HPU and self._strategy_type == _StrategyType.DDP:
+        if self._device_type == _AcceleratorType.HPU and self._strategy_type == _StrategyType.HPU_PARALLEL:
             self.num_processes = self.num_hpus
 
         # Horovod is an extra case...

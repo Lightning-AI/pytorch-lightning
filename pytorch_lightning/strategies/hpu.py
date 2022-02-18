@@ -51,7 +51,7 @@ class HPUStrategy(SingleDeviceStrategy):
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:
-            raise MisconfigurationException("HPUs currently only support one optimizer.")
+            raise MisconfigurationException("HPUs currently support only one optimizer.")
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
