@@ -487,7 +487,13 @@ class AcceleratorConnector:
         if self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
-        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            BaguaEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+            XLAEnvironment,
+        ):
             if env_type.detect():
                 return env_type()
         return LightningEnvironment()
