@@ -149,7 +149,6 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.loggers
         if not trainer.logger_connector.should_update_logs:
             return
 
@@ -162,7 +161,6 @@ class LearningRateMonitor(Callback):
                     logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.loggers
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)

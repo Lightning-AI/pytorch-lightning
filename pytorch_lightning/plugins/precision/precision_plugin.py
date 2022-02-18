@@ -159,7 +159,8 @@ class PrecisionPlugin(CheckpointHooks):
         if not trainer.loggers:
             kwargs = {}
         elif len(trainer.loggers) == 1:
-            kwargs = {"group_separator": trainer.loggers[0].group_separator}
+            assert trainer.logger
+            kwargs = {"group_separator": trainer.logger.group_separator}
         else:
             kwargs = {"group_separator": "/"}
 
