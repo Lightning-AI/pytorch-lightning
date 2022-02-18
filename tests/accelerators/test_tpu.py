@@ -24,7 +24,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DDPStrategy, SingleTPUStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -86,48 +86,33 @@ def test_accelerator_tpu():
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
-
-    assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
     trainer = Trainer(accelerator="tpu")
     assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.strategy, SingleTPUStrategy)
 
 
 @RunIf(tpu=True)
 def test_accelerator_cpu_with_tpu_cores_flag():
-
     trainer = Trainer(accelerator="cpu", tpu_cores=8)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu_with_auto():
-
-    trainer = Trainer(accelerator="auto", tpu_cores=8)
-
-    assert trainer._device_type == "tpu"
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-
-
-@RunIf(tpu=True)
-def test_accelerator_tpu_with_devices():
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-    assert trainer.tpu_cores == 8
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-
-
-@RunIf(tpu=True)
 def test_accelerator_auto_with_devices_tpu():
+    assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="auto", devices=8)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert trainer.tpu_cores == 8
 
-    assert trainer._device_type == "tpu"
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert trainer.devices == 8
     assert trainer.tpu_cores == 8
 
 
@@ -328,10 +313,3 @@ def test_mp_device_dataloader_attribute(_):
     dataset = RandomDataset(32, 64)
     dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))
     assert dataloader.dataset == dataset
-
-
-@RunIf(tpu=True)
-def test_devices_auto_choice_tpu():
-    trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 8
-    assert trainer.tpu_cores == 8
