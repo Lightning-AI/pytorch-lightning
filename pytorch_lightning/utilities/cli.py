@@ -447,7 +447,11 @@ class SaveConfigCallback(Callback):
 
     def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
         # `ArgumentParser` is un-pickleable. Drop it
-        return self.__class__, (None, self.config, self.config_filename), {}
+        return (
+            self.__class__,
+            (None, self.config, self.config_filename),
+            {"overwrite": self.overwrite, "multifile": self.multifile},
+        )
 
 
 class LightningCLI:
