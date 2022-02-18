@@ -14,9 +14,9 @@ or with specific arguments
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:base-cuda-py3.8-pt1.8 \
+    -t pytorch-lightning:base-cuda-py3.9-pt1.8 \
     -f dockers/base-cuda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.8 \
+    --build-arg PYTHON_VERSION=3.9 \
     --build-arg PYTORCH_VERSION=1.8 \
     .
 ```

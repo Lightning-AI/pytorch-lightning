@@ -19,6 +19,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -35,7 +36,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
@@ -502,6 +503,37 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
+    class AggregationOverrideLogger(CSVLogger):
+        @rank_zero_only
+        def agg_and_log_metrics(self, metrics, step):
+            self.log_metrics(metrics=metrics, step=step)
+
+    logger = AggregationOverrideLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+    logger3 = CSVLogger(tmpdir)
+
+    # Test single loggers
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+    ):
+        Trainer(logger=logger)
+    # Should have no deprecation warning
+    Trainer(logger=logger2)
+
+    # Test multiple loggers
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+    ):
+        Trainer(logger=[logger, logger3])
+    # Should have no deprecation warning
+    Trainer(logger=[logger2, logger3])
+
+    
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):

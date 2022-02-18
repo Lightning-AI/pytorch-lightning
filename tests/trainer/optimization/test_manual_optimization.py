@@ -167,6 +167,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
+    assert trainer.global_step == limit_train_batches * 2
 
 
 def test_multiple_optimizers_manual_log(tmpdir):
@@ -530,18 +531,14 @@ def test_step_with_optimizer_closure(tmpdir):
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
 
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
     model = TestModel()
-    model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
     )
@@ -553,51 +550,37 @@ def test_step_with_optimizer_closure(tmpdir):
     assert trainer.progress_bar_metrics["train_loss_epoch"] == torch.stack(model._losses).mean()
 
 
-def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
-    """Tests that `step` works with optimizer_closure and accumulated_grad."""
-
+def test_step_with_optimizer_closure_2(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            # manual
             opt = self.optimizers()
             x = batch[0]
-
-            loss_1 = self(x)
-            loss_1 = self.loss(loss_1, loss_1)
+            loss = self(x).sum()
 
             def optimizer_closure():
                 # emulate bayesian optimization.
                 num_backward = 1
                 for backward_idx in range(num_backward + 1):
                     retain_graph = num_backward != backward_idx
-                    self.manual_backward(loss_1, retain_graph=retain_graph)
+                    self.manual_backward(loss, retain_graph=retain_graph)
 
             weight_before = self.layer.weight.clone()
-
             opt.step(closure=optimizer_closure)
-
             weight_after = self.layer.weight.clone()
-            if not self.trainer.fit_loop._should_accumulate():
-                assert not torch.equal(weight_before, weight_after)
-            else:
-                assert self.layer.weight.grad is not None
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            assert not torch.equal(weight_before, weight_after)
 
     model = TestModel()
-    model.val_dataloader = None
     model.training_epoch_end = None
 
     limit_train_batches = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
     )
@@ -605,63 +588,12 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 2
-
-
-@patch("torch.optim.SGD.step")
-def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
-    """Tests that `step` works with optimizer_closure and extra arguments."""
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def on_train_start(self) -> None:
-            step_mock.reset_mock()
-
-        def training_step(self, batch, batch_idx):
-            # manual
-            opt = self.optimizers()
-            x = batch[0]
-
-            loss_1 = self(x)
-            loss_1 = self.loss(loss_1, loss_1)
-
-            def optimizer_closure():
-                # emulate bayesian optimization.
-                num_backward = 1
-                for backward_idx in range(num_backward + 1):
-                    retain_graph = num_backward != backward_idx
-                    self.manual_backward(loss_1, retain_graph=retain_graph)
-
-            opt.step(closure=optimizer_closure)
-            opt.zero_grad()
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
-    model = TestModel()
-    model.val_dataloader = None
-    model.training_epoch_end = None
-
-    limit_train_batches = 4
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-    )
-
-    trainer.fit(model)
-    assert step_mock.mock_calls == [call(closure=ANY) for _ in range(limit_train_batches)]
+    assert trainer.global_step == limit_train_batches
 
 
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
-    """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -700,6 +632,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             # this will accumulate gradients for 2 batches and then call opt_gen.step()
             gen_closure()
             if batch_idx % 2 == 0:
+                # passing a custom kwarg
                 opt_gen.step(closure=gen_closure, optim="sgd")
                 opt_gen.zero_grad()
 
@@ -730,6 +663,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
     trainer.fit(model)
     assert mock_sgd_step.mock_calls == [call(closure=ANY, optim="sgd") for _ in range(4)]
     assert mock_adam_step.mock_calls == [call(closure=ANY) for _ in range(2)]
+    assert trainer.global_step == 4 + 2
 
 
 class TesManualOptimizationDDPModel(BoringModel):
