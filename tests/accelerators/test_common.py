@@ -40,7 +40,12 @@ def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        limit_test_batches=10,
+        **trainer_kwargs
     )
 
     trainer.fit(model, datamodule=dm)
