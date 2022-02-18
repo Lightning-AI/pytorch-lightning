@@ -1208,7 +1208,7 @@ def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, s
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
-    assert getattr(trainer, "_device_type") == _device_type
+    assert trainer._device_type == _device_type
     assert trainer.num_gpus == num_gpus
 
 
@@ -2084,5 +2084,5 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
-    assert getattr(trainer, "_device_type") == _device_type
+    assert trainer._device_type == _device_type
     assert trainer.num_gpus == num_gpus
