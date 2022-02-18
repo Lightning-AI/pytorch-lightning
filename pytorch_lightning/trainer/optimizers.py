@@ -39,7 +39,7 @@ class TrainerOptimizersMixin(ABC):
         pl_module = self.lightning_module or model
         return _init_optimizers_and_lr_schedulers(pl_module)
 
-    def convert_to_lightning_optimizers(self):
+    def convert_to_lightning_optimizers(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.8.

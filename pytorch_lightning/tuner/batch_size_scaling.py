@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_e
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def scale_batch_size(
@@ -247,6 +247,6 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
+def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)

@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_ze
 
 
 class CallbackConnector:
-    def __init__(self, trainer):
+    def __init__(self, trainer) -> None:
         self.trainer = trainer
 
     def on_trainer_init(
@@ -50,7 +50,7 @@ class CallbackConnector:
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
-    ):
+    ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
@@ -201,7 +201,7 @@ class CallbackConnector:
         self.trainer.callbacks.append(model_summary)
         self.trainer._weights_summary = weights_summary
 
-    def _configure_swa_callbacks(self):
+    def _configure_swa_callbacks(self) -> None:
         if not self.trainer._stochastic_weight_avg:
             return
 
@@ -252,10 +252,10 @@ class CallbackConnector:
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
 
-    def _trainer_has_checkpoint_callbacks(self):
+    def _trainer_has_checkpoint_callbacks(self) -> bool:
         return len(self.trainer.checkpoint_callbacks) > 0
 
-    def _attach_model_logging_functions(self):
+    def _attach_model_logging_functions(self) -> None:
         lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
             callback.log = lightning_module.log

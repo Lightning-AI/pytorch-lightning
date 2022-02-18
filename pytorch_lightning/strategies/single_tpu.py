@@ -37,7 +37,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
-    ):
+    ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,

@@ -27,7 +27,7 @@ from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class Interval(LightningEnum):

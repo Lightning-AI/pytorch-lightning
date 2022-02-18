@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import math
 from dataclasses import dataclass
 from datetime import timedelta
@@ -203,10 +205,10 @@ class RichProgressBar(ProgressBarBase):
 
     .. code-block:: python
 
-        from pytorch_lightning import Trainer
+        from pytorch_lightning import "pl.Trainer"
         from pytorch_lightning.callbacks import RichProgressBar
 
-        trainer = Trainer(callbacks=RichProgressBar())
+        trainer = "pl.Trainer"(callbacks=RichProgressBar())
 
     Args:
         refresh_rate: Determines at which rate (in number of batches) the progress bars get updated.
@@ -283,7 +285,7 @@ class RichProgressBar(ProgressBarBase):
     def predict_description(self) -> str:
         return "Predicting"
 
-    def _init_progress(self, trainer):
+    def _init_progress(self, trainer) -> None:
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             self._console = Console(**self._console_kwargs)
@@ -304,27 +306,27 @@ class RichProgressBar(ProgressBarBase):
         if self.progress:
             self.progress.refresh()
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-    def on_predict_start(self, trainer, pl_module):
+    def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-    def on_sanity_check_start(self, trainer, pl_module):
+    def on_sanity_check_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
-    def on_sanity_check_end(self, trainer, pl_module):
+    def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.progress is not None:
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
@@ -346,7 +348,7 @@ class RichProgressBar(ProgressBarBase):
             )
         self.refresh()
 
-    def on_validation_epoch_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.sanity_checking:
             self.val_sanity_progress_bar_id = self._add_task(self.total_val_batches, self.sanity_check_description)
         else:
@@ -371,7 +373,7 @@ class RichProgressBar(ProgressBarBase):
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
             self.refresh()
@@ -380,15 +382,17 @@ class RichProgressBar(ProgressBarBase):
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
 
-    def on_test_epoch_start(self, trainer, pl_module):
+    def on_test_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
         self.refresh()
 
-    def on_predict_epoch_start(self, trainer, pl_module):
+    def on_predict_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
         self.refresh()
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+    def on_train_batch_end(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx: int
+    ) -> None:
         self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)
         self._update_metrics(trainer, pl_module)
         self.refresh()
@@ -396,7 +400,15 @@ class RichProgressBar(ProgressBarBase):
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._update_metrics(trainer, pl_module)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs,
+        batch,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         if trainer.sanity_checking:
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         elif self.val_progress_bar_id is not None:
@@ -406,11 +418,27 @@ class RichProgressBar(ProgressBarBase):
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs,
+        batch,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
         self.refresh()
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs,
+        batch,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         self._update(self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches)
         self.refresh()
 
@@ -431,21 +459,21 @@ class RichProgressBar(ProgressBarBase):
             # # signals for progress to be re-initialized for next stages
             self._progress_stopped = True
 
-    def _reset_progress_bar_ids(self):
+    def _reset_progress_bar_ids(self) -> None:
         self.main_progress_bar_id: Optional[int] = None
         self.val_progress_bar_id: Optional[int] = None
         self.test_progress_bar_id: Optional[int] = None
         self.predict_progress_bar_id: Optional[int] = None
 
-    def _update_metrics(self, trainer, pl_module) -> None:
+    def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         metrics = self.get_metrics(trainer, pl_module)
         if self._metric_component:
             self._metric_component.update(metrics)
 
-    def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._stop_progress()
 
-    def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         self._stop_progress()
 
     @property

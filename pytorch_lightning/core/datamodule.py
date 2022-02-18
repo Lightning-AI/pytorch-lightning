@@ -20,7 +20,12 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.argparse import (
+    add_argparse_args,
+    from_argparse_args,
+    get_init_arguments_and_types,
+    ParseArgparserDataType,
+)
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -54,7 +59,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
+    def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None) -> None:
         super().__init__()
         if train_transforms is not None:
             rank_zero_deprecation(
@@ -168,7 +173,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> ParseArgparserDataType:
         """Create an instance from CLI arguments.
 
         Args:
@@ -203,7 +208,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
-    ):
+    ) -> "LightningDataModule":
         r"""
         Create an instance from torch.utils.data.Dataset.
 

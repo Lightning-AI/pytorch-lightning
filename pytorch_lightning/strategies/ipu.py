@@ -40,7 +40,7 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule", precision: Union[str, int]):
+    def __init__(self, pl_module: "pl.LightningModule", precision: Union[str, int]) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
@@ -290,17 +290,17 @@ class IPUStrategy(ParallelStrategy):
         for model in self.poptorch_models.values():
             model.destroy()
 
-    def _compiled(self, model: Any):
+    def _compiled(self, model: Any) -> bool:
         # Required to ensure we only attach compiled models, as they are compiled lazily.
         return model._executable is not None
 
-    def _detach_models(self):
+    def _detach_models(self) -> None:
         """Detaches all stage specific models from IPU devices."""
         for k, model in self.poptorch_models.items():
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
-    def _load_model(self, stage: str):
+    def _load_model(self, stage: str) -> None:
         """Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
 
         Args:
@@ -311,28 +311,28 @@ class IPUStrategy(ParallelStrategy):
         if self._compiled(model) and not model.isAttachedToDevice():
             model.attachToDevice()
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         self._load_model(RunningStage.TRAINING)
 
-    def on_validation_start(self):
+    def on_validation_start(self) -> None:
         self._load_model(RunningStage.VALIDATING)
 
-    def on_test_start(self):
+    def on_test_start(self) -> None:
         self._load_model(RunningStage.TESTING)
 
-    def on_predict_start(self):
+    def on_predict_start(self) -> None:
         self._load_model(RunningStage.PREDICTING)
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         self._detach_models()
 
-    def on_validation_end(self):
+    def on_validation_end(self) -> None:
         self._detach_models()
 
-    def on_test_end(self):
+    def on_test_end(self) -> None:
         self._detach_models()
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         self._detach_models()
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:

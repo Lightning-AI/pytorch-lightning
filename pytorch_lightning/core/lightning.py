@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, 
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class LightningModule(
@@ -1151,7 +1151,7 @@ class LightningModule(
         """
         return []
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> None:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1417,7 +1417,7 @@ class LightningModule(
         optimizer: Optimizer,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-    ):
+    ) -> None:
         """Handles gradient clipping internally.
 
         Note:
@@ -1471,7 +1471,7 @@ class LightningModule(
         optimizer_idx: int,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-    ):
+    ) -> None:
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
         Args:
@@ -1620,7 +1620,7 @@ class LightningModule(
         """
         optimizer.step(closure=optimizer_closure)
 
-    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
 
         Args:
@@ -1781,7 +1781,7 @@ class LightningModule(
         """
         return progress_base.get_standard_metrics(self.trainer, self)
 
-    def _verify_is_manual_optimization(self, fn_name):
+    def _verify_is_manual_optimization(self, fn_name) -> None:
         if self.automatic_optimization:
             raise MisconfigurationException(
                 f"to use {fn_name}, please disable automatic optimization:"
@@ -1817,7 +1817,7 @@ class LightningModule(
         return self_arguments, parents_arguments
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs):
+    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs) -> None:
         """Saves the model in ONNX format.
 
         Args:

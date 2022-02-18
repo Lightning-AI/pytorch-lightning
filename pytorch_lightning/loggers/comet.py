@@ -31,8 +31,8 @@ from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-log = logging.getLogger(__name__)
-_COMET_AVAILABLE = _module_available("comet_ml")
+log: logging.Logger = logging.getLogger(__name__)
+_COMET_AVAILABLE: bool = _module_available("comet_ml")
 
 if _COMET_AVAILABLE:
     import comet_ml
@@ -140,8 +140,7 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
-        **kwargs,
-    ):
+        **kwargs) -> None:
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
@@ -251,7 +250,7 @@ class CometLogger(LightningLoggerBase):
         metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
-    def reset_experiment(self):
+    def reset_experiment(self) -> None:
         self._experiment = None
 
     @rank_zero_only
@@ -325,7 +324,7 @@ class CometLogger(LightningLoggerBase):
 
         return self._future_experiment_key
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, None]:
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,

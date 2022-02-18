@@ -56,7 +56,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]):
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.

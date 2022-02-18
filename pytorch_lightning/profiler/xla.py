@@ -48,7 +48,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _TPU_AVAILABLE and _TORCH_GREATER_EQUAL_1_8:
     import torch_xla.debug.profiler as xp
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class XLAProfiler(BaseProfiler):

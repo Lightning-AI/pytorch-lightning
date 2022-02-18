@@ -18,8 +18,8 @@ logging.addLevelName(_DETAIL, "DETAIL")
 logging.detail = _detail
 logging.Logger.detail = _detail
 
-_root_logger = logging.getLogger()
-_logger = logging.getLogger(__name__)
+_root_logger: logging.Logger = logging.getLogger()
+_logger: logging.Logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
 # if root logger has handlers, propagate messages up and let root logger process them

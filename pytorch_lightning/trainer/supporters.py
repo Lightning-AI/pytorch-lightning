@@ -52,7 +52,7 @@ class TensorRunningAccum:
         (tensor(12.), tensor(10.), tensor(8.), tensor(12.))
     """
 
-    def __init__(self, window_length: int):
+    def __init__(self, window_length: int) -> None:
         self.window_length = window_length
         self.memory = None
         self.current_idx: int = 0
@@ -70,7 +70,7 @@ class TensorRunningAccum:
         if self.last_idx is not None:
             return self.memory[self.last_idx]
 
-    def append(self, x):
+    def append(self, x) -> None:
         """Add an element to the accumulator."""
         if self.memory is None:
             self.memory = torch.zeros(self.window_length, *x.shape)
@@ -143,7 +143,7 @@ class SharedCycleIteratorState:
 class CycleIterator:
     """Iterator for restarting a dataloader if it runs out of samples."""
 
-    def __init__(self, loader: Any, length: Optional[int] = None, state: SharedCycleIteratorState = None):
+    def __init__(self, loader: Any, length: Optional[int] = None, state: SharedCycleIteratorState = None) -> None:
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -225,7 +225,7 @@ class CombinedDataset:
 
     COMPUTE_FUNCS = {"min_size": min, "max_size_cycle": max}
 
-    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = "min_size"):
+    def __init__(self, datasets: Union[Sequence, Mapping], mode: str = "min_size") -> None:
         """
         Args:
             datasets: a sequence/mapping datasets. Can be a collections of torch.utils.Dataset,
@@ -276,7 +276,7 @@ class CombinedDataset:
 
         return length
 
-    def _get_len_recursive(self, data) -> int:
+    def _get_len_recursive(self, data: int) -> int:
         if isinstance(data, Dataset):
             return len(data)
 
@@ -329,7 +329,7 @@ class CombinedLoader:
 
     SUPPORTED_MODES = ("min_size", "max_size_cycle")
 
-    def __init__(self, loaders: Any, mode: str = "min_size"):
+    def __init__(self, loaders: Any, mode: str = "min_size") -> None:
         """
         Args:
             loaders: the loaders to sample from. Can be all kind of collection
@@ -492,7 +492,7 @@ class CombinedLoader:
         return iterator
 
     @staticmethod
-    def _calc_num_batches(loaders: Any, mode="min_size") -> Union[int, float]:
+    def _calc_num_batches(loaders: Any, mode: str="min_size") -> Union[int, float]:
         """Compute the length (aka the number of batches) of `CombinedLoader`.
 
         Args:
@@ -517,7 +517,7 @@ class CombinedLoader:
             dataloader._iterator._shutdown_workers()
         dataloader._iterator = None
 
-    def reset(self):
+    def reset(self) -> None:
         if self._iterator:
             self._iterator._loader_iters = None
         if self.loaders is not None:
@@ -528,7 +528,7 @@ class CombinedLoader:
 class CombinedLoaderIterator:
     """Custom Iterator returning data from multiple loaders, and allows sampling in parallel."""
 
-    def __init__(self, loaders: Any):
+    def __init__(self, loaders: Any) -> None:
         """
         Args:
             loaders: the loaders to sample from. Can be all kind of collection

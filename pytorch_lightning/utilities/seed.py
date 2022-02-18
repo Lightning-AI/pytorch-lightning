@@ -23,7 +23,7 @@ import torch
 
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:

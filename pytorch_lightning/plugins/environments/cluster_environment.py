@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 class ClusterEnvironment(ABC):
     """Specification of a cluster environment."""
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "ClusterEnvironment":
+    def __new__(cls: Type["ClusterEnvironment"], *args: Any, **kwargs: Any) -> "ClusterEnvironment":
         # TODO: remove in 1.7
         _check_for_deprecated_methods(cls)
         return super().__new__(cls)
@@ -74,7 +74,7 @@ class ClusterEnvironment(ABC):
         pass
 
 
-def _check_for_deprecated_methods(cls: Type[ClusterEnvironment]) -> None:
+def _check_for_deprecated_methods(cls: Type["ClusterEnvironment"]) -> None:
     if hasattr(cls, "master_address") and callable(cls.master_address):
         rank_zero_deprecation(
             f"`{cls.__name__}.master_address` has been deprecated in v1.6 and will be removed in v1.7."

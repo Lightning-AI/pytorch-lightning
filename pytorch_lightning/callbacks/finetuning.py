@@ -29,10 +29,10 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
-def multiplicative(epoch):
+def multiplicative(epoch) -> int:
     return 2
 
 
@@ -79,7 +79,7 @@ class BaseFinetuning(Callback):
         ...             )
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self._restarting = False
 

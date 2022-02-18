@@ -259,8 +259,7 @@ class WandbLogger(LightningLoggerBase):
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
-        **kwargs,
-    ):
+        **kwargs) -> None:
         if wandb is None:
             raise ModuleNotFoundError(
                 "You want to use `wandb` logger which is not installed yet,"
@@ -308,7 +307,7 @@ class WandbLogger(LightningLoggerBase):
             wandb.require("service")
             _ = self.experiment
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, None]:
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         if self._experiment is not None:
@@ -361,7 +360,7 @@ class WandbLogger(LightningLoggerBase):
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only

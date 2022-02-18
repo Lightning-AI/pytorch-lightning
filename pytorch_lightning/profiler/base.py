@@ -21,7 +21,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, U
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class AbstractProfiler(ABC):

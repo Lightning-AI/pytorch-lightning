@@ -115,7 +115,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[AttributeDict, MutableMapping[Any, Any], Any]:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):

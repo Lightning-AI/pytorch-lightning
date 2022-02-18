@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.types import _DEVICE
 
-_log = logging.getLogger(__name__)
+_log: logging.Logger = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):

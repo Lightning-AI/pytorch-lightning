@@ -28,7 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.model_summary import _format_summary_table, summarize
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class ModelSummary(Callback):

@@ -86,7 +86,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage=stage)
 
-    def on_init_start(self):
+    def on_init_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_init_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -99,7 +99,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_init_start(self)
 
-    def on_init_end(self):
+    def on_init_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_init_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -112,7 +112,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_init_end(self)
 
-    def on_fit_start(self):
+    def on_fit_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -125,7 +125,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_fit_start(self, self.lightning_module)
 
-    def on_fit_end(self):
+    def on_fit_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -138,7 +138,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_fit_end(self, self.lightning_module)
 
-    def on_sanity_check_start(self):
+    def on_sanity_check_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_sanity_check_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -151,7 +151,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_sanity_check_start(self, self.lightning_module)
 
-    def on_sanity_check_end(self):
+    def on_sanity_check_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_sanity_check_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -164,7 +164,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_sanity_check_end(self, self.lightning_module)
 
-    def on_train_epoch_start(self):
+    def on_train_epoch_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_epoch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -177,7 +177,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_epoch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -190,7 +190,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module)
 
-    def on_validation_epoch_start(self):
+    def on_validation_epoch_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_epoch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -203,7 +203,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_epoch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -216,7 +216,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_epoch_end(self, self.lightning_module)
 
-    def on_test_epoch_start(self):
+    def on_test_epoch_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_epoch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -229,7 +229,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    def on_test_epoch_end(self):
+    def on_test_epoch_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_epoch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -268,7 +268,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_predict_epoch_end(self, self.lightning_module, outputs)
 
-    def on_epoch_start(self):
+    def on_epoch_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_epoch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -281,7 +281,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_epoch_start(self, self.lightning_module)
 
-    def on_epoch_end(self):
+    def on_epoch_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_epoch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -294,7 +294,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_epoch_end(self, self.lightning_module)
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -307,7 +307,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_start(self, self.lightning_module)
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -346,7 +346,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_pretrain_routine_end(self, self.lightning_module)
 
-    def on_batch_start(self):
+    def on_batch_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -359,7 +359,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_batch_start(self, self.lightning_module)
 
-    def on_batch_end(self):
+    def on_batch_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_batch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -373,7 +373,7 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_batch_end(self, self.lightning_module)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def on_train_batch_start(self, batch, batch_idx, dataloader_idx: int=0) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -390,7 +390,7 @@ class TrainerCallbackHookMixin(ABC):
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
     # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int=0) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -406,7 +406,7 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_start(self, batch, batch_idx, dataloader_idx) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -419,7 +419,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_batch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -432,7 +432,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_test_batch_start(self, batch, batch_idx, dataloader_idx) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -445,7 +445,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_batch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -484,7 +484,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_predict_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    def on_validation_start(self):
+    def on_validation_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -497,7 +497,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_start(self, self.lightning_module)
 
-    def on_validation_end(self):
+    def on_validation_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_validation_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -510,7 +510,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_end(self, self.lightning_module)
 
-    def on_test_start(self):
+    def on_test_start(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -523,7 +523,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_start(self, self.lightning_module)
 
-    def on_test_end(self):
+    def on_test_end(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_test_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -562,7 +562,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_predict_end(self, self.lightning_module)
 
-    def on_keyboard_interrupt(self):
+    def on_keyboard_interrupt(self) -> None:
         r"""
         .. deprecated:: v1.5
             This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
@@ -649,7 +649,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_before_backward(self, self.lightning_module, loss)
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_after_backward` was deprecated in v1.6 and will be removed in v1.8.
@@ -662,7 +662,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_after_backward(self, self.lightning_module)
 
-    def on_before_optimizer_step(self, optimizer, optimizer_idx):
+    def on_before_optimizer_step(self, optimizer, optimizer_idx) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_before_optimizer_step` was deprecated in v1.6 and will be removed in v1.8.
@@ -675,7 +675,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_before_optimizer_step(self, self.lightning_module, optimizer, optimizer_idx)
 
-    def on_before_zero_grad(self, optimizer):
+    def on_before_zero_grad(self, optimizer) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_before_zero_grad` was deprecated in v1.6 and will be removed in v1.8.

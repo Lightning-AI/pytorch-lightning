@@ -52,7 +52,7 @@ else:
     # needed for test mocks, and function signatures
     neptune, Run, NeptuneFile = None, None, None
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
@@ -258,15 +258,13 @@ class NeptuneLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        *,  # force users to call `NeptuneLogger` initializer with `kwargs`
-        api_key: Optional[str] = None,
+        *, api_key: Optional[str] = None,
         project: Optional[str] = None,
         name: Optional[str] = None,
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
-        **neptune_run_kwargs,
-    ):
+        **neptune_run_kwargs) -> None:
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         if neptune is None:
@@ -291,7 +289,7 @@ class NeptuneLogger(LightningLoggerBase):
             # make sure that we've log integration version for outside `Run` instances
             self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
 
-    def _retrieve_run_data(self):
+    def _retrieve_run_data(self) -> None:
         try:
             self._run_instance.wait()
             self._run_short_id = self._run_instance["sys/id"].fetch()
@@ -340,7 +338,7 @@ class NeptuneLogger(LightningLoggerBase):
         name: Optional[str],
         run: Optional["Run"],
         neptune_run_kwargs: dict,
-    ):
+    ) -> None:
         legacy_kwargs_msg = (
             "Following kwargs are deprecated: {legacy_kwargs}.\n"
             "If you are looking for the Neptune logger using legacy Python API,"
@@ -386,13 +384,13 @@ class NeptuneLogger(LightningLoggerBase):
                 " you can't provide other neptune.init() parameters.\n"
             )
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, None]:
         state = self.__dict__.copy()
         # Run instance can't be pickled
         state["_run_instance"] = None
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
@@ -524,7 +522,7 @@ class NeptuneLogger(LightningLoggerBase):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
-    def log_model_summary(self, model, max_depth=-1):
+    def log_model_summary(self, model, max_depth: int=-1) -> None:
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = neptune.types.File.from_content(
             content=model_str, extension="txt"
@@ -618,7 +616,7 @@ class NeptuneLogger(LightningLoggerBase):
         return self._run_short_id
 
     @staticmethod
-    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception=False):
+    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception: bool=False) -> None:
         msg_suffix = (
             f"If you are looking for the Neptune logger using legacy Python API,"
             f" it's still available as part of neptune-contrib package:\n"
@@ -638,7 +636,7 @@ class NeptuneLogger(LightningLoggerBase):
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None):
+    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None) -> None:
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
         if torch.is_tensor(metric_value):
@@ -667,12 +665,12 @@ class NeptuneLogger(LightningLoggerBase):
         self._signal_deprecated_api_usage("log_artifact", f"logger.run['{key}].log('path_to_file')")
         self.run[key].log(destination)
 
-    def set_property(self, *args, **kwargs):
+    def set_property(self, *args, **kwargs) -> None:
         self._signal_deprecated_api_usage(
             "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)", raise_exception=True
         )
 
-    def append_tags(self, *args, **kwargs):
+    def append_tags(self, *args, **kwargs) -> None:
         self._signal_deprecated_api_usage(
             "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])", raise_exception=True
         )

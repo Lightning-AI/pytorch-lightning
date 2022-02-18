@@ -101,7 +101,7 @@ class TQDMProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0) -> None:
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position

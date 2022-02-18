@@ -35,7 +35,7 @@ class LightningOptimizer:
     """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
     across accelerators, AMP, accumulate_grad_batches."""
 
-    def __init__(self, optimizer: Optimizer):
+    def __init__(self, optimizer: Optimizer) -> None:
         # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
         # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}

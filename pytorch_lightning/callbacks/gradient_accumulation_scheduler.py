@@ -63,7 +63,7 @@ class GradientAccumulationScheduler(Callback):
         >>> trainer = Trainer(accumulate_grad_batches={4: 2})
     """
 
-    def __init__(self, scheduling: Dict[int, int]):
+    def __init__(self, scheduling: Dict[int, int]) -> None:
         super().__init__()
 
         if not scheduling:  # empty dict error

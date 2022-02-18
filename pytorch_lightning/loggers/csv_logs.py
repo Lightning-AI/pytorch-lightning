@@ -31,7 +31,7 @@ from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experi
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class ExperimentWriter:
@@ -130,7 +130,7 @@ class CSVLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
-    ):
+    ) -> None:
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ""
@@ -230,7 +230,7 @@ class CSVLogger(LightningLoggerBase):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         if not os.path.isdir(root_dir):

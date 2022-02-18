@@ -334,7 +334,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 config = json.load(f)
         return config
 
-    def setup_distributed(self):
+    def setup_distributed(self) -> None:
         reset_seed()
 
         # determine which process we are and world size
@@ -418,7 +418,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
         return deepspeed_engine, deepspeed_optimizer
 
-    def init_deepspeed(self):
+    def init_deepspeed(self) -> None:
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
@@ -462,7 +462,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def zero_stage_3(self) -> bool:
         return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
 
-    def _initialize_deepspeed_train(self, model):
+    def _initialize_deepspeed_train(self, model) -> None:
         optimizer, scheduler = None, None
         if "optimizer" in self.config:
             rank_zero_info(
@@ -510,7 +510,7 @@ class DeepSpeedStrategy(DDPStrategy):
         with model_parallel_context:
             yield
 
-    def _set_deepspeed_activation_checkpointing(self):
+    def _set_deepspeed_activation_checkpointing(self) -> None:
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
             deepspeed.checkpointing.configure(
@@ -521,7 +521,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 profile=checkpoint_config.get("profile"),
             )
 
-    def _initialize_deepspeed_inference(self, model):
+    def _initialize_deepspeed_inference(self, model) -> None:
         # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
         optimizer, scheduler = None, None
         if "optimizer" not in self.config:
@@ -563,7 +563,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return module.module if isinstance(module, LightningDeepSpeedModule) else module
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -588,7 +588,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """Whether the plugin handles gradient accumulation internally."""
         return True
 
-    def _format_config(self):
+    def _format_config(self) -> None:
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
@@ -597,7 +597,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
 
-    def _format_batch_size_and_grad_accum_config(self):
+    def _format_batch_size_and_grad_accum_config(self) -> None:
         # todo: using lite, we do not support these variables within the config
         if self.lightning_module is None:
             return

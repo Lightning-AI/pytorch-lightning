@@ -44,7 +44,7 @@ from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle") -> None:
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self._train_dataloader_source = _DataLoaderSource(None, "")
@@ -154,7 +154,7 @@ class DataConnector:
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
-    def _copy_trainer_model_properties(self, model):
+    def _copy_trainer_model_properties(self, model) -> None:
         ref_model = self.trainer.lightning_module or model
 
         for m in [model, ref_model]:
@@ -493,7 +493,7 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _check_eval_shuffling(dataloader, mode):
+    def _check_eval_shuffling(dataloader, mode) -> None:
         if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"

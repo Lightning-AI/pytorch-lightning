@@ -64,7 +64,7 @@ class LightningLoggerBase(ABC):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
@@ -82,7 +82,7 @@ class LightningLoggerBase(ABC):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         """Update aggregation methods.
 
         Args:
@@ -145,7 +145,7 @@ class LightningLoggerBase(ABC):
             agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
         return self._prev_step, agg_mets
 
-    def _finalize_agg_metrics(self):
+    def _finalize_agg_metrics(self) -> None:
         """This shall be called before save/close.
 
         See deprecation warning below.
@@ -159,7 +159,7 @@ class LightningLoggerBase(ABC):
         if metrics_to_log is not None:
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
@@ -243,7 +243,7 @@ class LightningLoggerBase(ABC):
         return None
 
     @property
-    def group_separator(self):
+    def group_separator(self) -> str:
         """Return the default separator used by the logger to group the data into subfolders."""
         return "/"
 
@@ -265,7 +265,7 @@ class LoggerCollection(LightningLoggerBase):
         logger_iterable: An iterable collection of loggers
     """
 
-    def __init__(self, logger_iterable: Iterable[LightningLoggerBase]):
+    def __init__(self, logger_iterable: Iterable[LightningLoggerBase]) -> None:
         super().__init__()
         self._logger_iterable = logger_iterable
 
@@ -280,7 +280,7 @@ class LoggerCollection(LightningLoggerBase):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
 
@@ -289,7 +289,7 @@ class LoggerCollection(LightningLoggerBase):
         """Returns a list of experiment objects for all the loggers in the logger collection."""
         return [logger.experiment for logger in self._logger_iterable]
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.agg_and_log_metrics(metrics=metrics, step=step)
 
@@ -357,7 +357,7 @@ class LoggerCollection(LightningLoggerBase):
 class DummyExperiment:
     """Dummy experiment."""
 
-    def nop(self, *args, **kw):
+    def nop(self, *args, **kw) -> None:
         pass
 
     def __getattr__(self, _):
@@ -377,7 +377,7 @@ class DummyLogger(LightningLoggerBase):
     It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._experiment = DummyExperiment()
 

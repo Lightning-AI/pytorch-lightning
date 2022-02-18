@@ -107,7 +107,7 @@ class Strategy(ABC):
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
 
-    def _configure_launcher(self):
+    def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
 
     def setup_environment(self) -> None:
@@ -333,7 +333,7 @@ class Strategy(ABC):
         with self.precision_plugin.train_step_context():
             return self.model.training_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -474,7 +474,7 @@ class Strategy(ABC):
         """Called when test end."""
         pass
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         """Called when predict ends."""
         pass
 

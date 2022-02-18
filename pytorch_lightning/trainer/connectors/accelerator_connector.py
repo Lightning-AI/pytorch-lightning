@@ -76,7 +76,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd

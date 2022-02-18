@@ -20,7 +20,8 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Tuple, Type, Union
 from warnings import warn
 
 import torch
@@ -34,9 +35,9 @@ from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
+ALLOWED_CONFIG_TYPES: Tuple[Type[AttributeDict], Type[MutableMapping], Type[Namespace]] = (AttributeDict, MutableMapping, Namespace)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -162,7 +163,7 @@ class ModelIO:
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, **cls_kwargs_new):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, **cls_kwargs_new) -> "ModelIO":
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
@@ -360,7 +361,7 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
+def save_hparams_to_yaml(config_yaml: Union[Path, str], hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
     """
     Args:
         config_yaml: path to new YAML file

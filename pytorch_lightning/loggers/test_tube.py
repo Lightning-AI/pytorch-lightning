@@ -24,7 +24,7 @@ from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 
-_TESTTUBE_AVAILABLE = _module_available("test_tube")
+_TESTTUBE_AVAILABLE: bool = _module_available("test_tube")
 
 if _TESTTUBE_AVAILABLE:
     from test_tube import Experiment
@@ -101,7 +101,7 @@ class TestTubeLogger(LightningLoggerBase):
         create_git_tag: bool = False,
         log_graph: bool = False,
         prefix: str = "",
-    ):
+    ) -> None:
         rank_zero_deprecation(
             "The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7. We recommend switching to the"
             " `pytorch_lightning.loggers.TensorBoardLogger` as an alternative."
@@ -165,7 +165,7 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array=None):
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -245,7 +245,7 @@ class TestTubeLogger(LightningLoggerBase):
         state["_experiment"] = self.experiment.get_meta_copy()
         return state
 
-    def __setstate__(self, state: Dict[Any, Any]):
+    def __setstate__(self, state: Dict[Any, Any]) -> None:
         self._experiment = state["_experiment"].get_non_ddp_exp()
         del state["_experiment"]
         self.__dict__.update(state)

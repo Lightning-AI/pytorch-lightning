@@ -92,7 +92,7 @@ class GPUStatsMonitor(Callback):
         inter_step_time: bool = False,
         fan_speed: bool = False,
         temperature: bool = False,
-    ):
+    ) -> None:
         super().__init__()
 
         rank_zero_deprecation(

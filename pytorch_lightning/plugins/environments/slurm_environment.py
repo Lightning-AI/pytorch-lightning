@@ -19,7 +19,7 @@ from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):

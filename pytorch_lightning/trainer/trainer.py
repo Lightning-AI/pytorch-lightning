@@ -114,7 +114,7 @@ from pytorch_lightning.utilities.types import (
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 # warnings to ignore in trainer
 warnings.filterwarnings(
     "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
@@ -189,7 +189,7 @@ class Trainer(
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags.
 
@@ -569,6 +569,14 @@ class Trainer(
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        # for mypy
+        self.limit_train_batches: Union[int, float]
+        self.limit_val_batches: Union[int, float]
+        self.limit_test_batches: Union[int, float]
+        self.limit_predict_batches: Union[int, float]
+        self.val_check_interval: Union[int, float]
+        self.overfit_batches: Union[int, float]
+        self.check_val_every_n_epoch: int
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -579,19 +587,21 @@ class Trainer(
             fast_dev_run,
         )
 
+        self.predict_dataloaders: List[DataLoader]
+
         # Callback system
         self._call_callback_hooks("on_init_end")
 
     def _init_debugging_flags(
         self,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
-        val_check_interval,
-        overfit_batches,
-        fast_dev_run,
-    ):
+        limit_train_batches: Union[float, int],
+        limit_val_batches: Union[float, int],
+        limit_test_batches: Union[float, int],
+        limit_predict_batches: Union[float, int],
+        val_check_interval: Union[float, int],
+        overfit_batches: Union[float, int],
+        fast_dev_run: int,
+    ) -> None:
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
@@ -1240,7 +1250,7 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def _teardown(self):
+    def _teardown(self) -> None:
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
@@ -1269,7 +1279,7 @@ class Trainer(
             return self._run_predict()
         return self._run_train()
 
-    def _pre_training_routine(self):
+    def _pre_training_routine(self) -> None:
         # wait for all to join if on distributed
         self.strategy.barrier("setup_training")
 
@@ -1596,7 +1606,7 @@ class Trainer(
             pl_module._current_fx_name = prev_fx_name
 
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx: int=0) -> None:
         r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
         the original function in TrainerCallbackHookMixin: #9816 and #11148.
         """
@@ -1607,7 +1617,7 @@ class Trainer(
                 callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
     # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
+    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx: int=0) -> None:
         r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
         the original function in TrainerCallbackHookMixin: #9816 and #11148.
         """

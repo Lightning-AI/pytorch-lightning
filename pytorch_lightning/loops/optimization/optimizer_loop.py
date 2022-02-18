@@ -124,7 +124,7 @@ class Closure(AbstractClosure[ClosureResult]):
         step_fn: Callable[[], ClosureResult],
         backward_fn: Optional[Callable[[Tensor], None]] = None,
         zero_grad_fn: Optional[Callable[[], None]] = None,
-    ):
+    ) -> None:
         super().__init__()
         self._step_fn = step_fn
         self._backward_fn = backward_fn

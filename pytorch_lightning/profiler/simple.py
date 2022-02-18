@@ -23,7 +23,7 @@ import numpy as np
 
 from pytorch_lightning.profiler.base import BaseProfiler
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 _TABLE_ROW_EXTENDED = Tuple[str, float, int, float, float]
 _TABLE_DATA_EXTENDED = List[_TABLE_ROW_EXTENDED]

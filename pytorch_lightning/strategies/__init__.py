@@ -31,7 +31,7 @@ from pytorch_lightning.strategies.strategy import Strategy  # noqa: F401
 from pytorch_lightning.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
 
-FILE_ROOT = Path(__file__).parent
+FILE_ROOT: Path = Path(__file__).parent
 STRATEGIES_BASE_MODULE = "pytorch_lightning.strategies"
 
 call_register_strategies(FILE_ROOT, STRATEGIES_BASE_MODULE)

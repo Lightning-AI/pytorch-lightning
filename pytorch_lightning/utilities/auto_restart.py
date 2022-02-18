@@ -335,7 +335,7 @@ class CaptureIterableDataset(IterableDataset):
 
         self.reset_on_epoch()
 
-    def reset_on_epoch(self):
+    def reset_on_epoch(self) -> None:
         self._state_dict = None
 
     def __iter__(self) -> Iterator:
@@ -654,7 +654,7 @@ class _StatefulDataLoaderIter:
         self._store_sampler_state()
         return indexes
 
-    def _prepare_loader(self, loader):
+    def _prepare_loader(self, loader) -> None:
         _add_capture_metadata_collate(loader)
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
@@ -693,13 +693,13 @@ class _StatefulDataLoaderIter:
 
 
 class _SingleProcessDataLoaderIterStateful(_StatefulDataLoaderIter, _SingleProcessDataLoaderIter):
-    def __init__(self, loader: DataLoader):
+    def __init__(self, loader: DataLoader) -> None:
         self._prepare_loader(loader)
         super().__init__(loader)
 
 
 class _MultiProcessingDataLoaderIterStateful(_StatefulDataLoaderIter, _MultiProcessingDataLoaderIter):
-    def __init__(self, loader: DataLoader):
+    def __init__(self, loader: DataLoader) -> None:
         self._prepare_loader(loader)
         super().__init__(loader)
 

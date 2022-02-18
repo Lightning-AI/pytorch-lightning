@@ -87,44 +87,44 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
     return op(pkg_version, Version(version))
 
 
-_IS_WINDOWS = platform.system() == "Windows"
-_IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
-_TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
-_TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
-_TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
+_IS_WINDOWS: bool = platform.system() == "Windows"
+_IS_INTERACTIVE: bool = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
+_TORCH_GREATER_EQUAL_1_8: bool = _compare_version("torch", operator.ge, "1.8.0")
+_TORCH_GREATER_EQUAL_1_8_1: bool = _compare_version("torch", operator.ge, "1.8.1")
+_TORCH_GREATER_EQUAL_1_9: bool = _compare_version("torch", operator.ge, "1.9.0")
+_TORCH_GREATER_EQUAL_1_10: bool = _compare_version("torch", operator.ge, "1.10.0")
 # _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
 
-_APEX_AVAILABLE = _module_available("apex.amp")
-_BAGUA_AVAILABLE = _package_available("bagua")
-_DEEPSPEED_AVAILABLE = _package_available("deepspeed")
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
-_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
-_GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
-_HOROVOD_AVAILABLE = _module_available("horovod.torch")
-_HYDRA_AVAILABLE = _package_available("hydra")
-_HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
+_APEX_AVAILABLE: bool = _module_available("apex.amp")
+_BAGUA_AVAILABLE: bool = _package_available("bagua")
+_DEEPSPEED_AVAILABLE: bool = _package_available("deepspeed")
+_FAIRSCALE_AVAILABLE: bool = not _IS_WINDOWS and _module_available("fairscale.nn")
+_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE: bool = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
+_FAIRSCALE_FULLY_SHARDED_AVAILABLE: bool = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
+_GROUP_AVAILABLE: bool = not _IS_WINDOWS and _module_available("torch.distributed.group")
+_HOROVOD_AVAILABLE: bool = _module_available("horovod.torch")
+_HYDRA_AVAILABLE: bool = _package_available("hydra")
+_HYDRA_EXPERIMENTAL_AVAILABLE: bool = _module_available("hydra.experimental")
+_JSONARGPARSE_AVAILABLE: bool = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.0.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
-_NEPTUNE_AVAILABLE = _package_available("neptune")
-_NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
-_OMEGACONF_AVAILABLE = _package_available("omegaconf")
-_POPTORCH_AVAILABLE = _package_available("poptorch")
-_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+_NEPTUNE_AVAILABLE: bool = _package_available("neptune")
+_NEPTUNE_GREATER_EQUAL_0_9: bool = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
+_OMEGACONF_AVAILABLE: bool = _package_available("omegaconf")
+_POPTORCH_AVAILABLE: bool = _package_available("poptorch")
+_RICH_AVAILABLE: bool = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHTEXT_AVAILABLE = _package_available("torchtext")
+_TORCHTEXT_AVAILABLE: bool = _package_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
-_TORCHVISION_AVAILABLE = _package_available("torchvision")
-_WANDB_AVAILABLE = _package_available("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
+_TORCHVISION_AVAILABLE: bool = _package_available("torchvision")
+_WANDB_AVAILABLE: bool = _package_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22: bool = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10: bool = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+_TPU_AVAILABLE: bool = XLADeviceUtils.tpu_device_exists()
 
 if _POPTORCH_AVAILABLE:
     import poptorch

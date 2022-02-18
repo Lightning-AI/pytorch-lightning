@@ -32,7 +32,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class DDPFullyShardedStrategy(DDPStrategy):
@@ -55,7 +55,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-    ):
+    ) -> None:
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
@@ -205,7 +205,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     @classmethod

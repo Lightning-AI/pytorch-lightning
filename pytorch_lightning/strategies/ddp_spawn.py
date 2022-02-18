@@ -40,7 +40,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class DDPSpawnStrategy(ParallelStrategy):
@@ -59,8 +59,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        **kwargs: Any,
-    ):
+        **kwargs) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -94,19 +93,19 @@ class DDPSpawnStrategy(ParallelStrategy):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def num_processes(self):
+    def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
     @property
-    def _is_single_process_single_device(self):
+    def _is_single_process_single_device(self) -> bool:
         return True
 
-    def _configure_launcher(self):
+    def _configure_launcher(self) -> None:
         self._launcher = _SpawnLauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -139,7 +138,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
         return {"nprocs": self.num_processes}
 
-    def _worker_setup(self, process_idx: int):
+    def _worker_setup(self, process_idx: int) -> None:
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
@@ -147,7 +146,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
         )
 
-    def pre_configure_ddp(self):
+    def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -201,7 +200,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         if self.root_device.type == "cuda":
             # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
@@ -249,7 +248,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         with self.precision_plugin.predict_step_context():
             return self.lightning_module.predict_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 

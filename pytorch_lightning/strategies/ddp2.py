@@ -56,12 +56,12 @@ class DDP2Strategy(DDPStrategy):
     def root_device(self):
         return self.parallel_devices[0]
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         # no need to do anything when model is wrapped in torch.nn.DataParallel
         pass
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
         return distributed_sampler_kwargs
 

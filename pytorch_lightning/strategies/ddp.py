@@ -56,7 +56,7 @@ if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class DDPStrategy(ParallelStrategy):
@@ -114,11 +114,11 @@ class DDPStrategy(ParallelStrategy):
         self._num_nodes = num_nodes
 
     @property
-    def num_processes(self):
+    def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -159,7 +159,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
-    def setup_distributed(self):
+    def setup_distributed(self) -> None:
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
@@ -181,7 +181,7 @@ class DDPStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def pre_configure_ddp(self):
+    def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -217,7 +217,7 @@ class DDPStrategy(ParallelStrategy):
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                     self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
-    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
+    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int) -> None:
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         optimizers = self.optimizers
         if self._model_averaging_period is None:
@@ -290,7 +290,7 @@ class DDPStrategy(ParallelStrategy):
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
@@ -331,7 +331,7 @@ class DDPStrategy(ParallelStrategy):
         with self.precision_plugin.predict_step_context():
             return self.lightning_module.predict_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
 

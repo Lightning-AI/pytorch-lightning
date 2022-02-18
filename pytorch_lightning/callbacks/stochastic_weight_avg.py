@@ -40,7 +40,7 @@ class StochasticWeightAveraging(Callback):
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
-    ):
+    ) -> None:
         r"""
 
         Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
@@ -133,7 +133,7 @@ class StochasticWeightAveraging(Callback):
         return self._max_epochs - 1  # 0-based
 
     @staticmethod
-    def pl_module_contains_batch_norm(pl_module: "pl.LightningModule"):
+    def pl_module_contains_batch_norm(pl_module: "pl.LightningModule") -> bool:
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
@@ -141,7 +141,7 @@ class StochasticWeightAveraging(Callback):
         with pl_module._prevent_trainer_and_dataloaders_deepcopy():
             self._average_model = deepcopy(pl_module)
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if len(trainer.optimizers) != 1:
             raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
 
@@ -158,7 +158,7 @@ class StochasticWeightAveraging(Callback):
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             trainer.fit_loop.max_epochs += 1
 
-    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.current_epoch == self.swa_start:
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
@@ -217,10 +217,10 @@ class StochasticWeightAveraging(Callback):
 
             trainer.accumulate_grad_batches = trainer.num_training_batches
 
-    def on_train_epoch_end(self, trainer: "pl.Trainer", *args):
+    def on_train_epoch_end(self, trainer: "pl.Trainer", *args) -> None:
         trainer.fit_loop._skip_backward = False
 
-    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # the trainer increases the current epoch before this hook is called
         if self._model_contains_batch_norm and trainer.current_epoch - 1 == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
@@ -233,11 +233,11 @@ class StochasticWeightAveraging(Callback):
             self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
-    def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule"):
+    def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule") -> None:
         for src_param, dst_param in zip(src_pl_module.parameters(), dst_pl_module.parameters()):
             dst_param.detach().copy_(src_param.to(dst_param.device))
 
-    def reset_batch_norm_and_save_state(self, pl_module: "pl.LightningModule"):
+    def reset_batch_norm_and_save_state(self, pl_module: "pl.LightningModule") -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154."""
         self.momenta = {}
         for module in pl_module.modules():
@@ -253,7 +253,7 @@ class StochasticWeightAveraging(Callback):
             module.momentum = None
             module.num_batches_tracked *= 0
 
-    def reset_momenta(self):
+    def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
         for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
@@ -261,7 +261,7 @@ class StochasticWeightAveraging(Callback):
     @staticmethod
     def update_parameters(
         average_model: "pl.LightningModule", model: "pl.LightningModule", n_averaged: torch.LongTensor, avg_fn: _AVG_FN
-    ):
+    ) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112."""
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device

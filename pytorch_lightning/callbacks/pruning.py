@@ -15,11 +15,13 @@ r"""
 ModelPruning
 ^^^^^^^^^^^^
 """
+from __future__ import annotations
+
 import inspect
 import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
@@ -33,7 +35,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
@@ -49,8 +51,7 @@ _PYTORCH_PRUNING_METHOD = {
     "random_unstructured": pytorch_prune.RandomUnstructured,
 }
 
-_PARAM_TUPLE = Tuple[nn.Module, str]
-_PARAM_LIST = Sequence[_PARAM_TUPLE]
+_PARAM_LIST = Sequence[Tuple[nn.Module, str]]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
 
 

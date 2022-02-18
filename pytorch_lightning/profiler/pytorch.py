@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
@@ -116,7 +116,7 @@ class ScheduleWrapper:
     def pre_step(self, current_action: str) -> None:
         self._current_action = current_action
 
-    def reset(self):
+    def reset(self) -> None:
         # handle properly `fast_dev_run`. PyTorch Profiler will fail otherwise.
         self._num_optimizer_step_with_closure = 0
         self._num_validation_step = 0

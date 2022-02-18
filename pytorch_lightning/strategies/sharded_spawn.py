@@ -106,7 +106,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     def pre_backward(self, closure_loss: torch.Tensor) -> None:
         pass
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     @classmethod

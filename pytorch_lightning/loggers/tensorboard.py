@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _fl
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -94,8 +94,7 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
-        **kwargs,
-    ):
+        **kwargs) -> None:
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ""
@@ -234,7 +233,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array=None):
+    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -289,7 +288,7 @@ class TensorBoardLogger(LightningLoggerBase):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         try:
@@ -316,7 +315,7 @@ class TensorBoardLogger(LightningLoggerBase):
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, None]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state

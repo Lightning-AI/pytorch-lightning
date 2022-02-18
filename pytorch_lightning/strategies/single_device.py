@@ -35,7 +35,7 @@ class SingleDeviceStrategy(Strategy):
         accelerator: pl.accelerators.accelerator.Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
         precision_plugin: PrecisionPlugin | None = None,
-    ):
+    ) -> None:
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self._root_device = torch.device(device)
         self.global_rank = 0

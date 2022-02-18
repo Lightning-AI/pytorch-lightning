@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class FitLoop(Loop[None]):
@@ -266,9 +266,10 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
-        self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
-        )
+        if self._data_fetcher:
+            self._data_fetcher.setup(
+                dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
+            )
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
 

@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class EarlyStopping(Callback):
@@ -99,7 +99,7 @@ class EarlyStopping(Callback):
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
         check_on_train_epoch_end: Optional[bool] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.monitor = monitor
         self.min_delta = min_delta

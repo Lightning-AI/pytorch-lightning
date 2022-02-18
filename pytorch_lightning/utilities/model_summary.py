@@ -28,7 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]

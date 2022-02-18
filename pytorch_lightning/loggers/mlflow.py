@@ -27,16 +27,16 @@ from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE: bool = _module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 # todo: there seems to be still some remaining import error with Conda env
 except ModuleNotFoundError:
-    _MLFLOW_AVAILABLE = False
+    _MLFLOW_AVAILABLE: bool = False
     mlflow, MlflowClient, context = None, None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
 
@@ -117,7 +117,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = "./mlruns",
         prefix: str = "",
         artifact_location: Optional[str] = None,
-    ):
+    ) -> None:
         if mlflow is None:
             raise ModuleNotFoundError(
                 "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."

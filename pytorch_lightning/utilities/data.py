@@ -376,7 +376,7 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     return dl_kwargs
 
 
-def _is_dataloader_shuffled(dataloader: DataLoader):
+def _is_dataloader_shuffled(dataloader: DataLoader) -> bool:
     return (
         hasattr(dataloader, "sampler")
         and not isinstance(dataloader.sampler, SequentialSampler)

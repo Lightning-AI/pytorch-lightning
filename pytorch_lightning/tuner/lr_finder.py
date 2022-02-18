@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import importlib
 import logging
 import os
@@ -38,7 +40,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") -> str:
@@ -87,7 +89,7 @@ class _LRFinder:
         lr = lr_finder.suggestion()
     """
 
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
 
         self.mode = mode
@@ -301,7 +303,7 @@ class _LRCallback(Callback):
         early_stop_threshold: float = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
-    ):
+    ) -> None:
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -312,7 +314,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+    def on_train_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch, batch_idx: int) -> None:
         """Called before each training batch, logs the lr that will be used."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -322,7 +324,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+    def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs, batch, batch_idx: int) -> None:
         """Called when the training batch ends, logs the calculated loss."""
         if (trainer.fit_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -368,7 +370,7 @@ class _LinearLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
         self.end_lr = end_lr
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
@@ -406,7 +408,7 @@ class _ExponentialLR(_LRScheduler):
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1) -> None:
         self.end_lr = end_lr
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)

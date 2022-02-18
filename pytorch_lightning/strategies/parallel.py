@@ -14,7 +14,7 @@
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -38,7 +38,7 @@ class ParallelStrategy(Strategy, ABC):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-    ):
+    ) -> None:
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
@@ -81,11 +81,11 @@ class ParallelStrategy(Strategy, ABC):
         self._parallel_devices = parallel_devices
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def reconciliate_processes(self, trace: str):
+    def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
@@ -99,7 +99,7 @@ class ParallelStrategy(Strategy, ABC):
         return decision
 
     @property
-    def torch_distributed_backend(self):
+    def torch_distributed_backend(self) -> str:
         torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
         if torch_backend is None:
             torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"

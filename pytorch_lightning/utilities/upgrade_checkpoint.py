@@ -29,7 +29,7 @@ KEYS_MAPPING = {
     "early_stop_callback_patience": (EarlyStopping, "patience"),
 }
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def upgrade_checkpoint(filepath: _PATH) -> None:
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--file", help="filepath for a checkpoint to upgrade")
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     log.info("Creating a backup of the existing checkpoint file before overwriting in the upgrade process.")
     copyfile(args.file, args.file + ".bak")

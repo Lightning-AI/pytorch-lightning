@@ -16,7 +16,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info
 _SIGNUM = Union[int, signal.Signals]
 _HANDLER = Union[Callable[[_SIGNUM, FrameType], Any], int, signal.Handlers, None]
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class HandlersCompose:

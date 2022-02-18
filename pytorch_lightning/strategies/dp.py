@@ -38,7 +38,7 @@ class DataParallelStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-    ):
+    ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -111,7 +111,7 @@ class DataParallelStrategy(ParallelStrategy):
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    def barrier(self, *args, **kwargs):
+    def barrier(self, *args, **kwargs) -> None:
         pass
 
     def broadcast(self, obj: object, src: int = 0) -> object:

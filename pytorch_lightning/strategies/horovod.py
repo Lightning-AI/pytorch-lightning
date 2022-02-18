@@ -44,7 +44,7 @@ class HorovodStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-    ):
+    ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -72,7 +72,7 @@ class HorovodStrategy(ParallelStrategy):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -116,7 +116,7 @@ class HorovodStrategy(ParallelStrategy):
             # Synchronization will be performed explicitly following backward()
             self._exit_stack.enter_context(optimizer.skip_synchronize())
 
-    def barrier(self, *args, **kwargs):
+    def barrier(self, *args, **kwargs) -> None:
         if distributed_available():
             self.join()
 
@@ -124,13 +124,13 @@ class HorovodStrategy(ParallelStrategy):
         obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         if self.root_device.type == "cuda":
             # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def join(self):
+    def join(self) -> None:
         if self.root_device.type == "cuda":
             hvd.join(self.local_rank)
         else:

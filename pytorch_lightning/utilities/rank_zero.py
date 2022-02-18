@@ -20,7 +20,7 @@ from functools import partial, wraps
 from platform import python_version
 from typing import Any, Callable, Optional, Union
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn: Callable) -> Callable:

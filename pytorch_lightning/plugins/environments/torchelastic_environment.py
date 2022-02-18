@@ -18,7 +18,7 @@ import os
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):

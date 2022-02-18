@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 
@@ -213,7 +213,7 @@ class ModelCheckpoint(Callback):
         train_time_interval: Optional[timedelta] = None,
         every_n_epochs: Optional[int] = None,
         save_on_train_epoch_end: Optional[bool] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.monitor = monitor
         self.verbose = verbose

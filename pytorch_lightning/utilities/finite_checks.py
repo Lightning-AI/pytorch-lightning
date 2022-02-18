@@ -18,7 +18,7 @@ import logging
 import torch
 import torch.nn as nn
 
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
 def print_nan_gradients(model: nn.Module) -> None:

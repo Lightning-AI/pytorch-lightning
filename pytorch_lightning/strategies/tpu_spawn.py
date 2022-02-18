@@ -119,7 +119,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def _configure_launcher(self):
+    def _configure_launcher(self) -> None:
         self._launcher = _XLASpawnLauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -219,7 +219,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             "start_method": self.start_method,
         }
 
-    def _worker_setup(self, process_idx: int):
+    def _worker_setup(self, process_idx: int) -> None:
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
