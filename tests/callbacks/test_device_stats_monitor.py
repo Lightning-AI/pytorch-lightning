@@ -17,6 +17,11 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.cpu import (
+    CPU_PERCENT,
+    CPU_SWAP_PERCENT,
+    CPU_VM_PERCENT,
+)
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.loggers import CSVLogger
@@ -26,9 +31,9 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 CPU_METRIC_KEYS = [
-    "cpu_vm_percent",
-    "cpu_percent",
-    "cpu_swap_percent",
+    CPU_VM_PERCENT,
+    CPU_SWAP_PERCENT,
+    CPU_PERCENT,
 ]
 
 
