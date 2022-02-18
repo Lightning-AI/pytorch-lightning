@@ -25,7 +25,7 @@ import torch
 from torch import is_tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
@@ -52,7 +52,7 @@ else:
     API = None
 
 
-class CometLogger(LightningLoggerBase):
+class CometLogger(Logger):
     r"""
     Log using `Comet.ml <https://www.comet.ml>`_.
 

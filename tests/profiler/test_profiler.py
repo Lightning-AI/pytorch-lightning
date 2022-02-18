@@ -575,13 +575,7 @@ def test_trainer_profiler_incorrect_str_arg():
     [
         ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
         ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),
-        (
-            {
-                "limit_train_batches": 7,
-                "limit_val_batches": 2,
-            },
-            "fit",
-        ),
+        ({"limit_train_batches": 7, "limit_val_batches": 2,}, "fit",),
         ({"limit_val_batches": 4}, "validate"),
         ({"limit_test_batches": 4}, "test"),
         ({"limit_predict_batches": 4}, "predict"),

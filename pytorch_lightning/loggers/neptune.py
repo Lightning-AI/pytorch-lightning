@@ -31,7 +31,7 @@ import torch
 
 from pytorch_lightning import __version__
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
@@ -85,7 +85,7 @@ _LEGACY_NEPTUNE_LOGGER_KWARGS = [
 ]
 
 
-class NeptuneLogger(LightningLoggerBase):
+class NeptuneLogger(Logger):
     r"""
     Log using `Neptune <https://neptune.ai>`_.
 
