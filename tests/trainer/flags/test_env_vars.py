@@ -53,4 +53,4 @@ def test_passing_env_variables_devices(cuda_available_mock, device_count_mock):
     trainer = Trainer()
     assert trainer.devices == 2
     trainer = Trainer(accelerator="gpu", devices=1)
-    assert trainer.devices == 1
+    assert trainer.devices == 2

@@ -448,8 +448,8 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.strategy, plugin)
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't require GPU")
-def test_accelerator_cpu():
+@mock.patch("torch.cuda.is_available", return_value=False)
+def test_accelerator_cpu(_):
 
     trainer = Trainer(accelerator="cpu")
 
@@ -468,10 +468,8 @@ def test_accelerator_gpu():
     assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='gpu'`, but you didn't pass `gpus` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="gpu")
+    trainer = Trainer(accelerator="gpu")
+    assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="auto", devices=1)
 
@@ -513,8 +511,9 @@ def test_accelerator_auto_with_devices_gpu():
 
 def test_validate_accelerator_and_devices():
 
-    with pytest.raises(MisconfigurationException, match="You passed `devices=2` but haven't specified"):
-        Trainer(accelerator="ddp_cpu", devices=2)
+    trainer = Trainer(accelerator="ddp_cpu", devices=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.num_processes == 2
 
 
 def test_set_devices_if_none_cpu():
@@ -525,8 +524,10 @@ def test_set_devices_if_none_cpu():
 
 def test_devices_with_cpu_only_supports_integer():
 
-    with pytest.raises(MisconfigurationException, match="The flag `devices` must be an int"):
-        Trainer(accelerator="cpu", devices="1,3")
+    with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
+        trainer = Trainer(accelerator="cpu", devices="1,3")
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
@@ -553,8 +554,9 @@ def test_exception_when_strategy_used_with_accelerator():
 
 
 def test_exception_when_strategy_used_with_plugins():
-    with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
-        Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
+    with pytest.raises(MisconfigurationException, match="only specify one strategy, but you have passed"):
+        with pytest.deprecated_call(match=r"`strategy` to the `plugins` flag in Trainer has been deprecated"):
+            Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
 
 
 def test_exception_invalid_strategy():
@@ -853,13 +855,14 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16)
+            Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
 def test_unsupported_ipu_choice(monkeypatch):
@@ -889,3 +892,11 @@ def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, i
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
+
+
+def test_passing_zero_and_empty_list_to_devices_flag():
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=0)
+
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=[])

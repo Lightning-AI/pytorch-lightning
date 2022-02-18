@@ -31,7 +31,7 @@ from tests.helpers.runif import RunIf
 def test_strategy_registry_with_new_strategy():
     class TestStrategy:
 
-        distributed_backend = "test_strategy"
+        strategy_name = "test_strategy"
 
         def __init__(self, param1, param2):
             self.param1 = param1
@@ -45,7 +45,7 @@ def test_strategy_registry_with_new_strategy():
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["description"] == strategy_description
     assert StrategyRegistry[strategy_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert StrategyRegistry[strategy_name]["distributed_backend"] == "test_strategy"
+    assert StrategyRegistry[strategy_name]["strategy_name"] == "test_strategy"
     assert isinstance(StrategyRegistry.get(strategy_name), TestStrategy)
 
     StrategyRegistry.remove(strategy_name)
