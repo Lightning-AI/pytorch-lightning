@@ -533,7 +533,7 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     # Should have no deprecation warning
     Trainer(logger=[logger2, logger3])
 
-    
+
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
