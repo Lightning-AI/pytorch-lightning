@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
