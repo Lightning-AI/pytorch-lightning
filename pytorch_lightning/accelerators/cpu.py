@@ -41,9 +41,7 @@ class CPUAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "cpu":
-            raise MisconfigurationException(
-                f"Device should be CPU, got {root_device} instead."
-            )
+            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Get CPU stats from psutil."""

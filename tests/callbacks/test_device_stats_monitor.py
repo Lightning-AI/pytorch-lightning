@@ -17,11 +17,7 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import (
-    CPU_PERCENT,
-    CPU_SWAP_PERCENT,
-    CPU_VM_PERCENT,
-)
+from pytorch_lightning.accelerators.cpu import CPU_PERCENT, CPU_SWAP_PERCENT, CPU_VM_PERCENT
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.loggers import CSVLogger
