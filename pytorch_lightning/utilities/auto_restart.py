@@ -15,12 +15,8 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
-import torch
 from torch.utils.data import (
     BatchSampler,
     Dataset,
@@ -43,6 +39,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import collect_rng_states, set_rng_states
 from pytorch_lightning.utilities.types import _Stateful
 
 
@@ -266,39 +263,6 @@ class CaptureMapDataset(Dataset):
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
         return {self.worker_id: {"rng_states": collect_rng_states()}}
-
-
-def collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
-    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
-
-
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch.set_rng_state(rng_state_dict.get("torch"))
-    np.random.set_state(rng_state_dict.get("numpy"))
-    version, state, gauss = rng_state_dict.get("python")
-    python_set_rng_state((version, tuple(state), gauss))
-
-
-@contextmanager
-def isolate_rng() -> Generator[None, None, None]:
-    """A context manager that resets the global random state on exit to what it was before entering.
-
-    It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
-
-    Example:
-        >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
-        <torch._C.Generator object at ...>
-        >>> with isolate_rng():
-        ...     [torch.rand(1) for _ in range(3)]
-        [tensor([0.7576]), tensor([0.2793]), tensor([0.4031])]
-        >>> torch.rand(1)
-        tensor([0.7576])
-    """
-    states = collect_rng_states()
-    yield
-    set_rng_states(states)
 
 
 class CaptureIterableDataset(IterableDataset):
