@@ -13,9 +13,8 @@
 # limitations under the License.
 from os import environ
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.csv_logs import CSVLogger
-from pytorch_lightning.loggers.logger import Logger, LoggerCollection
+from pytorch_lightning.loggers.logger import Logger, LoggerCollection, LightningLoggerBase # LightningLoggerBase imported for backward compatibility
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 __all__ = ["Logger", "LoggerCollection", "TensorBoardLogger", "CSVLogger", "LightningLoggerBase"]

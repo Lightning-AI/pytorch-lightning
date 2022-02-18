@@ -182,7 +182,7 @@ class Logger(ABC):
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
         metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics` method.
+        :meth:`~pytorch_lightning.loggers.logger.Logger.agg_and_log_metrics` method.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -462,3 +462,28 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
+
+
+class LightningLoggerBase(Logger):
+    """Base class for experiment loggers.
+
+    Args:
+        agg_key_funcs:
+            Dictionary which maps a metric name to a function, which will
+            aggregate the metric values for the same steps.
+        agg_default_func:
+            Default function to aggregate metric values. If some metric name
+            is not presented in the `agg_key_funcs` dictionary, then the
+            `agg_default_func` will be used for aggregation.
+
+    Note:
+        The `agg_key_funcs` and `agg_default_func` arguments are used only when
+        one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        rank_zero_deprecation(
+            "The `pl.loggers.base.LightningLoggerBase` is deprecated. "
+            " Please use `pl.loggers.logger.Logger` instead."
+        )
+        super().__init__(*args, **kwargs)
