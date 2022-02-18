@@ -190,20 +190,6 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_text(self, *args, **kwargs) -> None:
-        """Log text.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
-
-    def log_image(self, *args, **kwargs) -> None:
-        """Log image.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
-
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
