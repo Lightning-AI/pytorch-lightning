@@ -111,7 +111,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def state_dict(self) -> Dict[str, Any]:
         """``NativeMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
 
-        Lightning will auto-save NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.state_dict`` instead
+        Lightning will auto-save NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.state_dict`` instead.
         """
         if self.scaler is not None:
             return self.scaler.state_dict()
