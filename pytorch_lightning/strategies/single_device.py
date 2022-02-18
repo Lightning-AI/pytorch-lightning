@@ -72,6 +72,10 @@ class SingleDeviceStrategy(Strategy):
         super().setup(trainer)
 
     @property
+    def is_distributed(self) -> bool:
+        return False
+
+    @property
     def is_global_zero(self) -> bool:
         return True
 

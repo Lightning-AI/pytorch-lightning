@@ -432,7 +432,7 @@ class LightningLite(ABC):
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._accelerator_connector.is_distributed
+            self._strategy.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )

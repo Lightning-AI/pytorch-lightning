@@ -1393,7 +1393,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
-        expected = 1 if trainer._accelerator_connector.is_distributed else 2
+        expected = 1 if trainer.strategy.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
         assert len(batch_indices) == 2
@@ -1401,7 +1401,7 @@ class CustomPredictionWriter(BasePredictionWriter):
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
-        if trainer._accelerator_connector.is_distributed:
+        if trainer.strategy.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSamplerWrapper)

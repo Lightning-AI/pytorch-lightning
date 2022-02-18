@@ -81,6 +81,10 @@ class ParallelStrategy(Strategy, ABC):
         self._parallel_devices = parallel_devices
 
     @property
+    def is_distributed(self) -> bool:
+        return True
+
+    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs

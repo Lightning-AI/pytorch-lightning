@@ -266,7 +266,7 @@ class DataConnector:
     def _requires_distributed_sampler(self, dataloader) -> bool:
         return (
             self.trainer._accelerator_connector.replace_sampler_ddp
-            and self.trainer._accelerator_connector.is_distributed
+            and self.trainer.strategy.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )

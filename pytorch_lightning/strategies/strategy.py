@@ -252,6 +252,11 @@ class Strategy(ABC):
     def is_global_zero(self) -> bool:
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
+    @property
+    @abstractmethod
+    def is_distributed(self) -> bool:
+        """Whether the strategy is distributed strategy."""
+
     @abstractmethod
     def reduce(
         self,

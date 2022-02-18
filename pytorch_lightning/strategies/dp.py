@@ -63,6 +63,10 @@ class DataParallelStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return 1
 
+    @property
+    def is_distributed(self) -> bool:
+        return False
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()

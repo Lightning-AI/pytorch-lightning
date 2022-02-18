@@ -48,7 +48,6 @@ from pytorch_lightning.plugins.environments import (
 )
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
-    DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -817,28 +816,6 @@ class AcceleratorConnector:
     @property
     def parallel_device_ids(self) -> List[int]:
         return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
-
-    @property
-    def is_distributed(self) -> bool:
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = (
-            DDP2Strategy,
-            DDPStrategy,
-            DDPSpawnShardedStrategy,
-            DDPShardedStrategy,
-            DDPFullyShardedStrategy,
-            DDPSpawnStrategy,
-            DeepSpeedStrategy,
-            TPUSpawnStrategy,
-            HorovodStrategy,
-        )
-        is_distributed = isinstance(self.strategy, distributed_strategy)
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed
 
     @property
     def has_ipu(self) -> bool:

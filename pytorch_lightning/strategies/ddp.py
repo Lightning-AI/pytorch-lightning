@@ -97,10 +97,6 @@ class DDPStrategy(ParallelStrategy):
         self._rank_0_will_call_children_scripts: bool = False
 
     @property
-    def is_distributed(self) -> bool:
-        return True
-
-    @property
     def root_device(self) -> torch.device:
         return self.parallel_devices[self.local_rank]
 
