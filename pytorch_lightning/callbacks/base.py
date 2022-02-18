@@ -325,3 +325,6 @@ class Callback:
 
     def on_before_zero_grad(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
         """Called before ``optimizer.zero_grad()``."""
+
+    def _on_before_launch(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """For internal use."""

@@ -28,6 +28,7 @@ import pytest
 import torch
 import yaml
 from packaging import version
+from torch.multiprocessing import ProcessRaisedException
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
@@ -579,7 +580,7 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        MisconfigurationException, match=r"Error on fit start"
+        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
     ):
         LightningCLI(
             EarlyExitTestModel,

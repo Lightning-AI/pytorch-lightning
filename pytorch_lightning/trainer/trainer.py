@@ -670,6 +670,9 @@ class Trainer(
         """
         try:
             if self.strategy.launcher is not None:
+                # used in the CLI's `SaveConfigCallback` so that it still works with DDP spawn
+                self._call_callback_hooks("_on_before_launch")
+
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)

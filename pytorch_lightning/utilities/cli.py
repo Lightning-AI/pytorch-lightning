@@ -27,6 +27,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
@@ -414,9 +415,7 @@ class SaveConfigCallback(Callback):
         self.overwrite = overwrite
         self.multifile = multifile
 
-    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-        # save the config in `setup` because (1) we want it to save regardless of the trainer function run
-        # and we want to save before processes are spawned
+    def save(self, trainer: "pl.Trainer") -> None:
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -445,8 +444,17 @@ class SaveConfigCallback(Callback):
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
 
+    def _on_before_launch(self, trainer: "pl.Trainer", *_: Any) -> None:
+        if isinstance(trainer.strategy, DDPSpawnStrategy):
+            self.save(trainer)
+
+    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        if not isinstance(trainer.strategy, DDPSpawnStrategy):
+            self.save(trainer)
+
     def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
-        # `ArgumentParser` is un-pickleable. Drop it
+        # `ArgumentParser` is un-pickleable. Since we will be dropping it when DDP spawn is used, DDP spawn needs to
+        # save the config file before this is called, and for this, we use an internal hook `on_before_launch`.
         return (
             self.__class__,
             (None, self.config, self.config_filename),
