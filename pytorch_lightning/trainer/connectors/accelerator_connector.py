@@ -593,6 +593,21 @@ class AcceleratorConnector:
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
+        from pytorch_lightning.utilities import _IS_INTERACTIVE
+
+        is_interactive_compatible = (
+            self.strategy.is_interactive_compatible if hasattr(self.strategy, "is_interactive_compatible") else False
+        )
+        if _IS_INTERACTIVE and not is_interactive_compatible:
+            raise MisconfigurationException(
+                f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
+                f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                " environment. Run your code as a script, or choose one of the compatible backends, for example:"
+                "dp, ddp_spawn, ddp_shard_spawn or tpu_spawn"
+                " In case you are spawning processes yourself, make sure to include the Trainer"
+                " creation inside the worker function."
+            )
+
     def _check_and_init_precision(self) -> PrecisionPlugin:
         self._validate_precision_choice()
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
@@ -712,25 +727,6 @@ class AcceleratorConnector:
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
-
-        from pytorch_lightning.utilities import _IS_INTERACTIVE
-
-        # TODO move is_compatible logic to strategy API
-        interactive_compatible_strategy = (
-            DataParallelStrategy.strategy_name,
-            DDPSpawnStrategy.strategy_name,
-            DDPSpawnShardedStrategy.strategy_name,
-            TPUSpawnStrategy.strategy_name,
-        )
-        if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
-            raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
-                f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(interactive_compatible_strategy)}."
-                " In case you are spawning processes yourself, make sure to include the Trainer"
-                " creation inside the worker function."
-            )
 
         # TODO: should be moved to _check_strategy_and_fallback().
         # Current test check precision first, so keep this check here to meet error order

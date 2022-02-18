@@ -63,6 +63,10 @@ class DataParallelStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return 1
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()

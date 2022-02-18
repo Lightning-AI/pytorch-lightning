@@ -109,6 +109,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _configure_launcher(self):
         self._launcher = _SpawnLauncher(self)
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         super().setup(trainer)

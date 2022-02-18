@@ -124,20 +124,6 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
-    @staticmethod
-    def interactive_compatible_types() -> list[DistributedType]:
-        """Returns a list containing interactive compatible DistributeTypes."""
-        return [
-            DistributedType.DP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP_SHARDED_SPAWN,
-            DistributedType.TPU_SPAWN,
-        ]
-
-    def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible."""
-        return self in DistributedType.interactive_compatible_types()
-
     def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."

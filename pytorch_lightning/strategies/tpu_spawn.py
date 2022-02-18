@@ -87,6 +87,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def root_device(self) -> torch.device:
         return xm.xla_device()
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
