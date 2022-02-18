@@ -189,7 +189,7 @@ Example::
     from pytorch_lightning import Trainer, seed_everything
 
     seed_everything(42, workers=True)
-    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    # sets seeds for numpy, torch and python.random.
     model = Model()
     trainer = Trainer(deterministic=True)
 
@@ -1320,7 +1320,7 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a postive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
