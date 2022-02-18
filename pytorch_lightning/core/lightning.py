@@ -95,6 +95,8 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
+        self._device_type = None
+
         # true if using amp
         self.use_amp: bool = False
 
