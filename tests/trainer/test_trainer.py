@@ -1512,7 +1512,7 @@ def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, min_gpus=2)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
 

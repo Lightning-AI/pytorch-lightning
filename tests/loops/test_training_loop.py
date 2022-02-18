@@ -183,7 +183,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir):
     # should have validated twice
     assert trainer.current_epoch == 3
     assert trainer.global_step == 30
-    assert list(model.validation_called_at_step) == [14, 29]
+    assert sorted(list(model.validation_called_at_step)) == [14, 29]
 
 
 def test_validation_check_interval_exceed_data_length_wrong(tmpdir):

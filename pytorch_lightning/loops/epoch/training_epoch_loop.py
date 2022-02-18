@@ -498,8 +498,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.trainer.check_val_every_n_epoch is None:
             return (self.trainer.global_step + 1) % self.trainer.val_check_batch == 0
 
-        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_ba
-        #  tches and val_check_batch
+        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0

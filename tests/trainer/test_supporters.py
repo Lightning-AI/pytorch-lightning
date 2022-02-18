@@ -36,6 +36,7 @@ from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForw
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test_tensor_running_accum_reset():
@@ -381,6 +382,7 @@ def test_combined_data_loader_validation_test(
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
 
 
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
@@ -434,6 +436,7 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
     assert get_len(dataloader) == float("inf")
 
 
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 @pytest.mark.parametrize("is_min_size_mode", [False, True])
 @pytest.mark.parametrize("use_combined_loader", [False, True])
