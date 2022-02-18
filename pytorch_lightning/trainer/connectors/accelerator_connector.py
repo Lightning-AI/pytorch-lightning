@@ -94,7 +94,7 @@ class AcceleratorConnector:
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
-        benchmark: Optional[bool],
+        benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
         num_processes: Optional[int] = None,  # deprecated
