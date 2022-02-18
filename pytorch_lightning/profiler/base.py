@@ -82,24 +82,6 @@ class BaseProfiler(AbstractProfiler):
         self._local_rank: Optional[int] = None
         self._stage: Optional[str] = None
 
-    @contextmanager
-    def profile(self, action_name: str) -> Generator:
-        """Yields a context manager to encapsulate the scope of a profiled action.
-
-        Example::
-
-            with self.profile('load training data'):
-                # load training data code
-
-        The profiler will start once you've entered the context and will automatically
-        stop once you exit the code block.
-        """
-        try:
-            self.start(action_name)
-            yield action_name
-        finally:
-            self.stop(action_name)
-
     def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
