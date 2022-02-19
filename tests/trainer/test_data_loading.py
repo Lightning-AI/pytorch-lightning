@@ -87,7 +87,11 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model.test_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_test_batches=2, strategy="ddp_find_unused_parameters_false", num_processes=1
+        default_root_dir=tmpdir,
+        limit_test_batches=2,
+        accelerator="cpu",
+        devices=1,
+        strategy="ddp_find_unused_parameters_false",
     )
     trainer.test(model)
 
@@ -128,7 +132,7 @@ class TestSpawnBoringModel(BoringModel):
 @RunIf(skip_windows=True, skip_49370=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_spawn", num_processes=2, fast_dev_run=4)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
     assert trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
     trainer.fit(TestSpawnBoringModel(num_workers))
 
@@ -243,7 +247,7 @@ def test_dataloader_reinit_for_subclass():
             self.dummy_kwarg = dummy_kwarg
             self.something_unrelated = 1
 
-    trainer = Trainer(num_processes=2, strategy="ddp_spawn")
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn")
 
     class CustomDummyObj:
         sampler = None
@@ -291,7 +295,7 @@ class LoaderTestModel(BoringModel):
 
 
 def test_loader_detaching():
-    """Checks that the loader has been resetted after the entrypoint."""
+    """Checks that the loader has been reset after the entrypoint."""
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 

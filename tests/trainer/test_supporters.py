@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 def test_tensor_running_accum_reset():
@@ -349,7 +349,7 @@ def test_combined_data_loader_validation_test(
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
 
-        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", gpus=2)
+        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
         dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False
@@ -382,7 +382,7 @@ def test_combined_data_loader_validation_test(
 
 
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, tmpdir):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
     trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
@@ -432,3 +432,41 @@ def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp, t
     dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=False)
     assert len(dataloader.loaders["b"].loader) == 4 if replace_sampler_ddp else 8
     assert get_len(dataloader) == float("inf")
+
+
+@pytest.mark.parametrize("replace_sampler_ddp", [False, True])
+@pytest.mark.parametrize("is_min_size_mode", [False, True])
+@pytest.mark.parametrize("use_combined_loader", [False, True])
+def test_combined_dataloader_for_training_with_ddp(
+    replace_sampler_ddp: bool, is_min_size_mode: bool, use_combined_loader: bool
+):
+    """When providing a CombinedLoader as the training data, it should be correctly receive the distributed
+    samplers."""
+    mode = "min_size" if is_min_size_mode else "max_size_cycle"
+    dim = 3
+    n1 = 8
+    n2 = 6
+    dataloader = {
+        "a": DataLoader(RandomDataset(dim, n1), batch_size=1),
+        "b": DataLoader(RandomDataset(dim, n2), batch_size=1),
+    }
+    if use_combined_loader:
+        dataloader = CombinedLoader(dataloader, mode=mode)
+    expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
+    expected_length_after_ddp = expected_length_before_ddp // 2 if replace_sampler_ddp else expected_length_before_ddp
+    model = BoringModel()
+    trainer = Trainer(
+        strategy="ddp",
+        accelerator="auto",
+        devices=2,
+        replace_sampler_ddp=replace_sampler_ddp,
+        multiple_trainloader_mode="max_size_cycle" if use_combined_loader else mode,
+    )
+    trainer._data_connector.attach_data(
+        model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
+    )
+    trainer.reset_train_dataloader(model=model)
+    assert trainer.train_dataloader is not None
+    assert isinstance(trainer.train_dataloader, CombinedLoader)
+    assert trainer.train_dataloader.mode == mode
+    assert trainer.num_training_batches == expected_length_after_ddp

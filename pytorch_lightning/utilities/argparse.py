@@ -37,7 +37,7 @@ class ParseArgparserDataType(ABC):
 def from_argparse_args(
     cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
 ) -> ParseArgparserDataType:
-    """Create an instance from CLI arguments. Eventually use varibles from OS environement which are defined as
+    """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:

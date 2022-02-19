@@ -59,7 +59,6 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.types import _SupportsStateDict
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -131,8 +130,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
-    on restart."""
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next
+    batch on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -155,7 +154,7 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrieved the right next
     batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
@@ -257,7 +256,6 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.parametrize(
     "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
@@ -904,7 +902,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
         [RandomGetItemDataset],
         [SequentialIterableDataset],
         [SequentialDictIterableDataset],
-        # multiple training datasets (combinded dataloader)
+        # multiple training datasets (combined dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
         # [RandomGetItemDataset, RandomGetItemDataset],  # TODO: support in the future
@@ -1294,29 +1292,6 @@ def test_rotate_worker_indices():
 
     with pytest.raises(MisconfigurationException, match="The `state` should contain"):
         _rotate_worker_indices(state_dict, 2, 3)
-
-
-def test_supports_state_dict_protocol():
-    class StatefulClass:
-        def state_dict(self):
-            pass
-
-        def load_state_dict(self, state_dict):
-            pass
-
-    assert isinstance(StatefulClass(), _SupportsStateDict)
-
-    class NotStatefulClass:
-        def state_dict(self):
-            pass
-
-    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
-
-    class NotStateful2Class:
-        def load_state_dict(self, state_dict):
-            pass
-
-    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():

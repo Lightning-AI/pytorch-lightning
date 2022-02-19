@@ -26,12 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -394,7 +395,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omega
         raise TypeError("hparams must be dictionary")
 
     hparams_allowed = {}
-    # drop paramaters which contain some strange datatypes as fsspec
+    # drop parameters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
             v = v.name if isinstance(v, Enum) else v
