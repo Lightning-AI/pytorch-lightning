@@ -284,7 +284,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    # make sure we restord properly
+    # make sure we restored properly
     assert trainer2.logger.name == logger.name
     assert trainer2.logger.save_dir == logger.save_dir
 
