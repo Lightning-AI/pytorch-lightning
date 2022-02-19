@@ -16,7 +16,7 @@
 <https://arxiv.org/abs/1707.06347>
 Paper authors: John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov
 
-The example implements PPO compatible to work with any continous or discrete action-space environments via OpenAI Gym.
+The example implements PPO compatible to work with any continuous or discrete action-space environments via OpenAI Gym.
 
 To run the template, just run:
 `python reinforce_learn_ppo.py`
@@ -83,13 +83,13 @@ class ActorCategorical(nn.Module):
             actions: actions taken by distribution
 
         Returns:
-            log probability of the acition under pi
+            log probability of the action under pi
         """
         return pi.log_prob(actions)
 
 
-class ActorContinous(nn.Module):
-    """Policy network, for continous action spaces, which returns a distribution and an action given an
+class ActorContinuous(nn.Module):
+    """Policy network, for continuous action spaces, which returns a distribution and an action given an
     observation."""
 
     def __init__(self, actor_net, act_dim):
@@ -119,7 +119,7 @@ class ActorContinous(nn.Module):
             actions: actions taken by distribution
 
         Returns:
-            log probability of the acition under pi
+            log probability of the action under pi
         """
         return pi.log_prob(actions).sum(axis=-1)
 
@@ -198,13 +198,13 @@ class PPOLightning(pl.LightningModule):
         if isinstance(self.env.action_space, gym.spaces.box.Box):
             act_dim = self.env.action_space.shape[0]
             actor_mlp = create_mlp(self.env.observation_space.shape, act_dim)
-            self.actor = ActorContinous(actor_mlp, act_dim)
+            self.actor = ActorContinuous(actor_mlp, act_dim)
         elif isinstance(self.env.action_space, gym.spaces.discrete.Discrete):
             actor_mlp = create_mlp(self.env.observation_space.shape, self.env.action_space.n)
             self.actor = ActorCategorical(actor_mlp)
         else:
             raise NotImplementedError(
-                "Env action space should be of type Box (continous) or Discrete (categorical)."
+                "Env action space should be of type Box (continuous) or Discrete (categorical)."
                 f" Got type: {type(self.env.action_space)}"
             )
 
@@ -309,7 +309,7 @@ class PPOLightning(pl.LightningModule):
             terminal = len(self.ep_rewards) == self.max_episode_len
 
             if epoch_end or done or terminal:
-                # if trajectory ends abtruptly, boostrap value of next state
+                # if trajectory ends abtruptly, bootstrap value of next state
                 if (terminal or epoch_end) and not done:
                     self.state = self.state.to(device=self.device)
                     with torch.no_grad():

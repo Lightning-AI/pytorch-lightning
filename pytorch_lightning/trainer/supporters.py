@@ -526,7 +526,7 @@ class CombinedLoader:
 
 
 class CombinedLoaderIterator:
-    """Custom Iterator returning data from multple loaders, and allows sampling in parallel."""
+    """Custom Iterator returning data from multiple loaders, and allows sampling in parallel."""
 
     def __init__(self, loaders: Any):
         """

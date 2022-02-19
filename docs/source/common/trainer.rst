@@ -1318,7 +1318,7 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a postive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
