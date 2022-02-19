@@ -237,11 +237,7 @@ def test_resume_callback_state_all(tmpdir):
     model = BoringModel()
     callback = AllStatefulCallback(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
-    with pytest.deprecated_call(
-        match="Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
-        " will be removed in v1.8. Please use `Callback.state_dict` instead,"
-        " or new method signature `Callback.on_save_checkpoint -> None`."
-    ):
+    with pytest.deprecated_call():
         trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()

@@ -1638,9 +1638,9 @@ class Trainer(
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 rank_zero_deprecation(
-                    "Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.state_dict` instead,"
-                    " or new method signature `Callback.on_save_checkpoint -> None`."
+                    "Returning a value from `Callback.on_save_checkpoint` is deprecated in v1.6"
+                    " and will be removed in v1.8. Please override `Callback.state_dict`"
+                    " to return state to be saved."
                 )
                 checkpoint["callbacks"][callback.state_key] = state
 

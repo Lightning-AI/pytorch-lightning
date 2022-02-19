@@ -576,9 +576,9 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     )
     trainer.fit(model)
     with pytest.deprecated_call(
-        match="Method `Callback.on_save_checkpoint -> dict` is deprecated in v1.6 and"
-        " will be removed in v1.8. Please use `Callback.state_dict` instead,"
-        " or new method signature `Callback.on_save_checkpoint -> None`."
+        match="Returning a value from `Callback.on_save_checkpoint` is deprecated in v1.6"
+        " and will be removed in v1.8. Please override `Callback.state_dict`"
+        " to return state to be saved."
     ):
         trainer.save_checkpoint(tmpdir + "path.ckpt")
 
