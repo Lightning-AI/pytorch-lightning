@@ -31,8 +31,8 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.layer_sync import LayerSync
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
