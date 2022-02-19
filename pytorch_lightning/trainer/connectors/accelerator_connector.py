@@ -723,7 +723,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
                 f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible backends:"
+                " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" Trainer(strategy=None|{'|'.join(interactive_recomended_strategy)})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
