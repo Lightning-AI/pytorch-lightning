@@ -536,7 +536,7 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
 
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
-        def on_load_checkpoint(self, trainer, pl_module, callback_state) -> None:
+        def on_load_checkpoint(self, trainer, pl_module, callback_state):
             print("overriding on_load_checkpoint")
 
     model = BoringModel()
@@ -558,11 +558,11 @@ def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
 
 def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     class TestCallbackSaveHookReturn(Callback):
-        def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             return {"returning": "on_save_checkpoint"}
 
     class TestCallbackSaveHookOverride(Callback):
-        def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> None:
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             print("overriding without returning")
 
     model = BoringModel()

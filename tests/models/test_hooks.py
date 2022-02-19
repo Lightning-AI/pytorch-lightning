@@ -484,8 +484,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     ]
     trainer.fit(model)
     saved_ckpt = {
-        "callbacks_state_dict": ANY,
-        "callbacks_deprecated_hook_states": ANY,
+        "callbacks": ANY,
         "epoch": 0,
         "global_step": train_batches,
         "lr_schedulers": ANY,
@@ -608,8 +607,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
 
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
-        "callbacks_state_dict": ANY,
-        "callbacks_deprecated_hook_states": ANY,
+        "callbacks": ANY,
         "epoch": 0,
         "global_step": 1,
         "lr_schedulers": ANY,
@@ -629,6 +627,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="on_load_checkpoint", args=(loaded_ckpt,)),
         dict(name="Callback.on_load_checkpoint_new", args=(trainer, model, loaded_ckpt)),
+        dict(name="Callback.on_load_checkpoint", args=(trainer, model, {"a": False})),
         dict(name="Callback.load_state_dict", args=({"a": False},)),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),

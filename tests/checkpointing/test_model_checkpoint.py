@@ -169,7 +169,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk["epoch"] == epoch
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk["callbacks_state_dict"][
+        mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
@@ -270,7 +270,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch)
         assert chk["global_step"] == expected_global_step
 
-        mc_specific_data = chk["callbacks_state_dict"][
+        mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
         ]
@@ -829,7 +829,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
         " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
     )
-    assert ckpt_last["callbacks_state_dict"][ckpt_id] == ckpt_last_epoch["callbacks_state_dict"][ckpt_id]
+    assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = LogInTwoMethods.load_from_checkpoint(path_last_epoch)
@@ -1066,7 +1066,7 @@ def test_current_score(tmpdir):
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
     ckpts = [
-        ckpt["callbacks_state_dict"][
+        ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
             " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
         ]
@@ -1253,7 +1253,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
-    assert ckpt["callbacks_state_dict"][mc.state_key]["last_model_path"] == full_path
+    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
@@ -1266,4 +1266,4 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
-    assert ckpt["callbacks_state_dict"][mc.state_key]["best_model_path"] == full_path
+    assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path

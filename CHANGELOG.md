@@ -406,9 +406,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `LightningLoggerBase.agg_and_log_metrics` in favor of `LightningLoggerBase.log_metrics` ([#11832](https://github.com/PyTorchLightning/pytorch-lightning/pull/11832))
 
 
+- Deprecated `Callback.on_save_checkpoint -> dict` in favor of `Callback.state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
+
+
+- Deprecated `Callback.on_load_checkpoint(callback_state)` in favor of `Callback.load_state_dict` and `Callback.on_load_checkpoint_new(checkpoint)` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
+
+
 ### Removed
 
-- Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
+- Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
 - Remove deprecated method `ClusterEnvironment.creates_children` ([#10339](https://github.com/PyTorchLightning/pytorch-lightning/pull/10339))

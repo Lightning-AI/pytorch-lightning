@@ -123,7 +123,7 @@ class OldStatefulCallback(Callback):
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):
-    """Test that a legacy checkpoint that didn't use a state key before can still be loaded."""
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using state_dict/load_state_dict."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
@@ -134,6 +134,40 @@ def test_resume_callback_state_saved_by_type(tmpdir):
     callback = OldStatefulCallback(state=222)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
     trainer.fit(model, ckpt_path=ckpt_path)
+    assert callback.state == 111
+
+
+class OldStatefulCallbackHooks(Callback):
+    def __init__(self, state):
+        self.state = state
+
+    @property
+    def state_key(self):
+        return type(self)
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        return {"state": self.state}
+
+    def on_load_checkpoint(self, trainer, pl_module, callback_state):
+        self.state = callback_state["state"]
+
+
+def test_resume_callback_state_saved_by_type(tmpdir):
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using on_save/load_checkpoint."""
+    # TODO: remove on_save_checkpoint() -> dict
+    # and on_load_checkpoint(callback_state) support in v1.8
+    model = BoringModel()
+    callback = OldStatefulCallbackHooks(state=111)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    with pytest.deprecated_call():
+        trainer.fit(model)
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
+
+    callback = OldStatefulCallbackHooks(state=222)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    with pytest.deprecated_call():
+        trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
 
@@ -175,28 +209,27 @@ class AllStatefulCallback(Callback):
         return type(self)
 
     def state_dict(self):
-        return {"state": self.state}
+        return {"new_state": self.state}
 
-    def load_state_dict(self, state_dict) -> None:
-        self.state = state_dict["state"]
+    def load_state_dict(self, state_dict):
+        assert state_dict == {"old_state_precedence": 10}
+        self.state = state_dict["old_state_precedence"]
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
-        return {"deprecated_state": 10}
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        return {"old_state_precedence": 10}
 
-    def on_load_checkpoint(self, trainer, pl_module, callback_state) -> None:
-        assert callback_state == {"deprecated_state": 10}
-        self.deprecated_hook_state = 10
+    def on_load_checkpoint(self, trainer, pl_module, callback_state):
+        assert callback_state == {"old_state_precedence": 10}
+        self.old_state_precedence = callback_state["old_state_precedence"]
 
-    def on_load_checkpoint_new(self, trainer, pl_module, checkpoint) -> None:
-        assert "callbacks_state_dict" in checkpoint
-        assert checkpoint["callbacks_state_dict"][self.state_key] == {"state": 111}
-        assert "callbacks_deprecated_hook_states" in checkpoint
-        assert checkpoint["callbacks_deprecated_hook_states"][self.state_key] == {"deprecated_state": 10}
+    def on_load_checkpoint_new(self, trainer, pl_module, checkpoint):
+        assert "callbacks" in checkpoint
+        assert checkpoint["callbacks"][self.state_key] == {"old_state_precedence": 10}
         self.on_load_checkpoint_new_ran = 1
 
 
 def test_resume_callback_state_all(tmpdir):
-    """Test all Stateful protocol and CheckpointHooks are supported."""
+    """Test on_save/load_checkpoint state precedence over state_dict/load_state_dict until v1.8 removal"""
     # TODO: remove on_save_checkpoint() -> dict
     # and on_load_checkpoint(callback_state) support in v1.8
     model = BoringModel()
@@ -215,6 +248,6 @@ def test_resume_callback_state_all(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
     with pytest.deprecated_call():
         trainer.fit(model, ckpt_path=ckpt_path)
-    assert callback.state == 111
-    assert callback.deprecated_hook_state == 10
+    assert callback.state == 10
+    assert callback.old_state_precedence == 10
     assert callback.on_load_checkpoint_new_ran == 1
