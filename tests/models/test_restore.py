@@ -33,7 +33,7 @@ from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.utils import no_warning_call
+from tests.loops.test_loops import CustomException
 
 
 class ModelTrainerPropertyParity(Callback):
@@ -232,8 +232,7 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.global_step == 0
 
     trainer.fit(model)
-    # TODO(@carmocca): should not need `-1`
-    assert trainer.current_epoch == first_max_epochs - 1
+    assert trainer.current_epoch == first_max_epochs
     assert trainer.global_step == first_max_epochs * train_batches
 
     # save checkpoint after loop ends, training end called, epoch count increased
@@ -253,8 +252,14 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.current_epoch == 0
     assert trainer.global_step == 0
 
-    # TODO(@carmocca): should not need `-1`
-    assert trainer.current_epoch == max_epochs - 1
+    class TestModel(BoringModel):
+        def on_pretrain_routine_end(self) -> None:
+            assert self.trainer.current_epoch == first_max_epochs
+            # TODO(@carmocca): should not need `+1`
+            assert self.trainer.global_step == first_max_epochs * train_batches + 1
+
+    trainer.fit(TestModel(), ckpt_path=ckpt_path)
+    assert trainer.current_epoch == max_epochs
     # TODO(@carmocca): should not need `+1`
     assert trainer.global_step == max_epochs * train_batches + 1
 
@@ -279,8 +284,7 @@ def test_fit_twice(tmpdir):
     trainer.fit(TestModel())
     trainer.fit_loop.max_epochs = 4
     trainer.fit(TestModel())
-    # TODO(@carmocca): 1 should not be duplicated
-    assert epochs == [0, 1, 1, 2, 3]
+    assert epochs == [0, 1, 2, 3]
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
@@ -295,7 +299,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_fit_start(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
@@ -575,8 +579,8 @@ def test_dp_resume(tmpdir):
     trainer = Trainer(**trainer_options)
     trainer.fit(model, datamodule=dm)
 
-    # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
+    # track epoch before saving
+    real_global_epoch = trainer.current_epoch
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -603,10 +607,10 @@ def test_dp_resume(tmpdir):
     class CustomModel(CustomClassificationModelDP):
         def __init__(self):
             super().__init__()
-            self.on_fit_start_called = False
+            self.on_pretrain_routine_end_called = False
 
         # set the epoch start hook so we can predict before the model does the full training
-        def on_fit_start(self):
+        def on_pretrain_routine_end(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
 
             # if model and state loaded correctly, predictions will be good even though we
@@ -615,14 +619,14 @@ def test_dp_resume(tmpdir):
 
             dataloader = dm.train_dataloader()
             tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
-            self.on_fit_start_called = True
+            self.on_pretrain_routine_end_called = True
 
     # new model
     model = CustomModel()
 
     # fit new model which should load hpc weights
     new_trainer.fit(model, datamodule=dm)
-    assert model.on_fit_start_called
+    assert model.on_pretrain_routine_end_called
 
     # test freeze on gpu
     model.freeze()
@@ -770,44 +774,59 @@ def test_model_pickle(tmpdir):
     cloudpickle.dumps(model)
 
 
-@pytest.mark.parametrize("stop_batch_idx", [4, 7])
-def test_restarting_mid_epoch_raises_warning(tmpdir, stop_batch_idx):
+class ExceptionModel(BoringModel):
+    def __init__(self, stop_batch_idx):
+        super().__init__()
+        self.stop_batch_idx = stop_batch_idx
+
+    def training_step(self, batch, batch_idx):
+        if batch_idx == self.stop_batch_idx:
+            raise CustomException()
+        return super().training_step(batch, batch_idx)
+
+
+class ShouldStopModel(ExceptionModel):
+    def training_step(self, batch, batch_idx):
+        if batch_idx == self.stop_batch_idx:
+            # setting should_stop is treated differently to raising an exception.
+            # checking both tests that this warning is raised in the correct loop
+            self.trainer.should_stop = True
+        return super().training_step(batch, batch_idx)
+
+
+@pytest.mark.parametrize("stop_in_the_middle", (True, False))
+@pytest.mark.parametrize("model_cls", (ExceptionModel, ShouldStopModel))
+def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls):
     """Test that a warning is raised if training is restarted from mid-epoch."""
-
-    class CustomModel(BoringModel):
-        def __init__(self, stop_batch_idx):
-            super().__init__()
-            self.stop_batch_idx = stop_batch_idx
-
-        def training_step(self, batch, batch_idx):
-            if (batch_idx + 1) == self.stop_batch_idx:
-                self.trainer.should_stop = True
-
-            return super().training_step(batch, batch_idx)
-
-    limit_train_batches = 7
+    limit_train_batches = 8
     trainer_kwargs = {
         "default_root_dir": tmpdir,
         "limit_train_batches": limit_train_batches,
+        "limit_val_batches": 0,
         "enable_progress_bar": False,
         "enable_model_summary": False,
     }
     trainer = Trainer(max_epochs=1, **trainer_kwargs)
-    model = CustomModel(stop_batch_idx)
-    trainer.fit(model)
+    model = model_cls(limit_train_batches // 2 if stop_in_the_middle else -1)
+
+    if stop_in_the_middle:
+        with pytest.raises(CustomException):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
 
     ckpt_path = str(tmpdir / "resume.ckpt")
     trainer.save_checkpoint(ckpt_path)
 
-    trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
+    trainer = Trainer(max_epochs=2, **trainer_kwargs)
+    model.stop_batch_idx = -1
 
-    warning_raised = limit_train_batches != stop_batch_idx
-    context_manager = pytest.warns if warning_raised else no_warning_call
-    with context_manager(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
+    context_manager = pytest.warns if stop_in_the_middle else tutils.no_warning_call
+    with context_manager(UserWarning, match="resuming from a checkpoint that ended"):
         trainer.fit(model, ckpt_path=ckpt_path)
 
-    if warning_raised:
+    if stop_in_the_middle:
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
-            trainer = Trainer(max_epochs=2, limit_val_batches=0, **trainer_kwargs)
-            with no_warning_call(UserWarning, match="resuming from a checkpoint that ended mid-epoch"):
+            trainer = Trainer(max_epochs=2, **trainer_kwargs)
+            with tutils.no_warning_call(UserWarning, match="resuming from a checkpoint that ended"):
                 trainer.fit(model, ckpt_path=ckpt_path)

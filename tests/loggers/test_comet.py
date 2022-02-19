@@ -105,11 +105,11 @@ def test_comet_logger_manual_experiment_key(comet):
     api_key = "key"
     experiment_key = "96346da91469407a85641afe5766b554"
 
-    instantation_environ = {}
+    instantiation_environ = {}
 
     def save_os_environ(*args, **kwargs):
-        nonlocal instantation_environ
-        instantation_environ = os.environ.copy()
+        nonlocal instantiation_environ
+        instantiation_environ = os.environ.copy()
 
         return DEFAULT
 
@@ -123,7 +123,7 @@ def test_comet_logger_manual_experiment_key(comet):
             _ = logger.experiment
             comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
 
-    assert instantation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
+    assert instantiation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
 
 
 @patch("pytorch_lightning.loggers.comet.CometOfflineExperiment")

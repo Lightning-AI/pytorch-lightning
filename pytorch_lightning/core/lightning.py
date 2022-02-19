@@ -1962,7 +1962,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1970,11 +1970,10 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.add_to_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1982,8 +1981,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.get_from_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
     @contextmanager

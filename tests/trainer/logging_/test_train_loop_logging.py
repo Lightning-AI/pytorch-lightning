@@ -488,8 +488,8 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
 
         def on_train_end(self, trainer: Trainer, model: LightningModule):
             metrics = self.get_metrics(trainer, model)
-            assert metrics["foo"] == self.trainer.current_epoch
-            assert metrics["foo_2"] == self.trainer.current_epoch
+            assert metrics["foo"] == self.trainer.current_epoch - 1
+            assert metrics["foo_2"] == self.trainer.current_epoch - 1
             model.callback_on_train_end_called = True
 
     progress_bar = TestProgressBar()

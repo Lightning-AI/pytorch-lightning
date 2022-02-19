@@ -130,8 +130,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
-    on restart."""
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next
+    batch on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -154,7 +154,7 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrieved the right next
     batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
@@ -256,7 +256,6 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.parametrize(
     "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
@@ -903,7 +902,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
         [RandomGetItemDataset],
         [SequentialIterableDataset],
         [SequentialDictIterableDataset],
-        # multiple training datasets (combinded dataloader)
+        # multiple training datasets (combined dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
         # [RandomGetItemDataset, RandomGetItemDataset],  # TODO: support in the future

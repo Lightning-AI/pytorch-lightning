@@ -295,7 +295,7 @@ class LoaderTestModel(BoringModel):
 
 
 def test_loader_detaching():
-    """Checks that the loader has been resetted after the entrypoint."""
+    """Checks that the loader has been reset after the entrypoint."""
 
     loader = DataLoader(RandomDataset(32, 10), batch_size=1)
 

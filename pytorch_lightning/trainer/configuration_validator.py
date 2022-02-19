@@ -99,13 +99,13 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " Please use `train_dataloader()` directly."
         )
 
-    trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
-    trainer.overriden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
+    trainer.overridden_optimizer_step = is_overridden("optimizer_step", model)
+    trainer.overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
     going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
-    has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
-    if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
+    has_overridden_optimization_functions = trainer.overridden_optimizer_step or trainer.overridden_optimizer_zero_grad
+    if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
         rank_zero_warn(
             "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
             " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
@@ -137,7 +137,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
 
 def _check_progress_bar(model: "pl.LightningModule") -> None:
     r"""
-    Checks if get_progress_bar_dict is overriden and sends a deprecation warning.
+    Checks if get_progress_bar_dict is overridden and sends a deprecation warning.
 
     Args:
         model: The model to check the get_progress_bar_dict method.
@@ -151,7 +151,7 @@ def _check_progress_bar(model: "pl.LightningModule") -> None:
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
-    Checks if `on_post_move_to_device` method is overriden and sends a deprecation warning.
+    Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
 
     Args:
         model: The model to check the `on_post_move_to_device` method.
@@ -254,20 +254,18 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
 
 def _check_add_get_queue(model: "pl.LightningModule") -> None:
     r"""
-    Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
+    Checks if add_to_queue or get_from_queue is overridden and sends a deprecation warning.
 
     Args:
         model: The lightning module
     """
     if is_overridden("add_to_queue", model):
         rank_zero_deprecation(
-            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnStrategy.add_to_queue`"
+            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7."
         )
     if is_overridden("get_from_queue", model):
         rank_zero_deprecation(
-            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnStrategy.get_from_queue`"
+            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7."
         )
 
 

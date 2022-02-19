@@ -13,7 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import TPUPrecisionPlugin, XLACheckpointIO
+from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -90,10 +90,8 @@ def test_accelerator_tpu():
     assert trainer._device_type == "tpu"
     assert isinstance(trainer.accelerator, TPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `tpu_cores` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="tpu")
+    trainer = Trainer(accelerator="tpu")
+    assert isinstance(trainer.accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
@@ -231,9 +229,14 @@ def test_ddp_cpu_not_supported_on_tpus():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize("strategy", ["ddp_spawn", "tpu_spawn_debug"])
-def test_strategy_choice_tpu_str(tmpdir, strategy):
-    trainer = Trainer(strategy=strategy, accelerator="tpu", devices=8)
+def test_strategy_choice_tpu_str_ddp_spawn(tmpdir):
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+        Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
+
+
+@RunIf(tpu=True)
+def test_strategy_choice_tpu_str_tpu_spawn_debug(tmpdir):
+    trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
@@ -290,27 +293,27 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises():
-    training_type_plugin = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=Mock())
+    strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
-        Trainer(strategy=training_type_plugin)
+        Trainer(strategy=strategy)
 
-    training_type_plugin = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        Trainer(strategy=training_type_plugin)
+        Trainer(strategy=strategy)
 
 
 def test_tpu_invalid_raises_set_precision_with_strategy():
     accelerator = TPUAccelerator()
-    training_type_plugin = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=object())
+    strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
-        Trainer(strategy=training_type_plugin)
+        Trainer(strategy=strategy)
 
     accelerator = TPUAccelerator()
-    training_type_plugin = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
         ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy"
     ):
-        Trainer(strategy=training_type_plugin)
+        Trainer(strategy=strategy)
 
 
 @RunIf(tpu=True)
