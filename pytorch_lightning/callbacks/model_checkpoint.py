@@ -588,15 +588,19 @@ class ModelCheckpoint(Callback):
             else:
                 save_dir = trainer.default_root_dir
 
-            if len(trainer.loggers) == 1:
-                version = (
-                    trainer.logger.version
-                    if isinstance(trainer.logger.version, str)
-                    else f"version_{trainer.logger.version}"
-                )
-                ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
-            else:
-                ckpt_path = os.path.join(save_dir, "checkpoints")
+            name = (
+                trainer.logger.name
+                if len(trainer.loggers) == 1
+                else "_".join(dict.fromkeys(str(logger.name) for logger in trainer.loggers))
+            )
+            version = (
+                trainer.logger.version
+                if len(trainer.loggers) == 1
+                else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
+            )
+            version = version if isinstance(version, str) else f"version_{version}"
+
+            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
