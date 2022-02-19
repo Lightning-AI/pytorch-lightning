@@ -87,7 +87,7 @@ class DDPStrategy(ParallelStrategy):
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
-        self.layer_sync: Optional[LayerSync] = None
+        self._layer_sync: Optional[LayerSync] = None
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -146,8 +146,8 @@ class DDPStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.layer_sync:
-            self.model = self.layer_sync.apply(self.lightning_module)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.lightning_module)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
@@ -423,8 +423,8 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.layer_sync:
-            self.model = self.layer_sync.revert(self.lightning_module)
+        if self._layer_sync:
+            self.model = self._layer_sync.revert(self.lightning_module)
 
         if self.root_device.type == "cuda":
             # GPU teardown
