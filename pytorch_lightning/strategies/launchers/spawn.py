@@ -48,6 +48,10 @@ class _SpawnLauncher(_Launcher):
     def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return False  # TODO: the return value should depend on 1) start_method 2) CUDA vs. CPU
+
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
 

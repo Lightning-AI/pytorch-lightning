@@ -44,6 +44,10 @@ class _XLASpawnLauncher(_SpawnLauncher):
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
     """
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
 

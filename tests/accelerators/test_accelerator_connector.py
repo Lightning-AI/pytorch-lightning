@@ -402,10 +402,18 @@ def test_ipython_incompatible_backend_error(*_):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(strategy="ddp2", gpus=2)
 
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+        # Edge case: AcceleratorConnector maps dp to ddp if no devices were selected
+        Trainer(strategy="dp")
+
 
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 def test_ipython_compatible_backend(*_):
-    Trainer(strategy="ddp_spawn", num_processes=2)
+    Trainer()
+    Trainer(strategy="dp", devices=2)
+    Trainer(strategy="ddp_spawn", devices=2)
+    Trainer(strategy="tpu_spawn", devices=2)
+    Trainer(strategy="coconut is not a nut", devices=2)
 
 
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])

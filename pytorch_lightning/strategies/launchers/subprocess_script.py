@@ -68,6 +68,10 @@ class _SubprocessScriptLauncher(_Launcher):
         num_nodes: The total number of nodes that participate in this process group.
     """
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return False
+
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
