@@ -1843,7 +1843,7 @@ class Trainer(
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-        if self.logger and self.num_training_batches < self.log_every_n_steps:
+        if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"

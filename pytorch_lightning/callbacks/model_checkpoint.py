@@ -583,11 +583,10 @@ class ModelCheckpoint(Callback):
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
+            elif len(trainer.loggers) == 1:
+                save_dir = trainer.logger.save_dir or trainer.default_root_dir
             else:
-                if len(trainer.loggers) == 1:
-                    save_dir = trainer.logger.save_dir or trainer.default_root_dir
-                else:
-                    save_dir = trainer.default_root_dir
+                save_dir = trainer.default_root_dir
 
             if len(trainer.loggers) == 1:
                 version = (

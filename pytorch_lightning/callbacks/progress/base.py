@@ -214,8 +214,7 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
     if len(trainer.loggers) == 1:
-        assert trainer.logger
-        version = trainer.logger.version
+        version = trainer.loggers[0].version
         if version is not None:
             if isinstance(version, str):
                 # show last 4 places of long version strings
