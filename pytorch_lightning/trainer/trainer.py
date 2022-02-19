@@ -1647,9 +1647,8 @@ class Trainer(
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
 
-        Calls every callback's `on_load_checkpoint_new` and `on_load_checkpoint` hook.
-        We have a dedicated function for this rather than using `_call_callback_hooks`
-        because we have special logic for getting callback_states.
+        Calls every callback's `on_load_checkpoint_new` and `on_load_checkpoint` hook. We have a dedicated function for
+        this rather than using `_call_callback_hooks` because we have special logic for getting callback_states.
         """
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
@@ -1668,9 +1667,7 @@ class Trainer(
 
         for callback in self.callbacks:
             callback.on_load_checkpoint_new(self, self.lightning_module, checkpoint)
-            state = callback_states.get(
-                callback.state_key, callback_states.get(callback._legacy_state_key)
-            )
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
                 # TODO: Add profiling for on_load_checkpoint hook
@@ -1684,9 +1681,7 @@ class Trainer(
             return
 
         for callback in self.callbacks:
-            state = callback_states.get(
-                callback.state_key, callback_states.get(callback._legacy_state_key)
-            )
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
                 callback.load_state_dict(state)

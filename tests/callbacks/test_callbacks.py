@@ -123,7 +123,8 @@ class OldStatefulCallback(Callback):
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):
-    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using state_dict/load_state_dict."""
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
+    state_dict/load_state_dict."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
@@ -153,7 +154,8 @@ class OldStatefulCallbackHooks(Callback):
 
 
 def test_resume_callback_state_saved_by_type(tmpdir):
-    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using on_save/load_checkpoint."""
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
+    on_save/load_checkpoint."""
     # TODO: remove on_save_checkpoint() -> dict
     # and on_load_checkpoint(callback_state) support in v1.8
     model = BoringModel()
@@ -229,7 +231,7 @@ class AllStatefulCallback(Callback):
 
 
 def test_resume_callback_state_all(tmpdir):
-    """Test on_save/load_checkpoint state precedence over state_dict/load_state_dict until v1.8 removal"""
+    """Test on_save/load_checkpoint state precedence over state_dict/load_state_dict until v1.8 removal."""
     # TODO: remove on_save_checkpoint() -> dict
     # and on_load_checkpoint(callback_state) support in v1.8
     model = BoringModel()
