@@ -300,7 +300,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed default logger name to `lightning_logs` for consistency ([#11762](https://github.com/PyTorchLightning/pytorch-lightning/pull/11762))
 
 
-- Rewrited `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
+- Rewrote `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
 
 ### Deprecated
 
