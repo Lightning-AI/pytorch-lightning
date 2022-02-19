@@ -389,8 +389,9 @@ class Trainer(
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
-            val_check_interval: How often to check the validation set. Pass a ``float`` to check after a percentage of
-                the training epoch, pass an ``int`` to check after a fixed number of training batches.
+            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
+                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
+                batches.
 
             enable_model_summary: Whether to enable model summarization by default.
 

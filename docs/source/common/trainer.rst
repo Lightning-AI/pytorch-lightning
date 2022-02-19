@@ -1544,8 +1544,8 @@ val_check_interval
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
-- pass a ``float`` to check after a percentage of the training epoch
-- pass an ``int`` to check after a fixed number of training batches
+- pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
+- pass an ``int`` to check after a fixed number of training batches.
 
 .. testcode::
 
