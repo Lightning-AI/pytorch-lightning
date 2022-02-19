@@ -282,10 +282,27 @@ class Callback:
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""
 
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate callback state_dict.
+
+        Returns:
+            A dictionary containing callback state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload callback state given callback state_dict.
+
+        Args:
+            state_dict: the callback state returned by ``state_dict``.
+        """
+        pass
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> dict:
-        """Called when saving a model checkpoint, use to persist state.
+    ) -> Optional[dict]:
+        """Called by Lightning when saving a checkpoint to give you a chance to store anything
+        else you might want to save.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -293,13 +310,37 @@ class Callback:
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            The callback state.
+            None or the callback state.
+
+        Note:
+            In v1.8, returning state will not be supported - use ``state_dict`` instead to return state.
+        """
+
+    def on_load_checkpoint_new(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> None:
+        """Called by Lightning when loading a checkpoint to give you a chance to reload or customize anything else
+        you may have saved in your checkpoint.
+
+        Args:
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
+            checkpoint: entire loaded checkpoint dictionary
+
+        Note:
+            Between v1.6 and v1.8, both ``on_load_checkpoint_new(checkpoint)`` and ``on_load_checkpoint(callback_state)``
+            will be supported. In v1.8 only ``on_load_checkpoint(checkpoint)`` will be supported.
         """
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        """Called when loading a model checkpoint, use to reload state.
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``load_state_dict`` or ``on_load_checkpoint_new`` instead.
+
+        Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
