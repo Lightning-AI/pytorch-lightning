@@ -20,6 +20,7 @@ import pytest
 import torch
 import torch.distributed
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -393,27 +394,28 @@ def test_dist_backend_accelerator_mapping(*_):
     assert trainer.strategy.local_rank == 0
 
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_ipython_incompatible_backend_error(*_):
+def test_ipython_incompatible_backend_error(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", gpus=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(strategy="ddp2", gpus=2)
 
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
+        Trainer(strategy="ddp_spawn")
+
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        # Edge case: AcceleratorConnector maps dp to ddp if no devices were selected
+        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
         Trainer(strategy="dp")
 
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
-def test_ipython_compatible_backend(*_):
+def test_ipython_compatible_backend(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     Trainer()
-    Trainer(strategy="dp", devices=2)
-    Trainer(strategy="ddp_spawn", devices=2)
-    Trainer(strategy="tpu_spawn", devices=2)
-    Trainer(strategy="coconut is not a nut", devices=2)
+    Trainer(strategy="dp", accelerator="gpu")
+    Trainer(accelerator="tpu")
 
 
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
