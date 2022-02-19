@@ -611,9 +611,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Configure native Deepspeed schedulers with interval='step' ([#11788](https://github.com/PyTorchLightning/pytorch-lightning/pull/11788))
 
 
-- Added back the missing `deterministic` support in `accelerator_connector` ([#11999](https://github.com/PyTorchLightning/pytorch-lightning/pull/11999))
-
-
 ## [1.5.10] - 2022-02-08
 
 ### Fixed
