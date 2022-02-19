@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from abc import ABC, abstractmethod
-from typing import cast
 
 import torch
 from torch.nn import Module
-
-import pytorch_lightning as pl
 
 
 class LayerSync(ABC):
@@ -25,11 +23,11 @@ class LayerSync(ABC):
     multiprocessing."""
 
     @abstractmethod
-    def apply(self, model: "pl.LightningModule") -> "pl.LightningModule":
+    def apply(self, model: Module) -> Module:
         """Override this method to apply synchronization to the layers of this model."""
 
     @abstractmethod
-    def revert(self, model: "pl.LightningModule") -> "pl.LightningModule":
+    def revert(self, model: Module) -> Module:
         """Override this method to undo all modifications made in :meth:`apply`."""
 
 
@@ -40,7 +38,7 @@ class NativeSyncBatchNorm(LayerSync):
     This plugin has no effect in single-device operation.
     """
 
-    def apply(self, model: "pl.LightningModule") -> "pl.LightningModule":
+    def apply(self, model: Module) -> Module:
         """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override this method to synchronize batchnorm layers between specific process groups instead
@@ -54,7 +52,7 @@ class NativeSyncBatchNorm(LayerSync):
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    def revert(self, model: "pl.LightningModule") -> "pl.LightningModule":
+    def revert(self, model: Module) -> Module:
         """Convert the wrapped batchnorm layers back to regular batchnorm layers.
 
         Args:
@@ -63,7 +61,7 @@ class NativeSyncBatchNorm(LayerSync):
         Return:
             LightningModule with regular batchnorm layers that will no longer sync across processes.
         """
-        return cast(pl.LightningModule, _revert_sync_batchnorm(model))
+        return _revert_sync_batchnorm(model)
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
