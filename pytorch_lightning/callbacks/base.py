@@ -328,8 +328,9 @@ class Callback:
             checkpoint: entire loaded checkpoint dictionary
 
         Note:
-            Between v1.6 and v1.8, both ``on_load_checkpoint_new(checkpoint)`` and ``on_load_checkpoint(callback_state)``
-            will be supported. In v1.8 only ``on_load_checkpoint(checkpoint)`` will be supported.
+            Between v1.6 and v1.8, both ``on_load_checkpoint_new(checkpoint)`` and
+            ``on_load_checkpoint(callback_state)`` will be supported.
+            In v1.8 only ``on_load_checkpoint(checkpoint)`` will be supported.
         """
 
     def on_load_checkpoint(
