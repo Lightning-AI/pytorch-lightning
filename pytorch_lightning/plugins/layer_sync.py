@@ -24,15 +24,13 @@ class LayerSync(ABC):
     """Abstract base class for creating plugins that wrap layers of a model with synchronization logic for
     multiprocessing."""
 
-    @staticmethod
     @abstractmethod
-    def apply(model: "pl.LightningModule") -> "pl.LightningModule":
-        """Override this static method to apply synchronization to the layers of this model."""
+    def apply(self, model: "pl.LightningModule") -> "pl.LightningModule":
+        """Override this method to apply synchronization to the layers of this model."""
 
-    @staticmethod
     @abstractmethod
-    def revert(model: "pl.LightningModule") -> "pl.LightningModule":
-        """Override this static method to undo all modifications made in :meth:`apply`."""
+    def revert(self, model: "pl.LightningModule") -> "pl.LightningModule":
+        """Override this method to undo all modifications made in :meth:`apply`."""
 
 
 class NativeSyncBatchNorm(LayerSync):
@@ -42,11 +40,10 @@ class NativeSyncBatchNorm(LayerSync):
     This plugin has no effect in single-device operation.
     """
 
-    @staticmethod
-    def apply(model: "pl.LightningModule") -> "pl.LightningModule":
+    def apply(self, model: "pl.LightningModule") -> "pl.LightningModule":
         """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
-        Override this static method to synchronize batchnorm layers between specific process groups instead
+        Override this method to synchronize batchnorm layers between specific process groups instead
         of the whole world.
 
         Args:
@@ -57,8 +54,7 @@ class NativeSyncBatchNorm(LayerSync):
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    @staticmethod
-    def revert(model: "pl.LightningModule") -> "pl.LightningModule":
+    def revert(self, model: "pl.LightningModule") -> "pl.LightningModule":
         """Convert the wrapped batchnorm layers back to regular batchnorm layers.
 
         Args:

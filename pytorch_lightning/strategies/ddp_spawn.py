@@ -30,7 +30,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.sync_batchnorm import LayerSync
+from pytorch_lightning.plugins.layer_sync import LayerSync
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
@@ -76,7 +76,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._num_nodes = 1
-        self.sync_batchnorm: Optional[LayerSync] = None
+        self.layer_sync: Optional[LayerSync] = None
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -122,8 +122,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.sync_batchnorm.apply(self.lightning_module)
+        if self.layer_sync:
+            self.model = self.layer_sync.apply(self.lightning_module)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
@@ -374,8 +374,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.sync_batchnorm:
-            self.model = self.sync_batchnorm.revert(self.lightning_module)
+        if self.layer_sync:
+            self.model = self.layer_sync.revert(self.lightning_module)
 
         if self.root_device.type == "cuda":
             # GPU teardown
