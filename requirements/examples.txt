@@ -1,3 +1,4 @@
 torchvision>=0.8.*
 gym>=0.17.0
+pygame
 ipython[all]
