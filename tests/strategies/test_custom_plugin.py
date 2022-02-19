@@ -37,12 +37,7 @@ def test_sync_batchnorm_set(tmpdir):
     model = BoringModel()
     strategy = CustomParallelStrategy()
     assert strategy._layer_sync is None
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        strategy=strategy,
-        sync_batchnorm=True
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, strategy=strategy, sync_batchnorm=True)
     trainer.fit(model)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
 
