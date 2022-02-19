@@ -117,7 +117,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Accelerator.is_available` to check device availability ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
 
 
-- Added a `_Stateful` support for `Callback` ([#123](https://github.com/PyTorchLightning/pytorch-lightning/pull/123))
+- Added utility functions for moving optimizers to devices ([#11758](https://github.com/PyTorchLightning/pytorch-lightning/pull/11758))
+
+
+- Added a `_Stateful` support for `Callback` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
 ### Changed
