@@ -240,7 +240,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
-            Otherwhise returns `None`.
+            Otherwise returns `None`.
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)

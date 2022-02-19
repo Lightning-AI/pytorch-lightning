@@ -13,7 +13,6 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
 from pytorch_lightning.utilities.seed import reset_seed
@@ -58,7 +57,7 @@ else:
 
 
 class BaguaStrategy(DDPStrategy):
-    distributed_backend = _StrategyType.BAGUA
+    strategy_name = "bagua"
 
     def __init__(
         self,
@@ -180,8 +179,12 @@ class BaguaStrategy(DDPStrategy):
         )
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register("bagua", cls, description="Default Bagua Plugin")
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         # abort the background communication for async algorithm
