@@ -41,7 +41,7 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
-from tests.loggers.test_base import CustomLogger
+from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
