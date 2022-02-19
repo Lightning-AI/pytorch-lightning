@@ -50,9 +50,8 @@ from pytorch_lightning.utilities.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
 torchvision_version = version.parse("0")
@@ -577,20 +576,15 @@ class EarlyExitTestModel(BoringModel):
 
 
 @pytest.mark.parametrize("logger", (False, True))
-@pytest.mark.parametrize(
-    "trainer_kwargs",
-    (
-        # dict(strategy="ddp_spawn")
-        # dict(strategy="ddp")
-        # the previous accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
-        # TODO revisit this test as it never worked with DDP or DDPSpawn
-        dict(strategy="single_device"),
-        pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
-    ),
-)
-def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
+@pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
+def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.multiprocessing import ProcessRaisedException
+    else:
+        ProcessRaisedException = Exception
+
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        MisconfigurationException, match=r"Error on fit start"
+        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
     ):
         LightningCLI(
             EarlyExitTestModel,
@@ -599,7 +593,9 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
                 "logger": logger,
                 "max_steps": 1,
                 "max_epochs": 1,
-                **trainer_kwargs,
+                "strategy": strategy,
+                "accelerator": "auto",
+                "devices": 1,
             },
         )
     if logger:
