@@ -1,4 +1,3 @@
 torchvision>=0.8.*
 gym[classic_control]>=0.17.0
-pygame
 ipython[all]
