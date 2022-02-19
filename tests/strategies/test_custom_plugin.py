@@ -18,6 +18,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import NativeSyncBatchNorm
 from pytorch_lightning.strategies import DDPStrategy, SingleDeviceStrategy
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -27,7 +28,7 @@ class CustomParallelStrategy(DDPStrategy):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.
-        self.sync_batchnorm = None
+        self._layer_sync = None
 
 
 @RunIf(skip_windows=True)
@@ -35,10 +36,15 @@ def test_sync_batchnorm_set(tmpdir):
     """Tests if layer_sync is automatically set for custom plugin."""
     model = BoringModel()
     strategy = CustomParallelStrategy()
-    assert strategy.sync_batchnorm is None
-    trainer = Trainer(max_epochs=1, strategy=strategy, default_root_dir=tmpdir, sync_batchnorm=True)
+    assert strategy._layer_sync is None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        strategy=strategy,
+        sync_batchnorm=True
+    )
     trainer.fit(model)
-    assert strategy.sync_batchnorm is True
+    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
 
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])
