@@ -32,7 +32,7 @@ from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.strategies import Strategy
 
-PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
+PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
