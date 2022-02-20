@@ -230,7 +230,7 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: If ``True`` enables cudnn.benchmark.
+            benchmark: If ``True``, enables cudnn.benchmark.
                 Default: ``False``.
 
             callbacks: Add a callback or list of callbacks.
@@ -454,7 +454,7 @@ class Trainer(
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
-                Default: ``max_size_cycle``.
+                Default: ``"max_size_cycle"``.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
