@@ -78,23 +78,9 @@ def test_sync_batchnorm_parity(tmpdir):
     if trainer.global_rank == 0:
         # pretend we are now training on a single GPU/process
         # (we are re-using the rank 0 from the previous training)
-        seed_everything(1)
 
         # 1 GPU, batch size = 8 => total batch size = 8
-        dataset = torch.arange(64, dtype=torch.float).view(-1, 1)
-        train_dataloader = DataLoader(dataset, batch_size=8)
-        model = SyncBNModule(batch_size=8)
-        model.train()
-        optimizer = model.configure_optimizers()
-        for batch_idx, batch in enumerate(train_dataloader):
-            optimizer.zero_grad()
-            loss = model.training_step(batch, batch)
-            loss.backward()
-            optimizer.step()
-            if batch_idx == 1:
-                break
-
-        bn_outputs_single_device = torch.stack(model.bn_outputs)  # 3 x 8 x 1
+        bn_outputs_single_device = _train_single_process_sync_batchnorm(batch_size=8, num_steps=2)
 
         gpu0_outputs = bn_outputs_multi_device[0]  # 3 x 4 x 1
         gpu1_outputs = bn_outputs_multi_device[1]  # 3 x 4 x 1
@@ -102,3 +88,21 @@ def test_sync_batchnorm_parity(tmpdir):
         slice1 = bn_outputs_single_device[:, 1::2]
         assert torch.allclose(gpu0_outputs.cpu(), slice0)
         assert torch.allclose(gpu1_outputs.cpu(), slice1)
+
+
+def _train_single_process_sync_batchnorm(batch_size, num_steps):
+    seed_everything(1)
+    dataset = torch.arange(64, dtype=torch.float).view(-1, 1)
+    train_dataloader = DataLoader(dataset, batch_size=batch_size)
+    model = SyncBNModule(batch_size=batch_size)
+    model.train()
+    optimizer = model.configure_optimizers()
+    for batch_idx, batch in enumerate(train_dataloader):
+        optimizer.zero_grad()
+        loss = model.training_step(batch, batch)
+        loss.backward()
+        optimizer.step()
+        if batch_idx == num_steps - 1:
+            break
+
+    return torch.stack(model.bn_outputs)  # 3 x 8 x 1
