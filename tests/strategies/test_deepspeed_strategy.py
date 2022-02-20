@@ -167,7 +167,12 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed", amp_backend=amp_backend, precision=precision
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        strategy="deepspeed",
+        amp_backend=amp_backend,
+        precision=precision,
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
@@ -232,7 +237,8 @@ def test_warn_deepspeed_ignored(tmpdir):
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
-def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, tmpdir, dataset_cls, value):
+@mock.patch("pytorch_lightning.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
+def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
@@ -315,6 +321,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
+            assert trainer.lr_scheduler_configs[0].interval == "step"
 
     model = BoringModel()
     trainer = Trainer(
@@ -406,7 +413,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
 
     class TestCallback(Callback):
-        def on_before_accelerator_backend_setup(self, trainer, pl_module) -> None:
+        def setup(self, trainer, pl_module, stage=None) -> None:
             assert trainer.strategy.config["zero_optimization"]["offload_optimizer"] is False
             raise SystemExit()
 

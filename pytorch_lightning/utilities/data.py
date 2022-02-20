@@ -20,15 +20,15 @@ from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
-from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler, SequentialSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -374,3 +374,11 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     else:
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
     return dl_kwargs
+
+
+def _is_dataloader_shuffled(dataloader: DataLoader):
+    return (
+        hasattr(dataloader, "sampler")
+        and not isinstance(dataloader.sampler, SequentialSampler)
+        and not isinstance(dataloader.dataset, IterableDataset)
+    )

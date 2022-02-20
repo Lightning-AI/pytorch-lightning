@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from dataclasses import asdict
 from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional
 
 from deprecate import void
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BatchProgress
@@ -26,7 +26,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
-    MergedIteratorState,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher
@@ -164,18 +163,16 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self._data_fetcher is None
-            or self._num_completed_batches_reached()  # did not finish
-            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self._data_fetcher is not None
+            and not self._num_completed_batches_reached()  # did not finish
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            state = CombinedLoader._state_dict_fn(self._data_fetcher.dataloader_iter, self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        # TODO: this should use `pytorch_lightning/trainer/supporters.py::CombinedLoader._state_dict_fn`
-        state_to_save = "state" if self._has_completed() else "previous_state"
-        state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
-        if state:
-            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -195,7 +192,7 @@ class EvaluationEpochLoop(Loop):
                 "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
                 " in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             )
-        assert dataloader is not None
+        assert isinstance(dataloader, DataLoader)
         _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
         self._dataloader_state_dict = {}
 
@@ -247,12 +244,9 @@ class EvaluationEpochLoop(Loop):
         self.trainer.logger_connector.on_batch_start(**kwargs)
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_test_batch_start", *kwargs.values())
-        else:
-            self.trainer._call_callback_hooks("on_validation_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_validation_batch_start", *kwargs.values())
+        hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
+        self.trainer._call_callback_hooks(hook_name, *kwargs.values())
+        self.trainer._call_lightning_module_hook(hook_name, *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.

@@ -22,6 +22,7 @@ from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
+    _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -74,6 +75,7 @@ class RunIf:
         skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
         slow: bool = False,
+        bagua: bool = False,
         **kwargs,
     ):
         """
@@ -99,6 +101,7 @@ class RunIf:
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
+            bagua: Require that BaguaSys/bagua is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -149,7 +152,8 @@ class RunIf:
             reasons.append("Horovod")
 
         if horovod_nccl:
-            conditions.append(not _HOROVOD_NCCL_AVAILABLE)
+            # FIXME(@jirka): nccl is not available in ci
+            conditions.append(True)  # not _HOROVOD_NCCL_AVAILABLE
             reasons.append("Horovod with NCCL")
 
         if standalone:
@@ -203,6 +207,10 @@ class RunIf:
             reasons.append("Slow test")
             # used in tests/conftest.py::pytest_collection_modifyitems
             kwargs["slow"] = True
+
+        if bagua:
+            conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
+            reasons.append("Bagua")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

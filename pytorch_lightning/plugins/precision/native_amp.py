@@ -74,7 +74,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(model, optimizer, optimizer_idx, closure, **kwargs)
@@ -90,8 +90,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            self.scaler.step(optimizer, **kwargs)
+            step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
+            return step_output
+        return closure_result
 
     def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
@@ -106,10 +108,24 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
+    def state_dict(self) -> Dict[str, Any]:
+        if self.scaler is not None:
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)
+
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
+        """``NativeMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.load_state_dict``
+        instead
+        """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None:
-            checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()
+        """``NativeMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-save NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.state_dict`` instead
+        """

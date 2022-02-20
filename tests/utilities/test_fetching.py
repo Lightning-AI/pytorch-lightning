@@ -40,27 +40,31 @@ def test_prefetch_iterator(use_combined_loader):
             yield 2
             yield 3
 
-    for prefetch_batches in range(1, 5):
-        if use_combined_loader:
-            loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
-            expected = [
-                ([tensor([1]), tensor([1])], False),
-                ([tensor([2]), tensor([2])], False),
-                ([tensor([3]), tensor([3])], True),
-            ]
-        else:
-            loader = DataLoader(IterDataset())
-            expected = [(1, False), (2, False), (3, True)]
+    for prefetch_batches in range(5):
         iterator = DataFetcher(prefetch_batches=prefetch_batches)
         assert iterator.prefetch_batches == prefetch_batches
+
+        if use_combined_loader:
+            loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
+        else:
+            loader = DataLoader(IterDataset())
         iterator.setup(loader)
 
         def generate():
-            generated = []
-            for idx, data in enumerate(iterator, prefetch_batches + 1):
-                assert iterator.fetched == 3 if iterator.done else idx
-                generated.append(data)
+            generated = [(iterator.fetched, *data) for i, data in enumerate(iterator, prefetch_batches + 1)]
+            assert iterator.fetched == 3
+            assert iterator.done
             return generated
+
+        is_last_batch = [False, False, prefetch_batches > 0]
+        fetched = list(range(prefetch_batches + 1, 4))
+        fetched += [3] * (3 - len(fetched))
+        if use_combined_loader:
+            batches = [[tensor(1), tensor(1)], [tensor(2), tensor(2)], [tensor(3), tensor(3)]]
+        else:
+            batches = [1, 2, 3]
+        expected = list(zip(fetched, batches, is_last_batch))
+        assert len(expected) == 3
 
         assert generate() == expected
         # validate reset works properly.
@@ -71,9 +75,9 @@ def test_prefetch_iterator(use_combined_loader):
         def __iter__(self):
             return iter([])
 
-    dataloader = DataLoader(EmptyIterDataset())
+    loader = DataLoader(EmptyIterDataset())
     iterator = DataFetcher()
-    iterator.setup(dataloader)
+    iterator.setup(loader)
     assert not list(iterator)
 
 
@@ -180,7 +184,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            fetcher = trainer._data_connector.train_data_fetcher
+            fetcher = trainer.fit_loop._data_fetcher
             assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
             assert fetcher.prefetch_batches == 1
 
@@ -228,7 +232,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -251,7 +255,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_epoch_end(self, *_):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
+            assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
@@ -318,7 +322,7 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
 def test_stop_iteration(trigger_stop_iteration, tmpdir):
-    """Verify that StopIteration properly terminates the training when this is trigged from the current
+    """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
