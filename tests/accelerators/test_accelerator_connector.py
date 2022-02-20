@@ -953,3 +953,6 @@ def test_passing_zero_and_empty_list_to_devices_flag():
 def test_deterministic_init(deterministic):
     trainer = Trainer(accelerator="auto", deterministic=deterministic)
     assert trainer._accelerator_connector.deterministic == deterministic
+    if deterministic:
+        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
