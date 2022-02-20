@@ -167,7 +167,12 @@ def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, strategy="deepspeed", amp_backend=amp_backend, precision=precision
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        strategy="deepspeed",
+        amp_backend=amp_backend,
+        precision=precision,
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
