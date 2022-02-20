@@ -947,3 +947,12 @@ def test_passing_zero_and_empty_list_to_devices_flag():
 
     with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
         Trainer(accelerator="gpu", devices=[])
+
+
+@pytest.mark.parametrize("deterministic", [True, False])
+def test_deterministic_init(deterministic):
+    trainer = Trainer(accelerator="auto", deterministic=deterministic)
+    assert trainer._accelerator_connector.deterministic == deterministic
+    if deterministic:
+        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
