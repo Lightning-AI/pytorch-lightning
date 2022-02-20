@@ -140,7 +140,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         optimizers_to_device(self.optimizers, self.root_device)
 
         if self._layer_sync:
-            self.model = self._layer_sync.apply(self.lightning_module)
+            self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
         self.barrier()
