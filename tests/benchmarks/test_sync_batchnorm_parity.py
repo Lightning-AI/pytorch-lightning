@@ -32,13 +32,14 @@ class SyncBNModule(LightningModule):
         assert isinstance(self.bn_layer, torch.nn.modules.batchnorm.SyncBatchNorm)
 
     def training_step(self, batch, batch_idx):
-        out_bn = self.bn_layer(batch)
+        with torch.no_grad():
+            out_bn = self.bn_layer(batch)
         self.bn_outputs.append(out_bn.detach())
         out = self.linear(out_bn)
         return out.sum()
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
+        return torch.optim.SGD(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
         dataset = torch.arange(64, dtype=torch.float).view(-1, 1)
@@ -55,7 +56,7 @@ def test_sync_batchnorm_parity(tmpdir):
     1) Training a synced batch-norm layer on 2 GPUs with batch size B per device
     2) Training a batch-norm layer on CPU with twice the batch size
     """
-    seed_everything(1)
+    seed_everything(3)
     # 2 GPUS, batch size = 4 per GPU => total batch size = 8
     model = SyncBNModule(batch_size=4)
     trainer = Trainer(
@@ -63,7 +64,7 @@ def test_sync_batchnorm_parity(tmpdir):
         accelerator="gpu",
         strategy="ddp",
         devices=2,
-        max_steps=2,
+        max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
@@ -84,25 +85,24 @@ def test_sync_batchnorm_parity(tmpdir):
         # (we are reusing the rank 0 from the previous training)
 
         # 1 GPU, batch size = 8 => total batch size = 8
-        bn_outputs_single_device = _train_single_process_sync_batchnorm(batch_size=8, num_steps=2)
+        bn_outputs_single_device = _train_single_process_sync_batchnorm(batch_size=8, num_steps=3)
 
         gpu0_outputs = bn_outputs_multi_device[0]  # 2 x 4 x 1
         gpu1_outputs = bn_outputs_multi_device[1]  # 2 x 4 x 1
         slice0 = bn_outputs_single_device[:, 0::2]
         slice1 = bn_outputs_single_device[:, 1::2]
 
-        # TODO: find the reason why equality does not hold
         assert torch.allclose(gpu0_outputs, slice0)
         assert torch.allclose(gpu1_outputs, slice1)
 
 
 def _train_single_process_sync_batchnorm(batch_size, num_steps):
-    seed_everything(1)
+    seed_everything(3)
     dataset = torch.arange(64, dtype=torch.float).view(-1, 1)
     train_dataloader = DataLoader(dataset, batch_size=batch_size)
     model = SyncBNModule(batch_size=batch_size)
-    model.train()
     optimizer = model.configure_optimizers()
+    model.train()
     for batch_idx, batch in enumerate(train_dataloader):
         optimizer.zero_grad()
         loss = model.training_step(batch, batch)
