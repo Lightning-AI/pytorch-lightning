@@ -51,6 +51,10 @@ class SyncBNModule(LightningModule):
 
 @RunIf(min_gpus=2, standalone=True)
 def test_sync_batchnorm_parity(tmpdir):
+    """Test parity between
+    1) Training a synced batch-norm layer on 2 GPUs with batch size B per device
+    2) Training a batch-norm layer on CPU with twice the batch size
+    """
     seed_everything(1)
     # 2 GPUS, batch size = 4 per GPU => total batch size = 8
     model = SyncBNModule(batch_size=4)
@@ -73,21 +77,23 @@ def test_sync_batchnorm_parity(tmpdir):
     assert isinstance(model.bn_layer, torch.nn.modules.batchnorm._BatchNorm)
 
     bn_outputs = torch.stack(model.bn_outputs)  # 2 x 4 x 1 on each GPU
-    bn_outputs_multi_device = trainer.strategy.all_gather(bn_outputs)  # 2 x 2 x 4 x 1
+    bn_outputs_multi_device = trainer.strategy.all_gather(bn_outputs).cpu()  # 2 x 2 x 4 x 1
 
     if trainer.global_rank == 0:
         # pretend we are now training on a single GPU/process
-        # (we are re-using the rank 0 from the previous training)
+        # (we are reusing the rank 0 from the previous training)
 
         # 1 GPU, batch size = 8 => total batch size = 8
         bn_outputs_single_device = _train_single_process_sync_batchnorm(batch_size=8, num_steps=2)
 
-        gpu0_outputs = bn_outputs_multi_device[0]  # 3 x 4 x 1
-        gpu1_outputs = bn_outputs_multi_device[1]  # 3 x 4 x 1
+        gpu0_outputs = bn_outputs_multi_device[0]  # 2 x 4 x 1
+        gpu1_outputs = bn_outputs_multi_device[1]  # 2 x 4 x 1
         slice0 = bn_outputs_single_device[:, 0::2]
         slice1 = bn_outputs_single_device[:, 1::2]
-        assert torch.allclose(gpu0_outputs.cpu(), slice0)
-        assert torch.allclose(gpu1_outputs.cpu(), slice1)
+
+        # TODO: find the reason why equality does not hold
+        assert torch.allclose(gpu0_outputs, slice0)
+        assert torch.allclose(gpu1_outputs, slice1)
 
 
 def _train_single_process_sync_batchnorm(batch_size, num_steps):
@@ -105,4 +111,4 @@ def _train_single_process_sync_batchnorm(batch_size, num_steps):
         if batch_idx == num_steps - 1:
             break
 
-    return torch.stack(model.bn_outputs)  # 3 x 8 x 1
+    return torch.stack(model.bn_outputs)  # num_steps x batch_size x 1
