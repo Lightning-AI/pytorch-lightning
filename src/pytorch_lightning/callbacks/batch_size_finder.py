@@ -104,6 +104,28 @@ class BatchSizeFinder(Callback):
         self._early_exit = False
         self._dumped_params: _BatchSizeFinderDumpedParams = {}
 
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        if trainer._accelerator_connector.is_distributed:
+            raise MisconfigurationException("Batch size finder is not supported with distributed strategies.")
+
+        running_stage = trainer.state.stage
+        dl_source = getattr(trainer._data_connector, f"_{running_stage.dataloader_prefix}_dataloader_source")
+
+        # TODO: check if this can be enabled (#4040)
+        if not trainer._data_connector._train_dataloader_source.is_module():
+            raise MisconfigurationException(
+                "Batch size finder cannot be used with dataloaders passed directly to `.fit()`. Please disable"
+                " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
+            )
+
+        # TODO: Add support for multiple eval dataloader
+        if stage != "fit":
+            dataloaders = dl_source.dataloader()
+            if isinstance(dataloaders, list) and len(dataloaders) > 1:
+                raise MisconfigurationException(
+                    "Batch size finder cannot be used with multiple" f" {running_stage.dataloader_prefix} dataloaders."
+                )
+
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.fast_dev_run:
             rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
@@ -123,13 +145,6 @@ class BatchSizeFinder(Callback):
                 f"Field `model.{self.batch_arg_name}` and `model.hparams.{self.batch_arg_name}` are mutually exclusive!"
                 f" `model.{self.batch_arg_name}` will be used as the initial batch size for scaling."
                 " If this is not the intended behavior, please remove either one."
-            )
-
-        # TODO: check if this can be enabled (#4040)
-        if not trainer._data_connector._train_dataloader_source.is_module():
-            raise MisconfigurationException(
-                "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`. Please disable"
-                " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
             )
 
         # Save initial model, that is loaded after batch size is found

@@ -234,7 +234,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
     with pytest.raises(
         MisconfigurationException,
-        match="The batch scaling feature cannot be used with dataloaders passed directly",
+        match="Batch size finder cannot be used with dataloaders passed directly",
     ):
         trainer.tune(model, **fit_options)
 
@@ -408,3 +408,30 @@ def test_error_if_dataloaders_passed_with_fit_method():
         MisconfigurationException, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"
     ):
         trainer.tune(model, dataloaders=dl, method="fit")
+
+
+def test_batch_size_finder_with_distributed_strategies(tmpdir):
+    """Test that an error is raised when batch size finder is used with multi-device strategy."""
+    trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
+    model = BoringModel()
+
+    with pytest.raises(
+        MisconfigurationException, match="Batch size finder is not supported with distributed strategies."
+    ):
+        trainer.tune(model)
+
+
+def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
+    """Test that an error is raised with batch size finder is called with multiple eval dataloaders."""
+
+    class CustomModel(BoringModel):
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+    trainer = Trainer(auto_scale_batch_size=True)
+    model = CustomModel()
+
+    with pytest.raises(
+        MisconfigurationException, match="Batch size finder cannot be used with multiple .* dataloaders"
+    ):
+        trainer.tune(model, method="validate")
