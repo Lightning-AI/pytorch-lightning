@@ -424,8 +424,9 @@ class Trainer(
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
                 Default: ``-1``.
 
-            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
-                use int to check every n steps (batches).
+            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
+                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
+                batches.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -1859,9 +1860,6 @@ class Trainer(
                 " `num_training_batches` to use."
             )
 
-        # determine when to check validation
-        # if int passed in, val checks that often
-        # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
             if self.val_check_batch > self.num_training_batches:
