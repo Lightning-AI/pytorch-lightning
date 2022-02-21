@@ -42,7 +42,7 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
+from pytorch_lightning.utilities import _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -98,6 +98,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -123,6 +124,7 @@ def test_accelerator_choice_ddp_slurm(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp2_slurm(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -148,6 +150,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
@@ -172,6 +175,7 @@ def test_accelerator_choice_ddp_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp2_te(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
@@ -210,6 +214,7 @@ def test_accelerator_choice_ddp_cpu_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_kubeflow(*_):
     with pytest.deprecated_call(match=r"accelerator='ddp'\)` has been deprecated in v1.5"):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=1)
@@ -340,6 +345,10 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         def auto_device_count() -> int:
             return 1
 
+        @staticmethod
+        def is_available() -> bool:
+            return True
+
     class Prec(PrecisionPlugin):
         pass
 
@@ -436,18 +445,20 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.strategy, plugin)
 
 
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't require GPU")
-def test_accelerator_cpu():
+@mock.patch("torch.cuda.is_available", return_value=False)
+def test_accelerator_cpu(_):
 
     trainer = Trainer(accelerator="cpu")
 
     assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
-        trainer = Trainer(accelerator="gpu")
-
-    with pytest.raises(MisconfigurationException, match="You requested GPUs:"):
+    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
+        trainer = Trainer(gpus=1)
+    # TODO enable this test when add device availability check
+    # with pytest.raises(MisconfigurationException, match="You requested gpu, but gpu is not available"):
+    #     trainer = Trainer(accelerator="gpu")
+    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
 
@@ -459,10 +470,8 @@ def test_accelerator_gpu():
     assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='gpu'`, but you didn't pass `gpus` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="gpu")
+    trainer = Trainer(accelerator="gpu")
+    assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="auto", gpus=1)
 
@@ -543,8 +552,9 @@ def test_accelerator_gpu_with_gpus_priority():
 
 def test_validate_accelerator_and_devices():
 
-    with pytest.raises(MisconfigurationException, match="You passed `devices=2` but haven't specified"):
-        Trainer(accelerator="ddp_cpu", devices=2)
+    trainer = Trainer(accelerator="ddp_cpu", devices=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.num_processes == 2
 
 
 def test_set_devices_if_none_cpu():
@@ -562,17 +572,17 @@ def test_set_devices_if_none_gpu():
 
 def test_devices_with_cpu_only_supports_integer():
 
-    with pytest.raises(MisconfigurationException, match="The flag `devices` must be an int"):
-        Trainer(accelerator="cpu", devices="1,3")
+    with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
+        trainer = Trainer(accelerator="cpu", devices="1,3")
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_strategy_types_on_cpu(training_type):
-
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._strategy_type == _StrategyType.DDP
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
@@ -590,8 +600,9 @@ def test_exception_when_strategy_used_with_accelerator():
 
 
 def test_exception_when_strategy_used_with_plugins():
-    with pytest.raises(MisconfigurationException, match="only specify one training type plugin, but you have passed"):
-        Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
+    with pytest.raises(MisconfigurationException, match="only specify one strategy, but you have passed"):
+        with pytest.deprecated_call(match=r"`strategy` to the `plugins` flag in Trainer has been deprecated"):
+            Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
 
 
 def test_exception_invalid_strategy():
@@ -735,8 +746,11 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
-def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_distributed_mock, strategy):
+def test_strategy_choice_ddp2_slurm(
+    set_device_mock, device_count_mock, setup_distributed_mock, is_available_mock, strategy
+):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, gpus=2)
     assert trainer._accelerator_connector._is_slurm_managing_tasks()
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -760,6 +774,7 @@ def test_strategy_choice_ddp2_slurm(set_device_mock, device_count_mock, setup_di
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -783,6 +798,7 @@ def test_strategy_choice_ddp_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp2_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp2", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -820,6 +836,7 @@ def test_strategy_choice_ddp_cpu_te(*_):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
 def test_strategy_choice_ddp_kubeflow(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", gpus=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -881,13 +898,14 @@ def test_unsupported_tpu_choice(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
+    # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16)
+            Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16, amp_backend="apex")
+            Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
 def test_unsupported_ipu_choice(monkeypatch):
@@ -919,3 +937,20 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
     assert trainer.gpus == 2
+
+
+def test_passing_zero_and_empty_list_to_devices_flag():
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=0)
+
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=[])
+
+
+@pytest.mark.parametrize("deterministic", [True, False])
+def test_deterministic_init(deterministic):
+    trainer = Trainer(accelerator="auto", deterministic=deterministic)
+    assert trainer._accelerator_connector.deterministic == deterministic
+    if deterministic:
+        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"

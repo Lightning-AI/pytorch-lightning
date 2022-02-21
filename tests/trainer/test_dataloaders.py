@@ -628,7 +628,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
 
 class NumpyRandomDataset(Dataset):
-    # this datset uses numpy instead of torch to produce random numbers
+    # this dataset uses numpy instead of torch to produce random numbers
     size = 16
 
     def __getitem__(self, index):
@@ -662,7 +662,7 @@ def test_missing_worker_init_fn():
     is_deterministic = torch.eq(batches0, batches1).all()
 
     # depending on the OS, we either have
-    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 1) the same seed in all worker processes, producing duplicate samples / augmentations, or
     # 2) different seeds in each worker process, but they are not derived from the seed of the main process
     assert not is_deterministic or is_duplicated
 
@@ -721,7 +721,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
     seed_everything(0, workers=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, strategy="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp_spawn")
     model = MultiProcessModel()
     model.val_dataloader = None
     trainer.fit(model, train_dataloaders=dataloader)
@@ -809,8 +809,9 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
-    # we expect the second epoch to be skipped
-    assert trainer.current_epoch == 1
+    # even though the generator might not yield any data, the fit_loop still advances so the
+    # current epoch gets increased
+    assert trainer.current_epoch == 2
 
 
 class DistribSamplerCallback(Callback):
@@ -842,7 +843,8 @@ def test_dataloader_distributed_sampler(tmpdir):
     seed_everything(123)
     model = BoringModel()
     trainer = Trainer(
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         num_nodes=1,
         strategy="ddp_spawn",
         default_root_dir=tmpdir,
@@ -867,7 +869,8 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         num_nodes=1,
         strategy="ddp_spawn",
         default_root_dir=tmpdir,
@@ -912,7 +915,12 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     model = CurrentTestModel(batch_size=batch_size)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0, gpus=num_gpus
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0,
+        accelerator="gpu",
+        devices=num_gpus,
     )
 
     # we expect the reduction for the metrics also to happen on the last batch
@@ -926,7 +934,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     [("min_size", 16), ("max_size_cycle", 64)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multple train loaders."""
+    """Integration test for multiple train loaders."""
 
     class CustomBoringModel(BoringModel):
         def train_dataloader(self):

@@ -38,7 +38,7 @@ Strategy
 - Provide access to the wrapped LightningModule
 
 
-Futhermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
+Furthermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
 to configure Lightning to integrate with a :ref:`custom-cluster`.
 
 
@@ -107,6 +107,7 @@ Training Strategies
     DDPShardedStrategy
     DDPSpawnShardedStrategy
     DDPSpawnStrategy
+    BaguaStrategy
     DeepSpeedStrategy
     HorovodStrategy
     SingleTPUStrategy

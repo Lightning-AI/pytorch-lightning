@@ -14,50 +14,55 @@
 """Warning-related utilities."""
 
 import warnings
-from functools import partial
-from typing import Any, Union
+from typing import Any
 
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning as NewLightningDeprecationWarning
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation as new_rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
-
-def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
-    if type(stacklevel) is type and issubclass(stacklevel, Warning):
-        rank_zero_deprecation(
-            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
-            f" Please, use `category={stacklevel.__name__}`."
-        )
-        kwargs["category"] = stacklevel
-        stacklevel = kwargs.pop("stacklevel", 2)
-    warnings.warn(message, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log warn-level messages only on rank 0."""
-    _warn(message, stacklevel=stacklevel, **kwargs)
+# enable our warnings
+warnings.simplefilter("default", category=NewLightningDeprecationWarning)
 
 
 class PossibleUserWarning(UserWarning):
     """Warnings that could be false positives."""
 
 
-class LightningDeprecationWarning(DeprecationWarning):
-    """Deprecation warnings raised by PyTorch Lightning."""
-
-
-# enable our warnings
-warnings.simplefilter("default", category=LightningDeprecationWarning)
-
-rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
-
-
 class WarningCache(set):
     def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
         if message not in self:
             self.add(message)
-            rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
+            new_rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
 
     def deprecation(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
         if message not in self:
             self.add(message)
-            rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
+            new_rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
+
+
+def rank_zero_warn(*args: Any, **kwargs: Any) -> Any:
+    new_rank_zero_deprecation(
+        "pytorch_lightning.utilities.warnings.rank_zero_warn has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_warn(*args, **kwargs)
+
+
+def rank_zero_deprecation(*args: Any, **kwargs: Any) -> Any:
+    new_rank_zero_deprecation(
+        "pytorch_lightning.utilities.warnings.rank_zero_deprecation has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_deprecation(*args, **kwargs)
+
+
+class LightningDeprecationWarning(NewLightningDeprecationWarning):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        new_rank_zero_deprecation(
+            "pytorch_lightning.utilities.warnings.LightningDeprecationWarning has been deprecated in v1.6"
+            " and will be removed in v1.8."
+            " Use the equivalent class from the pytorch_lightning.utilities.rank_zero module instead."
+        )
+        super().__init__(*args, **kwargs)

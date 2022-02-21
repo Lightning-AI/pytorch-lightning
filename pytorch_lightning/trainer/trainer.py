@@ -59,7 +59,7 @@ from pytorch_lightning.profiler import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput, DDPSpawnStrategy
+from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -78,15 +78,11 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _AcceleratorType,
     _IPU_AVAILABLE,
-    _StrategyType,
     _TPU_AVAILABLE,
     AMPType,
     device_parser,
     GradClipAlgorithmType,
     parsing,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
@@ -104,6 +100,7 @@ from pytorch_lightning.utilities.exceptions import ExitGracefullyException, Misc
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -141,7 +138,7 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: int = 1,
+        num_processes: Optional[int] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
@@ -160,11 +157,11 @@ class Trainer(
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
-        limit_train_batches: Union[int, float] = 1.0,
-        limit_val_batches: Union[int, float] = 1.0,
-        limit_test_batches: Union[int, float] = 1.0,
-        limit_predict_batches: Union[int, float] = 1.0,
-        val_check_interval: Union[int, float] = 1.0,
+        limit_train_batches: Optional[Union[int, float]] = None,
+        limit_val_batches: Optional[Union[int, float]] = None,
+        limit_test_batches: Optional[Union[int, float]] = None,
+        limit_predict_batches: Optional[Union[int, float]] = None,
+        val_check_interval: Optional[Union[int, float]] = None,
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -337,7 +334,6 @@ class Trainer(
                 To enable infinite training, set ``max_epochs = -1``.
 
             min_epochs: Force training for at least these many epochs. Disabled by default (None).
-                If both min_epochs and min_steps are not specified, defaults to ``min_epochs = 1``.
 
             max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
@@ -439,27 +435,27 @@ class Trainer(
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
         self._accelerator_connector = AcceleratorConnector(
-            num_processes,
-            devices,
-            tpu_cores,
-            ipus,
-            accelerator,
-            strategy,
-            gpus,
-            gpu_ids,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_backend,
-            amp_level,
-            plugins,
+            num_processes=num_processes,
+            devices=devices,
+            tpu_cores=tpu_cores,
+            ipus=ipus,
+            accelerator=accelerator,
+            strategy=strategy,
+            gpus=gpus,
+            gpu_ids=gpu_ids,
+            num_nodes=num_nodes,
+            sync_batchnorm=sync_batchnorm,
+            benchmark=benchmark,
+            replace_sampler_ddp=replace_sampler_ddp,
+            deterministic=deterministic,
+            precision=precision,
+            amp_type=amp_backend,
+            amp_level=amp_level,
+            plugins=plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
+        self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
@@ -482,10 +478,14 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # .validate() and .test() set this when they load a checkpoint
-        self.validated_ckpt_path: Optional[str] = None
-        self.tested_ckpt_path: Optional[str] = None
-        self.predicted_ckpt_path: Optional[str] = None
+        # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
+        self._ckpt_path: Optional[str] = None
+
+        # .validate(), predict() and .test() set these when they load a checkpoint. They will be removed in favor of
+        #  the unified read-only `Trainer.ckpt_path` attribute in v1.8
+        self._validated_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
+        self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
+        self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
 
         # todo: remove in v1.7
         self._weights_summary: Optional[str] = None
@@ -512,6 +512,7 @@ class Trainer(
         self._call_callback_hooks("on_init_start")
 
         # init data flags
+        self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
@@ -565,10 +566,11 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self.logger: Optional[LightningLoggerBase]
+        self._loggers: List[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_interval: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -584,14 +586,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
-        val_check_interval,
-        overfit_batches,
-        fast_dev_run,
-    ):
+        limit_train_batches: Optional[Union[int, float]],
+        limit_val_batches: Optional[Union[int, float]],
+        limit_test_batches: Optional[Union[int, float]],
+        limit_predict_batches: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float]],
+        overfit_batches: Union[int, float],
+        fast_dev_run: Union[int, bool],
+    ) -> None:
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
@@ -669,10 +671,8 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            if isinstance(self.strategy, DDPSpawnStrategy):
-                spawn_output: _SpawnOutput = self.strategy.spawn(trainer_fn, *args, **kwargs)
-                self.strategy._recover_results_in_main_process(spawn_output, self)
-                return spawn_output.trainer_results
+            if self.strategy.launcher is not None:
+                return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
@@ -686,14 +686,13 @@ class Trainer(
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
+                # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
             self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
             self._call_callback_hooks("on_exception", exception)
-            # shutdown workers
-            self._data_connector.teardown()
+            self._teardown()
+            # teardown might access the stage so we reset it after
+            self.state.stage = None
             raise
 
     def fit(
@@ -761,7 +760,10 @@ class Trainer(
 
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        results = self._run(model, ckpt_path=ckpt_path)
+        self._ckpt_path = self.__set_ckpt_path(
+            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+        )
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -840,12 +842,14 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.validated_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
+        self._validated_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
         # run validate
-        results = self._run(model, ckpt_path=self.validated_ckpt_path)
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.validating = False
@@ -926,12 +930,14 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.tested_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
+        self._tested_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
         # run test
-        results = self._run(model, ckpt_path=self.tested_ckpt_path)
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -1012,11 +1018,13 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self.predicted_ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
-        results = self._run(model, ckpt_path=self.predicted_ckpt_path)
+        self._predicted_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
+
+        results = self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
@@ -1080,12 +1088,12 @@ class Trainer(
 
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
-        self.checkpoint_connector.resume_start(checkpoint_path)
-        self.checkpoint_connector.restore_model()
-        self.checkpoint_connector.restore_datamodule()
+        self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector.restore_model()
+        self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
             # restore callback states
-            self.checkpoint_connector.restore_callbacks()
+            self._checkpoint_connector.restore_callbacks()
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
@@ -1112,6 +1120,8 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
+        self.__setup_profiler()
+
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1170,11 +1180,12 @@ class Trainer(
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
-        self.checkpoint_connector.restore_training_state()
+        self._checkpoint_connector.restore_training_state()
 
-        self.checkpoint_connector.resume_end()
+        self._checkpoint_connector.resume_end()
 
         results = self._run_stage()
+
         log.detail(f"{self.__class__.__name__}: trainer tearing down")
         self._teardown()
 
@@ -1189,12 +1200,8 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: calling teardown hooks")
         self._call_teardown_hook()
 
-        if self.state.status != TrainerStatus.INTERRUPTED:
-            self.state.status = TrainerStatus.FINISHED
+        self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
-
-        if isinstance(self.strategy, DDPSpawnStrategy):
-            results = self.strategy._collect_rank_zero_results(self, results)
 
         return results
 
@@ -1240,8 +1247,10 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
-        self._active_loop.teardown()
+        loop = self._active_loop
+        # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
+        if loop is not None:
+            loop.teardown()
         self.logger_connector.teardown()
         self._signal_connector.teardown()
 
@@ -1255,7 +1264,6 @@ class Trainer(
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
-        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -1282,9 +1290,6 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         self._run_sanity_check()
 
         # enable train mode
@@ -1296,9 +1301,6 @@ class Trainer(
             self.fit_loop.run()
 
     def _run_evaluate(self) -> _EVALUATE_OUTPUT:
-        if not self.is_global_zero and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
         assert self.evaluating
 
         # reload dataloaders
@@ -1350,6 +1352,9 @@ class Trainer(
 
             # reload dataloaders
             val_loop._reload_evaluation_dataloaders()
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # run eval step
             with torch.no_grad():
@@ -1772,24 +1777,29 @@ class Trainer(
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
             self.train_dataloader,
-            DataLoader,
+            (DataLoader, CombinedLoader),
             self._data_connector._prepare_dataloader,
-            shuffle=True,
             mode=RunningStage.TRAINING,
+        )
+        loaders = (
+            self.train_dataloader.loaders
+            if isinstance(self.train_dataloader, CombinedLoader)
+            else self.train_dataloader
         )
 
         # check the workers recursively
-        apply_to_collection(self.train_dataloader, DataLoader, self._data_connector._worker_check, "train_dataloader")
+        apply_to_collection(loaders, DataLoader, self._data_connector._worker_check, "train_dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(self.train_dataloader, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
+        apply_to_collection(loaders, DataLoader, _auto_add_worker_init_fn, rank=self.global_rank)
 
         # add collate_fn to collect metadata for fault tolerant training
         if _fault_tolerant_training():
-            apply_to_collection(self.train_dataloader, DataLoader, _add_capture_metadata_collate)
+            apply_to_collection(loaders, DataLoader, _add_capture_metadata_collate)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self._data_connector.multiple_trainloader_mode)
+        if not isinstance(self.train_dataloader, CombinedLoader):
+            self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
         self.num_training_batches = (
@@ -1956,12 +1966,8 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> _StrategyType:
-        return self._accelerator_connector._strategy_type
-
-    @property
     def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
+        return self._accelerator_connector.device_type
 
     @property
     def num_nodes(self) -> int:
@@ -1993,10 +1999,13 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_device_ids
+        return (
+            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        )
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
+        # TODO: this is actually an optional return
         return self.strategy.lightning_module
 
     @property
@@ -2016,7 +2025,7 @@ class Trainer(
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
-        return self.strategy.lr_schedulers
+        return self.strategy.lr_scheduler_configs
 
     @property
     def lr_schedulers(self) -> List[Dict[str, Any]]:
@@ -2027,7 +2036,7 @@ class Trainer(
         )
         from dataclasses import asdict
 
-        return [asdict(config) for config in self.strategy.lr_schedulers]
+        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
@@ -2101,7 +2110,7 @@ class Trainer(
 
     @property
     def is_global_zero(self) -> bool:
-        return self.global_rank == 0
+        return self.strategy.is_global_zero
 
     @property
     def slurm_job_id(self) -> Optional[int]:
@@ -2115,12 +2124,7 @@ class Trainer(
 
     @property
     def data_parallel(self) -> bool:
-        return self._strategy_type in (
-            _StrategyType.DP,
-            _StrategyType.DDP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP2,
-        )
+        return isinstance(self.strategy, ParallelStrategy)
 
     @property
     def progress_bar_dict(self) -> dict:
@@ -2207,7 +2211,7 @@ class Trainer(
 
     @property
     def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        resume_from_checkpoint = self.checkpoint_connector.resume_from_checkpoint_fit_path
+        resume_from_checkpoint = self._checkpoint_connector.resume_from_checkpoint_fit_path
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
@@ -2216,6 +2220,74 @@ class Trainer(
             )
 
         return resume_from_checkpoint
+
+    @property
+    def ckpt_path(self) -> Optional[str]:
+        """Set to the path/URL of a checkpoint loaded via :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`,
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`,
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
+        return self._ckpt_path
+
+    @property
+    def validated_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._validated_ckpt_path
+
+    @validated_ckpt_path.setter
+    def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path`.",
+            stacklevel=5,
+        )
+        self._validated_ckpt_path = ckpt_path
+
+    @property
+    def tested_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._tested_ckpt_path
+
+    @tested_ckpt_path.setter
+    def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        self._tested_ckpt_path = ckpt_path
+
+    @property
+    def predicted_ckpt_path(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
+            " `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        return self._predicted_ckpt_path
+
+    @predicted_ckpt_path.setter
+    def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        rank_zero_deprecation(
+            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
+            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
+            " read-only `Trainer.ckpt_path` instead.",
+            stacklevel=5,
+        )
+        self._predicted_ckpt_path = ckpt_path
 
     def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
         r"""
@@ -2226,7 +2298,7 @@ class Trainer(
             weights_only: If ``True``, will only save the model weights.
 
         """
-        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
 
     """
     Parsing properties
@@ -2350,14 +2422,15 @@ class Trainer(
 
     @property
     def current_epoch(self) -> int:
-        return self.fit_loop.current_epoch
+        """The current epoch, updated after the epoch end hooks are run."""
+        return self.fit_loop.epoch_progress.current.completed
 
     @property
     def max_epochs(self) -> int:
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> Optional[int]:
+    def min_epochs(self) -> int:
         return self.fit_loop.min_epochs
 
     @property
@@ -2473,6 +2546,37 @@ class Trainer(
     """
 
     @property
+    def logger(self) -> Optional[LightningLoggerBase]:
+        if len(self.loggers) == 0:
+            return None
+        if len(self.loggers) == 1:
+            return self.loggers[0]
+        else:
+            rank_zero_warn(
+                "Using trainer.logger when Trainer is configured to use multiple loggers."
+                " This behavior will change in v1.8 when LoggerCollection is removed, and"
+                " trainer.logger will return the first logger in trainer.loggers"
+            )
+            return LoggerCollection(self.loggers)
+
+    @logger.setter
+    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+        if not logger:
+            self.loggers = []
+        elif isinstance(logger, LoggerCollection):
+            self.loggers = list(logger)
+        else:
+            self.loggers = [logger]
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
+
+    @loggers.setter
+    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+        self._loggers = loggers if loggers else []
+
+    @property
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
 
@@ -2557,7 +2661,30 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
 
-def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
+    if batches is None:
+        # batches is optional to know if the user passed a value so that we can show the above info messages only to the
+        # users that set a value explicitly
+        return 1.0
+
+    # differentiating based on the type can be error-prone for users. show a message describing the chosen behaviour
+    if isinstance(batches, int) and batches == 1:
+        if name == "limit_train_batches":
+            message = "1 batch per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run after every batch."
+        else:
+            message = "1 batch will be used."
+        rank_zero_info(f"`Trainer({name}=1)` was configured so {message}")
+    elif isinstance(batches, float) and batches == 1.0:
+        if name == "limit_train_batches":
+            message = "100% of the batches per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run at the end of the training epoch."
+        else:
+            message = "100% of the batches will be used."
+        rank_zero_info(f"`Trainer({name}=1.0)` was configured so {message}.")
+
     if 0 <= batches <= 1:
         return batches
     if batches > 1 and batches % 1.0 == 0:
