@@ -65,12 +65,13 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
+    _StrategyType,
     AMPType,
     device_parser,
     LightningEnum,
     rank_zero_deprecation,
     rank_zero_info,
-    rank_zero_warn, _StrategyType,
+    rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
