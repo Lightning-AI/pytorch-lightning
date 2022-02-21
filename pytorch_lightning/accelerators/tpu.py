@@ -16,6 +16,7 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
@@ -42,6 +43,11 @@ class TPUAccelerator(Accelerator):
             "avg. peak memory (MB)": peak_memory,
         }
         return device_stats
+
+    @staticmethod
+    def parse_devices(devices) -> int:
+        """Accelerator Parsing logic."""
+        return device_parser.parse_tpu_cores(devices)
 
     @staticmethod
     def get_parallel_devices(devices):

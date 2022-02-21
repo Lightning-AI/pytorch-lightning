@@ -56,7 +56,7 @@ class Accelerator(ABC):
         raise NotImplementedError
 
     @staticmethod
-    # @abstractmethod
+    @abstractmethod
     def parse_devices(devices) -> int:
         """Accelerator Parsing logic."""
 

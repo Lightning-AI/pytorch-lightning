@@ -77,10 +77,12 @@ class GPUAccelerator(Accelerator):
         return get_nvidia_gpu_stats(device)
 
     @staticmethod
+    def parse_devices(devices) -> int:
+        """Accelerator Parsing logic."""
+        return device_parser.parse_gpu_ids(devices)
+
+    @staticmethod
     def get_parallel_devices(devices):
-        if isinstance(devices, int) or isinstance(devices, str):
-            devices = int(devices)
-            return [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(devices)] if devices != 0 else []
         return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
