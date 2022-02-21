@@ -455,43 +455,23 @@ class AcceleratorConnector:
 
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
-        elif self._accelerator_flag == "tpu":
-            self.accelerator = TPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = list(range(self._devices_flag))
-            else:
-                self._parallel_devices = self._devices_flag  # type: ignore[assignment]
-
-        elif self._accelerator_flag == "ipu":
-            self.accelerator = IPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = list(range(self._devices_flag))
-
-        elif self._accelerator_flag == "gpu":
-            self.accelerator = GPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
-                self._devices_flag = int(self._devices_flag)
-                self._parallel_devices = (
-                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._devices_flag)]  # type: ignore
-                    if self._devices_flag != 0
-                    else []
+        else:
+            ACCELERATORS = {
+                "cpu": CPUAccelerator,
+                "gpu": GPUAccelerator,
+                "tpu": TPUAccelerator,
+                "ipu": IPUAccelerator,
+            }
+            self._accelerator_flag = self._accelerator_flag.lower()
+            if self._accelerator_flag not in ACCELERATORS:
+                raise MisconfigurationException(
+                    "When passing string value for the `accelerator` argument of `Trainer`,"
+                    f" it can only be one of {list(ACCELERATORS.keys())}."
                 )
-            else:
-                self._parallel_devices = [torch.device("cuda", i) for i in self._devices_flag]  # type: ignore
-
-        elif self._accelerator_flag == "cpu":
-            self.accelerator = CPUAccelerator()
+            accelerator_class = ACCELERATORS[self._accelerator_flag]
+            self.accelerator = accelerator_class()
             self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = [torch.device("cpu")] * self._devices_flag
-            else:
-                rank_zero_warn(
-                    "The flag `devices` must be an int with `accelerator='cpu'`,"
-                    f" got `devices={self._devices_flag}` instead."
-                )
+            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores

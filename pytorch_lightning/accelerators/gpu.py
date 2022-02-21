@@ -23,6 +23,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.types import _DEVICE
@@ -74,6 +75,13 @@ class GPUAccelerator(Accelerator):
         if _TORCH_GREATER_EQUAL_1_8:
             return torch.cuda.memory_stats(device)
         return get_nvidia_gpu_stats(device)
+
+    @staticmethod
+    def get_parallel_devices(devices):
+        if isinstance(devices, int) or isinstance(devices, str):
+            devices = int(devices)
+            return [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(devices)] if devices != 0 else []
+        return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
     def auto_device_count() -> int:

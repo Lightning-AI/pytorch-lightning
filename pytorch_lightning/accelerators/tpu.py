@@ -44,6 +44,12 @@ class TPUAccelerator(Accelerator):
         return device_stats
 
     @staticmethod
+    def get_parallel_devices(devices):
+        if isinstance(devices, int):
+            return list(range(devices))
+        return devices
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 8

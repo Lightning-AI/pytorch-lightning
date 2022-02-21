@@ -40,6 +40,10 @@ class CPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
+    def get_parallel_devices(devices):
+        return [torch.device("cpu")] * devices
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1

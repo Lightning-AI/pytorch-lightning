@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import torch
 
@@ -56,9 +56,19 @@ class Accelerator(ABC):
         raise NotImplementedError
 
     @staticmethod
+    # @abstractmethod
+    def parse_devices(devices) -> int:
+        """Accelerator Parsing logic."""
+
+    @staticmethod
     @abstractmethod
     def auto_device_count() -> int:
         """Get the device count when set to auto."""
+
+    @staticmethod
+    @abstractmethod
+    def get_parallel_devices(devices: Union[List[int], str, int]) -> List[torch.device]:
+        """Gets parallel devices for the given Accelerator."""
 
     @staticmethod
     @abstractmethod

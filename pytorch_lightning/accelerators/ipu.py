@@ -27,6 +27,10 @@ class IPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
+    def get_parallel_devices(devices):
+        return list(range(devices))
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
