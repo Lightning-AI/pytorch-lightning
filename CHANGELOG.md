@@ -561,7 +561,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `log_text` and `log_image` from the `LightningLoggerBase` API ([#11857](https://github.com/PyTorchLightning/pytorch-lightning/pull/11857))
 
 
-- Removed calls to `profile("model_forward")` since we already profile `training_step` ([#12032](https://github.com/PyTorchLightning/pytorch-lightning/pull/12032))
+- Removed calls to `profile("model_forward")` in favor of profiling `training_step` ([#12032](https://github.com/PyTorchLightning/pytorch-lightning/pull/12032))
 
 ### Fixed
 
