@@ -228,9 +228,10 @@ def apply_to_collections(
                 "Expected inputs to be dataclasses of the same type or to have identical fields"
                 f" but got input 1 of type {type(data1)} and input 2 of type {type(data2)}"
             )
-        if not (len(dataclasses.fields(data1)) == len(dataclasses.fields(data2)) and map(
-            lambda f1, f2: isinstance(f1, type(f2)), zip(dataclasses.fields(data1), dataclasses.fields(data2))
-        )):
+        if not (
+            len(dataclasses.fields(data1)) == len(dataclasses.fields(data2))
+            and map(lambda f1, f2: isinstance(f1, type(f2)), zip(dataclasses.fields(data1), dataclasses.fields(data2)))
+        ):
             raise TypeError("Dataclasses fields does not match")
         # make a deepcopy of the data,
         # but do not deepcopy mapped fields since the computation would
