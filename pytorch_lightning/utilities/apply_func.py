@@ -232,7 +232,7 @@ def apply_to_collections(
             len(dataclasses.fields(data1)) == len(dataclasses.fields(data2))
             and map(lambda f1, f2: isinstance(f1, type(f2)), zip(dataclasses.fields(data1), dataclasses.fields(data2)))
         ):
-            raise TypeError("Dataclasses fields does not match")
+            raise TypeError("Dataclasses fields do not match")
         # make a deepcopy of the data,
         # but do not deepcopy mapped fields since the computation would
         # be wasted on values that likely get immediately overwritten

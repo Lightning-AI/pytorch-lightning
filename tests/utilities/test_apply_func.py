@@ -330,11 +330,11 @@ def test_apply_to_collections_dataclass():
         apply_to_collections(to_reduce_1, [1, 2], (torch.Tensor, numbers.Number, np.ndarray), fn)
 
     # unmatched fields
-    with pytest.raises(TypeError, match="Dataclasses fields does not match"):
+    with pytest.raises(TypeError, match="Dataclasses fields do not match"):
         apply_to_collections(to_reduce_1, model_example, (torch.Tensor, numbers.Number, np.ndarray), fn)
 
     classvar = WithClassVar(torch.arange(3))  # dataclass with same number but different type of fields
-    with pytest.raises(TypeError, match="Dataclasses fields does not match"):
+    with pytest.raises(TypeError, match="Dataclasses fields do not match"):
         apply_to_collections(to_reduce_1, classvar, (torch.Tensor, numbers.Number, np.ndarray), fn)
 
 
