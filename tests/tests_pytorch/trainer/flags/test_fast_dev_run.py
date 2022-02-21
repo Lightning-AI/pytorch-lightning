@@ -16,6 +16,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
 
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
+    model.batch_size = 8
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
