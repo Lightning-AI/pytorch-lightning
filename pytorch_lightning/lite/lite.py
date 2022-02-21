@@ -24,7 +24,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
@@ -78,8 +78,7 @@ class LightningLite(ABC):
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
-        self._check_accelerator_support(accelerator)
-        self._check_strategy_support(strategy)
+        
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=None,
@@ -103,6 +102,10 @@ class LightningLite(ABC):
         self._strategy = self._accelerator_connector.strategy
         self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
+
+        self._check_accelerator_support(self._accelerator)
+        self._check_strategy_support(self._strategy)
+
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -442,10 +445,11 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSampler(dataloader.dataset, **kwargs)
 
-    def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
+    def _check_accelerator_support(self, accelerator: Accelerator) -> None:
+        valid =
         supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
         valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
-        if not valid:
+        if not isinstance(accelerator, self._supported_accelerators()):
             raise MisconfigurationException(
                 f"`accelerator={repr(accelerator)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `Accelerator` instance."
@@ -460,13 +464,15 @@ class LightningLite(ABC):
                 f" Choose one of {supported} or pass in a `Strategy` instance."
             )
 
-    @staticmethod
-    def _supported_device_types() -> Sequence[_AcceleratorType]:
+    def _supported_accelerators() -> Sequence[Accelerator]:
         return (
-            _AcceleratorType.CPU,
-            _AcceleratorType.GPU,
-            _AcceleratorType.TPU,
+            CPUAccelerator,
+            GPUAccelerator,
+            TPUAccelerator
         )
+
+    def _supported_strategies() -> Sequence[Strategy]:
+        return 
 
     @staticmethod
     def _supported_strategy_types() -> Sequence[_StrategyType]:
