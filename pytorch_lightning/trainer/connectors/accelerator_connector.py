@@ -403,8 +403,6 @@ class AcceleratorConnector:
         """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
-        gpus = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
             if devices:
@@ -470,6 +468,7 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()
+            self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
             self._set_devices_flag_if_auto_passed()
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
