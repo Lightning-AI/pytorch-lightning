@@ -40,12 +40,13 @@ class CPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def parse_devices(devices) -> int:
+    def parse_devices(devices: int | str | list[int]) -> int | list[int] | None:
         """Accelerator Parsing logic."""
         return devices
 
     @staticmethod
-    def get_parallel_devices(devices):
+    def get_parallel_devices(devices: list[int] | str | int) -> list[torch.device] | list[int]:
+        """Gets parallel devices for the given Accelerator."""
         return [torch.device("cpu")] * devices
 
     @staticmethod

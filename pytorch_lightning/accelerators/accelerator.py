@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 
@@ -57,12 +57,12 @@ class Accelerator(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_devices(devices) -> int:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
         """Accelerator Parsing logic."""
 
     @staticmethod
     @abstractmethod
-    def get_parallel_devices(devices: Union[List[int], str, int]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[List[int], str, int]) -> Union[List[torch.device], List[int]]:
         """Gets parallel devices for the given Accelerator."""
 
     @staticmethod
