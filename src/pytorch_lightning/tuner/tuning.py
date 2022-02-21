@@ -170,6 +170,7 @@ class Tuner:
             max_trials=max_trials,
             batch_arg_name=batch_arg_name,
         )
+        # do not continue with the loop in case trainer.tuner is used
         batch_size_finder._early_exit = True
         self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
 

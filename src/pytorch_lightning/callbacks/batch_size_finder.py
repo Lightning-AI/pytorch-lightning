@@ -22,7 +22,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
 from torch.utils.data.dataloader import DataLoader
 from typing_extensions import TypedDict
@@ -34,10 +34,24 @@ from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_e
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
+if TYPE_CHECKING:
+    from pytorch_lightning.loggers.base import LightningLoggerBase
+
+    class _BatchSizeFinderDumpedParams(TypedDict):
+        callbacks: List[Callback]
+        logger: Optional[LightningLoggerBase]
+        max_steps: int
+        global_step: Optional[None]
+        limit_val_batches: Union[int, float]
+        limit_eval_batches: Union[int, float]
+
+
 log = logging.getLogger(__name__)
 
 
 class BatchSizeFinder(Callback):
+    SUPPORTED_MODES = ("power", "binsearch")
+
     def __init__(
         self,
         mode: str = "power",
@@ -46,10 +60,11 @@ class BatchSizeFinder(Callback):
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
     ) -> None:
-        """Callback try to find the largest batch size for a given model that does not give an out of memory (OOM)
-        error. It works with both training and evalation. All you need to do is add it as a callback inside Trainer
-        and call ``trainer.fit/validate/test/predict()``. Internally it calls the respective step function
-        ``steps_per_trial`` times for each batch size until one of the batch size generates and OOM error.
+        """The `BatchSizeFinder` callback tries to find the largest batch size for a given model that does not give
+        an out of memory (OOM) error. It works with both training and evalation. All you need to do is add it as a
+        callback inside Trainer and call ``trainer.fit/validate/test/predict()``. Internally it calls the
+        respective step function ``steps_per_trial`` times for each batch size until one of the batch size
+        generates and OOM error.
 
         Args:
             mode: search strategy to update the batch size:
@@ -75,10 +90,9 @@ class BatchSizeFinder(Callback):
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        supported_modes = ("power", "binsearch")
         mode = mode.lower()
-        if mode not in supported_modes:
-            raise MisconfigurationException(f"`mode` should be one of {supported_modes}")
+        if mode not in self.SUPPORTED_MODES:
+            raise MisconfigurationException(f"`mode` should be one of {self.SUPPORTED_MODES}")
 
         self.mode = mode
         self.steps_per_trial = steps_per_trial
@@ -88,17 +102,6 @@ class BatchSizeFinder(Callback):
         self.optimal_batch_size = init_val
 
         self._early_exit = False
-
-        from pytorch_lightning.loggers.base import LightningLoggerBase
-
-        class _BatchSizeFinderDumpedParams(TypedDict):
-            callbacks: List[Callback]
-            logger: Optional[LightningLoggerBase]
-            max_steps: int
-            global_step: Optional[None]
-            limit_val_batches: Union[int, float]
-            limit_eval_batches: Union[int, float]
-
         self._dumped_params: _BatchSizeFinderDumpedParams = {}
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -125,8 +128,8 @@ class BatchSizeFinder(Callback):
         # TODO: check if this can be enabled (#4040)
         if not trainer._data_connector._train_dataloader_source.is_module():
             raise MisconfigurationException(
-                "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`."
-                " Please disable the feature or incorporate the dataloader into the model."
+                "The batch scaling feature cannot be used with dataloaders passed directly to `.fit()`. Please disable"
+                " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
             )
 
         # Save initial model, that is loaded after batch size is found
@@ -245,16 +248,14 @@ class BatchSizeFinder(Callback):
         return new_size
 
     def _try_loop_run(self, trainer: "pl.Trainer") -> None:
-        from pytorch_lightning.trainer.states import TrainerFn
-
-        if trainer.state.fn == TrainerFn.FITTING:
+        if trainer.state.fn == "fit":
             trainer.fit_loop.global_step = self._dumped_params["global_step"]
             loop = trainer.fit_loop
-        elif trainer.state.fn == TrainerFn.VALIDATING:
+        elif trainer.state.fn == "validate":
             loop = trainer.validate_loop
-        elif trainer.state.fn == TrainerFn.TESTING:
+        elif trainer.state.fn == "test":
             loop = trainer.test_loop
-        elif trainer.state.fn == TrainerFn.PREDICTING:
+        elif trainer.state.fn == "predict":
             loop = trainer.predict_loop
 
         loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
@@ -263,38 +264,35 @@ class BatchSizeFinder(Callback):
 
     @staticmethod
     def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        from pytorch_lightning.trainer.states import TrainerFn
-
-        if trainer.state.fn == TrainerFn.FITTING:
+        if trainer.state.fn == "fit":
             trainer.reset_train_dataloader(pl_module)
             trainer.reset_val_dataloader(pl_module)
-        elif trainer.state.fn == TrainerFn.VALIDATING:
+        elif trainer.state.fn == "validate":
             trainer.reset_val_dataloader(pl_module)
-        elif trainer.state.fn == TrainerFn.TESTING:
+        elif trainer.state.fn == "test":
             trainer.reset_test_dataloader(pl_module)
-        elif trainer.state.fn == TrainerFn.PREDICTING:
+        elif trainer.state.fn == "predict":
             trainer.reset_predict_dataloader(pl_module)
 
     def _dump_params(self, trainer: "pl.Trainer") -> None:
-        from pytorch_lightning.trainer.states import TrainerFn
 
         self._dumped_params = {
             "logger": trainer.logger,
             "callbacks": trainer.callbacks,
         }
 
-        if trainer.state.fn == TrainerFn.FITTING:
+        if trainer.state.fn == "fit":
             loop = trainer.fit_loop
             self._dumped_params["global_step"] = trainer.global_step
             self._dumped_params["max_steps"] = trainer.max_steps
             self._dumped_params["limit_val_batches"] = trainer.limit_val_batches
-        elif trainer.state.fn == TrainerFn.VALIDATING:
+        elif trainer.state.fn == "validate":
             loop = trainer.validate_loop
             self._dumped_params["limit_eval_batches"] = trainer.limit_val_batches
-        elif trainer.state.fn == TrainerFn.TESTING:
+        elif trainer.state.fn == "test":
             loop = trainer.test_loop
             self._dumped_params["limit_eval_batches"] = trainer.limit_test_batches
-        elif trainer.state.fn == TrainerFn.PREDICTING:
+        elif trainer.state.fn == "predict":
             loop = trainer.predict_loop
             self._dumped_params["limit_eval_batches"] = trainer.limit_predict_batches
 
@@ -304,41 +302,38 @@ class BatchSizeFinder(Callback):
 
     def _reset_params(self, trainer: "pl.Trainer") -> None:
         from pytorch_lightning.loggers.base import DummyLogger
-        from pytorch_lightning.trainer.states import TrainerFn
 
         trainer.logger = DummyLogger() if trainer.logger is not None else None
         trainer.callbacks = []
 
-        if trainer.state.fn == TrainerFn.FITTING:
+        if trainer.state.fn == "fit":
             trainer.limit_val_batches = self.steps_per_trial
             trainer.fit_loop.max_steps = self.steps_per_trial
-        elif trainer.state.fn == TrainerFn.VALIDATING:
+        elif trainer.state.fn == "validate":
             trainer.limit_val_batches = self.steps_per_trial
             trainer.validate_loop.verbose = False
-        elif trainer.state.fn == TrainerFn.TESTING:
+        elif trainer.state.fn == "test":
             trainer.limit_test_batches = self.steps_per_trial
             trainer.test_loop.verbose = False
-        elif trainer.state.fn == TrainerFn.PREDICTING:
+        elif trainer.state.fn == "predict":
             trainer.limit_predict_batches = self.steps_per_trial
 
     def _restore_params(self, trainer: "pl.Trainer") -> None:
         # TODO: There are more states that needs to be reset (#4512 and #4870)
-        from pytorch_lightning.trainer.states import TrainerFn
-
         trainer.logger = self._dumped_params["logger"]
         trainer.callbacks = self._dumped_params["callbacks"]
 
-        if trainer.state.fn == TrainerFn.FITTING:
+        if trainer.state.fn == "fit":
             loop = trainer.fit_loop
             loop.max_steps = self._dumped_params["max_steps"]
             trainer.limit_val_batches = self._dumped_params["limit_val_batches"]
-        elif trainer.state.fn == TrainerFn.VALIDATING:
+        elif trainer.state.fn == "validate":
             loop = trainer.validate_loop
             trainer.limit_val_batches = self._dumped_params["limit_eval_batches"]
-        elif trainer.state.fn == TrainerFn.TESTING:
+        elif trainer.state.fn == "test":
             loop = trainer.test_loop
             trainer.limit_test_batches = self._dumped_params["limit_eval_batches"]
-        elif trainer.state.fn == TrainerFn.PREDICTING:
+        elif trainer.state.fn == "predict":
             loop = trainer.predict_loop
             trainer.limit_predict_batches = self._dumped_params["limit_eval_batches"]
 
@@ -351,9 +346,7 @@ class BatchSizeFinder(Callback):
         self.scale_batch_size(trainer, pl_module)
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        from pytorch_lightning.trainer.states import TrainerFn
-
-        if trainer.sanity_checking or trainer.state.fn != TrainerFn.VALIDATING:
+        if trainer.sanity_checking or trainer.state.fn != "validate":
             return
 
         self.scale_batch_size(trainer, pl_module)
@@ -385,25 +378,23 @@ class BatchSizeFinder(Callback):
             The new batch size for the next trial and a bool that signals whether the
             new value is different than the previous batch size.
         """
-        from pytorch_lightning.trainer.states import TrainerFn
-
         model = trainer.lightning_module
         batch_size = lightning_getattr(model, self.batch_arg_name)
         new_size = value if value is not None else int(batch_size * factor)
         if desc:
             rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-        # TODO improve this for eval CombinedLoader and multi dataloaders
-        if trainer.state.fn == TrainerFn.FITTING:
+        # TODO improve this for multi eval dataloaders
+        if trainer.state.fn == "fit":
             if not self._is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
                 new_size = min(new_size, len(trainer.train_dataloader.dataset))
-        if trainer.state.fn == TrainerFn.VALIDATING:
+        if trainer.state.fn == "validate":
             if not self._is_valid_batch_size(new_size, trainer.val_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.val_dataloaders[0].dataset))
-        if trainer.state.fn == TrainerFn.TESTING:
+        if trainer.state.fn == "test":
             if not self._is_valid_batch_size(new_size, trainer.test_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.test_dataloaders[0].dataset))
-        if trainer.state.fn == TrainerFn.PREDICTING:
+        if trainer.state.fn == "predict":
             if not self._is_valid_batch_size(new_size, trainer.predict_dataloaders[0], trainer):
                 new_size = min(new_size, len(trainer.predict_dataloaders[0].dataset))
 
