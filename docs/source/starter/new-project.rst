@@ -195,7 +195,7 @@ of the 20+ hooks found in :ref:`lightning_hooks`
 
 **FORWARD vs TRAINING_STEP**
 
-In Lightning, we suggest separatating training from inference. The ``training_step`` defines
+In Lightning we suggest separating training from inference. The ``training_step`` defines
 the full training loop. We encourage users to use the ``forward`` to define inference actions.
 
 For example, in this case we can define the autoencoder to act as an embedding extractor:
