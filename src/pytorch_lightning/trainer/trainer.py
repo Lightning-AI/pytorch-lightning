@@ -667,8 +667,7 @@ class Trainer(
             # reset bookkeeping
             self.state.stage = None
             self._call_callback_hooks("on_exception", exception)
-            # shutdown workers
-            self._data_connector.teardown()
+            self._teardown()
 
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:

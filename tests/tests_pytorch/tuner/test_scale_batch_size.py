@@ -345,7 +345,7 @@ def test_batch_size_finder_callback(tmpdir, trainer_fn):
     if trainer_fn == "fit":
         expected_steps = trainer.train_dataloader.loaders.dataset.len // after_batch_size
         assert trainer.global_step == expected_steps * max_epochs
-        assert trainer.current_epoch == max_epochs - 1
+        assert trainer.current_epoch == max_epochs
         assert loop.epoch_loop.batch_progress.total.completed == expected_steps * max_epochs
     else:
         if trainer_fn == "validate":

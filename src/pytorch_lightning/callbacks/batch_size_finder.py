@@ -18,6 +18,7 @@ BatchSizeFinder
 Finds optimal batch size
 """
 
+import logging
 import os
 import uuid
 from copy import deepcopy
@@ -28,12 +29,12 @@ from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
+
+log = logging.getLogger(__name__)
 
 
 class BatchSizeFinder(Callback):
@@ -128,15 +129,17 @@ class BatchSizeFinder(Callback):
                 " Please disable the feature or incorporate the dataloader into the model."
             )
 
+        # Save initial model, that is loaded after batch size is found
+        ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
+        trainer.fit_loop.global_step -= 1
+        trainer.save_checkpoint(ckpt_path)
+        trainer.fit_loop.global_step += 1
+
         # Arguments we adjust during the batch size finder, save for restoring
         self._dump_params(trainer)
 
         # Set to values that are required by the algorithm
         self._reset_params(trainer)
-
-        # Save initial model, that is loaded after batch size is found
-        save_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_temp_model_{uuid.uuid4()}.ckpt")
-        trainer.save_checkpoint(save_path)
 
         if trainer.progress_bar_callback:
             trainer.progress_bar_callback.disable()
@@ -149,23 +152,16 @@ class BatchSizeFinder(Callback):
             new_size = self._run_binary_scaling(trainer, pl_module, new_size)
 
         garbage_collection_cuda()
+        log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
-        if trainer.is_global_zero:
-            trainer.checkpoint_connector.restore(save_path)
-            fs = get_filesystem(save_path)
-            if fs.exists(save_path):
-                fs.rm(save_path)
-
-        # global step and current epoch are incremented before saved in checkpoint
-        trainer.fit_loop.global_step -= 1
-        trainer.fit_loop.current_epoch -= 1
+        trainer._checkpoint_connector.restore(ckpt_path)
+        trainer.strategy.remove_checkpoint(ckpt_path)
 
         self._restore_params(trainer)
 
         if trainer.progress_bar_callback:
             trainer.progress_bar_callback.enable()
 
-        print(f"New batch size: {new_size}")
         self.optimal_batch_size = new_size
 
         if self._early_exit:
@@ -262,6 +258,7 @@ class BatchSizeFinder(Callback):
             loop = trainer.predict_loop
 
         loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
+        loop.restarting = False
         loop.run()
 
     @staticmethod
@@ -301,7 +298,7 @@ class BatchSizeFinder(Callback):
             loop = trainer.predict_loop
             self._dumped_params["limit_eval_batches"] = trainer.limit_predict_batches
 
-        self._dumped_params["loop_state_dict"] = deepcopy(loop.state_dict(force_save_progress=True))
+        self._dumped_params["loop_state_dict"] = deepcopy(loop.state_dict())
         if hasattr(loop, "verbose"):
             self._dumped_params["loop_verbose"] = loop.verbose
 
@@ -332,7 +329,6 @@ class BatchSizeFinder(Callback):
         trainer.callbacks = self._dumped_params["callbacks"]
 
         if trainer.state.fn == TrainerFn.FITTING:
-            trainer.fit_loop.global_step = self._dumped_params["global_step"]
             loop = trainer.fit_loop
             loop.max_steps = self._dumped_params["max_steps"]
             trainer.limit_val_batches = self._dumped_params["limit_val_batches"]

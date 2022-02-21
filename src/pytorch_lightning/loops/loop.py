@@ -22,6 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 T = TypeVar("T")  # the output type of `run`
 
@@ -274,10 +275,9 @@ class Loop(ABC, Generic[T]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(
-        self, destination: Optional[Dict] = None, prefix: str = "", force_save_progress: bool = False
-    ) -> Dict:
+    def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
         """The state dict is determined by the state and progress of this loop and all its children.
+
         Args:
             destination: An existing dictionary to update with this loop's state. By default a new dictionary
                 is returned.
@@ -315,6 +315,7 @@ class Loop(ABC, Generic[T]):
         for k, v in self.__dict__.items():
             if isinstance(v, Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
+        self.restarting = True
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
         for k, v in self.__dict__.items():

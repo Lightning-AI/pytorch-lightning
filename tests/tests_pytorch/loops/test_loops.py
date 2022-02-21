@@ -282,7 +282,6 @@ def test_loop_hierarchy():
     state_dict["loop_child.state_dict"]["a"] = 3
     # check restarting after `load_state_dict`
     loop_parent.load_state_dict(state_dict)
-    loop_parent.restarting = True
     assert loop_parent.restarting
 
     loop_parent.run()
@@ -306,7 +305,6 @@ def test_loop_hierarchy():
     loop_child = Simple(2)
     loop_parent.loop_child = loop_child
     loop_parent.load_state_dict(state_dict)
-    loop_parent.restarting = True
     assert loop_parent.progress.increment == 1
     assert loop_parent.loop_child.progress.increment == 1
 
@@ -360,7 +358,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert checkpoint["epoch_loop.val_loop.dataloader_progress"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint)
-    trainer.fit_loop.restarting = True
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
     # the fit-validation total batch progress is reset per epoch so it's not counted for the total value.
@@ -554,7 +551,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert checkpoint["loops"]["fit_loop"] == expected
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-    trainer.fit_loop.restarting = True
     state_dict = trainer.fit_loop.state_dict()
 
     # need to remove these elements for comparison; comparing with `fit_loop.state_dict()` would require the
@@ -564,7 +560,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-    trainer.fit_loop.restarting = True
     # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
@@ -758,7 +753,6 @@ def test_fit_loop_reset(tmpdir):
 
     # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
-    fit_loop.restarting = True
     # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
@@ -791,7 +785,6 @@ def test_fit_loop_reset(tmpdir):
 
     # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
-    fit_loop.restarting = True
     # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
