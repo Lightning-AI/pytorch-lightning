@@ -149,5 +149,5 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         self.trainer.profiler.start("optimizer_step")
 
     def _on_after_step(self) -> None:
-        self.optim_step_progress.increment_completed()
         self.trainer.profiler.stop("optimizer_step")
+        self.optim_step_progress.increment_completed()

@@ -218,7 +218,7 @@ Debugging with Distributed Strategies
 DDP Debugging
 =============
 
-If you are having a hard time debugging DDP on your remote machine you can debug DDP locally on the CPU. Note that this will not provide any speed benifits.
+If you are having a hard time debugging DDP on your remote machine you can debug DDP locally on the CPU. Note that this will not provide any speed benefits.
 
 .. code-block:: python
 

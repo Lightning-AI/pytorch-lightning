@@ -22,6 +22,7 @@ from torchmetrics import Metric
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -196,7 +197,7 @@ class CheckpointConnector:
             return
 
         # restore precision plugin (scaler etc.)
-        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        self.restore_precision_plugin_state()
 
         # restore loops and their progress
         self.restore_loops()
@@ -205,6 +206,21 @@ class CheckpointConnector:
         if self.trainer.state.fn == TrainerFn.FITTING:
             # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
+
+    def restore_precision_plugin_state(self) -> None:
+        """Restore the precision plugin state from the pre-loaded checkpoint."""
+        prec_plugin = self.trainer.precision_plugin
+        prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
+        if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
+            prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
+
+        # old checkpoints compatibility
+        if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(
+            prec_plugin, NativeMixedPrecisionPlugin
+        ):
+            prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -280,17 +296,6 @@ class CheckpointConnector:
 
         # restore the optimizers
         self.trainer.strategy.load_optimizer_state_dict(self._loaded_checkpoint)
-        for optimizer in self.trainer.optimizers:
-            # move optimizer to GPU 1 weight at a time
-            # avoids OOM
-            if self.trainer.root_gpu is not None:
-                for param, state in optimizer.state.items():
-                    if isinstance(state, dict):
-                        for k, v in state.items():
-                            if isinstance(v, torch.Tensor):
-                                state[k] = v.cuda(self.trainer.root_gpu)
-                    elif isinstance(state, torch.Tensor):
-                        optimizer.state[param] = state.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
         """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
@@ -318,9 +323,8 @@ class CheckpointConnector:
                 'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
-                'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
-                'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
                 'state_dict':                Model's state_dict (e.g. network weights)
+                precision_plugin.__class__.__qualname__:  precision plugin state_dict # if not weights_only
                 CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
                 CHECKPOINT_HYPER_PARAMS_TYPE:
@@ -357,7 +361,12 @@ class CheckpointConnector:
                 lr_schedulers.append(config.scheduler.state_dict())
             checkpoint["lr_schedulers"] = lr_schedulers
 
-            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
+            # precision plugin
+            prec_plugin = self.trainer.precision_plugin
+            prec_plugin_state_dict = prec_plugin.state_dict()
+            if prec_plugin_state_dict:
+                checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
+            prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
