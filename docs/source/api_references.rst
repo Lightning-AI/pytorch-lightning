@@ -43,6 +43,7 @@ Strategy API
     :nosignatures:
     :template: classtemplate.rst
 
+    BaguaStrategy
     DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
@@ -278,6 +279,17 @@ Utilities API
     :toctree: api
     :nosignatures:
 
-    cli
+    apply_func
     argparse
+    cli
+    cloud_io
+    deepspeed
+    distributed
+    finite_checks
+    memory
+    model_summary
+    optimizer
+    parsing
+    rank_zero
     seed
+    warnings

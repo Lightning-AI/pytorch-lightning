@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from collections import defaultdict
 from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
@@ -20,17 +21,18 @@ import torch
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _update_dataloader_iter
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -98,11 +100,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     @property
     def done(self) -> bool:
-        """Returns whether the training should be stopped.
-
-        The criteria are that the number of steps reached the max steps, the last batch is reached or the trainer
-        signals to stop (e.g. by early stopping).
-        """
+        """Evaluates when to leave the loop."""
         return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
 
     def connect(  # type: ignore[override]
@@ -122,6 +120,17 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
             self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+
+            trainer = self.trainer
+            if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
+                expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
+                if self.global_step % expected_steps != 0:
+                    rank_zero_warn(
+                        "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
+                        " results if further training is done. Consider using an end-of-epoch checkpoint or enabling"
+                        " fault-tolerant training:"
+                        " https://pytorch-lightning.readthedocs.io/en/stable/advanced/fault_tolerant_training.html"
+                    )
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
@@ -134,7 +143,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = _update_dataloader_iter(data_fetcher, self.batch_idx + 1)
+        self._dataloader_iter = iter(data_fetcher)
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -145,12 +154,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
             # skip training and run validation in `on_advance_end`
             return
+        # we are going to train first so the val loop does not need to restart
+        self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
-        batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
-
-        if not data_fetcher.store_on_device:
-            batch = self.trainer._call_strategy_hook("batch_to_device", batch)
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_idx + 1
+            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+        else:
+            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         self.batch_progress.increment_ready()
 
@@ -225,13 +237,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
-        """Runs validation and Checkpointing if necessary.
-
-        Raises:
-            StopIteration: if :attr:`done` evaluates to ``True`` to finish this epoch
-        """
         # -----------------------------------------
-        # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+        # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
         if should_check_val:
@@ -270,16 +277,18 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self.trainer.train_dataloader is None
-            or self._num_completed_batches_reached()  # did not finish
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self.trainer.train_dataloader is not None
+            and not self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            loader: CombinedLoader = self.trainer.train_dataloader
+            state = loader.state_dict(has_completed=self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(
-            self.trainer.train_dataloader.state_dict(has_completed=self._has_completed())
-        )
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -412,31 +421,31 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 so they have to be updated separately.
             opt_indices: indices of the optimizers to update.
         """
-        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
+        if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
             return
 
         if opt_indices is None:
             opt_indices = []
 
-        for lr_scheduler in self.trainer.lr_schedulers:
-            if lr_scheduler["opt_idx"] not in opt_indices:
+        for config in self.trainer.lr_scheduler_configs:
+            if config.opt_idx not in opt_indices:
                 continue
 
-            if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
+            if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
             current_idx = self.batch_idx if interval == "step" else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
-            if lr_scheduler["interval"] == interval and current_idx % lr_scheduler["frequency"] == 0:
+            if config.interval == interval and current_idx % config.frequency == 0:
                 monitor_val = None
-                if lr_scheduler["reduce_on_plateau"]:
+                if config.reduce_on_plateau:
                     # If instance of ReduceLROnPlateau, we need a monitor
-                    monitor_key = lr_scheduler["monitor"]
+                    monitor_key = config.monitor
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
-                        if lr_scheduler.get("strict", True):
+                        if config.strict:
                             avail_metrics = list(self.trainer.callback_metrics)
                             raise MisconfigurationException(
                                 f"ReduceLROnPlateau conditioned on metric {monitor_key}"
@@ -456,8 +465,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 # update LR
                 self.trainer._call_lightning_module_hook(
                     "lr_scheduler_step",
-                    lr_scheduler["scheduler"],
-                    lr_scheduler["opt_idx"],
+                    config.scheduler,
+                    config.opt_idx,
                     monitor_val,
                 )
                 self.scheduler_progress.increment_completed()

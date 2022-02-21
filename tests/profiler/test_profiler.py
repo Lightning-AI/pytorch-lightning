@@ -16,6 +16,7 @@ import os
 import platform
 import time
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -23,7 +24,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.loggers.base import LoggerCollection
+from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
@@ -110,10 +111,10 @@ def test_simple_profiler_deepcopy(tmpdir):
     assert deepcopy(simple_profiler)
 
 
-def test_simple_profiler_log_dir(tmpdir):
+def test_simple_profiler_dirpath(tmpdir):
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present."""
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
@@ -121,7 +122,7 @@ def test_simple_profiler_log_dir(tmpdir):
 
     expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -130,7 +131,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(filename="profiler")
-    assert profiler._log_dir is None
+    assert profiler.dirpath is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -141,7 +142,7 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
     assert expected.exists()
     assert trainer.log_dir == expected
-    assert profiler._log_dir == trainer.log_dir
+    assert profiler.dirpath == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
 
 
@@ -150,7 +151,6 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(dirpath=nonexisting_tmpdir, filename="profiler")
-    assert profiler._log_dir is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -168,7 +168,13 @@ def test_simple_profiler_distributed_files(tmpdir):
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=2, strategy="ddp_spawn", num_processes=2, profiler=profiler, logger=False
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        profiler=profiler,
+        logger=False,
     )
     trainer.fit(model)
     trainer.validate(model)
@@ -193,6 +199,76 @@ def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     assert caplog.text.count("Profiler Report") == 2
 
 
+@pytest.mark.parametrize("extended", [True, False])
+@patch("time.monotonic", return_value=70)
+def test_simple_profiler_summary(tmpdir, extended):
+    """Test the summary of `SimpleProfiler`."""
+    profiler = SimpleProfiler(extended=extended)
+    profiler.start_time = 63.0
+    hooks = [
+        "on_train_start",
+        "on_train_end",
+        "on_train_epoch_start",
+        "on_train_epoch_end",
+        "on_before_batch_transfer",
+        "on_fit_start",
+    ]
+    sometime = 0.773434
+    sep = os.linesep
+    max_action_len = len("on_before_batch_transfer")
+
+    for i, hook in enumerate(hooks):
+        with profiler.profile(hook):
+            pass
+
+        profiler.recorded_durations[hook] = [sometime + i]
+
+    if extended:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Num calls':<15}\t|"
+            f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Num calls            |  Total time (s)       |  Percentage %         |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  Total                        |  -                    |  6                    |  7.0                  |  100 %                |"  # noqa: E501
+            f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  1                    |  5.7734               |  82.478               |"  # noqa: E501
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  1                    |  4.7734               |  68.192               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  1                    |  3.7734               |  53.906               |"  # noqa: E501
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  1                    |  2.7734               |  39.62                |"  # noqa: E501
+            f"{sep}|  on_train_end                 |  1.7734               |  1                    |  1.7734               |  25.335               |"  # noqa: E501
+            f"{sep}|  on_train_start               |  0.77343              |  1                    |  0.77343              |  11.049               |"  # noqa: E501
+            f"{sep_lines}{sep}"
+        )
+    else:
+        header_string = (
+            f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
+        )
+        output_string_len = len(header_string.expandtabs())
+        sep_lines = f"{sep}{'-'* output_string_len}"
+        expected_text = (
+            f"Profiler Report{sep}"
+            f"{sep_lines}"
+            f"{sep}|  Action                       |  Mean duration (s)    |  Total time (s)       |"
+            f"{sep_lines}"
+            f"{sep}|  on_fit_start                 |  5.7734               |  5.7734               |"
+            f"{sep}|  on_before_batch_transfer     |  4.7734               |  4.7734               |"
+            f"{sep}|  on_train_epoch_end           |  3.7734               |  3.7734               |"
+            f"{sep}|  on_train_epoch_start         |  2.7734               |  2.7734               |"
+            f"{sep}|  on_train_end                 |  1.7734               |  1.7734               |"
+            f"{sep}|  on_train_start               |  0.77343              |  0.77343              |"
+            f"{sep_lines}{sep}"
+        )
+
+    summary = profiler.summary().expandtabs()
+    assert expected_text == summary
+
+
 @pytest.fixture
 def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
@@ -208,9 +284,9 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)
@@ -222,9 +298,9 @@ def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, ex
     for _ in advanced_profiler.profile_iterable(iterable, action):
         pass
 
-    recored_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recored_total_duration, expected_total_duration, rtol=0.2)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
 @pytest.mark.flaky(reruns=3)
@@ -307,14 +383,15 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         limit_val_batches=5,
         profiler=pytorch_profiler,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
-    expected = {"[Strategy]DDPStrategy.validation_step"}
+    expected = {"[pl][profile][Strategy]DDPStrategy.validation_step"}
     if not _KINETO_AVAILABLE:
         expected |= {
-            "[Strategy]DDPStrategy.training_step",
-            "[Strategy]DDPStrategy.backward",
+            "[pl][profile][Strategy]DDPStrategy.training_step",
+            "[pl][profile][Strategy]DDPStrategy.backward",
         }
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
@@ -344,7 +421,10 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
     trainer.fit(model)
 
-    assert sum(e.name == "[Strategy]SingleDeviceStrategy.validation_step" for e in pytorch_profiler.function_events)
+    assert sum(
+        e.name == "[pl][profile][Strategy]SingleDeviceStrategy.validation_step"
+        for e in pytorch_profiler.function_events
+    )
 
     path = pytorch_profiler.dirpath / f"fit-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -377,9 +457,7 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context."""
 
-    pytorch_profiler = PyTorchProfiler(
-        record_functions={"a", "b", "c"}, use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None
-    )
+    pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -392,7 +470,7 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    names = {"a", "b", "c"}
+    names = {"[pl][profile]a", "[pl][profile]b", "[pl][profile]c"}
     ops = {"add", "empty", "fill_", "ones", "zero_", "zeros"}
     ops = {"aten::" + op for op in ops}
 
@@ -416,7 +494,7 @@ def test_pytorch_profiler_logger_collection(tmpdir):
 
     model = BoringModel()
     # Wrap the logger in a list so it becomes a LoggerCollection
-    logger = [TensorBoardLogger(save_dir=tmpdir)]
+    logger = [TensorBoardLogger(save_dir=tmpdir), DummyLogger()]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
     assert isinstance(trainer.logger, LoggerCollection)
     trainer.fit(model)
@@ -429,7 +507,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, gpus=1)
+    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
     trainer.fit(model)
 
 
@@ -438,7 +516,6 @@ def test_register_record_function(tmpdir):
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
-        record_functions={"a"},
         use_cuda=use_cuda,
         dirpath=tmpdir,
         filename="profiler",
@@ -464,10 +541,10 @@ def test_register_record_function(tmpdir):
 
     pytorch_profiler.describe()
     event_names = [e.name for e in pytorch_profiler.function_events]
-    assert "torch.nn.modules.container.Sequential: layer" in event_names
-    assert "torch.nn.modules.linear.Linear: layer.0" in event_names
-    assert "torch.nn.modules.activation.ReLU: layer.1" in event_names
-    assert "torch.nn.modules.linear.Linear: layer.2" in event_names
+    assert "[pl][module]torch.nn.modules.container.Sequential: layer" in event_names
+    assert "[pl][module]torch.nn.modules.linear.Linear: layer.0" in event_names
+    assert "[pl][module]torch.nn.modules.activation.ReLU: layer.1" in event_names
+    assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
 @pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
@@ -552,7 +629,7 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
 def test_profile_callbacks(tmpdir):
     """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
 
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -562,10 +639,10 @@ def test_profile_callbacks(tmpdir):
     )
     trainer.fit(model)
     assert sum(
-        e.name == "[Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'val_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
     assert sum(
-        e.name == "[Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
+        e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )

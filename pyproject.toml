@@ -42,7 +42,6 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy | tr ':' ' ' |  awk '{print $1}' | sort | uniq | sed 's/\.py//g' | sed 's|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "pytorch_lightning.accelerators.gpu",
     "pytorch_lightning.callbacks.finetuning",
     "pytorch_lightning.callbacks.model_checkpoint",
     "pytorch_lightning.callbacks.progress.rich_progress",
@@ -83,7 +82,6 @@ module = [
     "pytorch_lightning.profiler.pytorch",
     "pytorch_lightning.profiler.simple",
     "pytorch_lightning.trainer.callback_hook",
-    "pytorch_lightning.trainer.connectors.accelerator_connector",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.data_loading",
@@ -96,8 +94,6 @@ module = [
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
     "pytorch_lightning.utilities.distributed",
-    "pytorch_lightning.utilities.fetching",
-    "pytorch_lightning.utilities.memory",
     "pytorch_lightning.utilities.meta",
 ]
 ignore_errors = "True"

@@ -88,9 +88,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.azure-pipelines/gpu-tests.yml'
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
+        include:
+          # the config used in '.azure-pipelines/gpu-tests.yml'
+          - {python_version: "3.7", pytorch_version: "1.8"}
+          # latest (not used)
+          - {python_version: "3.9", pytorch_version: "1.10"}
 
     steps:
       - name: Checkout
@@ -163,8 +165,7 @@ jobs:
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
-          - python_version: "3.9"
-            pytorch_version: "1.7"
+          - {python_version: "3.9", pytorch_version: "1.7"}
 
     steps:
       - name: Checkout

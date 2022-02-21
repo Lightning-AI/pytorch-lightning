@@ -26,7 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _get_default_scheduler_config, _init_optimizers_and_lr_schedulers
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -34,11 +34,13 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log, rank_zero_info
-from pytorch_lightning.utilities.enums import _StrategyType, AMPType, PrecisionType
+from pytorch_lightning.utilities.distributed import log
+from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
@@ -81,7 +83,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
 
 class DeepSpeedStrategy(DDPStrategy):
-    distributed_backend = _StrategyType.DEEPSPEED
+    strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -348,7 +350,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
 
@@ -444,15 +446,15 @@ class DeepSpeedStrategy(DDPStrategy):
         else:
             self._initialize_deepspeed_inference(model)
 
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[List[LRSchedulerConfig]], Optional[int]]:
-        optimizers, schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
-        if len(optimizers) > 1 or len(schedulers) > 1:
+    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+        optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
             optimizers[0],
-            schedulers[0] if schedulers else _get_default_scheduler_config(),
+            lr_schedulers[0] if lr_schedulers else None,
             optimizer_frequencies[0] if optimizer_frequencies else None,
         )
 
@@ -461,28 +463,33 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
 
     def _initialize_deepspeed_train(self, model):
+        optimizer, scheduler = None, None
         if "optimizer" in self.config:
             rank_zero_info(
                 "You have specified an optimizer and/or scheduler within the DeepSpeed config."
                 " It is recommended to define it in `LightningModule.configure_optimizers`."
             )
-            optimizer, lr_scheduler = None, _get_default_scheduler_config()
+            lr_scheduler = None
         else:
             optimizer, lr_scheduler, _ = self._init_optimizers()
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
 
-        scheduler = lr_scheduler["scheduler"]
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
         self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
-        self.lightning_module.trainer.optimizers = [deepspeed_optimizer]
+        self.optimizers = [deepspeed_optimizer]
 
         deepspeed_scheduler = model.lr_scheduler
         if deepspeed_scheduler is not None:
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
-            lr_scheduler["scheduler"] = deepspeed_scheduler
-            self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
+            if lr_scheduler is None:
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
+            else:
+                lr_scheduler.scheduler = deepspeed_scheduler
+            self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
     @contextlib.contextmanager
@@ -523,11 +530,10 @@ class DeepSpeedStrategy(DDPStrategy):
                 " Using `configure_optimizers` to define optimizer and scheduler."
             )
             optimizer, lr_scheduler, _ = self._init_optimizers()
-            scheduler = lr_scheduler["scheduler"]
-        inference_config = {
-            # todo: this is required for DeepSpeed throughput timers
-            "train_micro_batch_size_per_gpu": 1
-        }
+            if lr_scheduler is not None:
+                scheduler = lr_scheduler.scheduler
+        # todo: this is required for DeepSpeed throughput timers
+        inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
             inference_config.update({"fp16": self.config["fp16"]})
         if self.zero_stage_3:
@@ -574,7 +580,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers and frequencies
         self.optimizers = []
-        self.lr_schedulers = []
+        self.lr_scheduler_configs = []
         self.optimizer_frequencies = []
 
     @property

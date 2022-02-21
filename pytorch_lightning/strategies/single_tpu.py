@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
@@ -28,6 +28,8 @@ if _TPU_AVAILABLE:
 class SingleTPUStrategy(SingleDeviceStrategy):
     """Strategy for training on a single TPU device."""
 
+    strategy_name = "single_tpu"
+
     def __init__(
         self,
         device: int,
@@ -36,10 +38,12 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
-        device = xm.xla_device(device)
         checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
-            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            device=xm.xla_device(device),
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
         )
 
         self.debug = debug
@@ -60,9 +64,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
         super().setup(trainer)
 
-        if isinstance(self.device, int):
-            self.device = xm.xla_device(self.device)
-
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
@@ -71,6 +72,14 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()

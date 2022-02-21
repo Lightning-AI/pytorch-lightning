@@ -64,7 +64,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 #                           Step 2 / 5: Implement the KFoldDataModule                       #
 # The `KFoldDataModule` will take a train and test dataset.                                 #
 # On `setup_folds`, folds will be created depending on the provided argument `num_folds`    #
-# Our `setup_fold_index`, the provided train dataset will be splitted accordingly to        #
+# Our `setup_fold_index`, the provided train dataset will be split accordingly to        #
 # the current fold split.                                                                   #
 #############################################################################################
 
