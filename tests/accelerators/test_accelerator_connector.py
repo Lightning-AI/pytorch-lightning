@@ -43,7 +43,7 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
+from pytorch_lightning.utilities import _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -590,11 +590,9 @@ def test_devices_with_cpu_only_supports_integer():
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_strategy_types_on_cpu(training_type):
-
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._strategy_type == _StrategyType.DDP
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
@@ -957,3 +955,12 @@ def test_passing_zero_and_empty_list_to_devices_flag():
 
     with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
         Trainer(accelerator="gpu", devices=[])
+
+
+@pytest.mark.parametrize("deterministic", [True, False])
+def test_deterministic_init(deterministic):
+    trainer = Trainer(accelerator="auto", deterministic=deterministic)
+    assert trainer._accelerator_connector.deterministic == deterministic
+    if deterministic:
+        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"

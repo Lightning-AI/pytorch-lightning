@@ -52,7 +52,7 @@ class _SpawnLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         return False  # TODO: the return value should depend on 1) start_method 2) CUDA vs. CPU
 
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
@@ -61,13 +61,13 @@ class _SpawnLauncher(_Launcher):
         Arguments:
             function: The entry point for all spawned processes.
             *args: Optional positional arguments to be passed to the given function.
+            trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer` for which
+                a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
-                If a keyword argument named `trainer` is present and is an instance of
-                :class:`~pytorch_lightning.trainer.trainer.Trainer`, a selected set of attributes from the trainer get
-                restored in the main process after processes join. The `trainer` keyword argument will NOT be passed
-                into the function.
         """
-        trainer = kwargs.pop("trainer", None)
+        # The default cluster environment in Lightning chooses a random free port number
+        # This needs to be done in the main process here before spawning to ensure each rank will connect
+        # through the same port
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context("spawn")
         return_queue = context.SimpleQueue()

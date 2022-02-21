@@ -164,7 +164,11 @@ class PredictionEpochLoop(Loop):
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
         # the batch_sampler is not be defined in case of CombinedDataLoaders
-        batch_sampler = getattr(self.trainer.predict_dataloaders[dataloader_idx], "batch_sampler", None)
+        batch_sampler = getattr(
+            self.trainer.predict_dataloaders[dataloader_idx],  # type: ignore[has-type]
+            "batch_sampler",
+            None,
+        )
         if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
             return batch_sampler.seen_batch_indices
 
