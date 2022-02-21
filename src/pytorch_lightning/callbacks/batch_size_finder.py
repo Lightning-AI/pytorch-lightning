@@ -126,15 +126,15 @@ class BatchSizeFinder(Callback):
                     "Batch size finder cannot be used with multiple" f" {running_stage.dataloader_prefix} dataloaders."
                 )
 
-    def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.fast_dev_run:
-            rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
-            return
-
         if not lightning_hasattr(pl_module, self.batch_arg_name):
             raise MisconfigurationException(
                 f"Field {self.batch_arg_name} not found in both `model` and `model.hparams`"
             )
+
+    def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if trainer.fast_dev_run:
+            rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
+            return
 
         if (
             hasattr(pl_module, self.batch_arg_name)
