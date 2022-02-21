@@ -468,9 +468,10 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()
-            self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
-            self._set_devices_flag_if_auto_passed()
-            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+
+        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        self._set_devices_flag_if_auto_passed()
+        self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
