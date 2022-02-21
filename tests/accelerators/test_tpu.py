@@ -24,7 +24,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
-from pytorch_lightning.strategies import DDPStrategy, SingleTPUStrategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -82,34 +82,23 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu():
+def test_accelerator_cpu_with_tpu_cores_flag():
     assert TPUAccelerator.is_available()
+
+    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
-    trainer = Trainer(accelerator="tpu")
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, SingleTPUStrategy)
-
 
 @RunIf(tpu=True)
-def test_accelerator_cpu_with_tpu_cores_flag():
-    trainer = Trainer(accelerator="cpu", tpu_cores=8)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-
-
-@RunIf(tpu=True)
-def test_accelerator_auto_with_devices_tpu():
+@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
+def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
 
-    trainer = Trainer(accelerator="auto", devices=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.tpu_cores == 8
-
-    trainer = Trainer(accelerator="auto", devices="auto")
+    trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.devices == 8
