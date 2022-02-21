@@ -19,10 +19,10 @@ import pytest
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringModel, RandomDataset
@@ -133,7 +133,7 @@ class TestSpawnBoringModel(BoringModel):
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
-    assert trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
 
