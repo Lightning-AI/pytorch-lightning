@@ -23,7 +23,8 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import _AcceleratorType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:
@@ -45,6 +46,7 @@ class LoggerConnector:
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
+        self._override_agg_and_log_metrics: bool = False
 
     def on_trainer_init(
         self,
@@ -64,6 +66,15 @@ class LoggerConnector:
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
+        for logger in self.trainer.loggers:
+            if is_overridden("agg_and_log_metrics", logger, LightningLoggerBase):
+                self._override_agg_and_log_metrics = True
+                rank_zero_deprecation(
+                    "`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+                    " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
+                    " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+                )
+                break
 
     @property
     def should_flush_logs(self) -> bool:
@@ -79,9 +90,7 @@ class LoggerConnector:
         if isinstance(logger, bool):
             # default logger
             self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
                 if logger
                 else None
             )
@@ -116,7 +125,10 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
+        if self._override_agg_and_log_metrics:
+            self.trainer.logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
+        else:
+            self.trainer.logger.log_metrics(metrics=scalar_metrics, step=step)
         self.trainer.logger.save()
 
     """

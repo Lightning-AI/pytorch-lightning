@@ -47,7 +47,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
@@ -64,6 +64,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
+        return closure_result
 
     def clip_gradients(
         self,

@@ -60,3 +60,8 @@ def test_set_cuda_device(set_device_mock, tmpdir):
     )
     trainer.fit(model)
     set_device_mock.assert_called_once()
+
+
+@RunIf(min_gpus=1)
+def test_gpu_availability():
+    assert GPUAccelerator.is_available()

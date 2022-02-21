@@ -80,7 +80,7 @@ class CometLogger(LightningLoggerBase):
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -96,7 +96,7 @@ class CometLogger(LightningLoggerBase):
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -188,7 +188,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.

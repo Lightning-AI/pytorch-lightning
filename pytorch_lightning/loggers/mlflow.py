@@ -68,7 +68,7 @@ class MLFlowLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import MLFlowLogger
 
-        mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+        mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
@@ -110,7 +110,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        experiment_name: str = "default",
+        experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
@@ -240,7 +240,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
-            Otherwhise returns `None`.
+            Otherwise returns `None`.
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
