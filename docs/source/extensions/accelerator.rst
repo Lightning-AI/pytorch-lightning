@@ -28,8 +28,8 @@ One to handle differences from the training routine and one to handle different 
 
     accelerator = GPUAccelerator()
     precision_plugin = NativeMixedPrecisionPlugin(precision=16, device="cuda")
-    training_type_plugin = DDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=training_type_plugin)
+    training_strategy = DDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_strategy, devices=2)
 
 
 We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
