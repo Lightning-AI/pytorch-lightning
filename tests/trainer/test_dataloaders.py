@@ -628,7 +628,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
 
 class NumpyRandomDataset(Dataset):
-    # this datset uses numpy instead of torch to produce random numbers
+    # this dataset uses numpy instead of torch to produce random numbers
     size = 16
 
     def __getitem__(self, index):
@@ -662,7 +662,7 @@ def test_missing_worker_init_fn():
     is_deterministic = torch.eq(batches0, batches1).all()
 
     # depending on the OS, we either have
-    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 1) the same seed in all worker processes, producing duplicate samples / augmentations, or
     # 2) different seeds in each worker process, but they are not derived from the seed of the main process
     assert not is_deterministic or is_duplicated
 
@@ -809,8 +809,9 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
     assert trainer.global_step == 2 * yield_at_all
-    # we expect the second epoch to be skipped
-    assert trainer.current_epoch == 1
+    # even though the generator might not yield any data, the fit_loop still advances so the
+    # current epoch gets increased
+    assert trainer.current_epoch == 2
 
 
 class DistribSamplerCallback(Callback):
@@ -933,7 +934,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     [("min_size", 16), ("max_size_cycle", 64)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multple train loaders."""
+    """Integration test for multiple train loaders."""
 
     class CustomBoringModel(BoringModel):
         def train_dataloader(self):

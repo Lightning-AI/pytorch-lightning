@@ -45,9 +45,9 @@ from pytorch_lightning.strategies import (
     DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
+    SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
@@ -486,7 +486,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
 
     # if max_steps is positive and max_epochs is negative, use max_steps
     trainer_kwargs["max_epochs"] = -1
@@ -843,7 +843,7 @@ def test_disabled_training(tmpdir):
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
 
@@ -880,7 +880,7 @@ def test_disabled_validation(tmpdir):
 
     # check that limit_val_batches=0 turns off validation
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
@@ -891,7 +891,7 @@ def test_disabled_validation(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
@@ -1172,101 +1172,44 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         assert mocked.call_count == sum(trainer.num_val_batches)
 
 
-@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
-    "trainer_kwargs,expected",
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "_device_type", "num_gpus"],
     [
-        (
-            dict(accelerator=None, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="dp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator=None, gpus=1),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="dp", gpus=1),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator=None, gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="dp", gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp2", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(accelerator="dp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
+        ({"accelerator": None}, SingleDeviceStrategy, "single_device", "cpu", 0),
+        ({"accelerator": "dp"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": "ddp"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", "cpu", 0),
+        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", "gpu", 1),
+        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", "gpu", 1),
+        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", "gpu", 1),
+        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", "cpu", 0),
+        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", "gpu", 1),
+        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", "gpu", 2),
+        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", "gpu", 2),
+        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", "gpu", 2),
+        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", "gpu", 2),
+        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
     ],
 )
-def test_trainer_config(trainer_kwargs, expected, monkeypatch):
-    if trainer_kwargs["gpus"] is not None:
+def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, _device_type, num_gpus):
+    if trainer_kwargs.get("gpus") is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+
     if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
         trainer = Trainer(**trainer_kwargs)
     else:
         with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
             trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 4
-    for k, v in expected.items():
-        assert getattr(trainer, k) == v, f"Failed {k}: {v}"
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert trainer._device_type == _device_type
+    assert trainer.num_gpus == num_gpus
 
 
 def test_trainer_subclassing():
@@ -1571,7 +1514,7 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
-    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
+    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 5, True)],
 )
 def test_disabled_training_for_insufficient_limit_train_batches(
     tmpdir, limit_train_batches, global_step, num_training_batches, current_epoch, should_train
@@ -2098,159 +2041,48 @@ def test_detect_anomaly_nan(tmpdir):
             trainer.fit(model)
 
 
-@pytest.mark.parametrize(  # TODO: please update tests, @daniellepintz
-    "trainer_kwargs,expected",
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "_device_type", "num_gpus"],
     [
-        (
-            dict(strategy=None, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="dp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp", num_nodes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp2", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy=None, gpus=1),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="dp", gpus=1),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp_spawn", gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1
-            ),
-        ),
-        (
-            dict(strategy="ddp2", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy=None, gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy="dp", gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp2", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp2", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="dp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp_spawn", num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy="ddp_spawn", num_processes=1, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp_fully_sharded", gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=1,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnStrategy(), num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
-            ),
-        ),
-        (
-            dict(strategy=DDPStrategy(), num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy=DDPStrategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DDP2Strategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DataParallelStrategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DDPFullyShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=2,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SHARDED_SPAWN,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=2,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
-            ),
-        ),
+        ({"strategy": None}, SingleDeviceStrategy, "single_device", "cpu", 0),
+        ({"strategy": "dp"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp2"}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", "gpu", 1),
+        ({"strategy": "dp", "gpus": 1}, DataParallelStrategy, "dp", "gpu", 1),
+        ({"strategy": "ddp", "gpus": 1}, DDPStrategy, "ddp", "gpu", 1),
+        ({"strategy": "ddp_spawn", "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", "gpu", 1),
+        ({"strategy": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", "gpu", 1),
+        ({"strategy": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", "gpu", 2),
+        ({"strategy": "dp", "gpus": 2}, DataParallelStrategy, "dp", "gpu", 2),
+        ({"strategy": "ddp", "gpus": 2}, DDPStrategy, "ddp", "gpu", 2),
+        ({"strategy": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", "gpu", 2),
+        ({"strategy": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": "ddp_spawn", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", "cpu", 0),
+        ({"strategy": "ddp_spawn", "num_processes": 1}, DDPSpawnStrategy, "ddp_spawn", "cpu", 0),
+        ({"strategy": "ddp_fully_sharded", "gpus": 1}, DDPFullyShardedStrategy, "ddp_fully_sharded", "gpu", 1),
+        ({"strategy": DDPSpawnStrategy(), "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", "cpu", 0),
+        ({"strategy": DDPSpawnStrategy(), "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", "gpu", 2),
+        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", "cpu", 0),
+        ({"strategy": DDPStrategy(), "gpus": 2}, DDPStrategy, "ddp", "gpu", 2),
+        ({"strategy": DDP2Strategy(), "gpus": 2}, DDP2Strategy, "ddp2", "gpu", 2),
+        ({"strategy": DataParallelStrategy(), "gpus": 2}, DataParallelStrategy, "dp", "gpu", 2),
+        ({"strategy": DDPFullyShardedStrategy(), "gpus": 2}, DDPFullyShardedStrategy, "ddp_fully_sharded", "gpu", 2),
+        ({"strategy": DDPSpawnShardedStrategy(), "gpus": 2}, DDPSpawnShardedStrategy, "ddp_sharded_spawn", "gpu", 2),
+        ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", "gpu", 2),
     ],
 )
-def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
-    if trainer_kwargs["gpus"] is not None:
+def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, _device_type, num_gpus):
+    if trainer_kwargs.get("gpus") is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+
     trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 4
-    for k, v in expected.items():
-        assert getattr(trainer, k) == v, f"Failed {k}: {v}"
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert trainer._device_type == _device_type
+    assert trainer.num_gpus == num_gpus

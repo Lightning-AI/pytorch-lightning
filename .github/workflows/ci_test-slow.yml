@@ -57,15 +57,16 @@ jobs:
 
     - name: Tests
       run: |
-        coverage run --source pytorch_lightning -m pytest tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        coverage run --source pytorch_lightning -m pytest tests -v --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
+        name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
+        path: junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+        if-no-files-found: error
       if: failure()
 
     - name: Statistics

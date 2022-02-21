@@ -38,7 +38,7 @@ def load(
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
     """
     if not isinstance(path_or_url, (str, Path)):
-        # any sort of BytesIO or similiar
+        # any sort of BytesIO or similar
         return torch.load(path_or_url, map_location=map_location)
     if str(path_or_url).startswith("http"):
         return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)

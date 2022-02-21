@@ -211,7 +211,7 @@ def register_ddp_comm_hook(
             c10d reducer would call this hook and use the tensors returned
             by the Future and copy grads to individual parameters.
         ddp_comm_wrapper:
-            communication hook wraper to support a communication hook such
+            communication hook wrapper to support a communication hook such
             as FP16 compression as wrapper, which could be combined with
             ddp_comm_hook
 
@@ -289,7 +289,7 @@ def register_ddp_comm_hook(
         if not _TORCH_GREATER_EQUAL_1_9:
             rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
         else:
-            rank_zero_info(
+            new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
@@ -309,7 +309,7 @@ def init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initiliazing the
+    """Utility function to initialize distributed connection by setting env variables and initializing the
     distributed process group.
 
     Args:
@@ -336,7 +336,7 @@ def init_dist_connection(
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     # on rank=0 let everyone know training is starting
-    rank_zero_info(
+    new_rank_zero_info(
         f"{'-' * 100}\n"
         f"distributed_backend={torch_distributed_backend}\n"
         f"All distributed processes registered. Starting with {world_size} processes\n"
