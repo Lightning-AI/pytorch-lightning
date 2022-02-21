@@ -322,7 +322,7 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
 def test_stop_iteration(trigger_stop_iteration, tmpdir):
-    """Verify that StopIteration properly terminates the training when this is trigged from the current
+    """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 

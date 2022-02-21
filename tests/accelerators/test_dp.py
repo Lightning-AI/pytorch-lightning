@@ -216,8 +216,8 @@ def test_dp_training_step_dict(tmpdir):
 
 
 @RunIf(min_gpus=2)
-def test_dp_batch_not_moved_to_device_explictly(tmpdir):
-    """Test that with DP, batch is not moved to the device explictly."""
+def test_dp_batch_not_moved_to_device_explicitly(tmpdir):
+    """Test that with DP, batch is not moved to the device explicitly."""
 
     class CustomModel(BoringModel):
         def on_train_batch_start(self, batch, *args, **kargs):
