@@ -70,7 +70,7 @@ from pytorch_lightning.utilities import (
     LightningEnum,
     rank_zero_deprecation,
     rank_zero_info,
-    rank_zero_warn,
+    rank_zero_warn, _StrategyType,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
@@ -734,16 +734,12 @@ class AcceleratorConnector:
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
-        interactive_recomended_strategy = (
-            DataParallelStrategy.strategy_name,
-            TPUSpawnStrategy.strategy_name,
-        )
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
                 f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Trainer(strategy=None|{'|'.join(interactive_recomended_strategy)})."
+                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
