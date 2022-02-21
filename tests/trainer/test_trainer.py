@@ -2234,7 +2234,7 @@ def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
 @pytest.mark.parametrize(
     "running_stage", [RunningStage.TRAINING, RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING]
 )
-def test_dataloaders_are_not_loaded_if_limit_batches_is_disabled(running_stage):
+def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_stage):
     dl_prefix = running_stage.dataloader_prefix
     trainer_kwargs = {f"limit_{dl_prefix}_batches": 0}
     trainer = Trainer(**trainer_kwargs)
