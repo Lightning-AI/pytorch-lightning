@@ -138,6 +138,7 @@ class ProgressBarBase(Callback):
 
     @property
     def total_val_batches_current_epoch(self) -> Union[int, float]:
+        assert self._trainer is not None
         return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._is_check_val_epoch() else 0
 
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
