@@ -223,13 +223,15 @@ def apply_to_collections(
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data1):
-        assert _is_dataclass_instance(data2), (
-            "Expected inputs to be dataclasses of the same type or to have identical fields"
-            f" but got input 1 of type {type(data1)} and input 2 of type {type(data2)}"
-        )
-        assert len(dataclasses.fields(data1)) == len(dataclasses.fields(data2)) and map(
+        if not _is_dataclass_instance(data2):
+            raise TypeError(
+                "Expected inputs to be dataclasses of the same type or to have identical fields"
+                f" but got input 1 of type {type(data1)} and input 2 of type {type(data2)}"
+            )
+        if not (len(dataclasses.fields(data1)) == len(dataclasses.fields(data2)) and map(
             lambda f1, f2: isinstance(f1, type(f2)), zip(dataclasses.fields(data1), dataclasses.fields(data2))
-        ), "Dataclasses fields does not match"
+        )):
+            raise TypeError("Dataclasses fields does not match")
         # make a deepcopy of the data,
         # but do not deepcopy mapped fields since the computation would
         # be wasted on values that likely get immediately overwritten
