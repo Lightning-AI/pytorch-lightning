@@ -62,7 +62,6 @@ class BaseProfiler(AbstractProfiler):
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
-        self._log_dir: Optional[str] = None
         self._stage: Optional[str] = None
 
     @contextmanager
@@ -157,7 +156,6 @@ class BaseProfiler(AbstractProfiler):
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
-        self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:

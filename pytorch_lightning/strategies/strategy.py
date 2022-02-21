@@ -27,11 +27,13 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
@@ -48,19 +50,23 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
+        self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
-        # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
-        self.lr_schedulers: List[LRSchedulerConfig] = []
+        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
             )
+
+    @property
+    def launcher(self) -> Optional[_Launcher]:
+        return self._launcher
 
     @property
     def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
@@ -101,6 +107,9 @@ class Strategy(ABC):
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
 
+    def _configure_launcher(self):
+        """Attach the launcher based on Strategy."""
+
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
 
@@ -117,7 +126,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
 
@@ -130,22 +139,16 @@ class Strategy(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_scheduler_configs
+        )
         self.model = model
         self.optimizers = optimizers
-        self.lr_schedulers = schedulers
-
-    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the appropriate device if needed."""
-        for opt in self.optimizers:
-            for p, v in opt.state.items():
-                # `self.root_device` would raise error if called outside the spawn process
-                # while training on 8 and more cores.
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
+        self.lr_scheduler_configs = lr_scheduler_configs
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
@@ -177,7 +180,7 @@ class Strategy(ABC):
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """performs the actual optimizer step.
 
         Args:
@@ -188,7 +191,7 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -320,6 +323,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
+            optimizer_to_device(optimizer, self.root_device)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
@@ -435,11 +439,11 @@ class Strategy(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        self._move_optimizer_state(torch.device("cpu"))
+        optimizers_to_device(self.optimizers, torch.device("cpu"))
         self.precision_plugin.teardown()
 
     @classmethod
-    def register_strategies(cls, strategies_registry) -> None:
+    def register_strategies(cls, strategy_registry) -> None:
         pass
 
     def on_train_start(self) -> None:

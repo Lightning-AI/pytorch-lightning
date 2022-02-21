@@ -43,7 +43,7 @@ def test_loops_state_dict():
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
-    state_dict = trainer.checkpoint_connector._get_loops_state_dict()
+    state_dict = trainer._checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
             "state_dict": {},
@@ -59,6 +59,10 @@ def test_loops_state_dict_structure():
             },
             "epoch_loop.batch_loop.state_dict": {},
             "epoch_loop.batch_loop.manual_loop.state_dict": {},
+            "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+                "total": {"ready": 0, "completed": 0},
+                "current": {"ready": 0, "completed": 0},
+            },
             "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
             "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
                 "optimizer": {

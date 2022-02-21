@@ -19,11 +19,14 @@ from typing import Any, Callable, Dict, IO, Optional, Union
 
 import fsspec
 import torch
-from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
+from fsspec.core import url_to_fs
+from fsspec.implementations.local import AbstractFileSystem
+
+from pytorch_lightning.utilities.types import _PATH
 
 
 def load(
-    path_or_url: Union[str, IO, Path],
+    path_or_url: Union[IO, _PATH],
     map_location: Optional[
         Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
     ] = None,
@@ -35,7 +38,7 @@ def load(
         map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
     """
     if not isinstance(path_or_url, (str, Path)):
-        # any sort of BytesIO or similiar
+        # any sort of BytesIO or similar
         return torch.load(path_or_url, map_location=map_location)
     if str(path_or_url).startswith("http"):
         return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
@@ -44,13 +47,9 @@ def load(
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
-    path = str(path)
-    if "://" in path:
-        # use the fileystem from the protocol specified
-        return fsspec.filesystem(path.split(":", 1)[0])
-    # use local filesystem
-    return LocalFileSystem()
+def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
+    fs, _ = url_to_fs(str(path), **kwargs)
+    return fs
 
 
 def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:

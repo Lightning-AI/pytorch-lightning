@@ -80,7 +80,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -90,11 +90,24 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            optimizer.step(**kwargs)
+            return optimizer.step(**kwargs)
+        return closure_result
+
+    def state_dict(self) -> Dict[str, Any]:
+        return amp.state_dict()
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        amp.load_state_dict(state_dict)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if "amp_scaling_state" in checkpoint:
-            amp.load_state_dict(checkpoint["amp_scaling_state"])
+        """``ApexMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-restore ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.load_state_dict``
+        instead
+        """
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        checkpoint["amp_scaling_state"] = amp.state_dict()
+        """``ApexMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
+
+        Lightning will auto-save ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.state_dict`` instead
+        """

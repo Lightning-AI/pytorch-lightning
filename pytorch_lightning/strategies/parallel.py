@@ -73,6 +73,14 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
+    def parallel_devices(self):
+        return self._parallel_devices
+
+    @parallel_devices.setter
+    def parallel_devices(self, parallel_devices):
+        self._parallel_devices = parallel_devices
+
+    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -85,7 +93,7 @@ class ParallelStrategy(Strategy, ABC):
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
