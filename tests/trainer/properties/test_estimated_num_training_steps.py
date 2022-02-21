@@ -18,7 +18,8 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel, RandomIterableDataset
-from tests.helpers.utils import no_warning_call
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call, pl_multi_process_test
 
 
 def test_num_training_steps_basic():
@@ -111,6 +112,30 @@ def test_num_training_steps_dp(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 7)
     trainer = Trainer(max_epochs=1, devices=7, accelerator="gpu", strategy="dp")
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_num_training_steps == 64
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+@pytest.mark.parametrize("devices,estimated_steps", [([1], 64), (8, 8)])
+def test_num_training_steps_with_tpu(devices, estimated_steps):
+    trainer = Trainer(accelerator="tpu", devices=devices, max_epochs=1)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_num_training_steps == estimated_steps
+
+
+def test_num_training_steps_with_ipu(monkeypatch):
+    import pytorch_lightning.strategies.ipu as ipu
+    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+
+    monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
+    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
+    trainer = Trainer(accelerator="ipu", devices=2, max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
