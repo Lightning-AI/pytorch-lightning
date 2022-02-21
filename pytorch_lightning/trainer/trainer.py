@@ -77,7 +77,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _AcceleratorType,
     _IPU_AVAILABLE,
-    _StrategyType,
     _TPU_AVAILABLE,
     AMPType,
     device_parser,
@@ -1964,10 +1963,6 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> str:
-        return self.strategy.strategy_name
-
-    @property
     def _device_type(self) -> _AcceleratorType:
         return self._accelerator_connector.device_type
 
@@ -2126,12 +2121,7 @@ class Trainer(
 
     @property
     def data_parallel(self) -> bool:
-        return self._strategy_type in (
-            _StrategyType.DP,
-            _StrategyType.DDP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP2,
-        )
+        return isinstance(self.strategy, ParallelStrategy)
 
     @property
     def progress_bar_dict(self) -> dict:
