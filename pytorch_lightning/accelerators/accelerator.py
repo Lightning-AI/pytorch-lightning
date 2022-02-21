@@ -62,13 +62,13 @@ class Accelerator(ABC):
 
     @staticmethod
     @abstractmethod
-    def auto_device_count() -> int:
-        """Get the device count when set to auto."""
+    def get_parallel_devices(devices: Union[List[int], str, int]) -> List[torch.device]:
+        """Gets parallel devices for the given Accelerator."""
 
     @staticmethod
     @abstractmethod
-    def get_parallel_devices(devices: Union[List[int], str, int]) -> List[torch.device]:
-        """Gets parallel devices for the given Accelerator."""
+    def auto_device_count() -> int:
+        """Get the device count when set to auto."""
 
     @staticmethod
     @abstractmethod
