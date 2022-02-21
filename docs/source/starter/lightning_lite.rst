@@ -189,7 +189,7 @@ If you require custom data or model device placement, you can deactivate
 :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
 ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
 ``self.setup(..., move_to_device=False)`` for the model.
-Futhermore, you can access the current device from ``self.device`` or
+Furthermore, you can access the current device from ``self.device`` or
 rely on :meth:`~pytorch_lightning.lite.LightningLite.to_device`
 utility to move an object to the current device.
 
@@ -605,7 +605,7 @@ data tensors to the correct device automatically.
 backward
 ========
 
-This replaces any occurences of ``loss.backward()`` and will make your code accelerator and precision agnostic.
+This replaces any occurrences of ``loss.backward()`` and will make your code accelerator and precision agnostic.
 
 .. code-block:: python
 
@@ -694,7 +694,7 @@ handling the saving part correctly, no matter if you are running single device, 
 load
 ====
 
-Load checkpoint contents from a file. Replaces all occurences of ``torch.load(...)`` in your code. Lite will take care of
+Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Lite will take care of
 handling the loading part correctly, no matter if you are running single device, multi-device or multi-node.
 
 .. code-block:: python

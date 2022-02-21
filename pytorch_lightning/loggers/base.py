@@ -104,6 +104,9 @@ class LightningLoggerBase(ABC):
     ) -> Tuple[int, Optional[Dict[str, float]]]:
         """Aggregates metrics.
 
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
@@ -126,7 +129,13 @@ class LightningLoggerBase(ABC):
         return agg_step, agg_mets
 
     def _reduce_agg_metrics(self):
-        """Aggregate accumulated metrics."""
+        """Aggregate accumulated metrics.
+
+        See deprecation warning below.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+        """
         # compute the metrics
         if not self._metrics_to_agg:
             agg_mets = None
@@ -137,7 +146,13 @@ class LightningLoggerBase(ABC):
         return self._prev_step, agg_mets
 
     def _finalize_agg_metrics(self):
-        """This shall be called before save/close."""
+        """This shall be called before save/close.
+
+        See deprecation warning below.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+        """
         agg_step, metrics_to_log = self._reduce_agg_metrics()
         self._metrics_to_agg = []
 
@@ -147,6 +162,10 @@ class LightningLoggerBase(ABC):
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
+
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use `LightningLoggerBase.log_metrics` instead.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -189,20 +208,6 @@ class LightningLoggerBase(ABC):
             input_array: input passes to `model.forward`
         """
         pass
-
-    def log_text(self, *args, **kwargs) -> None:
-        """Log text.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
-
-    def log_image(self, *args, **kwargs) -> None:
-        """Log image.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
 
     def save(self) -> None:
         """Save log data."""
@@ -286,11 +291,11 @@ class LoggerCollection(LightningLoggerBase):
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics, step)
+            logger.agg_and_log_metrics(metrics=metrics, step=step)
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
-            logger.log_metrics(metrics, step)
+            logger.log_metrics(metrics=metrics, step=step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:
