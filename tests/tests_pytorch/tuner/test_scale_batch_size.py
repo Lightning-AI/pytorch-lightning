@@ -414,11 +414,12 @@ def test_batch_size_finder_with_distributed_strategies(tmpdir):
     """Test that an error is raised when batch size finder is used with multi-device strategy."""
     trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()
+    bs_finder = BatchSizeFinder()
 
     with pytest.raises(
         MisconfigurationException, match="Batch size finder is not supported with distributed strategies."
     ):
-        trainer.tune(model)
+        bs_finder.setup(trainer, model)
 
 
 def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
