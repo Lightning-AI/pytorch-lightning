@@ -1231,14 +1231,21 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
         assert ckpt[state] == written_ckpt[state]
 
     # test on_load_checkpoint
-    # Note: "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
-    # We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
-    # "current_score" is left as initialized, i.e. None, and can therefore also be asserted
+    # Notes:
+    # 1. "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
+    #    We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
+    # 2. "current_score" is left as initialized, i.e. None, and can therefore also be asserted
+    # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
+    #    `best_model_path` and `last_model_path` are tracked (tracking for others is stopped).
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "restore", monitor=None, save_top_k=-1, save_last=True)
-    cb_restore.on_load_checkpoint("", "", written_ckpt)
+    with pytest.warns(UserWarning, match="The dirpath was changed from*"):
+        cb_restore.on_load_checkpoint("", "", written_ckpt)
     for key, val in written_ckpt.items():
         if key not in ("current_score", "dirpath", "monitor"):
-            assert getattr(cb_restore, key) == val
+            if key in ["best_model_path", "last_model_path"]:
+                assert getattr(cb_restore, key) == val
+            else:
+                assert getattr(cb_restore, key) != val
         else:
             assert getattr(cb_restore, key) != val
 
