@@ -53,8 +53,9 @@ jobs:
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        name: pytest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
+        path: junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        if-no-files-found: error
       if: failure()
 
     - name: Statistics

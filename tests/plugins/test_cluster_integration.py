@@ -81,11 +81,11 @@ def test_ranks_available_manual_strategy_selection(strategy_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(strategy="ddp", gpus=[1, 2]),
-        dict(strategy="ddp_sharded", gpus=[1, 2]),
-        dict(strategy="ddp2", gpus=[1, 2]),
-        dict(strategy="ddp_spawn", num_processes=2),
-        dict(strategy="ddp_spawn", gpus=[1, 2]),
+        dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
+        dict(strategy="ddp_sharded", accelerator="gpu", devices=[1, 2]),
+        dict(strategy="ddp2", accelerator="gpu", devices=[1, 2]),
+        dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
+        dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
