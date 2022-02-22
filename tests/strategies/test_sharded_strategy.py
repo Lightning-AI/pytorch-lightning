@@ -218,7 +218,7 @@ class BoringModelSharded(BoringModel):
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_configure_ddp(tmpdir):
+def test_configure_sdp(tmpdir):
     """Tests with ddp sharded strategy."""
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
 
@@ -232,16 +232,32 @@ def test_configure_ddp(tmpdir):
 
 @RunIf(skip_windows=True, fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_custom_kwargs_sharded(tmpdir, cls):
+def test_custom_kwargs_sharded(_tmpdir):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
-    strategy = cls(reduce_fp16=True)
+    strategy = DDPShardedStrategy(reduce_fp16=True)
     strategy.model = Mock(spec=LightningModule)
     strategy.model.trainer = Mock()
-    class_name = "sharded" if isinstance(strategy, DDPShardedStrategy) else "sharded_spawn"
+    class_name = "sharded"
 
     with mock.patch(f"pytorch_lightning.strategies.{class_name}.ShardedDataParallel", autospec=True) as mock_sharded:
-        strategy.configure_ddp()
+        strategy._configure_ddp()
+    args, kwargs = mock_sharded.call_args
+    assert "reduce_fp16" in kwargs
+    assert kwargs["reduce_fp16"]
+
+
+# TODO (edward-io): merge test_custom_kwargs_sharded and test_custom_kwargs_sharded_spawn into one test after sharded_spawn is refactored
+@RunIf(skip_windows=True, fairscale=True)
+@mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
+def test_custom_kwargs_sharded_spawn(_tmpdir):
+    """Tests to ensure that if custom kwargs are passed, they are set correctly."""
+    strategy = DDPSpawnShardedStrategy(reduce_fp16=True)
+    strategy.model = Mock(spec=LightningModule)
+    strategy.model.trainer = Mock()
+    class_name = "sharded_spawn"
+
+    with mock.patch(f"pytorch_lightning.strategies.{class_name}.ShardedDataParallel", autospec=True) as mock_sharded:
+        strategy._configure_sdp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]
@@ -259,7 +275,7 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
     strategy.model.trainer = Mock()
 
     with mock.patch("pytorch_lightning.strategies.sharded.ShardedDataParallel", autospec=True) as mock_sharded:
-        strategy.configure_ddp()
+        strategy._configure_ddp()
     args, kwargs = mock_sharded.call_args
     assert "reduce_buffer_size" in kwargs
 
