@@ -1789,7 +1789,7 @@ class Trainer(
             and not isinstance(self.accelerator, IPUAccelerator)
         ):
             rank_zero_warn(
-                "IPU available but not used. Set `accelerator` and `devices` via your trainer"
+                "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
 
