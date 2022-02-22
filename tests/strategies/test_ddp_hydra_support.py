@@ -48,16 +48,21 @@ def run_process(cmd):
 
 # Script to run from command line
 script = """
-import os
 import hydra
+import os
 import torch
+
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel
+
+
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
         self.start_cuda_memory = torch.cuda.memory_allocated()
+
+
 @hydra.main()
 def task_fn(cfg):
     trainer = Trainer(accelerator="auto", devices=cfg.devices, strategy=cfg.strategy, fast_dev_run=True)
@@ -66,6 +71,8 @@ def task_fn(cfg):
     # make sure teardown executed
     assert not torch.distributed.is_initialized()
     assert "LOCAL_RANK" not in os.environ
+
+
 if __name__ == "__main__":
     task_fn()
 """
@@ -74,14 +81,14 @@ if __name__ == "__main__":
 @RunIf(min_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
-@pytest.mark.parametrize("devices", [1, 2])
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(devices, subdir):
+def test_ddp_with_hydra_runjob(subdir):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
 
     # Run CLI
+    devices = 2
     cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"']
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
@@ -104,15 +111,15 @@ def test_ddp_with_hydra_runjob(devices, subdir):
 @RunIf(min_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
-@pytest.mark.parametrize("devices", [1, 2])
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob(devices, num_jobs):
+def test_ddp_with_hydra_multirunjob(num_jobs):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
 
     # create fake multirun params based on `num_jobs`
     fake_param = "+foo="
+    devices = 2
     for i in range(num_jobs):
         fake_param += f"{i}"
         if i < num_jobs - 1:

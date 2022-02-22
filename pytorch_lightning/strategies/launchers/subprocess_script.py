@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 import __main__
 import numpy as np
@@ -23,12 +23,6 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
-
-if _HYDRA_AVAILABLE:
-    from hydra.utils import to_absolute_path
-
-    from pytorch_lightning.utilities.hydra import get_ddp_spawn_command_for_hydra, teardown_ddp_for_hydra_multirun
 
 
 class _SubprocessScriptLauncher(_Launcher):
@@ -93,6 +87,12 @@ class _SubprocessScriptLauncher(_Launcher):
             self._call_children_scripts()
         return function(*args, **kwargs)
 
+    def _get_complete_path(self, command: str) -> str:
+        return os.path.abspath(command)
+
+    def _get_launch_command(self, command: List[str], local_rank: int) -> Tuple[List[str], Optional[str]]:
+        return command, None
+
     def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
@@ -108,14 +108,10 @@ class _SubprocessScriptLauncher(_Launcher):
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
         if __main__.__spec__ is None:  # pragma: no-cover
-            # Script called as `python a/b/c.py`
-            # when user is using hydra find the absolute path
-            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
-
             # pull out the commands used to run the script and resolve the abs file path
             command = sys.argv
             try:
-                full_path = path_lib(command[0])
+                full_path = self._get_complete_path(command[0])
             except Exception:
                 full_path = os.path.abspath(command[0])
 
@@ -136,11 +132,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 del env_copy["PL_GLOBAL_SEED"]
 
             # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
-            if _HYDRA_AVAILABLE:
-                command, cwd = get_ddp_spawn_command_for_hydra(command, local_rank)
-
+            command, cwd = self._get_launch_command(command, local_rank)
             subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
@@ -155,7 +147,3 @@ class _SubprocessScriptLauncher(_Launcher):
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
                 " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
-
-    def teardown(self) -> None:
-        if _HYDRA_AVAILABLE:
-            teardown_ddp_for_hydra_multirun()

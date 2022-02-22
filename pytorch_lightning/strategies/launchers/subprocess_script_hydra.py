@@ -4,24 +4,30 @@ from typing import List, Optional, Tuple
 import __main__
 import torch
 
+from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd
-    from omegaconf import OmegaConf
+    from hydra.utils import to_absolute_path
 
 
-def get_ddp_spawn_command_for_hydra(command: List[str], local_rank: int) -> Tuple[List[str], Optional[str]]:
-    """Modifies the DDP spawn command to support Hydra initiated processes."""
+class _SubprocessScriptHydraLauncher(_SubprocessScriptLauncher):
+    """Hydra Launcher subclasses `_SubprocessScriptLauncher to manage Hydra specific commands when running under
+    Hydra environment."""
 
-    # If Hydra is initialized:
-    #   1) Set `cwd` to the hydra working directory
-    #   2) Use the stored configuration in `hydra_cfg.output_subdir / config.yaml` to spawn a new child
+    def _get_complete_path(self, command: str) -> str:
+        return to_absolute_path(command)
 
-    cwd: Optional[str] = None
-    if HydraConfig.initialized():
-        orig_cwd = get_original_cwd()
+    def _get_launch_command(self, command: List[str], local_rank: int) -> Tuple[List[str], Optional[str]]:
+        """Modifies the command to support Hydra initiated processes."""
+        if not HydraConfig.initialized():
+            return command, None
+
+        # If Hydra is initialized:
+        #   1) Set `cwd` to the hydra working directory
+        #   2) Use the stored configuration in `hydra_cfg.output_subdir / config.yaml` to spawn a new child
+
         cwd = os.getcwd()
         os_cwd = f'"{cwd}"'  # this is needed to handle characters like `=` in the directory name
 
@@ -57,23 +63,20 @@ def get_ddp_spawn_command_for_hydra(command: List[str], local_rank: int) -> Tupl
             f"hydra.run.dir={os_cwd}",
             f"hydra.job.name=train_ddp_process_{local_rank}",
         ]
-    return command, cwd
+        return command, cwd
 
+    def teardown(self) -> None:
+        if HydraConfig.initialized():
+            # shutdown any distributed process groups
+            if torch.distributed.is_initialized():
+                torch.distributed.destroy_process_group()
 
-def teardown_ddp_for_hydra_multirun() -> None:
-    """Performs additional teardown steps for PL to allow for Hydra multirun jobs."""
-
-    if HydraConfig.initialized():
-        # shutdown any distributed process groups
-        if torch.distributed.is_initialized():
-            torch.distributed.destroy_process_group()
-
-        envs = (
-            "LOCAL_RANK",
-            "NODE_RANK",
-            "WORLD_SIZE",
-            "MASTER_ADDR",
-            "MASTER_PORT",
-        )
-        for name in envs:
-            os.environ.pop(name, None)
+            envs = (
+                "LOCAL_RANK",
+                "NODE_RANK",
+                "WORLD_SIZE",
+                "MASTER_ADDR",
+                "MASTER_PORT",
+            )
+            for name in envs:
+                os.environ.pop(name, None)
