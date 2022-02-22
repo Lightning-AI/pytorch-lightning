@@ -249,8 +249,8 @@ class WandbLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        name: str = "lightning_logs",
+        save_dir: str = "wandb",
         offline: Optional[bool] = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
