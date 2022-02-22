@@ -40,7 +40,7 @@ Simple Profiler
 ===============
 
 If you only wish to profile the standard actions, you can set ``profiler="simple"``. It uses the built-in
-:class:`~pytorch_lightning.profiler.simple.SimpleProfiler`.
+:class:`~pytorch_lightning.profilers.simple.SimpleProfiler`.
 
 .. code-block:: python
 
@@ -48,13 +48,13 @@ If you only wish to profile the standard actions, you can set ``profiler="simple
     trainer = Trainer(..., profiler="simple")
 
     # or by passing an instance
-    from pytorch_lightning.profiler import SimpleProfiler
+    from pytorch_lightning.profilers import SimpleProfiler
 
     profiler = SimpleProfiler()
     trainer = Trainer(..., profiler=profiler)
 
 The profiler's results will be printed at the completion of a training ``trainer.fit()``. Find an example of the
-:class:`~pytorch_lightning.profiler.simple.SimpleProfiler` report containing a few of the actions:
+:class:`~pytorch_lightning.profilers.simple.SimpleProfiler` report containing a few of the actions:
 
 .. code-block::
 
@@ -84,7 +84,7 @@ The profiler's results will be printed at the completion of a training ``trainer
 Advanced Profiler
 =================
 
-If you want more information on the functions called during each event, you can use the :class:`~pytorch_lightning.profiler.advanced.AdvancedProfiler`.
+If you want more information on the functions called during each event, you can use the :class:`~pytorch_lightning.profilers.advanced.AdvancedProfiler`.
 This option uses Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_ to provide an in-depth report of time spent within *each* function called in your code.
 
 .. code-block:: python
@@ -93,7 +93,7 @@ This option uses Python's `cProfiler <https://docs.python.org/3/library/profile.
     trainer = Trainer(..., profiler="advanced")
 
     # or by passing an instance
-    from pytorch_lightning.profiler import AdvancedProfiler
+    from pytorch_lightning.profilers import AdvancedProfiler
 
     profiler = AdvancedProfiler()
     trainer = Trainer(..., profiler=profiler)
@@ -128,7 +128,7 @@ PyTorch Profiler
 ================
 
 Autograd includes a profiler that lets you inspect the cost of different operators
-inside your model - both on the CPU and GPU. It uses the built-in :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
+inside your model - both on the CPU and GPU. It uses the built-in :class:`~pytorch_lightning.profilers.pytorch.PyTorchProfiler`.
 
 To read more about the PyTorch Profiler and all its options,
 have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
@@ -139,7 +139,7 @@ have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
     trainer = Trainer(..., profiler="pytorch")
 
     # or by passing an instance
-    from pytorch_lightning.profiler import PyTorchProfiler
+    from pytorch_lightning.profilers import PyTorchProfiler
 
     profiler = PyTorchProfiler()
     trainer = Trainer(..., profiler=profiler)
@@ -219,12 +219,12 @@ Custom Profiling
 Custom Profiler
 ===============
 
-You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
+You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profilers.base.BaseProfiler`
 and override some of its methods. The following is a simple example that profiles the first occurrence and total calls of each action:
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler.base import BaseProfiler
+    from pytorch_lightning.profilers.base import BaseProfiler
     from collections import defaultdict
     import time
 
@@ -277,7 +277,7 @@ your action that you want to track and the profiler will record performance for 
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler
+    from pytorch_lightning.profilers import SimpleProfiler, PassThroughProfiler
 
 
     class MyModel(LightningModule):

@@ -216,10 +216,10 @@ Checkpoint IO Plugins
     TorchCheckpointIO
     XLACheckpointIO
 
-Profiler API
+Profilers API
 ------------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api

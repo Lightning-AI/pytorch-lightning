@@ -49,7 +49,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.profiler import (
+from pytorch_lightning.profilers import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
