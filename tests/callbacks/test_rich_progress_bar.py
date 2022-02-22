@@ -284,8 +284,6 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     assert val_bar.completed == 4
     assert val_bar.total == 4
 
-    assert progress_update.call_count == expected_call_count
-
 
 @RunIf(rich=True)
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress._detect_light_colab_theme", return_value=True)
