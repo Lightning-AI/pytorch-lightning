@@ -47,6 +47,7 @@ class _SpawnLauncher(_Launcher):
 
     def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
+        self._start_method = "spawn"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -65,12 +66,13 @@ class _SpawnLauncher(_Launcher):
         # This needs to be done in the main process here before spawning to ensure each rank will connect
         # through the same port
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
-        context = mp.get_context("spawn")
+        context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
         mp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
+            start_method=self._start_method,
         )
         spawn_output = return_queue.get()
         if trainer is None:
