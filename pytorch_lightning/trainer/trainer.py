@@ -1779,7 +1779,7 @@ class Trainer(
 
         if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
-                "TPU available but not used. Set `accelerator` and `devices` via your trainer"
+                "TPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
