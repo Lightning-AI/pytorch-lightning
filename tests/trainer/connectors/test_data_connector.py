@@ -75,73 +75,66 @@ def test_dataloader_source_request_from_module():
 @pytest.mark.parametrize(
     "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
 )
-def test_datahook_selector(hook_name):
-    def overridden_func(batch, *args, **kwargs):
+class TestDataHookSelector:
+    def overridden_func(self, batch, *args, **kwargs):
         return batch
 
-    def _reset_instances():
+    def reset_instances(self):
         return BoringDataModule(), BoringModel(), Trainer()
 
-    def _no_datamodule_no_overridden():
-        model, _, trainer = _reset_instances()
+    def test_no_datamodule_no_overridden(self, hook_name):
+        model, _, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=None)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
 
-    def _with_datamodule_no_overridden():
-        model, dm, trainer = _reset_instances()
+    def test_with_datamodule_no_overridden(self, hook_name):
+        model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
 
-    def _override_model_hook():
-        model, dm, trainer = _reset_instances()
+    def test_override_model_hook(self, hook_name):
+        model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
 
-    def _override_datamodule_hook():
-        model, dm, trainer = _reset_instances()
+    def test_override_datamodule_hook(self, hook_name):
+        model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(dm, hook_name, overridden_func)
+        setattr(dm, hook_name, self.overridden_func)
         with no_warning_call(match="have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(dm, hook_name)
 
-    def _override_both_model_and_datamodule():
-        model, dm, trainer = _reset_instances()
+    def test_override_both_model_and_datamodule(self, hook_name):
+        model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, overridden_func)
-        setattr(dm, hook_name, overridden_func)
+        setattr(model, hook_name, self.overridden_func)
+        setattr(dm, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         warning_cache.clear()
         assert hook == getattr(dm, hook_name)
 
-    def _with_datamodule_override_model():
-        model, dm, trainer = _reset_instances()
+    def test_with_datamodule_override_model(self, hook_name):
+        model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        setattr(model, hook_name, overridden_func)
+        setattr(model, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         warning_cache.clear()
         assert hook == getattr(model, hook_name)
-
-    _no_datamodule_no_overridden()
-    _with_datamodule_no_overridden()
-    _override_model_hook()
-    _override_datamodule_hook()
-    _override_both_model_and_datamodule()
-    _with_datamodule_override_model()
 
 
 def test_invalid_hook_passed_in_datahook_selector():

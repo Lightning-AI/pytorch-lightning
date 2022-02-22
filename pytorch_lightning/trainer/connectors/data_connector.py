@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Collection, List, Optional, Tuple, Union
+from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -573,11 +573,11 @@ class _DataHookSelector:
 
     model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: List[str] = field(
+    _valid_hooks: Tuple[str] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
-    def get_hook(self, hook_name):
+    def get_hook(self, hook_name: str) -> Callable:
         if hook_name not in self._valid_hooks:
             raise ValueError(
                 f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
