@@ -248,7 +248,7 @@ class Trainer(
                 Default: ``True``.
 
             check_val_every_n_epoch: Check val every n train epochs. If `None`, validation will be done solely based
-                on the number of steps, requiring `val_check_interval` to be an integer value. 
+                on the number of steps, requiring `val_check_interval` to be an integer value.
                 Default: ``1``.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
