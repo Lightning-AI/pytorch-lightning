@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+
 import pytest
 
 from pytorch_lightning.trainer import Trainer
@@ -39,3 +41,19 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
 
     assert model.train_epoch_calls == max_epochs
     assert model.val_epoch_calls == max_epochs * denominator
+
+
+@pytest.mark.parametrize("value", (1, 1.0))
+def test_val_check_interval_info_message(caplog, value):
+    with caplog.at_level(logging.INFO):
+        Trainer(val_check_interval=value)
+    assert f"`Trainer(val_check_interval={value})` was configured" in caplog.text
+    message = "configured so validation will run"
+    assert message in caplog.text
+
+    caplog.clear()
+
+    # the message should not appear by default
+    with caplog.at_level(logging.INFO):
+        Trainer()
+    assert message not in caplog.text

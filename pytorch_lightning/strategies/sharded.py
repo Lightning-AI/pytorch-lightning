@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -37,7 +37,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED
+    strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
     def configure_ddp(self) -> None:
@@ -134,4 +134,9 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description="DDP Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

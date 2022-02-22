@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DDPSpawnStrategy, DeepSpeedStrategy, Strategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -82,7 +82,7 @@ class LightningLite(ABC):
         self._check_strategy_support(strategy)
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=1,
+            num_processes=None,
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
@@ -190,7 +190,7 @@ class LightningLite(ABC):
             *dataloaders: A single dataloader or a sequence of dataloaders.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -214,7 +214,7 @@ class LightningLite(ABC):
             dataloader: The dataloader to accelerate.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -399,17 +399,16 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._strategy.setup_environment()
-
         # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_sharded_context, run_method)
+        run_method = partial(self._run_with_strategy_setup, run_method)
 
-        if isinstance(self._strategy, DDPSpawnStrategy):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._strategy.setup_environment()
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 

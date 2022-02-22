@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -242,3 +242,20 @@ class PrecisionPlugin(CheckpointHooks):
 
         It is the right place to release memory and free other resources.
         """
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate precision plugin state_dict.
+
+        Returns:
+            A dictionary containing precision plugin state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
+        state_dict.
+
+        Args:
+            state_dict: the precision plugin state returned by ``state_dict``.
+        """
+        pass
