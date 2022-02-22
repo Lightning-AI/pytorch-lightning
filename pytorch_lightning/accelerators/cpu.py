@@ -19,6 +19,7 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import _DEVICE
 
 
@@ -47,7 +48,12 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: list[int] | str | int) -> list[torch.device] | list[int]:
         """Gets parallel devices for the given Accelerator."""
-        return [torch.device("cpu")] * devices
+        if isinstance(devices, int):
+            return [torch.device("cpu")] * devices
+        rank_zero_warn(
+            "The flag `devices` must be an int with `accelerator='cpu'`," f" got `devices={devices}` instead."
+        )
+        return []
 
     @staticmethod
     def auto_device_count() -> int:

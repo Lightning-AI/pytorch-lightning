@@ -342,6 +342,15 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
         @staticmethod
+        def parse_devices(devices) -> int:
+            """Accelerator Parsing logic."""
+            return devices
+
+        @staticmethod
+        def get_parallel_devices(devices):
+            return [torch.device("cpu")] * devices
+
+        @staticmethod
         def auto_device_count() -> int:
             return 1
 
@@ -889,12 +898,9 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert trainer.strategy.local_rank == 0
 
 
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
 def test_unsupported_tpu_choice(monkeypatch):
-    import pytorch_lightning.utilities.imports as imports
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
-    monkeypatch.setattr(imports, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 

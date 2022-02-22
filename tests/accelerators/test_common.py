@@ -13,8 +13,11 @@
 # limitations under the License.
 from unittest import mock
 
+import torch
+
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.strategies import DDPStrategy
 from tests.helpers.boring_model import BoringModel
 
 
