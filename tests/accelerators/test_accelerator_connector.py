@@ -42,7 +42,7 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
+from pytorch_lightning.utilities import _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -580,11 +580,9 @@ def test_devices_with_cpu_only_supports_integer():
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_strategy_types_on_cpu(training_type):
-
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._strategy_type == _StrategyType.DDP
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):

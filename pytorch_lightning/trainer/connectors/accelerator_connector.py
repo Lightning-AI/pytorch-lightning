@@ -65,7 +65,6 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
-    _StrategyType,
     AMPType,
     device_parser,
     LightningEnum,
@@ -855,7 +854,3 @@ class AcceleratorConnector:
     @property
     def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
-
-    @property
-    def _strategy_type(self) -> _StrategyType:
-        return self.strategy.strategy_name
