@@ -728,7 +728,6 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
             # teardown might access the stage so we reset it after
@@ -801,7 +800,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -1418,6 +1417,16 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        # fault-tolerance takes precedence
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        if ft_checkpoints:
+            ft_ckpt_path = ft_checkpoints[0].ckpt_path
+            fs = get_filesystem(ft_ckpt_path)
+            if fs.exists(ft_ckpt_path):
+                return ft_ckpt_path
+
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
@@ -1788,13 +1797,6 @@ class Trainer(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
-
-    def _on_exception(self) -> None:
-        if not _fault_tolerant_training():
-            return
-        # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
-        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
-        self.save_checkpoint(file_path)
 
     """
     Data loading methods
