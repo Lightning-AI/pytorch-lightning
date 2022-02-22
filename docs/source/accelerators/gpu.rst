@@ -506,7 +506,7 @@ but Bagua can usually produce a higher training throughput due to its backend wr
 
 .. code-block:: python
 
-    # train on 2 GPUs (using Bagua mode)
+    # train on 4 GPUs (using Bagua mode)
     trainer = Trainer(strategy="bagua", accelerator="gpu", devices=4)
 
 
