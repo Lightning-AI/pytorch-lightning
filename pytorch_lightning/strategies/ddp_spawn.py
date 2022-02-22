@@ -33,7 +33,6 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -48,7 +47,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    distributed_backend = _StrategyType.DDP_SPAWN
+    strategy_name = "ddp_spawn"
 
     def __init__(
         self,
@@ -76,7 +75,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
-        self.set_world_ranks()
 
     @property
     def num_nodes(self) -> int:
@@ -86,7 +84,6 @@ class DDPSpawnStrategy(ParallelStrategy):
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
-        self.set_world_ranks()
 
     @property
     def local_rank(self) -> int:
@@ -260,6 +257,11 @@ class DDPSpawnStrategy(ParallelStrategy):
             cls,
             description="DDPSpawn Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )
 
     def teardown(self) -> None:

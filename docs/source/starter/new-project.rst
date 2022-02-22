@@ -16,17 +16,14 @@
 Introduction
 ############
 
-*************************
-What is PyTorch Lightning
-*************************
+**************************
+What is PyTorch Lightning?
+**************************
 
-PyTorch has all you need to train your models. But there's a lot more to deep learning more than just attaching some layers together. It provides you the APIs required to build models, datasets etc.
-But when it comes to actual training, there's a lot of boilerplate code involved that you need to write by yourself. And if you need to scale your training/inferencing on multiple devices/machines there's another
-set of integrations you might need to do by yourself.
+PyTorch Lightning provides you with the APIs required to build models, datasets, and so on. PyTorch has all you need to train your models; however, there’s much more to deep learning than attaching layers. When it comes to the actual training, there’s a lot of boilerplate code that you need to write, and if you need to scale your training/inferencing on multiple devices/machines, there’s another set of integrations you might need to do.
 
-PyTorch Lightning solves these for you. All you need is some restructuring of your existing code and set certain flags and voila, you are done.
-Now you can train your models on different accelerators like GPU/TPU/IPU, do distributed training across multiple machines/nodes with no code change use state-of-the-art distributed training mechanisms
-and a lot more.
+PyTorch Lightning solves these for you. All you need is to restructure some of your existing code, set certain flags, and then you are done.
+Now you can train your models on different accelerators like GPU/TPU/IPU, to do distributed training across multiple machines/nodes without code changes using state-of-the-art distributed training mechanisms.
 
 Code organization is the core of Lightning. It leaves the research logic to you and automates the rest.
 
@@ -38,7 +35,7 @@ Lightning Philosophy
 
 Organizing your code with Lightning makes your code:
 
-* Keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
+* Flexible (this is all pure PyTorch), but removes a ton of boilerplate
 * More readable by decoupling the research code from the engineering
 * Easier to reproduce
 * Less error-prone by automating most of the training loop and tricky engineering
@@ -46,8 +43,8 @@ Organizing your code with Lightning makes your code:
 
 Lightning is built for:
 
-* Researcher who want to focus on research without worrying about the engineering aspects of it
-* ML Engineers who want to built reproducible pipelines
+* Researchers who want to focus on research without worrying about the engineering aspects of it
+* ML Engineers who want to build reproducible pipelines
 * Data Scientists who want to try out different models for their tasks and build-in ML techniques
 * Educators who seek to study and teach Deep Learning with PyTorch
 
@@ -61,7 +58,7 @@ The team makes sure that all the latest techniques are already integrated and we
 Starter Templates
 *****************
 
-Before installing anything, if you want to give it a try, please try out the following templates to try it out live:
+Before installing anything, use the following templates to try it out live:
 
 .. list-table::
    :widths: 18 15 25
@@ -106,7 +103,7 @@ Follow the :ref:`Installation Guide <installation>` to install PyTorch Lightning
 Lightning Components
 ********************
 
-Here's a 3 minute conversion guide for PyTorch projects:
+Here's a 3-minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
@@ -178,7 +175,7 @@ Examples of systems are:
 - `Semantic Segmentation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/domain_templates/semantic_segmentation.py>`_
 - `and a lot more <https://github.com/PyTorchLightning/lightning-tutorials/tree/publication/.notebooks/lightning_examples>`_
 
-Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
+Under the hood, a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
 - The Train loop
 - The Validation loop
@@ -198,7 +195,7 @@ of the 20+ hooks found in :ref:`lightning_hooks`
 
 **FORWARD vs TRAINING_STEP**
 
-In Lightning we suggest separatating training from inference. The ``training_step`` defines
+In Lightning we suggest separating training from inference. The ``training_step`` defines
 the full training loop. We encourage users to use the ``forward`` to define inference actions.
 
 For example, in this case we can define the autoencoder to act as an embedding extractor:
@@ -209,7 +206,7 @@ For example, in this case we can define the autoencoder to act as an embedding e
         embeddings = self.encoder(batch)
         return embeddings
 
-Of course, nothing is stopping you from using ``forward`` from within the ``training_step``.
+Of course, nothing is preventing you from using ``forward`` from within the ``training_step``.
 
 .. code-block:: python
 
@@ -261,12 +258,12 @@ The :class:`~pytorch_lightning.trainer.Trainer` automates:
 * :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <amp>` support
 
-.. tip:: If you prefer to manually manage optimizers you can use the :ref:`manual_opt` mode (ie: RL, GANs, etc...).
+.. tip:: If you prefer to manually manage optimizers, you can use the :ref:`manual_opt` mode (i.e., RL, GANs, and so on).
 
 
 **That's it!**
 
-These are the main 2 components you need to know in Lightning in general. All the other features of Lightning are either
+These are the main two components you need to know in Lightning in general. All the other features of Lightning are either
 features of the Trainer or LightningModule or are extensions for advanced use-cases.
 
 -----------
@@ -296,10 +293,10 @@ Lightning will automate the optimization.
 Manual Optimization
 -------------------
 
-However, for certain research like GANs, reinforcement learning, or something with multiple optimizers
+For certain research like GANs, reinforcement learning, or something with multiple optimizers
 or an inner loop, you can turn off automatic optimization and fully control it yourself.
 
-Turn off automatic optimization and you control the optimization!
+Turn off automatic optimization, and you control the optimization!
 
 .. code-block:: python
 
@@ -334,7 +331,7 @@ for advanced use-cases. Learn more inside :doc:`Loops docs <../extensions/loops>
 Predict or Deploy
 =================
 
-When you're done training, you have 3 options to use your LightningModule for predictions.
+When you're done training, you have three options to use your LightningModule for predictions.
 
 Option 1: Sub-models
 --------------------
@@ -383,9 +380,9 @@ You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
 
-    # ----------------------------------
-    # or using the AE to generate images
-    # ----------------------------------
+    # -------------------------------
+    # using the AE to generate images
+    # -------------------------------
     class LitAutoEncoder(LightningModule):
         def __init__(self):
             super().__init__()
@@ -405,7 +402,7 @@ You can also add a forward method to do predictions however you want.
 Option 3: Production
 --------------------
 
-For production systems, `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ or `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ are much faster.
+For production systems, `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ or `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ is much faster.
 Make sure you have added a ``forward`` method or trace only the sub-models you need.
 
 * TorchScript using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript` method.
@@ -427,7 +424,7 @@ Make sure you have added a ``forward`` method or trace only the sub-models you n
 Using Accelerators
 ==================
 
-It's trivial to use CPUs, GPUs, TPUs or IPUs in Lightning. There's **NO NEED** to change your code, simply change the :class:`~pytorch_lightning.trainer.trainer.Trainer` options.
+It's easy to use CPUs, GPUs, TPUs or IPUs in Lightning. There's **no need** to change your code; simply change the :class:`~pytorch_lightning.trainer.trainer.Trainer` options.
 
 CPU
 ---
@@ -475,7 +472,7 @@ TPU
     trainer = pl.Trainer(tpu_cores=[7])
 
     # without changing a SINGLE line of your code, you can
-    # train on TPUs using 16 bit precision
+    # train on TPUs using 16-bit precision
     # using only half the training data and checking validation every quarter of a training epoch
     trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
 
@@ -521,7 +518,7 @@ Each loop (training, validation, test, predict) has three hooks you can implemen
 - x_step_end (optional)
 - x_epoch_end (optional)
 
-To illustrate how data flows, we'll use the training loop (i.e: x=training)
+To illustrate how data flows, we'll use the training loop (i.e., x=training)
 
 .. code-block:: python
 
@@ -545,7 +542,7 @@ The equivalent in Lightning is:
         for out in outs:
             ...
 
-In the event that you use DP or DDP2 distributed modes (i.e: split a batch across devices), check out *Training with DataParallel* section :ref:`here <lightning_module>`.
+In the event you use DP or DDP2 distributed modes (i.e., split a batch across devices), check out *Training with DataParallel* section :ref:`here <lightning_module>`.
 The validation, test and prediction loops have the same structure.
 
 
@@ -578,7 +575,7 @@ Limit Batches
 
 .. testcode::
 
-    # use only 10 train batches and 3 val batches per epoch
+    # use only 10 train batches and three val batches per epoch
     trainer = Trainer(limit_train_batches=10, limit_val_batches=3)
     # use 20% of total train batches and 10% of total val batches per epoch
     trainer = Trainer(limit_train_batches=0.2, limit_val_batches=0.1)
@@ -603,7 +600,7 @@ Fast Dev Run
     # instead of waiting hours to crash somewhere
     trainer = Trainer(fast_dev_run=True)
 
-    # unit test all the code - hits every line of your code with 4 batches
+    # unit test all the code - hits every line of your code with four batches
     trainer = Trainer(fast_dev_run=4)
 
 Val Check Interval
@@ -627,7 +624,7 @@ Val Check Interval
 Other Cool Features
 *******************
 
-Once you define and train your first Lightning model, you might want to try other cool features like
+Once you define and train your first Lightning model, you might want to try other cool features like:
 
 - :doc:`Automatic early stopping <../common/early_stopping>`
 - :ref:`Automatic truncated-back-propagation-through-time <common/lightning_module:truncated_bptt_steps>`
@@ -638,7 +635,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
-Or read our :doc:`Guide <../starter/introduction_guide>` to learn more with a step-by-step walk-through!
+Read our :doc:`Guide <../starter/introduction_guide>` to learn more with a step-by-step walk-through!
 
 
 -------------

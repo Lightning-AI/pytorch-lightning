@@ -30,6 +30,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN
 from tests.helpers.runif import RunIf
@@ -42,11 +43,9 @@ if _HOROVOD_AVAILABLE:
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
 
-def _run_horovod(trainer_options, on_gpu=False):
+def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
-    num_processes = trainer_options.get("gpus", 2)
-    # for Horovod, we interpret `gpus` to be set per worker
-    trainer_options.update(gpus=1 if on_gpu else None)
+    devices = trainer_options.get("devices", 1)
     tutils.reset_seed()
     # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
@@ -54,13 +53,13 @@ def _run_horovod(trainer_options, on_gpu=False):
     cmdline = [
         "horovodrun",
         "-np",
-        str(num_processes),
+        str(devices),
         sys.executable,
         TEST_SCRIPT,
         "--trainer-options",
         shlex.quote(json.dumps(trainer_options)),
     ]
-    if on_gpu:
+    if trainer_options.get("accelerator", "cpu") == "gpu":
         cmdline += ["--on-gpu"]
     exit_code = subprocess.call(" ".join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
@@ -77,6 +76,20 @@ def test_horovod_cpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options)
+
+
+@RunIf(skip_windows=True, horovod=True, skip_49370=True)
+def test_horovod_cpu_accumulate_grad_batches(tmpdir):
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        accumulate_grad_batches=2,
         strategy="horovod",
     )
     _run_horovod(trainer_options)
@@ -125,10 +138,44 @@ def test_horovod_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="horovod",
     )
-    _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options)
+
+
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        accumulate_grad_batches=2,
+        accelerator="gpu",
+        devices=2,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options)
+
+
+@RunIf(horovod=True, skip_windows=True)
+def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
+    """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
+    Strategy on multi-gpus."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        accumulate_grad_batches={0: 4, 2: 2},
+        accelerator="auto",
+        devices=1,
+        strategy="horovod",
+    )
+    with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
+        trainer.fit(model)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
@@ -143,10 +190,11 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="horovod",
     )
-    _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options)
 
 
 # todo: need to be fixed :]
@@ -164,12 +212,13 @@ def test_horovod_apex(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="horovod",
         amp_backend="apex",
         precision=16,
     )
-    _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
@@ -183,12 +232,13 @@ def test_horovod_amp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="horovod",
         amp_backend="native",
         precision=16,
     )
-    _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
@@ -202,10 +252,11 @@ def test_horovod_gather(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="horovod",
     )
-    _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options)
 
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
@@ -227,7 +278,8 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         strategy="horovod",
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)

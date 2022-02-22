@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -47,6 +48,8 @@ else:
 
 class TPUSpawnStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
+
+    strategy_name = "tpu_spawn"
 
     def __init__(
         self,
@@ -124,7 +127,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
@@ -289,4 +292,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

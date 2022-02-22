@@ -82,7 +82,7 @@ class LightningLite(ABC):
         self._check_strategy_support(strategy)
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=1,
+            num_processes=None,
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,

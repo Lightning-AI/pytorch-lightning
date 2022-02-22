@@ -45,7 +45,6 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
@@ -63,7 +62,7 @@ log = logging.getLogger(__name__)
 class DDPStrategy(ParallelStrategy):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
-    distributed_backend = _StrategyType.DDP
+    strategy_name = "ddp"
 
     def __init__(
         self,
@@ -96,7 +95,6 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
-        self.set_world_ranks()
 
     @property
     def is_distributed(self) -> bool:
@@ -114,7 +112,6 @@ class DDPStrategy(ParallelStrategy):
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
-        self.set_world_ranks()
 
     @property
     def num_processes(self):
@@ -345,6 +342,11 @@ class DDPStrategy(ParallelStrategy):
             cls,
             description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )
 
     def _should_run_deadlock_detection(self) -> bool:

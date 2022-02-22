@@ -21,7 +21,6 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -36,7 +35,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
+    strategy_name = "ddp_sharded_spawn"
 
     def configure_ddp(self) -> None:
         self.model, self.optimizers = self._setup_model_and_optimizers(
@@ -117,4 +116,9 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             cls,
             description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )
