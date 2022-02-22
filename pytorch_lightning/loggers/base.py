@@ -195,10 +195,7 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        agg_step, metrics_to_log = self._aggregate_metrics(metrics=metrics, step=step)
-
-        if metrics_to_log:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
+        self.log_metrics(metrics=metrics, step=step)
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -221,7 +218,7 @@ class LightningLoggerBase(ABC):
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
-            kwargs: Optional keywoard arguments, depends on the specific logger being used
+            kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
@@ -235,7 +232,7 @@ class LightningLoggerBase(ABC):
 
     def save(self) -> None:
         """Save log data."""
-        self._finalize_agg_metrics()
+        pass
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
