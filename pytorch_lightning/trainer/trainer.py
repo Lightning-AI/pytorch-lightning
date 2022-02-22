@@ -2614,18 +2614,27 @@ class Trainer(
         self._weights_summary = val
 
     """
-    Estimator Properties
+    Other
     """
 
     @property
-    def estimated_num_training_steps(self) -> int:
-        """Total training steps inferred from dataloaders and distributed setup."""
+    def estimated_num_optimization_steps(self) -> int:
+        """Total optimization steps inferred from dataloaders, gradient accumulation factor and distributed
+        setup."""
+        accumulation_scheduler = self.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Estimated optimization steps cannot be computed with different"
+                " `accumulate_grad_batches` at different epochs."
+            )
+
         # infinite training
         if self.max_epochs == -1 and self.max_steps == -1:
             return float("inf")
 
         if self.train_dataloader is None:
-            rank_zero_warn("Loading `train_dataloader` to estimate number of training steps.")
+            rank_zero_warn("Loading `train_dataloader` to estimate number of optimization steps.")
             self.reset_train_dataloader()
 
         total_batches = self.num_training_batches
@@ -2634,7 +2643,7 @@ class Trainer(
         if total_batches == float("inf"):
             return self.max_steps
 
-        self.accumulate_grad_batches = self.accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
+        self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
         effective_batch_size = self.accumulate_grad_batches
         max_estimated_steps = math.ceil(total_batches / effective_batch_size) * (
             self.max_epochs if self.max_epochs != -1 else 1
@@ -2642,10 +2651,6 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-    """
-    Other
-    """
 
     @property
     def terminate_on_nan(self) -> bool:
