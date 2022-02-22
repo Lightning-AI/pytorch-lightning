@@ -261,7 +261,7 @@ class NeptuneLogger(LightningLoggerBase):
         *,  # force users to call `NeptuneLogger` initializer with `kwargs`
         api_key: Optional[str] = None,
         project: Optional[str] = None,
-        name: Optional[str] = None,
+        name: str = "lightning_logs",
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
