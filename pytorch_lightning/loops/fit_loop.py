@@ -71,7 +71,10 @@ class FitLoop(Loop[None]):
     @property
     def global_step(self) -> int:
         """Returns the global step."""
-        return self.epoch_loop.global_step
+        lightning_module = self.trainer.lightning_module
+        if lightning_module is None or lightning_module.automatic_optimization:
+            return self.epoch_loop.global_step
+        return self.epoch_loop.batch_loop.manual_loop.optim_step_progress.total.completed
 
     @global_step.setter
     def global_step(self, value: int) -> None:
@@ -96,7 +99,7 @@ class FitLoop(Loop[None]):
     @property
     def min_steps(self) -> Optional[int]:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
-        """Returns the minimum numnber of steps to run."""
+        """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
     @min_steps.setter
@@ -263,6 +266,7 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
         )

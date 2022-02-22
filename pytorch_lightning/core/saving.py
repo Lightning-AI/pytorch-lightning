@@ -395,7 +395,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omega
         raise TypeError("hparams must be dictionary")
 
     hparams_allowed = {}
-    # drop paramaters which contain some strange datatypes as fsspec
+    # drop parameters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
             v = v.name if isinstance(v, Enum) else v

@@ -82,7 +82,6 @@ module = [
     "pytorch_lightning.profiler.pytorch",
     "pytorch_lightning.profiler.simple",
     "pytorch_lightning.trainer.callback_hook",
-    "pytorch_lightning.trainer.connectors.accelerator_connector",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.data_loading",
