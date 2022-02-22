@@ -48,13 +48,11 @@ class _XLASpawnLauncher(_SpawnLauncher):
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher
-        start_method: Start method for `~torch_xla.distributed.xla_multiprocessing.spawn`. Accepted options are
-            ``'spawn'`` or ``'fork'``.
     """
 
-    def __init__(self, strategy: "Strategy", start_method: str = "fork") -> None:
+    def __init__(self, strategy: "Strategy") -> None:
         super().__init__(strategy)
-        self._start_method = start_method
+        self._start_method = "fork"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
