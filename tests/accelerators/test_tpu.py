@@ -338,6 +338,6 @@ def test_devices_auto_choice_tpu():
 
 
 @RunIf(tpu=True)
-def test_warning_if_tpus_not_used(tmpdir):
+def test_warning_if_tpus_not_used():
     with pytest.warns(UserWarning, match="TPU available but not used. Set `tpu_cores` via your trainer"):
-        Trainer(default_root_dir=tmpdir)
+        Trainer()

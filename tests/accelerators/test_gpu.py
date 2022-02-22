@@ -69,6 +69,6 @@ def test_gpu_availability():
 
 
 @RunIf(min_gpus=1)
-def test_warning_if_gpus_not_used(tmpdir):
+def test_warning_if_gpus_not_used():
     with pytest.warns(UserWarning, match="GPU available but not used. Set `gpus` via your trainer"):
-        Trainer(default_root_dir=tmpdir)
+        Trainer()
