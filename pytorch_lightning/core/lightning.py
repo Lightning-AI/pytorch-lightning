@@ -38,6 +38,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -261,8 +262,9 @@ class LightningModule(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        assert self.trainer is not None
-        datahook_selector = self.trainer._data_connector._datahook_selector
+        datahook_selector = (
+            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+        )
 
         hook = datahook_selector.get_hook("on_before_batch_transfer")
         batch = hook(batch, dataloader_idx)
