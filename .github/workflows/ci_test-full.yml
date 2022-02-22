@@ -1,4 +1,4 @@
-name: Test
+name: Test full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -8,24 +8,26 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
 jobs:
 
   cpu:
-
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
         python-version: ["3.7", "3.9"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
-        include:
-          # test 3.6 only on oldest until EOL: https://github.com/PyTorchLightning/pytorch-lightning/issues/9981
-          - {os: ubuntu-18.04, python-version: "3.6", requires: "oldest", release: "stable"}
-          - {os: windows-2019, python-version: "3.6", requires: "oldest", release: "stable"}
-          - {os: macOS-10.15, python-version: "3.6", requires: "oldest", release: "stable"}
+        exclude:
+          # Skip if torch<1.8 and py3.9 on Linux: https://github.com/pytorch/pytorch/issues/50014
+          - {os: ubuntu-20.04, python-version: "3.9", requires: "oldest"}
+        #include:
           # nightly: add when there's a release candidate
           #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
@@ -69,8 +71,7 @@ jobs:
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Get pip cache dir
       id: pip-cache
-      run: |
-        echo "::set-output name=dir::$(pip cache dir)"
+      run: echo "::set-output name=dir::$(pip cache dir)"
 
     - name: pip cache
       uses: actions/cache@v2
@@ -146,8 +147,9 @@ jobs:
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+        path: junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        if-no-files-found: error
       if: failure()
 
     - name: Statistics

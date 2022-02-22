@@ -65,8 +65,9 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
     model = TestModel()
     all_rank_logger = AllRankLogger()
     trainer = Trainer(
+        accelerator="cpu",
+        devices=2,
         strategy="ddp_spawn",
-        num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -86,7 +87,8 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     model.training_epoch_end = None
     trainer = Trainer(
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -104,15 +106,14 @@ def test_first_logger_call_in_subprocess(tmpdir):
     """
 
     class LoggerCallsObserver(Callback):
-        def on_fit_start(self, trainer, pl_module):
-            # this hook is executed directly before Trainer.pre_dispatch
+        def setup(self, trainer, pl_module, stage):
+            # this hook is executed after Strategy has setup the environment
             # logger should not write any logs until this point
             assert not trainer.logger.method_calls
             assert not os.listdir(trainer.logger.save_dir)
 
         def on_train_start(self, trainer, pl_module):
             assert trainer.logger.method_call
-            trainer.logger.log_hyperparams.assert_called_once()
             trainer.logger.log_graph.assert_called_once()
 
     logger = Mock()

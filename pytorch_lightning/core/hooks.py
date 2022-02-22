@@ -182,10 +182,20 @@ class ModelHooks:
         self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
-        """Called when either of train/val/test epoch begins."""
+        r"""
+        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_start`` instead.
+
+        Called when either of train/val/test epoch begins.
+        """
 
     def on_epoch_end(self) -> None:
-        """Called when either of train/val/test epoch ends."""
+        r"""
+        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_end`` instead.
+
+        Called when either of train/val/test epoch ends.
+        """
 
     def on_train_epoch_start(self) -> None:
         """Called in the training loop at the very beginning of the epoch."""
@@ -256,7 +266,7 @@ class ModelHooks:
     def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Called before ``optimizer.step()``.
 
-        The hook is only called if gradients do not need to be accumulated.
+        If using gradient accumulation, the hook is called once the gradients have been accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
 
         If using native AMP, the loss will be unscaled before calling this hook.

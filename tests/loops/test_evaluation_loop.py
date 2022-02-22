@@ -43,10 +43,10 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 
 
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.update_eval_epoch_metrics"
+    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.log_eval_end_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
-    """Test that the epoch metrics are logged before the `on_evalutaion_end` hook is fired."""
+    """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
     order = []
     update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
 
@@ -100,7 +100,12 @@ def test_memory_consumption_validation(tmpdir):
 
     torch.cuda.empty_cache()
     trainer = Trainer(
-        gpus=1, default_root_dir=tmpdir, fast_dev_run=2, move_metrics_to_cpu=True, enable_model_summary=False
+        accelerator="gpu",
+        devices=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        move_metrics_to_cpu=True,
+        enable_model_summary=False,
     )
     trainer.fit(BoringLargeBatchModel())
 
@@ -127,6 +132,6 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
     assert not is_overridden("test_epoch_end", model)
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
-    trainer.test_loop.connect(TestLoop())
+    trainer.test_loop.replace(epoch_loop=TestLoop)
     trainer.test(model)
     assert did_assert

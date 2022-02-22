@@ -28,7 +28,7 @@ class HyperparametersMixin:
 
     def __init__(self) -> None:
         super().__init__()
-        self._log_hyperparams = True
+        self._log_hyperparams = False
 
     def save_hyperparameters(
         self,
@@ -132,7 +132,7 @@ class HyperparametersMixin:
         For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 
         Returns:
-            Mutable hyperparameters dicionary
+            Mutable hyperparameters dictionary
         """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()

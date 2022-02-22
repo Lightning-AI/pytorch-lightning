@@ -286,7 +286,6 @@ if _OMEGACONF_AVAILABLE:
             super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
-
 else:
 
     class DictConfSubClassBoringModel:
@@ -673,6 +672,31 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
         assert arg not in model.hparams
 
 
+class IgnoreAllParametersModel(BoringModel):
+    def __init__(self, arg1, arg2, arg3):
+        super().__init__()
+        self.save_hyperparameters(ignore=("arg1", "arg2", "arg3"))
+
+
+class NoParametersModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+@pytest.mark.parametrize(
+    "model",
+    (
+        IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50),
+        NoParametersModel(),
+    ),
+)
+def test_save_no_parameters(model):
+    """Test that calling save_hyperparameters works if no parameters need saving."""
+    assert model.hparams == {}
+    assert model._hparams_initial == {}
+
+
 class HparamsKwargsContainerModel(BoringModel):
     def __init__(self, **kwargs):
         super().__init__()
@@ -764,7 +788,10 @@ def test_adding_datamodule_hparams(tmpdir, model, data):
     # Merged hparams were logged
     merged_hparams = copy.deepcopy(org_model_hparams)
     merged_hparams.update(org_data_hparams)
-    mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+    if merged_hparams:
+        mock_logger.log_hyperparams.assert_called_with(merged_hparams)
+    else:
+        mock_logger.log_hyperparams.assert_not_called()
 
 
 def test_no_datamodule_for_hparams(tmpdir):

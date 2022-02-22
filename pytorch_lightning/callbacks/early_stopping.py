@@ -26,8 +26,8 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class EarlyStopping(Callback):
             if self.strict:
                 raise RuntimeError(error_msg)
             if self.verbose > 0:
-                rank_zero_warn(error_msg, RuntimeWarning)
+                rank_zero_warn(error_msg, category=RuntimeWarning)
 
             return False
 
@@ -200,7 +200,7 @@ class EarlyStopping(Callback):
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
+        should_stop = trainer.strategy.reduce_boolean_decision(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch

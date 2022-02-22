@@ -7,7 +7,7 @@
 .. _introduction_guide:
 
 #########################
-Step-by-step walk-through
+Step-by-step Walk-through
 #########################
 This guide will walk you through the core pieces of PyTorch Lightning.
 
@@ -16,7 +16,7 @@ We'll accomplish the following:
 - Implement an MNIST classifier.
 - Use inheritance to implement an AutoEncoder
 
-.. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
+.. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on three types
     of research to illustrate.
 
 --------------
@@ -30,7 +30,7 @@ Installing Lightning
 ====================
 
 
-Lightning is trivial to install. We recommend using conda environments
+Lightning is easy to install. We recommend using conda environments
 
 .. code-block:: bash
 
@@ -51,7 +51,7 @@ Or conda.
 
 -------------
 
-The research
+The Research
 ============
 
 The Model
@@ -99,7 +99,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
             return x
 
 Notice this is a :doc:`lightning module <../common/lightning_module>` instead of a ``torch.nn.Module``. A LightningModule is
-equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
+equivalent to a pure PyTorch ``nn.Module`` except it has added functionality. However, you can use it **exactly** the same as you would a PyTorch ``nn.Module``.
 
 .. testcode::
 
@@ -122,7 +122,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     torch.Size([1, 10])
 
 
-Now we add the training_step which has all our training loop logic
+Now, we add the ``training_step`` which has all our training loop logic:
 
 .. testcode::
 
@@ -133,11 +133,12 @@ Now we add the training_step which has all our training loop logic
             loss = F.nll_loss(logits, y)
             return loss
 
+
 Optimizer
 ---------
 
-Next, we choose which optimizer to use for training our model.
-In PyTorch, the optimizer is created as follows:
+Next, we choose which optimizer to use for training our system.
+In PyTorch, we do it as follows:
 
 .. code-block:: python
 
@@ -146,7 +147,7 @@ In PyTorch, the optimizer is created as follows:
     optimizer = Adam(LitMNIST().parameters(), lr=1e-3)
 
 
-In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.LightningModule.configure_optimizers` method of the LightningModule.
+In Lightning, the same code is re-organized within the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` method.
 
 .. testcode::
 
@@ -154,7 +155,7 @@ In Lightning, the code above is moved within the :func:`~pytorch_lightning.core.
         def configure_optimizers(self):
             return Adam(self.parameters(), lr=1e-3)
 
-.. note:: The LightningModule is subclassing :class:`~torch.nn.Module` and therefore, you can access its children parameters directly with ``self.parameters()``.
+.. note:: The ``LightningModule`` is subclassing :class:`~torch.nn.Module` and therefore, you can access its children parameters directly with ``self.parameters()``.
 
 If you have multiple optimizers, you can configure them as follows:
 
@@ -162,7 +163,24 @@ If you have multiple optimizers, you can configure them as follows:
 
     class LitMNIST(LightningModule):
         def configure_optimizers(self):
-            return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
+            return Adam(self.generator.parameters(), lr=1e-3), Adam(self.discriminator.parameters(), lr=1e-3)
+
+If you have LR Schedulers you can return them too:
+
+.. testcode::
+
+    from torch.optim.lr_scheduler import CosineAnnealingLR
+
+
+    class LitMNIST(LightningModule):
+        def configure_optimizers(self):
+            opt = Adam(self.parameters(), lr=1e-3)
+            scheduler = CosineAnnealingLR(opt, T_max=10)
+            return [opt], [scheduler]
+
+
+For more available configurations, please checkout the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` method.
+
 
 Data
 ----
@@ -199,7 +217,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
     Processing...
     Done!
 
-You can use DataLoaders in 3 ways:
+You can use DataLoaders in three ways:
 
 1. Pass DataLoaders to .fit()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -394,7 +412,7 @@ This code is not restricted which means it can be as complicated as a full seq-2
 
 ----------------
 
-The engineering
+The Engineering
 ===============
 
 Training
@@ -402,8 +420,8 @@ Training
 So far we defined 4 key ingredients in pure PyTorch but organized the code with the LightningModule.
 
 1. Model.
-2. Training data.
-3. Optimizer.
+2. Optimizer.
+3. Training data.
 4. What happens in the training loop.
 
 |
@@ -483,8 +501,7 @@ Once your training starts, you can view the logs by using your favorite logger o
 
     tensorboard --logdir ./lightning_logs
 
-
-Which will generate automatic tensorboard logs (or with the logger of your choice).
+this generates automatic tensorboard logs (or with the logger of your choice).
 
 .. figure:: ../_static/images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
@@ -492,7 +509,7 @@ Which will generate automatic tensorboard logs (or with the logger of your choic
 
 |
 
-But you can also use any of the :doc:`number of other loggers <../common/loggers>` we support.
+You can also use any of the :doc:`number of other loggers <../common/loggers>` we support.
 
 
 Train on CPU
@@ -544,7 +561,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
-Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
+Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
 
 Train on TPUs
 ^^^^^^^^^^^^^
@@ -973,6 +990,10 @@ And pass the callbacks into the trainer
 
 ----------------
 
+*************
+Child Modules
+*************
+
 .. include:: ../common/child_modules.rst
 
 ----------------
@@ -981,15 +1002,15 @@ And pass the callbacks into the trainer
 
 ----------
 
-*********************
-Why PyTorch Lightning
-*********************
+**********************
+Why PyTorch Lightning?
+**********************
 
 a. Less boilerplate
 ===================
 
 Research and production code starts with simple code, but quickly grows in complexity
-once you add GPU training, 16-bit, checkpointing, logging, etc...
+once you add GPU training, 16-bit, checkpointing, logging, and so on.
 
 PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
 instead focus on the research idea.

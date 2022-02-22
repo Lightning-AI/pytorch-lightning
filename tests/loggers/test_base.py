@@ -24,8 +24,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 
 
@@ -47,18 +48,53 @@ def test_logger_collection():
     mock1.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
     mock2.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
 
-    logger.agg_and_log_metrics({"test": 2.0}, 4)
-    mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
-    mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
+    logger.log_metrics(metrics={"test": 2.0}, step=4)
+    mock1.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
+    mock2.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
 
     logger.finalize("success")
     mock1.finalize.assert_called_once()
     mock2.finalize.assert_called_once()
 
 
+def test_logger_collection_unique_names():
+    unique_name = "name1"
+    logger1 = CustomLogger(name=unique_name)
+    logger2 = CustomLogger(name=unique_name)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.name == unique_name
+
+
+def test_logger_collection_names_order():
+    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
+    logger = LoggerCollection(loggers)
+    assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
+
+
+def test_logger_collection_unique_versions():
+    unique_version = "1"
+    logger1 = CustomLogger(version=unique_version)
+    logger2 = CustomLogger(version=unique_version)
+
+    logger = LoggerCollection([logger1, logger2])
+
+    assert logger.version == unique_version
+
+
+def test_logger_collection_versions_order():
+    loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
+    logger = LoggerCollection(loggers)
+    assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
+
+
 class CustomLogger(LightningLoggerBase):
-    def __init__(self):
+    def __init__(self, experiment: str = "test", name: str = "name", version: str = "1"):
         super().__init__()
+        self._experiment = experiment
+        self._name = name
+        self._version = version
         self.hparams_logged = None
         self.metrics_logged = {}
         self.finalized = False
@@ -66,7 +102,7 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        return "test"
+        return self._experiment
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -88,11 +124,11 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def name(self):
-        return "name"
+        return self._name
 
     @property
     def version(self):
-        return "1"
+        return self._version
 
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True
@@ -111,7 +147,6 @@ def test_custom_logger(tmpdir):
     trainer = Trainer(max_steps=2, log_every_n_steps=1, logger=logger, default_root_dir=tmpdir)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.after_save_checkpoint_called
     assert logger.finalized_status == "success"
@@ -133,11 +168,11 @@ def test_multiple_loggers(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    assert logger1.hparams_logged == model.hparams
+    assert logger1.hparams_logged is None
     assert logger1.metrics_logged != {}
     assert logger1.finalized_status == "success"
 
-    assert logger2.hparams_logged == model.hparams
+    assert logger2.hparams_logged is None
     assert logger2.metrics_logged != {}
     assert logger2.finalized_status == "success"
 
@@ -190,31 +225,6 @@ def test_adding_step_key(tmpdir):
     trainer.fit(model)
 
 
-def test_with_accumulate_grad_batches():
-    """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
-
-    class StoreHistoryLogger(CustomLogger):
-        def __init__(self):
-            super().__init__()
-            self.history = {}
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            if step not in self.history:
-                self.history[step] = {}
-            self.history[step].update(metrics)
-
-    logger = StoreHistoryLogger()
-
-    np.random.seed(42)
-    for i, loss in enumerate(np.random.random(10)):
-        logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
-
-    assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.save()
-    assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
-
-
 def test_dummyexperiment_support_indexing():
     """Test that the DummyExperiment can imitate indexing the experiment in a LoggerCollection."""
     experiment = DummyExperiment()
@@ -256,8 +266,8 @@ def test_np_sanitization():
 
         @rank_zero_only
         def log_hyperparams(self, params):
-            params = self._convert_params(params)
-            params = self._sanitize_params(params)
+            params = _convert_params(params)
+            params = _sanitize_params(params)
             self.logged_params = params
 
     logger = CustomParamsLogger()

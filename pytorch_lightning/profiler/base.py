@@ -62,7 +62,6 @@ class BaseProfiler(AbstractProfiler):
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
-        self._log_dir: Optional[str] = None
         self._stage: Optional[str] = None
 
     @contextmanager
@@ -129,9 +128,9 @@ class BaseProfiler(AbstractProfiler):
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
-        # there are pickling issues with open file handles in Python 3.6
-        # so to avoid them, we open and close the files within this function
-        # by calling `_prepare_streams` and `teardown`
+        # users might call `describe` directly as the profilers can be used by themselves.
+        # to allow this, we open and close the files within this function by calling `_prepare_streams` and `teardown`
+        # manually instead of letting the `Trainer` do it through `setup` and `teardown`
         self._prepare_streams()
         summary = self.summary()
         if summary:
@@ -157,7 +156,6 @@ class BaseProfiler(AbstractProfiler):
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
-        self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:

@@ -33,9 +33,9 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -48,7 +48,7 @@ class ModelCheckpoint(Callback):
     Save the model periodically by monitoring a quantity. Every metric logged with
     :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
-    :ref:`weights_loading`.
+    :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -102,8 +102,7 @@ class ModelCheckpoint(Callback):
             ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
         save_weights_only: if ``True``, then only the model's weights will be
-            saved (``model.save_weights(filepath)``), else the full model
-            is saved (``model.save(filepath)``).
+            saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
             If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
@@ -248,13 +247,16 @@ class ModelCheckpoint(Callback):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we resolve the ckpt dir on the fly."""
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
+        # because the attributes are part of the state_key which needs to be fully defined before reloading.
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
+    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        """When pretrain routine starts we build the ckpt dir on the fly."""
         self.__resolve_ckpt_dir(trainer)
         if trainer.is_global_zero:
             self.__warn_if_dir_not_empty(self.dirpath)
@@ -284,7 +286,7 @@ class ModelCheckpoint(Callback):
             skip_time = prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds()
             # in case we have time differences across ranks
             # broadcast the decision on whether to checkpoint from rank 0 to avoid possible hangs
-            skip_time = trainer.training_type_plugin.broadcast(skip_time)
+            skip_time = trainer.strategy.broadcast(skip_time)
 
         if skip_batch and skip_time:
             return
@@ -342,6 +344,10 @@ class ModelCheckpoint(Callback):
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
             "dirpath": self.dirpath,
+            "best_k_models": self.best_k_models,
+            "kth_best_model_path": self.kth_best_model_path,
+            "kth_value": self.kth_value,
+            "last_model_path": self.last_model_path,
         }
 
     def on_load_checkpoint(
@@ -349,6 +355,10 @@ class ModelCheckpoint(Callback):
     ) -> None:
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
+        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+        self.kth_value = callback_state.get("kth_value", self.kth_value)
+        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
@@ -356,16 +366,14 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
         behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
         """
-        epoch = trainer.current_epoch
-        global_step = trainer.global_step
-
         self._validate_monitor_key(trainer)
 
         # track epoch when ckpt was last checked
+        global_step = trainer.global_step
         self._last_global_step_saved = global_step
 
         # what can be monitored
-        monitor_candidates = self._monitor_candidates(trainer, epoch=epoch, step=global_step)
+        monitor_candidates = self._monitor_candidates(trainer, epoch=trainer.current_epoch, step=global_step)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
@@ -482,7 +490,7 @@ class ModelCheckpoint(Callback):
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
-        should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
+        should_update_best_and_save = trainer.strategy.reduce_boolean_decision(should_update_best_and_save)
 
         return should_update_best_and_save
 
@@ -568,7 +576,6 @@ class ModelCheckpoint(Callback):
         The base path gets extended with logger name and version (if these are available)
         and subfolder "checkpoints".
         """
-        # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
             return  # short circuit
 
@@ -588,7 +595,7 @@ class ModelCheckpoint(Callback):
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
-        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
+        ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
@@ -633,12 +640,11 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
+        # set the last model path before saving because it will be part of the state.
+        previous, self.last_model_path = self.last_model_path, filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
-
-        if self.last_model_path and self.last_model_path != filepath:
-            trainer.training_type_plugin.remove_checkpoint(self.last_model_path)
-
-        self.last_model_path = filepath
+        if previous and previous != filepath:
+            trainer.strategy.remove_checkpoint(previous)
 
     def _save_top_k_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.monitor is None or self.save_top_k == 0:
@@ -658,12 +664,11 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
+        # set the best model path before saving because it will be part of the state.
+        previous, self.best_model_path = self.best_model_path, filepath
         trainer.save_checkpoint(filepath, self.save_weights_only)
-
-        if self.save_top_k == 1 and self.best_model_path and self.best_model_path != filepath:
-            trainer.training_type_plugin.remove_checkpoint(self.best_model_path)
-
-        self.best_model_path = filepath
+        if self.save_top_k == 1 and previous and previous != filepath:
+            trainer.strategy.remove_checkpoint(previous)
 
     def _is_valid_monitor_key(self, metrics: Dict[str, _METRIC]) -> bool:
         return self.monitor in metrics or len(metrics) == 0
@@ -708,7 +713,7 @@ class ModelCheckpoint(Callback):
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         if del_filepath is not None and filepath != del_filepath:
-            trainer.training_type_plugin.remove_checkpoint(del_filepath)
+            trainer.strategy.remove_checkpoint(del_filepath)
 
     def to_yaml(self, filepath: Optional[_PATH] = None) -> None:
         """Saves the `best_k_models` dict containing the checkpoint paths with the corresponding scores to a YAML
@@ -723,4 +728,4 @@ class ModelCheckpoint(Callback):
         """Checks if a file exists on rank 0 and broadcasts the result to all other ranks, preventing the internal
         state to diverge between ranks."""
         exists = self._fs.exists(filepath)
-        return trainer.training_type_plugin.broadcast(exists)
+        return trainer.strategy.broadcast(exists)

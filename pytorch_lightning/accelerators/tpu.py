@@ -15,12 +15,8 @@ from typing import Any, Dict, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -28,25 +24,6 @@ if _XLA_AVAILABLE:
 
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        """
-        Raises:
-            ValueError:
-                If the precision or training type plugin are unsupported.
-        """
-        if not isinstance(self.training_type_plugin.precision_plugin, TPUPrecisionPlugin):
-            # this configuration should have been avoided in the accelerator connector
-            raise ValueError(
-                f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
-                f" found: {self.training_type_plugin.precision_plugin}."
-            )
-        if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
-            raise ValueError(
-                "The `TPUAccelerator` can only be used with a `SingleTPUPlugin` or `TPUSpawnPlugin,"
-                f" found {self.training_type_plugin}."
-            )
-        return super().setup(trainer)
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given TPU device.
@@ -70,3 +47,7 @@ class TPUAccelerator(Accelerator):
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 8
+
+    @staticmethod
+    def is_available() -> bool:
+        return _TPU_AVAILABLE

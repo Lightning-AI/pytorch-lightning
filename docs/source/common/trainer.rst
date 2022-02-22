@@ -189,7 +189,7 @@ Example::
     from pytorch_lightning import Trainer, seed_everything
 
     seed_everything(42, workers=True)
-    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    # sets seeds for numpy, torch and python.random.
     model = Model()
     trainer = Trainer(deterministic=True)
 
@@ -403,7 +403,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
+    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -603,7 +603,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -734,7 +734,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -1103,7 +1103,7 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <multi_gpu>`
+- :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Apex <amp>`
 
@@ -1318,7 +1318,7 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a postive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
@@ -1376,7 +1376,7 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
     Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
@@ -1416,10 +1416,10 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.strategies import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -1427,12 +1427,12 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
             )
 
 
-    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`.
     - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1544,8 +1544,8 @@ val_check_interval
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
-- use (float) to check within a training epoch
-- use (int) to check every n steps (batches)
+- pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
+- pass an ``int`` to check after a fixed number of training batches.
 
 .. testcode::
 
@@ -1734,16 +1734,28 @@ The current epoch
             pass
 
 
-logger (p)
-**********
+logger
+*******
 
 The current logger being used. Here's an example using tensorboard
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        logger = self.trainer.logger
-        tensorboard = logger.experiment
+    logger = trainer.logger
+    tensorboard = logger.experiment
+
+
+loggers
+********
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    # List of LightningLoggerBase objects
+    loggers = trainer.loggers
+    for logger in loggers:
+        logger.log_metrics({"foo": 1.0})
 
 
 logged_metrics

@@ -26,8 +26,9 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import DDPSpawnPlugin, DeepSpeedPlugin, PLUGIN_INPUT, TPUSpawnPlugin, TrainingTypePlugin
-from pytorch_lightning.plugins.training_type.training_type_plugin import TBroadcast
+from pytorch_lightning.plugins import PLUGIN_INPUT
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -69,7 +70,7 @@ class LightningLite(ABC):
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, TrainingTypePlugin]] = None,
+        strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
@@ -81,7 +82,7 @@ class LightningLite(ABC):
         self._check_strategy_support(strategy)
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=1,
+            num_processes=None,
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
@@ -99,8 +100,8 @@ class LightningLite(ABC):
             amp_level=None,
             plugins=plugins,
         )
-        self._accelerator = self._accelerator_connector.accelerator
-        self._strategy = self._accelerator.training_type_plugin
+        self._strategy = self._accelerator_connector.strategy
+        self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
@@ -189,7 +190,7 @@ class LightningLite(ABC):
             *dataloaders: A single dataloader or a sequence of dataloaders.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -213,7 +214,7 @@ class LightningLite(ABC):
             dataloader: The dataloader to accelerate.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -238,7 +239,7 @@ class LightningLite(ABC):
         _auto_add_worker_init_fn(dataloader, self.global_rank)
 
         dataloader = self._strategy.process_dataloader(dataloader)
-        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnPlugin) else None
+        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnStrategy) else None
         lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
         lite_dataloader = cast(DataLoader, lite_dataloader)
         return lite_dataloader
@@ -257,7 +258,7 @@ class LightningLite(ABC):
             model as argument here.
         """
         module = model.module if model is not None else model
-        if isinstance(self._strategy, DeepSpeedPlugin):
+        if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
                     raise MisconfigurationException(
@@ -310,7 +311,7 @@ class LightningLite(ABC):
         """
         if isinstance(obj, nn.Module):
             if self.device.type == "cuda":
-                # need to call this manually here again in case we spawned with DDPSpawnPlugin
+                # need to call this manually here again in case we spawned with DDPSpawnStrategy
                 # TODO: refactor to let plugin handle this cleanly
                 torch.cuda.set_device(self.device)
             return obj.to(self.device)
@@ -398,22 +399,21 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._accelerator.setup_environment()
-
         # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_sharded_context, run_method)
+        run_method = partial(self._run_with_strategy_setup, run_method)
 
-        if isinstance(self._strategy, DDPSpawnPlugin):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._strategy.setup_environment()
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        if isinstance(self._strategy, TPUSpawnPlugin):
+        if isinstance(self._strategy, TPUSpawnStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
             # remains invalid. We need to update the references to point to the parameter tensors on the device.
@@ -451,13 +451,13 @@ class LightningLite(ABC):
                 f" Choose one of {supported} or pass in a `Accelerator` instance."
             )
 
-    def _check_strategy_support(self, strategy: Optional[Union[str, TrainingTypePlugin]]) -> None:
+    def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
         supported = [t.lower() for t in self._supported_strategy_types()]
-        valid = strategy is None or isinstance(strategy, TrainingTypePlugin) or strategy in supported
+        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
         if not valid:
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `TrainingTypePlugin` instance."
+                f" Choose one of {supported} or pass in a `Strategy` instance."
             )
 
     @staticmethod

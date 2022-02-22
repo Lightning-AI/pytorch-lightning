@@ -14,8 +14,9 @@
 Logging
 #######
 
+*****************
 Supported Loggers
-=================
+*****************
 
 The following are loggers we support:
 
@@ -101,6 +102,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 
 Automatic Logging
 =================
+
 Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method to log from anywhere in a :doc:`lightning module <../common/lightning_module>` and :doc:`callbacks <../extensions/callbacks>`.
 
@@ -137,7 +139,7 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name
     (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
-* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_step=True``.
+* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_epoch=True``.
     This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
 * ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which
     would produce a deadlock as not all processes would perform this log call.
@@ -182,6 +184,7 @@ If your work requires to log in an unsupported method, please open an issue with
 
 Manual Logging Non-Scalar Artifacts
 ===================================
+
 If you want to log anything that is not a scalar, like histograms, text, images, etc., you may need to use the logger object directly.
 
 .. code-block:: python
@@ -202,7 +205,7 @@ Make a Custom Logger
 ********************
 
 You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`.
-Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
+Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
 
 .. testcode::
 
@@ -214,12 +217,6 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
         @property
         def name(self):
             return "MyLogger"
-
-        @property
-        @rank_zero_experiment
-        def experiment(self):
-            # Return the experiment object associated with this logger.
-            pass
 
         @property
         def version(self):
@@ -295,6 +292,7 @@ which is the default logger in Lightning.
 ************
 Progress Bar
 ************
+
 You can add any metric to the progress bar using :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
 method, setting ``prog_bar=True``.
 
@@ -388,3 +386,13 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
             self.log("hp/metric_2", some_scalar_2)
 
     In the example, using ``"hp/"`` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
+
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.
