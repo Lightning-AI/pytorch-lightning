@@ -259,7 +259,7 @@ class CallbackConnector:
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
-            raise RuntimeError("There should be only 1 fault-tolerance checkpoint callback.")
+            raise RuntimeError("There should be only one fault-tolerance checkpoint callback.")
         # don't use `log_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 

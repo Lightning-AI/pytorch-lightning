@@ -1943,45 +1943,41 @@ class TrainerStagesErrorsModel(BoringModel):
         raise Exception("Error during predict")
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes",
-    [
-        (None, 1),
-        pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True)),
-    ],
-)
-def test_error_handling_all_stages(tmpdir, strategy, num_processes):
-    model = TrainerStagesErrorsModel()
+class ExceptionCounter(Callback):
     exceptions = 0
 
-    class TestException(Callback):
-        def on_exception(self, *_):
-            nonlocal exceptions
-            exceptions += 1
+    def on_exception(self, *_):
+        self.exceptions += 1
+
+
+@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True))])
+def test_error_handling_all_stages(tmpdir, strategy):
+    model = TrainerStagesErrorsModel()
+    counter = ExceptionCounter()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=strategy,
-        num_processes=num_processes,
-        callbacks=TestException(),
+        devices=1,
+        callbacks=counter,
         fast_dev_run=True,
     )
 
     with pytest.raises(Exception, match=r"Error during train"):
         trainer.fit(model)
-    assert exceptions == 1
+    assert counter.exceptions == 1
 
     with pytest.raises(Exception, match=r"Error during validation"):
         trainer.validate(model)
-    assert exceptions == 2
+    assert counter.exceptions == 2
 
     with pytest.raises(Exception, match=r"Error during test"):
         trainer.test(model)
-    assert exceptions == 3
+    assert counter.exceptions == 3
 
     with pytest.raises(Exception, match=r"Error during predict"):
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
-    assert exceptions == 4
+    assert counter.exceptions == 4
 
 
 def test_trainer_metrics_reset_before_each_task(tmpdir):
