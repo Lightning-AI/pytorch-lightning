@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -1773,14 +1773,14 @@ class Trainer(
         if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` via your"
-                " trainer `Trainer(accelerator='gpu', devices=1)`.",
+                f" trainer `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
         if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
             rank_zero_warn(
                 "TPU available but not used. Set `accelerator` and `devices` via your trainer"
-                " `Trainer(accelerator='tpu', devices=8)`."
+                f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
         if (
@@ -1790,7 +1790,7 @@ class Trainer(
         ):
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` via your trainer"
-                " `Trainer(accelerator='ipu', devices=8)`."
+                f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
 
     def _on_exception(self) -> None:
