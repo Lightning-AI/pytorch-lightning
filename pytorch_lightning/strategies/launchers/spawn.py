@@ -51,7 +51,10 @@ class _SpawnLauncher(_Launcher):
 
     @property
     def is_interactive_compatible(self) -> bool:
-        return False  # TODO: the return value should depend on 1) start_method 2) CUDA vs. CPU
+        # The start method 'spawn' is currently the only one that works with DDP and CUDA support
+        # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
+        # For more context, see https://github.com/PyTorchLightning/pytorch-lightning/issues/7550
+        return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
