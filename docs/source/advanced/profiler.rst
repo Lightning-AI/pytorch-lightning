@@ -19,7 +19,6 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_train_epoch_start
 - on_train_epoch_end
 - on_train_batch_start
-- model_forward
 - model_backward
 - on_after_backward
 - optimizer_step
@@ -66,7 +65,6 @@ The profiler's results will be printed at the completion of a training ``trainer
     |  run_training_epoch                              |  6.1558         	|  6.1558         |
     |  run_training_batch                              |  0.0022506      	|  0.015754       |
     |  [LightningModule]BoringModel.optimizer_step     |  0.0017477      	|  0.012234       |
-    |  model_forward                                   |  0.00055868     	|  0.0039108      |
     |  [LightningModule]BoringModel.val_dataloader     |  0.00024388     	|  0.00024388     |
     |  on_train_batch_start                            |  0.00014637     	|  0.0010246      |
     |  [LightningModule]BoringModel.teardown           |  2.15e-06       	|  2.15e-06       |

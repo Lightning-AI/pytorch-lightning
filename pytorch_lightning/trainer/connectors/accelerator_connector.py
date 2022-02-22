@@ -65,7 +65,6 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
-    _StrategyType,
     AMPType,
     device_parser,
     LightningEnum,
@@ -74,7 +73,12 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TPU_AVAILABLE,
+)
 
 log = logging.getLogger(__name__)
 
@@ -142,6 +146,7 @@ class AcceleratorConnector:
         torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
+        self._init_deterministic(deterministic)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -196,6 +201,20 @@ class AcceleratorConnector:
 
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
+
+    def _init_deterministic(self, deterministic: bool) -> None:
+        self.deterministic = deterministic
+        if _TORCH_GREATER_EQUAL_1_8:
+            torch.use_deterministic_algorithms(deterministic)
+        else:
+            torch.set_deterministic(deterministic)
+        if deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"
+
+            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def _check_config_and_set_final_flags(
         self,
@@ -856,7 +875,3 @@ class AcceleratorConnector:
     @property
     def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
-
-    @property
-    def _strategy_type(self) -> _StrategyType:
-        return self.strategy.strategy_name
