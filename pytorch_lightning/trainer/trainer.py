@@ -1772,8 +1772,8 @@ class Trainer(
 
         if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set `accelerator` and `devices` via your"
-                f" trainer `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
+                "GPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
