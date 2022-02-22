@@ -115,7 +115,7 @@ def test_accelerator_selected(tmpdir):
 
 @RunIf(ipu=True)
 def test_warning_if_ipus_not_used():
-    with pytest.warns(UserWarning, match="IPU available but not used. Set `ipus` via your trainer"):
+    with pytest.warns(UserWarning, match="IPU available but not used. Set `accelerator` and `devices`"):
         Trainer(accelerator="cpu")
 
 
