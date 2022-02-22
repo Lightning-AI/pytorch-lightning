@@ -48,9 +48,9 @@ def test_logger_collection():
     mock1.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
     mock2.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
 
-    logger.agg_and_log_metrics({"test": 2.0}, 4)
-    mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
-    mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
+    logger.log_metrics(metrics={"test": 2.0}, step=4)
+    mock1.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
+    mock2.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
 
     logger.finalize("success")
     mock1.finalize.assert_called_once()
@@ -223,31 +223,6 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
-
-
-def test_with_accumulate_grad_batches():
-    """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
-
-    class StoreHistoryLogger(CustomLogger):
-        def __init__(self):
-            super().__init__()
-            self.history = {}
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            if step not in self.history:
-                self.history[step] = {}
-            self.history[step].update(metrics)
-
-    logger = StoreHistoryLogger()
-
-    np.random.seed(42)
-    for i, loss in enumerate(np.random.random(10)):
-        logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
-
-    assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.save()
-    assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 
 def test_dummyexperiment_support_indexing():
