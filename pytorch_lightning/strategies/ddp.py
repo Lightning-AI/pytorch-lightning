@@ -18,7 +18,6 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -432,6 +431,3 @@ class DDPStrategy(ParallelStrategy):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
-
-        if _HYDRA_AVAILABLE:
-            teardown_ddp_for_hydra_multirun()

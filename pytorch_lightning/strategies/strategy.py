@@ -442,6 +442,9 @@ class Strategy(ABC):
         optimizers_to_device(self.optimizers, torch.device("cpu"))
         self.precision_plugin.teardown()
 
+        if self.launcher:
+            self.launcher.teardown()
+
     @classmethod
     def register_strategies(cls, strategy_registry) -> None:
         pass

@@ -26,8 +26,9 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
 
 if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
+    from hydra.utils import to_absolute_path
+
+    from pytorch_lightning.utilities.hydra import get_ddp_spawn_command_for_hydra, teardown_ddp_for_hydra_multirun
 
 
 class _SubprocessScriptLauncher(_Launcher):
@@ -138,10 +139,8 @@ class _SubprocessScriptLauncher(_Launcher):
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
-                if HydraConfig.initialized():
-                    cwd = get_original_cwd()
-                    os_cwd = f'"{os.getcwd()}"'
-                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
+                command, cwd = get_ddp_spawn_command_for_hydra(command, local_rank)
+
             subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
@@ -156,3 +155,7 @@ class _SubprocessScriptLauncher(_Launcher):
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
                 " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
+
+    def teardown(self) -> None:
+        if _HYDRA_AVAILABLE:
+            teardown_ddp_for_hydra_multirun()
