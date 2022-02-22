@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -75,7 +75,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
-    _AcceleratorType,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -1760,33 +1759,31 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
+        rank_zero_info(
+            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+        )
 
         num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
+        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
+        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
                 "TPU available but not used. Set the `tpu_cores` flag in your trainer"
                 " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
-        if (
-            _IPU_AVAILABLE
-            and self._device_type != _AcceleratorType.IPU
-            and not isinstance(self.accelerator, IPUAccelerator)
-        ):
+        if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set the `ipus` flag in your trainer"
                 " `Trainer(ipus=8)` or script `--ipus=8`."
@@ -2012,10 +2009,6 @@ class Trainer(
         return (
             isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
         )
-
-    @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector.device_type
 
     @property
     def num_nodes(self) -> int:
