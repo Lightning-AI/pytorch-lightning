@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import time
+import warnings
 from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, Optional
@@ -353,12 +354,21 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        self.best_model_score = callback_state["best_model_score"]
-        self.best_model_path = callback_state["best_model_path"]
-        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
-        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
-        self.kth_value = callback_state.get("kth_value", self.kth_value)
-        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+        # TODO: Post discussion with @rohitgr7, maybe also consider monitor?
+        if self.dirpath == callback_state.get("dirpath", self.dirpath):
+            # If dirpath has changed, don't track the following properties
+            self.best_model_score = callback_state["best_model_score"]
+            self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+            self.kth_value = callback_state.get("kth_value", self.kth_value)
+            self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        else:
+            warnings.warn(
+                f"The dirpath was changed from {self.dirpath} to {callback_state['dirpath']},"
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
+                " won't be tracked. Only `last_model_path` and `best_model_path` will be tracked."
+            )
+            self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+            self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
