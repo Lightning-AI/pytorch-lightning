@@ -217,7 +217,7 @@ Checkpoint IO Plugins
     XLACheckpointIO
 
 Profilers API
-------------
+-------------
 
 .. currentmodule:: pytorch_lightning.profilers
 
