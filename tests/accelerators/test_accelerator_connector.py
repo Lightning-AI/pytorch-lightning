@@ -42,7 +42,6 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -447,10 +446,7 @@ def test_accelerator_choice_multi_node_gpu(
 
 @mock.patch("torch.cuda.is_available", return_value=False)
 def test_accelerator_cpu(_):
-
     trainer = Trainer(accelerator="cpu")
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
@@ -464,36 +460,25 @@ def test_accelerator_cpu(_):
 
 @RunIf(min_gpus=1)
 def test_accelerator_gpu():
-
     trainer = Trainer(accelerator="gpu", gpus=1)
-
-    assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="gpu")
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="auto", gpus=1)
-
-    assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
 @RunIf(min_gpus=1)
 def test_accelerator_cpu_with_gpus_flag():
-
     trainer = Trainer(accelerator="cpu", gpus=1)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(min_gpus=2)
 def test_accelerator_cpu_with_multiple_gpus():
-
     trainer = Trainer(accelerator="cpu", gpus=2)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -532,10 +517,8 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 
 @RunIf(min_gpus=1)
 def test_accelerator_auto_with_devices_gpu():
-
     trainer = Trainer(accelerator="auto", devices=1)
-
-    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.gpus == 1
 
 
@@ -662,10 +645,8 @@ def test_strategy_choice_gpu_plugin(tmpdir, plugin):
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
-
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.strategy, plugin)
-    assert trainer._device_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 

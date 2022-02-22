@@ -25,7 +25,7 @@ from pytorch_lightning.plugins import IPUPrecisionPlugin
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _AcceleratorType, _IPU_AVAILABLE
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -499,27 +499,19 @@ def test_precision_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_accelerator_ipu():
-
     trainer = Trainer(accelerator="ipu", ipus=1)
-
-    assert trainer._device_type == "ipu"
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="ipu")
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="auto", ipus=8)
-
-    assert trainer._device_type == "ipu"
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
 @RunIf(ipu=True)
 def test_accelerator_cpu_with_ipus_flag():
-
     trainer = Trainer(accelerator="cpu", ipus=1)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -535,10 +527,8 @@ def test_accelerator_ipu_with_devices():
 
 @RunIf(ipu=True)
 def test_accelerator_auto_with_devices_ipu():
-
     trainer = Trainer(accelerator="auto", devices=8)
-
-    assert trainer._device_type == "ipu"
+    assert isinstance(trainer.accelerator, IPUAccelerator)
     assert trainer.ipus == 8
 
 
@@ -568,10 +558,8 @@ def test_strategy_choice_ipu_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_device_type_when_training_plugin_ipu_passed(tmpdir):
-
     trainer = Trainer(strategy=IPUStrategy(), ipus=8)
     assert isinstance(trainer.strategy, IPUStrategy)
-    assert trainer._device_type == _AcceleratorType.IPU
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 

@@ -14,9 +14,8 @@
 import os
 import subprocess
 import sys
-from subprocess import Popen
 from time import sleep
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
@@ -74,7 +73,6 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.interactive_ddp_procs: List[Popen] = []
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
@@ -124,8 +122,6 @@ class _SubprocessScriptLauncher(_Launcher):
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
-        self.interactive_ddp_procs = []
-
         for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
@@ -142,8 +138,7 @@ class _SubprocessScriptLauncher(_Launcher):
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
                     command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.interactive_ddp_procs.append(proc)
+            subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds

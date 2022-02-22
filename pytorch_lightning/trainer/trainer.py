@@ -75,7 +75,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
-    _AcceleratorType,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -1760,34 +1759,32 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
+        rank_zero_info(
+            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+        )
 
         num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
+        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
+        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
                 "TPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
-        if (
-            _IPU_AVAILABLE
-            and self._device_type != _AcceleratorType.IPU
-            and not isinstance(self.accelerator, IPUAccelerator)
-        ):
+        if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
@@ -1811,6 +1808,13 @@ class Trainer(
         Args:
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
+        source = self._data_connector._train_dataloader_source
+        pl_module = self.lightning_module or model
+        has_step = is_overridden("training_step", pl_module)
+        enable_training = self.limit_train_batches > 0
+        if not (source.is_defined() and has_step and enable_training):
+            return
+
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
@@ -1850,14 +1854,14 @@ class Trainer(
             else float("inf")
         )
 
-        if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
+        if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float("inf"):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies"
+                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
                 " `num_training_batches` to use."
             )
 
@@ -1903,7 +1907,8 @@ class Trainer(
         source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_validation = self.limit_val_batches > 0
+        if source.is_defined() and has_step and enable_validation:
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
@@ -1920,7 +1925,8 @@ class Trainer(
         source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_testing = self.limit_test_batches > 0
+        if source.is_defined() and has_step and enable_testing:
             self.num_test_batches, self.test_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
@@ -1933,7 +1939,8 @@ class Trainer(
         """
         source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
-        if source.is_defined():
+        enable_prediction = self.limit_predict_batches > 0
+        if source.is_defined() and enable_prediction:
             self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )
@@ -2003,10 +2010,6 @@ class Trainer(
         return (
             isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
         )
-
-    @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector.device_type
 
     @property
     def num_nodes(self) -> int:
