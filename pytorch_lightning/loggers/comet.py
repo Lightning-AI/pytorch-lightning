@@ -188,7 +188,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.

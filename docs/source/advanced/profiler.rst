@@ -19,7 +19,6 @@ PyTorch Lightning supports profiling standard actions in the training loop out o
 - on_train_epoch_start
 - on_train_epoch_end
 - on_train_batch_start
-- model_forward
 - model_backward
 - on_after_backward
 - optimizer_step
@@ -66,7 +65,6 @@ The profiler's results will be printed at the completion of a training ``trainer
     |  run_training_epoch                              |  6.1558         	|  6.1558         |
     |  run_training_batch                              |  0.0022506      	|  0.015754       |
     |  [LightningModule]BoringModel.optimizer_step     |  0.0017477      	|  0.012234       |
-    |  model_forward                                   |  0.00055868     	|  0.0039108      |
     |  [LightningModule]BoringModel.val_dataloader     |  0.00024388     	|  0.00024388     |
     |  on_train_batch_start                            |  0.00014637     	|  0.0010246      |
     |  [LightningModule]BoringModel.teardown           |  2.15e-06       	|  2.15e-06       |
@@ -220,7 +218,7 @@ Custom Profiler
 ===============
 
 You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
-and override some of its methods. The following is a simple example that profiles the first occurance and total calls of each action:
+and override some of its methods. The following is a simple example that profiles the first occurrence and total calls of each action:
 
 .. code-block:: python
 
@@ -233,11 +231,11 @@ and override some of its methods. The following is a simple example that profile
         def __init__(self, dirpath=None, filename=None):
             super().__init__(dirpath=dirpath, filename=filename)
             self._action_count = defaultdict(int)
-            self._action_first_occurance = {}
+            self._action_first_occurrence = {}
 
         def start(self, action_name):
-            if action_name not in self._action_first_occurance:
-                self._action_first_occurance[action_name] = time.strftime("%m/%d/%Y, %H:%M:%S")
+            if action_name not in self._action_first_occurrence:
+                self._action_first_occurrence[action_name] = time.strftime("%m/%d/%Y, %H:%M:%S")
 
         def stop(self, action_name):
             self._action_count[action_name] += 1
@@ -251,7 +249,7 @@ and override some of its methods. The following is a simple example that profile
                 if self._action_count[action_name] > 1:
                     res += (
                         f"{action_name:<{max_len}s} \t "
-                        + "self._action_first_occurance[action_name]} \t "
+                        + "self._action_first_occurrence[action_name]} \t "
                         + "{self._action_count[action_name]} \n"
                     )
 
@@ -259,7 +257,7 @@ and override some of its methods. The following is a simple example that profile
 
         def teardown(self, stage):
             self._action_count = {}
-            self._action_first_occurance = {}
+            self._action_first_occurrence = {}
             super().teardown(stage=stage)
 
 .. code-block:: python
