@@ -280,9 +280,9 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         auto_scale_batch_size="ThisModeDoesNotExist",
     )
 
-    with pytest.raises(MisconfigurationException, match="should be one of"):
+    with pytest.raises(MisconfigurationException, match="should be either of"):
         trainer.tune(model)
-    with pytest.raises(MisconfigurationException, match="should be one of"):
+    with pytest.raises(MisconfigurationException, match="should be either of"):
         trainer.tuner.scale_batch_size(model, mode="ThisModeDoesNotExist")
 
 
@@ -410,7 +410,7 @@ def test_error_if_dataloaders_passed_with_fit_method():
         trainer.tune(model, dataloaders=dl, method="fit")
 
 
-def test_batch_size_finder_with_distributed_strategies(tmpdir):
+def test_batch_size_finder_with_distributed_strategies():
     """Test that an error is raised when batch size finder is used with multi-device strategy."""
     trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()

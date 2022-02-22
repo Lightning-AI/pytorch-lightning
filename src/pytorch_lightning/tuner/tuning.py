@@ -81,7 +81,8 @@ class Tuner:
             # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
             if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
                 raise MisconfigurationException(
-                    "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
+                    "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune()`"
+                    " if datamodule is already passed."
                 )
 
             # links da_a to the trainer
@@ -269,13 +270,13 @@ def _check_tuner_configuration(
     if method == "fit":
         if dataloaders is not None:
             raise MisconfigurationException(
-                f"In tuner with method {method!r}, `dataloaders` argument should be None,"
+                f"In tuner with method={method!r}, `dataloaders` argument should be None,"
                 " please consider setting `train_dataloaders` and `val_dataloaders` instead."
             )
     else:
         if train_dataloaders is not None or val_dataloaders is not None:
             raise MisconfigurationException(
-                f"In tuner with `method` {method!r}, `train_dataloaders` and `val_dataloaders`"
+                f"In tuner with `method`={method!r}, `train_dataloaders` and `val_dataloaders`"
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
