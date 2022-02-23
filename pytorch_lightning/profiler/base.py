@@ -47,23 +47,6 @@ class AbstractProfiler(ABC):
     def teardown(self, **kwargs: Any) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
-
-class BaseProfiler(AbstractProfiler):
-    """If you wish to write a custom profiler, you should inherit from this class."""
-
-    def __init__(
-        self,
-        dirpath: Optional[Union[str, Path]] = None,
-        filename: Optional[str] = None,
-    ) -> None:
-        self.dirpath = dirpath
-        self.filename = filename
-
-        self._output_file: Optional[TextIO] = None
-        self._write_stream: Optional[Callable] = None
-        self._local_rank: Optional[int] = None
-        self._stage: Optional[str] = None
-
     @contextmanager
     def profile(self, action_name: str) -> Generator:
         """Yields a context manager to encapsulate the scope of a profiled action.
@@ -82,6 +65,27 @@ class BaseProfiler(AbstractProfiler):
         finally:
             self.stop(action_name)
 
+    def _rank_zero_info(self, *args, **kwargs) -> None:
+        if self._local_rank in (None, 0):
+            log.info(*args, **kwargs)
+
+
+class BaseProfiler(AbstractProfiler):
+    """If you wish to write a custom profiler, you should inherit from this class."""
+
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+    ) -> None:
+        self.dirpath = dirpath
+        self.filename = filename
+
+        self._output_file: Optional[TextIO] = None
+        self._write_stream: Optional[Callable] = None
+        self._local_rank: Optional[int] = None
+        self._stage: Optional[str] = None
+
     def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
         iterator = iter(iterable)
         while True:
@@ -93,10 +97,6 @@ class BaseProfiler(AbstractProfiler):
             except StopIteration:
                 self.stop(action_name)
                 break
-
-    def _rank_zero_info(self, *args, **kwargs) -> None:
-        if self._local_rank in (None, 0):
-            log.info(*args, **kwargs)
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
