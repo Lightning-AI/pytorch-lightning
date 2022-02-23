@@ -17,11 +17,11 @@ from copy import deepcopy
 import pytest
 import torch
 from torch.utils.data import DataLoader
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -246,7 +246,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
     )
     trainer.tune(model)
     after_batch_size = model.batch_size
-    assert trainer.amp_backend == AMPType.NATIVE
+    assert isinstance(trainer.strategy.precision_plugin, NativeMixedPrecisionPlugin)
     assert trainer.scaler is not None
     assert after_batch_size != before_batch_size
 

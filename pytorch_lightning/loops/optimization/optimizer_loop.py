@@ -29,8 +29,9 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
     check_finite_loss,
 )
+from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -353,7 +354,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # wraps into LightningOptimizer only for running step
-        if self.trainer.amp_backend == AMPType.APEX:
+        if isinstance(self.trainer.strategy.precision_plugin, ApexMixedPrecisionPlugin):
             # apex overrides .step function and need to be wrapped on each step
             optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
         else:
@@ -370,7 +371,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            using_native_amp=(self.trainer.amp_backend == AMPType.NATIVE),
+            using_native_amp=isinstance(self.trainer.strategy.precision_plugin, NativeMixedPrecisionPlugin),
             using_lbfgs=is_lbfgs,
         )
 
