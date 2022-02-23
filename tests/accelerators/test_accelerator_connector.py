@@ -422,10 +422,17 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
         Trainer(strategy="dp")
 
 
-@pytest.mark.parametrize("trainer_kwargs", [{}, dict(strategy="dp", accelerator="gpu"), dict(accelerator="tpu")])
-def test_ipython_compatible_backend(trainer_kwargs, monkeypatch):
+@mock.patch("torch.cuda.device_count", return_value=2)
+def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(strategy="dp", accelerator="gpu")
+    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
+
+
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
+def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+    trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
 
 
