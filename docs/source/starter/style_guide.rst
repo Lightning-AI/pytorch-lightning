@@ -1,8 +1,7 @@
 ###########
 Style Guide
 ###########
-
-A main goal of Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
+The main goal of PyTorch Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
 finding a :class:`~pytorch_lightning.core.lightning.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
@@ -13,7 +12,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices about structuring your :class:`~pytorch_lightning.core.lightning.LightningModule` class:
+These are best practices for structuring your :class:`~pytorch_lightning.core.lightning.LightningModule` class:
 
 Systems vs Models
 =================
@@ -22,9 +21,9 @@ Systems vs Models
     :width: 400
 
 The main principle behind a LightningModule is that a full system should be self-contained.
-In Lightning we differentiate between a system and a model.
+In Lightning, we differentiate between a system and a model.
 
-A model is something like a resnet18, RNN, etc.
+A model is something like a resnet18, RNN, and so on.
 
 A system defines how a collection of models interact with each other with user-defined training/evaluation logic. Examples of this are:
 
@@ -64,8 +63,8 @@ modularity, which eventually helps in better testing, reduces dependencies on th
             self.auto_encoder = AutoEncoder()
 
 
-For fast prototyping it's often useful to define all the computations in a LightningModule. For reusability
-and scalability it might be better to pass in the relevant backbones.
+For fast prototyping, it's often useful to define all the computations in a LightningModule. For reusability
+and scalability, it might be better to pass in the relevant backbones.
 
 Here's a LightningModule that defines a model. Although, we do not recommend to define a model like in the example.
 
@@ -81,8 +80,7 @@ Here's a LightningModule that defines a model. Although, we do not recommend to 
 
 Self-contained
 ==============
-
-A Lightning module should be self-contained. A good test to see how self-contained your model is, is to ask
+A Lightning module should be self-contained. To see how self-contained your model is, a good test is to ask
 yourself this question:
 
 "Can someone drop this file into a Trainer without knowing anything about the internals?"
@@ -105,8 +103,7 @@ Here's an example where a user will have to go hunt through files to figure out 
             self.lr = params.lr
             self.coef_x = params.coef_x
 
-Models defined as such leave you with many questions; what is coef_x? is it a string? a float? what is the range? etc...
-
+Models defined as such leave you with many questions, such as what is coef_x? Is it a string? A float? What is the range?
 Instead, be explicit in your init
 
 .. testcode::
@@ -115,7 +112,7 @@ Instead, be explicit in your init
         def __init__(self, encoder: nn.Module, coef_x: float = 0.2, lr: float = 1e-3):
             ...
 
-Now the user doesn't have to guess. Instead they know the value type and the model has a sensible default where the
+Now the user doesn't have to guess. Instead, they know the value type, and the model has a sensible default where the
 user can see the value immediately.
 
 
@@ -139,7 +136,7 @@ However, if you decide to implement the rest of the optional methods, the recomm
 * configure_optimizers
 * any other hooks
 
-In practice, this code looks like:
+In practice, the code looks like this:
 
 .. code-block::
 

@@ -14,12 +14,13 @@
 """Test deprecated functionality which will be removed in v1.8.0."""
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -501,6 +502,45 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+
+def test_v1_8_0_logger_agg_parameters():
+    class CustomLogger(LightningLoggerBase):
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            pass
+
+        @rank_zero_only
+        def log_metrics(self, metrics, step):
+            pass
+
+        @property
+        def name(self):
+            pass
+
+        @property
+        def version(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_key_funcs={"mean", np.mean})
+
+    with pytest.deprecated_call(
+        match="The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_default_func=np.mean)
+
+    # Should have no deprecation warning
+    logger = CustomLogger()
+
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        logger.update_agg_funcs()
 
 
 def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
