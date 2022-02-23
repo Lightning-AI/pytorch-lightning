@@ -156,12 +156,9 @@ class PrecisionPlugin(CheckpointHooks):
         if trainer.track_grad_norm == -1:
             return
 
-        if not trainer.loggers:
-            kwargs = {}
-        elif len(trainer.loggers) == 1:
-            kwargs = {"group_separator": trainer.loggers[0].group_separator}
-        else:
-            kwargs = {"group_separator": "/"}
+        kwargs = {}
+        if len(trainer.loggers) == 1:
+            kwargs["group_separator"] = trainer.loggers[0].group_separator
 
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
         if grad_norm_dict:
