@@ -194,8 +194,8 @@ class ModelCheckpoint(Callback):
 
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
-    .. note:: If the checkpoint's `dirpath` changed from what it was before, only `last_model_path` and
-        `best_model_path` will be tracked and a warning will be issued.
+    .. note:: If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
+        only ``last_model_path`` and ``best_model_path`` will be tracked and a warning will be issued.
 
         Read more: :ref:`Persisting Callback State`
     """
@@ -368,10 +368,8 @@ class ModelCheckpoint(Callback):
             self.kth_value = callback_state.get("kth_value", self.kth_value)
             self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
         else:
-            # If dirpath has changed, raise a warning and only track last_model_path
-            # and best_model_path
             warnings.warn(
-                f"The dirpath was changed from {self.dirpath} to {dirpath_from_ckpt},"
+                f"The dirpath has changed from {dirpath_from_ckpt} to {self.dirpath},"
                 " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
                 " won't be tracked. Only `last_model_path` and `best_model_path` will be tracked."
             )
