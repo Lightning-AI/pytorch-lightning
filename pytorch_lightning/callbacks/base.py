@@ -314,7 +314,7 @@ class Callback:
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            None or the callback state.
+            None or the callback state. Support for returning callback state will be removed in v1.8.
         """
 
     def on_load_checkpoint(
