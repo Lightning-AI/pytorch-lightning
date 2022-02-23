@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
+from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import memory
