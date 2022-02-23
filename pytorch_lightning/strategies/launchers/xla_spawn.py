@@ -54,6 +54,10 @@ class _XLASpawnLauncher(_SpawnLauncher):
         super().__init__(strategy)
         self._start_method = "fork"
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
 

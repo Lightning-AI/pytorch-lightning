@@ -114,12 +114,6 @@ def test_accelerator_selected(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_warning_if_hpus_not_used(tmpdir):
-    with pytest.warns(UserWarning, match="HPU available but not used. Set the `hpus` flag in your trainer"):
-        Trainer(default_root_dir=tmpdir)
-
-
-@RunIf(hpu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
         Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=HPUStrategy(device=torch.device("hpu")))

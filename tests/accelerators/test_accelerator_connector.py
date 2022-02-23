@@ -20,6 +20,7 @@ import pytest
 import torch
 import torch.distributed
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -392,19 +393,31 @@ def test_dist_backend_accelerator_mapping(*_):
     assert trainer.strategy.local_rank == 0
 
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_ipython_incompatible_backend_error(*_):
+def test_ipython_incompatible_backend_error(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", gpus=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(strategy="ddp2", gpus=2)
 
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
+        Trainer(strategy="ddp_spawn")
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
-def test_ipython_compatible_backend(*_):
-    Trainer(strategy="ddp_spawn", num_processes=2)
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+        Trainer(strategy="ddp_sharded_spawn")
+
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
+        Trainer(strategy="dp")
+
+
+@pytest.mark.parametrize("trainer_kwargs", [{}, dict(strategy="dp", accelerator="gpu"), dict(accelerator="tpu")])
+def test_ipython_compatible_backend(trainer_kwargs, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
 
 
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])

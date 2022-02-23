@@ -69,6 +69,7 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.utilities import (
+    _StrategyType,
     AMPType,
     device_parser,
     LightningEnum,
@@ -763,20 +764,12 @@ class AcceleratorConnector:
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
-        # TODO move is_compatible logic to strategy API
-        interactive_compatible_strategy = (
-            DataParallelStrategy.strategy_name,
-            DDPSpawnStrategy.strategy_name,
-            DDPSpawnShardedStrategy.strategy_name,
-            TPUSpawnStrategy.strategy_name,
-            HPUParallelStrategy.strategy_name,
-        )
-        if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
+        if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
                 f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(interactive_compatible_strategy)}."
+                " environment. Run your code as a script, or choose one of the compatible strategies:"
+                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
