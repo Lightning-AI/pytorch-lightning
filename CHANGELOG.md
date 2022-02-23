@@ -311,6 +311,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Rewrote `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
 
+
+- Disabled saving `nn.Module` with `save_hyperparameters()` ([#12068](https://github.com/PyTorchLightning/pytorch-lightning/pull/12068))
+
+
+
 ### Deprecated
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))
