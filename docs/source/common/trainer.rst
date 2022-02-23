@@ -422,7 +422,7 @@ This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read mor
 
 This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
 might make your system slower. The CUDNN auto-tuner will try to find the best algorithm for the hardware when a new
-input size is encountered. Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+input size is encountered. Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
 Example::
 
