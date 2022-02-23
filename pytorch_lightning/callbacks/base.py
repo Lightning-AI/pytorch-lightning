@@ -301,7 +301,7 @@ class Callback:
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Optional[dict]:
-        """Called by Lightning when saving a checkpoint to give you a chance to store anything else you might want
+        """Called when saving a checkpoint to give you a chance to store anything else you might want
         to save.
 
         Args:
