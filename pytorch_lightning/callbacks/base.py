@@ -301,7 +301,12 @@ class Callback:
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Optional[dict]:
-        """Called when saving a checkpoint to give you a chance to store anything else you might want to save.
+        r"""
+        .. deprecated:: v1.6
+            Returning state in this callback hook was deprecated in v1.6 and will be removed in v1.8.
+            Use ``state_dict`` instead to return state. In v1.8 ``on_save_checkpoint`` can only return None.
+
+        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -310,9 +315,6 @@ class Callback:
 
         Returns:
             None or the callback state.
-
-        Note:
-            In v1.8, returning state will not be supported - use ``state_dict`` instead to return state.
         """
 
     def on_load_checkpoint(
