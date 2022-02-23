@@ -218,6 +218,7 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
             trainer.loggers[0].version
             if len(trainer.loggers) == 1
             else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
+        )
         if version is not None:
             if isinstance(version, str):
                 # show last 4 places of long version strings
