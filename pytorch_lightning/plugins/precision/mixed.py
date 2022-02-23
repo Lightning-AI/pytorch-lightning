@@ -15,7 +15,6 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Union
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-
 from pytorch_lightning.utilities import AMPType
 
 
