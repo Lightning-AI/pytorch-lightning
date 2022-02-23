@@ -102,7 +102,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     if on_gpu:
         trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
         # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
+        assert trainer.strategy.root_device == hvd.local_rank()
 
 
 if __name__ == "__main__":

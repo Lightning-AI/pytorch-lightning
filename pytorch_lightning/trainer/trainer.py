@@ -2022,7 +2022,10 @@ class Trainer(
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "Method `trainer.root_gpu` is deprecated please use `trainer.strategy.root_device`"
+        )
+        return self._strategy.root_device
 
     @property
     def tpu_cores(self) -> int:
