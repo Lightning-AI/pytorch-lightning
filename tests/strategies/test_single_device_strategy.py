@@ -62,6 +62,7 @@ def test_single_gpu_parallel_device():
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
     assert trainer._accelerator_connector.parallel_devices == [torch.device("cuda:0")]
     assert trainer._accelerator_connector.parallel_device_ids == [0]
+    assert trainer.data_parallel_device_ids == [0]
     assert not hasattr(trainer.strategy, "parallel_devices")
 
 
