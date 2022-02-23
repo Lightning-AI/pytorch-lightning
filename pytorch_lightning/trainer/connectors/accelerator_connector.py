@@ -162,6 +162,7 @@ class AcceleratorConnector:
         self._precision_flag: Optional[Union[int, str]] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
+        self._parallel_devices: List[Union[int, torch.device]] = []
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
@@ -355,6 +356,7 @@ class AcceleratorConnector:
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
                         self._accelerator_flag = "gpu"
+                    self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
         self._amp_type_flag = AMPType.from_str(amp_type)
@@ -448,8 +450,6 @@ class AcceleratorConnector:
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         # TODO add device availability check
-        self._parallel_devices: List[Union[int, torch.device]] = []
-
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
@@ -474,7 +474,8 @@ class AcceleratorConnector:
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
-        self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+        if not self._parallel_devices:
+            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or not self._devices_flag:
