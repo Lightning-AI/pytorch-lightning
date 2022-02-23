@@ -151,9 +151,6 @@ class ModelCheckpoint(Callback):
             if ``mode`` is none of ``"min"`` or ``"max"``.
         ValueError:
             If ``trainer.save_checkpoint`` is ``None``.
-        UserWarning:
-            If checkpoint's ``dirpath`` was changed, a warning will be raised to convey
-            that only ``last_model_path`` and ``best_model_path`` will be tracked.
 
     Example::
 
