@@ -19,7 +19,7 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
