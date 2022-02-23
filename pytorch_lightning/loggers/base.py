@@ -172,7 +172,6 @@ class LightningLoggerBase(ABC):
 
     def save(self) -> None:
         """Save log data."""
-        pass
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
