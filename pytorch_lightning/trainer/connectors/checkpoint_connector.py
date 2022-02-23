@@ -64,12 +64,6 @@ class CheckpointConnector:
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
-    @property
-    def _fault_tolerant_auto_resume_path(self) -> Optional[str]:
-        auto_saved_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
-        fs = get_filesystem(auto_saved_path)
-        return auto_saved_path if fs.exists(auto_saved_path) else None
-
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
@@ -78,7 +72,7 @@ class CheckpointConnector:
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
+        self.resume_checkpoint_path = self._hpc_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")

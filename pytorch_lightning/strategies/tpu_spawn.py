@@ -213,12 +213,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
-        return {
-            "nprocs": len(self.parallel_devices),
-            "start_method": self.start_method,
-        }
-
     def _worker_setup(self, process_idx: int):
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
