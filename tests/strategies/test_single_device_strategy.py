@@ -54,6 +54,17 @@ def test_single_gpu():
     assert cuda_memory < model.start_cuda_memory
 
 
+@RunIf(skip_windows=True, min_gpus=1)
+def test_single_gpu_parallel_device():
+    """Tests if device is set correctly when training and after teardown for single GPU strategy."""
+    trainer = Trainer(gpus=1, fast_dev_run=True)
+    # assert training strategy attributes for device setting
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
+    assert trainer._accelerator_connector.parallel_devices == [torch.device("cuda:0")]
+    assert trainer._accelerator_connector.parallel_device_ids == [0]
+    assert not hasattr(trainer.strategy, "parallel_devices")
+
+
 class MockOptimizer:
     ...
 

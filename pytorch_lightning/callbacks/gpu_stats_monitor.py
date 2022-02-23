@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -133,8 +134,16 @@ class GPUStatsMonitor(Callback):
             )
 
         # The logical device IDs for selected devices
-        # ignoring mypy check because `trainer.data_parallel_device_ids` is None when using CPU
-        self._device_ids = sorted(set(trainer.data_parallel_device_ids))  # type: ignore
+        # this is going to be wrong since parallel_device_ids=[0] if we use GPU + SingleDeviceStrategy
+        # However, parallel_devices now only exists in ParallelStrategy
+        # self._device_ids changes from [0] to [] (L121)
+        if hasattr(trainer.strategy, "parallel_devices"):
+            parallel_device_ids = (
+                [i for i in range(len(trainer.strategy.parallel_devices))]
+                if isinstance(trainer.accelerator, GPUAccelerator)
+                else None
+            )
+            self._device_ids = sorted(set(parallel_device_ids))
 
         # The unmasked real GPU IDs
         self._gpu_ids = self._get_gpu_ids(self._device_ids)
