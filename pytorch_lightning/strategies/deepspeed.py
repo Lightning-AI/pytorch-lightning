@@ -741,7 +741,7 @@ class DeepSpeedStrategy(DDPStrategy):
             MisconfigurationException:
                 If ``storage_options`` arg is passed in
         """
-        if storage_options:
+        if storage_options is not None:
             raise MisconfigurationException(
                 "`Trainer.save_checkpoint(storage_options)` with `storage_options` arg "
                 "is not supported for `DeepSpeedStrategy` as `CheckpointIO` is not used."
