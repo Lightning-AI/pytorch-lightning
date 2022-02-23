@@ -2092,7 +2092,7 @@ class Trainer(
     @property
     def amp_backend(self) -> Optional[AMPType]:
         rank_zero_deprecation(
-            "amp_backend is deprecated and will be removed in 1.7. " 
+            "amp_backend is deprecated and will be removed in 1.7. "
             "Use instance-checks against the PrecisionPlugins directly"
         )
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):

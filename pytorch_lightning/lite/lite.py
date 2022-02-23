@@ -27,8 +27,17 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy, SingleDeviceStrategy, DDPSpawnStrategy, DataParallelStrategy, DDPStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy
-            
+from pytorch_lightning.strategies import (
+    DataParallelStrategy,
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DDPSpawnStrategy,
+    DDPStrategy,
+    DeepSpeedStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    TPUSpawnStrategy,
+)
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -79,7 +88,7 @@ class LightningLite(ABC):
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
-        
+
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=None,
@@ -490,7 +499,7 @@ class LightningLite(ABC):
             DeepSpeedStrategy,
             DDPShardedStrategy,
             DDPSpawnShardedStrategy
-        ) 
+        )
 
     @staticmethod
     def _supported_strategy_types() -> Sequence[_StrategyType]:

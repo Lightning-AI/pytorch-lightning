@@ -21,9 +21,13 @@ from pytorch_lightning.utilities import AMPType
 
 class MixedPrecisionPlugin(PrecisionPlugin):
     """Base Class for mixed precision."""
+
     @property
     @abstractmethod
     def backend() -> AMPType:
-        """Deprecated in 1.7. Switch to instance checks instead"""
+        """Deprecated in 1.7.
+
+        Switch to instance checks instead
+        """
 
     precision: Union[str, int] = "mixed"

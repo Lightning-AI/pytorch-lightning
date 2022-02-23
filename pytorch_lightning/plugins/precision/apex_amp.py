@@ -31,8 +31,6 @@ if _APEX_AVAILABLE:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
-    
-
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
