@@ -107,7 +107,9 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
 
     with mock.patch("pytorch_lightning.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
         trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
-        io_mock.assert_called_once_with(ANY, instance_path, storage_options=instance_storage_options)
+        io_mock.assert_called_with(ANY, instance_path, storage_options=instance_storage_options)
+        trainer.save_checkpoint(instance_path)
+        io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
     with mock.patch(
         "pytorch_lightning.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"

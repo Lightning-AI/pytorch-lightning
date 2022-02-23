@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import _PATH
 
@@ -30,6 +31,23 @@ class TorchCheckpointIO(CheckpointIO):
     respectively, common for most use cases."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            path: write-target path
+            storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
+
+        Raises:
+            MisconfigurationException:
+                If ``storage_options`` arg is passed in
+        """
+        if storage_options is not None:
+            raise MisconfigurationException(
+                "`Trainer.save_checkpoint(storage_options)` with `storage_options` arg "
+                "is not supported for `TorchCheckpointIO`. Please implement your custom `CheckpointIO`"
+                "to define how you'd like to use `storage_options`."
+            )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:

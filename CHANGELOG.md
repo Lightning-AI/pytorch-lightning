@@ -131,7 +131,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added utility functions for moving optimizers to devices ([#11758](https://github.com/PyTorchLightning/pytorch-lightning/pull/11758))
 
 
-- Added optional `storage_options` argument to `Trainer.save_checkpoint()` ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
+- Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
 
 
 ### Changed

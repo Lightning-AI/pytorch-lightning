@@ -18,6 +18,7 @@ from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
@@ -36,8 +37,18 @@ class XLACheckpointIO(TorchCheckpointIO):
         Args:
             checkpoint: dict containing model and trainer state
             path: write-target path
-            storage_options: Optional parameters when saving the model/training states.
+            storage_options: not used in ``XLACheckpointIO.save_checkpoint``
+
+        Raises:
+            MisconfigurationException:
+                If ``storage_options`` arg is passed in
         """
+        if storage_options is not None:
+            raise MisconfigurationException(
+                "`Trainer.save_checkpoint(storage_options)` with `storage_options` arg "
+                "is not supported for `XLACheckpointIO`. Please implement your custom `CheckpointIO`"
+                "to define how you'd like to use `storage_options`."
+            )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
