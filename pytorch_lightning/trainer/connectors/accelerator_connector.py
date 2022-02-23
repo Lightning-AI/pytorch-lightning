@@ -137,6 +137,13 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. TODO When multiple flag set to the same thing
         """
+        # Raise a warning when benchmark and deterministic are True
+        if benchmark and deterministic:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+                category=RuntimeWarning,
+            )
         self.benchmark = not deterministic if benchmark is None else benchmark
         # TODO: move to gpu accelerator
         torch.backends.cudnn.benchmark = self.benchmark
