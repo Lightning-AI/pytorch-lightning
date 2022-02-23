@@ -655,7 +655,7 @@ def test_benchmark_option(benchmark, deterministic, expected):
     original_val = torch.backends.cudnn.benchmark
 
     if benchmark and deterministic:
-        with pytest.warns(RuntimeWarning, match="You passed `deterministic=True` and `benchmark=True`"):
+        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
             trainer = Trainer(benchmark=benchmark, deterministic=deterministic)
     else:
         trainer = Trainer(benchmark=benchmark, deterministic=deterministic)
