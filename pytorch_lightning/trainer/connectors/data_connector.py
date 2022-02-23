@@ -22,6 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -34,7 +35,6 @@ from pytorch_lightning.utilities.data import (
     has_iterable_dataset,
     has_len_all_ranks,
 )
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -217,7 +217,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
+        using_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -421,21 +421,21 @@ class DataConnector:
                 limit_eval_batches = getattr(self.trainer, f"limit_{mode.dataloader_prefix}_batches")
 
                 # limit num batches either as a percent or num steps
-                if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
+                if isinstance(limit_eval_batches, int):
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float("inf"):
                     num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `0.0`, `1.0` or an int. An int k"
+                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
                         f" specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
-                        f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
+                        f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"

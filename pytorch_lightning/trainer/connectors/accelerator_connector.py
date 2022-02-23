@@ -74,7 +74,12 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TPU_AVAILABLE,
+)
 
 log = logging.getLogger(__name__)
 
@@ -149,6 +154,7 @@ class AcceleratorConnector:
         torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
+        self._init_deterministic(deterministic)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -203,6 +209,20 @@ class AcceleratorConnector:
 
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
+
+    def _init_deterministic(self, deterministic: bool) -> None:
+        self.deterministic = deterministic
+        if _TORCH_GREATER_EQUAL_1_8:
+            torch.use_deterministic_algorithms(deterministic)
+        else:
+            torch.set_deterministic(deterministic)
+        if deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"
+
+            # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
     def _check_config_and_set_final_flags(
         self,
@@ -723,19 +743,12 @@ class AcceleratorConnector:
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
-        # TODO move is_compatible logic to strategy API
-        interactive_compatible_strategy = (
-            DataParallelStrategy.strategy_name,
-            DDPSpawnStrategy.strategy_name,
-            DDPSpawnShardedStrategy.strategy_name,
-            TPUSpawnStrategy.strategy_name,
-        )
-        if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
+        if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
                 f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(interactive_compatible_strategy)}."
+                " environment. Run your code as a script, or choose one of the compatible strategies:"
+                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
@@ -863,7 +876,3 @@ class AcceleratorConnector:
     @property
     def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
-
-    @property
-    def _strategy_type(self) -> _StrategyType:
-        return self.strategy.strategy_name

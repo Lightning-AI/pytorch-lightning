@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -126,7 +127,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
@@ -211,12 +212,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             output = output / self.world_size
 
         return output
-
-    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
-        return {
-            "nprocs": len(self.parallel_devices),
-            "start_method": self.start_method,
-        }
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
