@@ -17,7 +17,7 @@ from typing import Any, Dict, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
@@ -31,3 +31,7 @@ class HPUAccelerator(Accelerator):
         """Get the devices when set to auto."""
         # TBD: make this configurable
         return 8
+
+    @staticmethod
+    def is_available() -> bool:
+        return _HPU_AVAILABLE

@@ -27,9 +27,11 @@ from pytorch_lightning.utilities.types import _DEVICE
 class SingleDeviceStrategy(Strategy):
     """Strategy that handles communication on a single device."""
 
+    strategy_name = "single_device"
+
     def __init__(
         self,
-        device: _DEVICE,
+        device: _DEVICE = "cpu",
         accelerator: pl.accelerators.accelerator.Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
         precision_plugin: PrecisionPlugin | None = None,
@@ -78,6 +80,14 @@ class SingleDeviceStrategy(Strategy):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()

@@ -224,7 +224,6 @@ def save_hyperparameters(
         init_args = {}
         for local_args in collect_init_args(frame, []):
             init_args.update(local_args)
-    assert init_args, "failed to inspect the obj init"
 
     if ignore is not None:
         if isinstance(ignore, str):
@@ -249,8 +248,7 @@ def save_hyperparameters(
             obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
-    if hp:
-        obj._set_hparams(hp)
+    obj._set_hparams(hp)
     # make deep copy so  there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 

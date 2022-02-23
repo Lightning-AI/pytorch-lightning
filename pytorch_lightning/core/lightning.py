@@ -37,6 +37,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -75,6 +76,7 @@ class LightningModule(
             "global_rank",
             "local_rank",
             "logger",
+            "loggers",
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
@@ -92,9 +94,6 @@ class LightningModule(
 
         # pointer to the trainer object
         self.trainer = None
-
-        self._strategy_type = None
-        self._device_type = None
 
         # true if using amp
         self.use_amp: bool = False
@@ -255,9 +254,14 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self):
+    def logger(self) -> Optional[LightningLoggerBase]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        """Reference to the loggers object in the Trainer."""
+        return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
@@ -1549,18 +1553,19 @@ class LightningModule(
         using_lbfgs: bool = False,
     ) -> None:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer. This method (and ``zero_grad()``) won't be called during the
-        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
+        each optimizer.
+
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        This method (and ``zero_grad()``) won't be called during the accumulation phase when
+        ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+            optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
@@ -1962,7 +1967,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1970,11 +1975,10 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.add_to_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1982,8 +1986,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.get_from_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
     @contextmanager

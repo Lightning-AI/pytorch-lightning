@@ -126,7 +126,7 @@ class CSVLogger(LightningLoggerBase):
     def __init__(
         self,
         save_dir: str,
-        name: Optional[str] = "default",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,

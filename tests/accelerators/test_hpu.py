@@ -25,7 +25,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.strategies.hpu import HPUStrategy
-from pytorch_lightning.utilities import _AcceleratorType, _HPU_AVAILABLE
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -94,20 +94,22 @@ class HPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
+def test_availability():
+    assert HPUAccelerator.is_available()
+
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus(tmpdir):
     with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
-        Trainer(default_root_dir=tmpdir, hpus=1)
+        Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
 
     with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
-        Trainer(default_root_dir=tmpdir, hpus=1, accelerator="hpu")
+        Trainer(default_root_dir=tmpdir, devices=1, accelerator="hpu")
 
 
 @RunIf(hpu=True)
 def test_accelerator_selected(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, hpus=1)
-    assert isinstance(trainer.accelerator, HPUAccelerator)
-    trainer = Trainer(default_root_dir=tmpdir, hpus=1, accelerator="hpu")
+    assert HPUAccelerator.is_available()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
@@ -125,9 +127,9 @@ def test_no_warning_plugin(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_all_stages(tmpdir, hpus):
+def test_all_stages(tmpdir):
     model = HPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices="auto")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -141,7 +143,7 @@ def test_optimization(tmpdir):
     dm = ClassifDataModule(length=1024)
     model = HPUClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, hpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="hpu", devices=1)
 
     # fit model
     trainer.fit(model, dm)
@@ -165,7 +167,7 @@ def test_optimization(tmpdir):
 
     model = HPUClassificationModel.load_from_checkpoint(model_path)
 
-    trainer = Trainer(default_root_dir=tmpdir, hpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
 
     result = trainer.test(model, datamodule=dm)
     saved_result = result[0]["test_acc"]
@@ -181,8 +183,8 @@ def test_mixed_precision(tmpdir, hmp_params):
 
     model = HPUModel()
     trainer = Trainer(
-        strategy=HPUStrategy(
-            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
+        strategy=HPUStrategy(device=torch.device("hpu"),
+            precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
         ),
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -209,8 +211,8 @@ def test_pure_half_precision(tmpdir, hmp_params):
     model = HPUModel()
     model = model.half()
     trainer = Trainer(
-        strategy=HPUStrategy(
-            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
+        strategy=HPUStrategy(device=torch.device("hpu"),
+            precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
         ),
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -264,7 +266,7 @@ def test_stages_correct(tmpdir):
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=1, callbacks=TestCallback())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
     trainer.fit(model)
     trainer.test(model)
     trainer.validate(model)
@@ -281,34 +283,14 @@ def test_precision_plugin(tmpdir, hmp_params):
 @RunIf(hpu=True)
 def test_accelerator_hpu():
 
-    trainer = Trainer(accelerator="hpu", hpus=1)
-
-    assert trainer._device_type == "hpu"
+    trainer = Trainer(accelerator="hpu", devices=1)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='hpu'`, but you didn't pass `hpus` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="hpu")
-
-    trainer = Trainer(accelerator="auto", hpus=8)
-
-    assert trainer._device_type == "hpu"
+    trainer = Trainer(accelerator="hpu")
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='hpu'`, but you didn't pass `hpus` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="hpu")
-
-
-@RunIf(hpu=True)
-def test_accelerator_cpu_with_hpus_flag():
-
-    trainer = Trainer(accelerator="cpu", hpus=1)
-
-    assert trainer._device_type == "cpu"
-    assert isinstance(trainer.accelerator, CPUAccelerator)
+    trainer = Trainer(accelerator="auto", devices=8)
+    assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
 @RunIf(hpu=True)
@@ -316,7 +298,6 @@ def test_accelerator_hpu_with_single_device():
 
     trainer = Trainer(accelerator="hpu", devices=1)
 
-    assert trainer.hpus == 1
     assert isinstance(trainer.strategy, HPUStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
@@ -325,7 +306,6 @@ def test_accelerator_hpu_with_multiple_devices():
 
     trainer = Trainer(accelerator="hpu", devices=8)
 
-    assert trainer.hpus == 8
     assert isinstance(trainer.strategy, HPUParallelStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
@@ -335,26 +315,13 @@ def test_accelerator_auto_with_devices_hpu():
 
     trainer = Trainer(accelerator="auto", devices=8)
 
-    assert trainer._device_type == "hpu"
-    assert trainer.hpus == 8
     assert isinstance(trainer.strategy, HPUParallelStrategy)
-
-
-@RunIf(hpu=True)
-def test_accelerator_hpu_with_hpus_priority():
-    """Test for checking `hpus` flag takes priority over `devices`."""
-
-    hpus = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="hpu", devices=1, hpus=hpus)
-
-    assert trainer.hpus == hpus
 
 
 @RunIf(hpu=True)
 def test_set_devices_if_none_hpu():
 
-    trainer = Trainer(accelerator="hpu", hpus=8)
+    trainer = Trainer(accelerator="hpu", devices=8)
     assert trainer.devices == 8
 
 
@@ -375,7 +342,6 @@ def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 
     trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
     assert isinstance(trainer.strategy, HPUStrategy)
-    assert trainer._device_type == _AcceleratorType.HPU
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
@@ -383,7 +349,6 @@ def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 def test_devices_auto_choice_hpu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 8
-    assert trainer.hpus == 8
 
 
 @RunIf(hpu=True)
@@ -391,7 +356,7 @@ def test_devices_auto_choice_hpu():
 def test_inference_only(tmpdir, hpus):
     model = HPUModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, hpus=hpus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=hpus)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)

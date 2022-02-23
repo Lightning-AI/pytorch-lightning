@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import __main__
 
@@ -37,6 +37,7 @@ class HPUParallelStrategy(DDPStrategy):
     """
 
     distributed_backend = _StrategyType.HPU_PARALLEL
+    strategy_name = "hpu_parallel"
 
     def __init__(
         self,
@@ -71,3 +72,11 @@ class HPUParallelStrategy(DDPStrategy):
             torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
 
         return obj[0]
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

@@ -189,7 +189,7 @@ Example::
     from pytorch_lightning import Trainer, seed_everything
 
     seed_everything(42, workers=True)
-    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    # sets seeds for numpy, torch and python.random.
     model = Model()
     trainer = Trainer(deterministic=True)
 
@@ -1318,7 +1318,7 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a postive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
@@ -1544,8 +1544,8 @@ val_check_interval
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
-- use (float) to check within a training epoch
-- use (int) to check every n steps (batches)
+- pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
+- pass an ``int`` to check after a fixed number of training batches.
 
 .. testcode::
 
@@ -1734,16 +1734,28 @@ The current epoch
             pass
 
 
-logger (p)
-**********
+logger
+*******
 
 The current logger being used. Here's an example using tensorboard
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        logger = self.trainer.logger
-        tensorboard = logger.experiment
+    logger = trainer.logger
+    tensorboard = logger.experiment
+
+
+loggers
+********
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    # List of LightningLoggerBase objects
+    loggers = trainer.loggers
+    for logger in loggers:
+        logger.log_metrics({"foo": 1.0})
 
 
 logged_metrics

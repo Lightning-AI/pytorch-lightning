@@ -294,7 +294,7 @@ If running iteration based training, i.e. infinite / iterable dataloader, you ca
 
     trainer = Trainer(min_steps=100)
 
-You can also interupt training based on training time:
+You can also interrupt training based on training time:
 
 .. testcode::
 

@@ -705,21 +705,23 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
 When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
 a ``LightningModule``.
 
-- You can export to `ONNX <https://pytorch.org/docs/stable/onnx.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_onnx`.
-- Or trace using `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ using :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`.
-- Or run in the Python runtime.
+The following example shows how you can run inference in the Python runtime:
 
 .. code-block:: python
 
     task = ClassificationTask(model)
-
     trainer = Trainer(gpus=2)
     trainer.fit(task, train_dataloader, val_dataloader)
+    trainer.save_checkpoint("best_model.ckpt")
 
     # use model after training or load weights and drop into the production system
+    model = ClassificationTask.load_from_checkpoint("best_model.ckpt")
+    x = ...
     model.eval()
     with torch.no_grad():
         y_hat = model(x)
+
+Check out :ref:`Inference in Production <production_inference>` guide to learn about the possible ways to perform inference in production.
 
 
 -----------
@@ -982,6 +984,19 @@ The current logger being used (tensorboard or other supported logger)
 
         # the particular logger
         tensorboard_logger = self.logger.experiment
+
+loggers
+~~~~~~~
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        # List of LightningLoggerBase objects
+        loggers = self.loggers
+        for logger in loggers:
+            logger.log_metrics({"foo": 1.0})
 
 local_rank
 ~~~~~~~~~~~

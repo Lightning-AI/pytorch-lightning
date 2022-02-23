@@ -30,10 +30,13 @@ from pytorch_lightning.utilities.types import _PATH
 
 class HPUStrategy(SingleDeviceStrategy):
     """Strategy for training on HPU devices."""
+    
+    strategy_name = "hpu_single"
 
     def __init__(
         self,
         device: int,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[HPUCheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         hmp_params: Optional[str] = None,
@@ -41,7 +44,13 @@ class HPUStrategy(SingleDeviceStrategy):
 
         device = device
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
-        super().__init__(device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(
+            accelerator=accelerator,
+            device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+
+    @property
+    def is_distributed(self) -> bool:
+        return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
@@ -63,3 +72,11 @@ class HPUStrategy(SingleDeviceStrategy):
     def pre_dispatch(self) -> None:
         if isinstance(self.device, int):
             self.device = torch.device(self.device)
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
