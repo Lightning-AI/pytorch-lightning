@@ -320,8 +320,7 @@ def test_collect_init_arguments(tmpdir, cls):
     if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
-    if isinstance(model, AggSubClassBoringModel):
-        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
+    assert "my_loss" not in model.hparams
 
     # verify that the checkpoint saved the correct values
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
@@ -337,8 +336,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, AggSubClassBoringModel):
-        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
+    assert "my_loss" not in model.hparams
 
     if isinstance(model, DictConfSubClassBoringModel):
         assert isinstance(model.hparams.dict_conf, Container)
@@ -817,3 +815,18 @@ def test_colliding_hparams(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
+
+
+def test_nn_modules_not_saved_within_hparams():
+    class TorchModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(4, 5)
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, encoder, decoder, other_hparam=7):
+            super().__init__()
+            self.save_hyperparameters()
+
+    model = CustomBoringModel(encoder=TorchModule(), decoder=TorchModule())
+    assert list(model.hparams) == ["other_hparam"]

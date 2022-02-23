@@ -21,6 +21,7 @@ from argparse import Namespace
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
@@ -247,9 +248,15 @@ def save_hyperparameters(
             hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
             obj._hparams_name = "kwargs"
 
+    hp = obj._to_hparams_dict(hp)
+    # pop all nn.Module
+    for key in list(hp):
+        if isinstance(hp[key], nn.Module):
+            del hp[key]
+
     # `hparams` are expected here
     obj._set_hparams(hp)
-    # make deep copy so  there is not other runtime changes reflected
+    # make deep copy so there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
