@@ -13,7 +13,13 @@
 # limitations under the License.
 from unittest import mock
 
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import (
+    CPUAccelerator,
+    GPUAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    TPUAccelerator,
+)
 
 
 @mock.patch("torch.cuda.device_count", return_value=2)

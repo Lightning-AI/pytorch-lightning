@@ -51,8 +51,13 @@ hmp_params["fp32_ops"] = "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist
 hpu_stats = HPUStatsMonitor(log_save_dir="habana_ptl_log", exp_name="mnist")
 
 parallel_devices = 1
-hpustrat_1 = HPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params))
-hpustrat_8 = HPUParallelStrategy(parallel_devices=[torch.device("hpu")]*parallel_devices, precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params))
+hpustrat_1 = HPUStrategy(
+    device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
+)
+hpustrat_8 = HPUParallelStrategy(
+    parallel_devices=[torch.device("hpu")] * parallel_devices,
+    precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params),
+)
 
 # Initialize a trainer
 trainer = pl.Trainer(

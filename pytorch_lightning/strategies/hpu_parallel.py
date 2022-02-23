@@ -15,7 +15,6 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import __main__
-
 import torch
 import torch.distributed
 
@@ -59,7 +58,7 @@ class HPUParallelStrategy(DDPStrategy):
 
         os.environ["ID"] = str(self.local_rank)
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
-        
+
         super().setup_environment()
 
     def broadcast(self, obj: object, src: int = 0) -> object:

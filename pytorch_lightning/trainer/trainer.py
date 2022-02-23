@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -75,9 +75,9 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
-    _HPU_AVAILABLE,
     AMPType,
     device_parser,
     GradClipAlgorithmType,
@@ -1808,8 +1808,7 @@ class Trainer(
 
         if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
             rank_zero_warn(
-                "HPU available but not used. Set the `devices` flag in your trainer"
-                " `Trainer(devices=8)`."
+                "HPU available but not used. Set the `devices` flag in your trainer" " `Trainer(devices=8)`."
             )
 
     """

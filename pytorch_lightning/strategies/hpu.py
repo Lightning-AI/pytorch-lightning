@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.types import _PATH
 
 class HPUStrategy(SingleDeviceStrategy):
     """Strategy for training on HPU devices."""
-    
+
     strategy_name = "hpu_single"
 
     def __init__(
@@ -45,8 +45,8 @@ class HPUStrategy(SingleDeviceStrategy):
         device = device
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(
-            accelerator=accelerator,
-            device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+        )
 
     @property
     def is_distributed(self) -> bool:

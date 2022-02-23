@@ -23,8 +23,8 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.strategies.hpu import HPUStrategy
+from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -96,6 +96,7 @@ class HPUClassificationModel(ClassificationModel):
 
 def test_availability():
     assert HPUAccelerator.is_available()
+
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus(tmpdir):
@@ -177,8 +178,8 @@ def test_mixed_precision(tmpdir, hmp_params):
 
     model = HPUModel()
     trainer = Trainer(
-        strategy=HPUStrategy(device=torch.device("hpu"),
-            precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
+        strategy=HPUStrategy(
+            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
         ),
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -205,8 +206,8 @@ def test_pure_half_precision(tmpdir, hmp_params):
     model = HPUModel()
     model = model.half()
     trainer = Trainer(
-        strategy=HPUStrategy(device=torch.device("hpu"),
-            precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
+        strategy=HPUStrategy(
+            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
         ),
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -260,7 +261,9 @@ def test_stages_correct(tmpdir):
             assert torch.all(outputs == 4).item()
 
     model = StageModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback())
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1, callbacks=TestCallback()
+    )
     trainer.fit(model)
     trainer.test(model)
     trainer.validate(model)
@@ -327,7 +330,9 @@ def test_strategy_choice_hpu_plugin(tmpdir):
 
 @RunIf(hpu=True)
 def test_strategy_choice_hpu_parallel_plugin(tmpdir):
-    trainer = Trainer(strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")]*8), accelerator="hpu", devices=8)
+    trainer = Trainer(
+        strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")] * 8), accelerator="hpu", devices=8
+    )
     assert isinstance(trainer.strategy, HPUParallelStrategy)
 
 
