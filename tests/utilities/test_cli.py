@@ -1390,10 +1390,7 @@ def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
     config = {"fit": {"model": {"foo": 123}}}
     config_path = tmpdir / "default.yaml"
     config_path.write_text(str(config), "utf8")
-
-    parser_kwargs = {
-        "default_config_files": [str(config_path)],
-    }
+    parser_kwargs = {"default_config_files": [str(config_path)]}
 
     with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
         "pytorch_lightning.Trainer.fit", autospec=True
