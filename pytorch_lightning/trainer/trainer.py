@@ -155,11 +155,11 @@ class Trainer(
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
-        limit_train_batches: Union[int, float] = 1.0,
-        limit_val_batches: Union[int, float] = 1.0,
-        limit_test_batches: Union[int, float] = 1.0,
-        limit_predict_batches: Union[int, float] = 1.0,
-        val_check_interval: Union[int, float] = 1.0,
+        limit_train_batches: Optional[Union[int, float]] = None,
+        limit_val_batches: Optional[Union[int, float]] = None,
+        limit_test_batches: Optional[Union[int, float]] = None,
+        limit_predict_batches: Optional[Union[int, float]] = None,
+        val_check_interval: Optional[Union[int, float]] = None,
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -187,7 +187,7 @@ class Trainer(
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags.
 
@@ -201,8 +201,10 @@ class Trainer(
                     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
+                Default: ``None``.
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
+                Default: ``'native''``.
 
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
@@ -211,23 +213,29 @@ class Trainer(
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
                 set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key set a string instead of True with the key name.
+                Default: ``False``.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+                Default: ``False``.
 
             auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
+                Default: ``False``.
 
-            benchmark: If true enables cudnn.benchmark.
+            benchmark: If ``True``, enables cudnn.benchmark.
+                Default: ``False``.
 
             callbacks: Add a callback or list of callbacks.
+                Default: ``None``.
 
             checkpoint_callback: If ``True``, enable checkpointing.
+                Default: ``None``.
 
                 .. deprecated:: v1.5
                     ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
@@ -236,14 +244,18 @@ class Trainer(
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
+                Default: ``True``.
 
             check_val_every_n_epoch: Check val every n train epochs.
+                Default: ``1``.
+
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
+                Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
@@ -253,6 +265,7 @@ class Trainer(
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
+                Default: ``False``.
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -261,27 +274,34 @@ class Trainer(
                     Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
+                Default: ``None``.
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
+                Default: ``None``.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
                 be set to ``"norm"``.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
                 provided and the `save_dir` property of that logger is not set, local files (checkpoints,
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
+                Default: ``True``.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
 
@@ -289,7 +309,8 @@ class Trainer(
                     Deprecated in v1.5.0 and will be removed in v1.7.0
                     Please use the ``DeviceStatsMonitor`` callback directly instead.
 
-            log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+            log_every_n_steps: How often to log within steps.
+                Default: ``50``.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -317,15 +338,20 @@ class Trainer(
                     pass ``enable_progress_bar = False`` to the Trainer.
 
             enable_progress_bar: Whether to enable to progress bar by default.
+                Default: ``False``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
+                Default: ``None``.
 
             overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+                Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
+                Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
                 Can be used on CPU, GPU, TPUs or IPUs.
+                Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
@@ -337,21 +363,25 @@ class Trainer(
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
                 ``max_epochs`` to ``-1``.
 
-            min_steps: Force training for at least these number of steps. Disabled by default (None).
+            min_steps: Force training for at least these number of steps. Disabled by default (``None``).
 
-            max_time: Stop training after this amount of time has passed. Disabled by default (None).
+            max_time: Stop training after this amount of time has passed. Disabled by default (``None``).
                 The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
             num_nodes: Number of GPU nodes for distributed training.
+                Default: ``1``.
 
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
+                Default: ``1``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
+                Default: ``2``.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: ``0``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -368,8 +398,10 @@ class Trainer(
 
             strategy: Supports different training strategies with aliases
                 as well custom training type plugins.
+                Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+                Default: ``False``.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
@@ -379,18 +411,25 @@ class Trainer(
                     Please use ``detect_anomaly`` instead.
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
+                Default: ``False``.
 
-            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
+                Default: ``None``.
 
             ipus: How many IPUs to train on.
+                Default: ``None``.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
+                Default: ``-1``.
 
-            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
-                use int to check every n steps (batches).
+            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
+                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
+                batches.
+                Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
+                Default: ``True``.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -408,14 +447,17 @@ class Trainer(
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
+                Default: ``False``.
 
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
+                Default: ``"max_size_cycle"``.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
+                Default: ``False``.
 
                 .. deprecated:: v1.5
                     ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
@@ -510,6 +552,7 @@ class Trainer(
         self._call_callback_hooks("on_init_start")
 
         # init data flags
+        self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
@@ -567,6 +610,7 @@ class Trainer(
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_interval: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -582,14 +626,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
-        val_check_interval,
-        overfit_batches,
-        fast_dev_run,
-    ):
+        limit_train_batches: Optional[Union[int, float]],
+        limit_val_batches: Optional[Union[int, float]],
+        limit_test_batches: Optional[Union[int, float]],
+        limit_predict_batches: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float]],
+        overfit_batches: Union[int, float],
+        fast_dev_run: Union[int, bool],
+    ) -> None:
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
@@ -684,7 +728,6 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
             # teardown might access the stage so we reset it after
@@ -757,7 +800,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -1374,6 +1417,16 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        # fault-tolerance takes precedence
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        if ft_checkpoints:
+            ft_ckpt_path = ft_checkpoints[0].ckpt_path
+            fs = get_filesystem(ft_ckpt_path)
+            if fs.exists(ft_ckpt_path):
+                return ft_ckpt_path
+
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
@@ -1745,13 +1798,6 @@ class Trainer(
                 " `Trainer(ipus=8)` or script `--ipus=8`."
             )
 
-    def _on_exception(self) -> None:
-        if not _fault_tolerant_training():
-            return
-        # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
-        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
-        self.save_checkpoint(file_path)
-
     """
     Data loading methods
     """
@@ -1763,6 +1809,13 @@ class Trainer(
         Args:
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
+        source = self._data_connector._train_dataloader_source
+        pl_module = self.lightning_module or model
+        has_step = is_overridden("training_step", pl_module)
+        enable_training = self.limit_train_batches > 0
+        if not (source.is_defined() and has_step and enable_training):
+            return
+
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
@@ -1802,20 +1855,17 @@ class Trainer(
             else float("inf")
         )
 
-        if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
+        if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float("inf"):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies"
+                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
                 " `num_training_batches` to use."
             )
 
-        # determine when to check validation
-        # if int passed in, val checks that often
-        # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
             if self.val_check_batch > self.num_training_batches:
@@ -1858,7 +1908,8 @@ class Trainer(
         source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_validation = self.limit_val_batches > 0
+        if source.is_defined() and has_step and enable_validation:
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
@@ -1875,7 +1926,8 @@ class Trainer(
         source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_testing = self.limit_test_batches > 0
+        if source.is_defined() and has_step and enable_testing:
             self.num_test_batches, self.test_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
@@ -1888,7 +1940,8 @@ class Trainer(
         """
         source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
-        if source.is_defined():
+        enable_prediction = self.limit_predict_batches > 0
+        if source.is_defined() and enable_prediction:
             self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )
@@ -2625,7 +2678,30 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
 
-def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
+    if batches is None:
+        # batches is optional to know if the user passed a value so that we can show the above info messages only to the
+        # users that set a value explicitly
+        return 1.0
+
+    # differentiating based on the type can be error-prone for users. show a message describing the chosen behaviour
+    if isinstance(batches, int) and batches == 1:
+        if name == "limit_train_batches":
+            message = "1 batch per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run after every batch."
+        else:
+            message = "1 batch will be used."
+        rank_zero_info(f"`Trainer({name}=1)` was configured so {message}")
+    elif isinstance(batches, float) and batches == 1.0:
+        if name == "limit_train_batches":
+            message = "100% of the batches per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run at the end of the training epoch."
+        else:
+            message = "100% of the batches will be used."
+        rank_zero_info(f"`Trainer({name}=1.0)` was configured so {message}.")
+
     if 0 <= batches <= 1:
         return batches
     if batches > 1 and batches % 1.0 == 0:

@@ -82,34 +82,23 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu():
+def test_accelerator_cpu_with_tpu_cores_flag():
     assert TPUAccelerator.is_available()
+
+    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
-    trainer = Trainer(accelerator="tpu")
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, SingleTPUStrategy)
-
 
 @RunIf(tpu=True)
-def test_accelerator_cpu_with_tpu_cores_flag():
-    trainer = Trainer(accelerator="cpu", tpu_cores=8)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-
-
-@RunIf(tpu=True)
-def test_accelerator_auto_with_devices_tpu():
+@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
+def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
 
-    trainer = Trainer(accelerator="auto", devices=8)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.tpu_cores == 8
-
-    trainer = Trainer(accelerator="auto", devices="auto")
+    trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.devices == 8
