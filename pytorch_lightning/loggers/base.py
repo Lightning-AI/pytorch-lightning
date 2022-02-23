@@ -55,6 +55,10 @@ class LightningLoggerBase(ABC):
             is not presented in the `agg_key_funcs` dictionary, then the
             `agg_default_func` will be used for aggregation.
 
+        .. deprecated:: v1.6
+            The parameters `agg_key_funcs` and `agg_default_func` are deprecated
+            in v1.6 and will be removed in v1.8.
+
     Note:
         The `agg_key_funcs` and `agg_default_func` arguments are used only when
         one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
@@ -63,12 +67,26 @@ class LightningLoggerBase(ABC):
     def __init__(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
     ):
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
-        self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
-        self._agg_default_func = agg_default_func
+        if agg_key_funcs:
+            self._agg_key_funcs = agg_key_funcs
+            rank_zero_deprecation(
+                "The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+                " and will be removed in v1.8."
+            )
+        else:
+            self._agg_key_funcs = {}
+        if agg_default_func:
+            self._agg_default_func = agg_default_func
+            rank_zero_deprecation(
+                "The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+                " and will be removed in v1.8."
+            )
+        else:
+            self._agg_default_func = np.mean
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
@@ -85,6 +103,9 @@ class LightningLoggerBase(ABC):
     ):
         """Update aggregation methods.
 
+        .. deprecated:: v1.6
+            `update_agg_funcs` is deprecated in v1.6 and will be removed in v1.8.
+
         Args:
             agg_key_funcs:
                 Dictionary which maps a metric name to a function, which will
@@ -98,6 +119,9 @@ class LightningLoggerBase(ABC):
             self._agg_key_funcs.update(agg_key_funcs)
         if agg_default_func:
             self._agg_default_func = agg_default_func
+        rank_zero_deprecation(
+            "`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+        )
 
     def _aggregate_metrics(
         self, metrics: Dict[str, float], step: Optional[int] = None
