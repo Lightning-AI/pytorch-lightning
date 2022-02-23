@@ -26,6 +26,7 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.profiler import _prepare_filename
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -411,13 +412,13 @@ class PyTorchProfiler(BaseProfiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         handler = tensorboard_trace_handler(
-                            self.dirpath, self._prepare_filename(action_name=action_name, extension="")
+                            self.dirpath, _prepare_filename(self, action_name=action_name, extension="")
                         )
                         handler(profiler)
 
                     if self._export_to_flame_graph:
                         path = os.path.join(
-                            self.dirpath, self._prepare_filename(action_name=action_name, extension=".stack")
+                            self.dirpath, _prepare_filename(self, action_name=action_name, extension=".stack")
                         )
                         profiler.export_stacks(path, metric=self._metric)
                 else:

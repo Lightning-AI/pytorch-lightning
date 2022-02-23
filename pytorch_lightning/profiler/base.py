@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.profiler import _prepare_streams
 
 log = logging.getLogger(__name__)
 
@@ -98,40 +98,12 @@ class BaseProfiler(AbstractProfiler):
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _prepare_filename(
-        self, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
-    ) -> str:
-        args = []
-        if self._stage is not None:
-            args.append(self._stage)
-        if self.filename:
-            args.append(self.filename)
-        if self._local_rank is not None:
-            args.append(str(self._local_rank))
-        if action_name is not None:
-            args.append(action_name)
-        filename = split_token.join(args) + extension
-        return filename
-
-    def _prepare_streams(self) -> None:
-        if self._write_stream is not None:
-            return
-        if self.filename:
-            filepath = os.path.join(self.dirpath, self._prepare_filename())
-            fs = get_filesystem(filepath)
-            fs.mkdirs(self.dirpath, exist_ok=True)
-            file = fs.open(filepath, "a")
-            self._output_file = file
-            self._write_stream = file.write
-        else:
-            self._write_stream = self._rank_zero_info
-
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
         # users might call `describe` directly as the profilers can be used by themselves.
         # to allow this, we open and close the files within this function by calling `_prepare_streams` and `teardown`
         # manually instead of letting the `Trainer` do it through `setup` and `teardown`
-        self._prepare_streams()
+        _prepare_streams(self)
         summary = self.summary()
         if summary:
             self._write_stream(summary)
