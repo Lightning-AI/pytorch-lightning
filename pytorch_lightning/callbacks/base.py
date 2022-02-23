@@ -291,7 +291,7 @@ class Callback:
         return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint, implement to reload callback state given callback state_dict.
+        """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
 
         Args:
             state_dict: the callback state returned by ``state_dict``.
