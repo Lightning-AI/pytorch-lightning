@@ -354,30 +354,23 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        # Need to get real path from the given `dirpath`, we follow the template from
-        # __init_ckpt_dir function to get the real path for comparison
         dirpath_from_ckpt = callback_state.get("dirpath", self.dirpath)
-        _fs = get_filesystem(dirpath_from_ckpt if dirpath_from_ckpt else "")
 
-        if dirpath_from_ckpt and _fs.protocol == "file":
-            dirpath_from_ckpt = os.path.realpath(dirpath_from_ckpt)
-
-        # For more context, see: https://github.com/PyTorchLightning/pytorch-lightning/issues/11379
         if self.dirpath == dirpath_from_ckpt:
-            # TODO: Post discussion with @rohitgr7, maybe also consider monitor?
-            # If dirpath has changed, don't track the following properties
             self.best_model_score = callback_state["best_model_score"]
             self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
             self.kth_value = callback_state.get("kth_value", self.kth_value)
             self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
         else:
+            # If dirpath has changed, raise a warning and only track last_model_path
+            # and best_model_path
             warnings.warn(
                 f"The dirpath was changed from {self.dirpath} to {dirpath_from_ckpt},"
                 " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
                 " won't be tracked. Only `last_model_path` and `best_model_path` will be tracked."
             )
-            self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
-            self.best_model_path = callback_state["best_model_path"]
+        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+        self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
