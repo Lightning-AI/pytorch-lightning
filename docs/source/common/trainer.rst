@@ -1725,16 +1725,23 @@ The metrics available to callbacks. These are automatically set when you log via
 current_epoch
 *************
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        current_epoch = self.trainer.current_epoch
-        if current_epoch > 100:
-            # do something
-            pass
+    if trainer.current_epoch >= 10:
+        ...
 
+global_step
+***********
+
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
+
+.. code-block:: python
+
+    if trainer.global_step >= 100:
+        ...
 
 logger
 *******
