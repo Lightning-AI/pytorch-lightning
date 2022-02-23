@@ -283,7 +283,7 @@ class Callback:
         """Called when any trainer execution is interrupted by an exception."""
 
     def state_dict(self) -> Dict[str, Any]:
-        """Called when saving a checkpoint, implement to generate callback state_dict.
+        """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
 
         Returns:
             A dictionary containing callback state.
