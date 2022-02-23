@@ -589,12 +589,12 @@ class ModelCheckpoint(Callback):
                 save_dir = trainer.default_root_dir
 
             name = (
-                trainer.logger.name
+                trainer.loggers[0].name
                 if len(trainer.loggers) == 1
                 else "_".join(dict.fromkeys(str(logger.name) for logger in trainer.loggers))
             )
             version = (
-                trainer.logger.version
+                trainer.loggers[0].version
                 if len(trainer.loggers) == 1
                 else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
             )

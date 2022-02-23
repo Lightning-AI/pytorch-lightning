@@ -213,8 +213,11 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
-    if len(trainer.loggers) == 1:
-        version = trainer.loggers[0].version
+    if trainer.loggers:
+        version = (
+            trainer.loggers[0].version
+            if len(trainer.loggers) == 1
+            else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
         if version is not None:
             if isinstance(version, str):
                 # show last 4 places of long version strings
