@@ -663,11 +663,9 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaing processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
-            # reset bookkeeping
-            self.state.stage = None
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
+            self.state.stage = None
 
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
         except KeyboardInterrupt as exception:
