@@ -221,7 +221,7 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer.data_parallel_device_ids:
+                if self.trainer.data_parallel_device_ids and gpu_id in self.trainer.data_parallel_device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )
