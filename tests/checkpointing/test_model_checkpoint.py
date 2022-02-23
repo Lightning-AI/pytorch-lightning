@@ -1240,12 +1240,23 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
     with pytest.warns(UserWarning, match="The dirpath was changed from*"):
         cb_restore.on_load_checkpoint("", "", written_ckpt)
+
+    expected_keys = {
+        "current_score": False,
+        "dirpath": False,
+        "monitor": False,
+        "best_model_score": False,
+        "kth_best_model_path": False,
+        "kth_value": False,
+        "best_k_models": False,
+        "best_model_path": True,
+        "last_model_path": True,
+    }
+
     for key, val in written_ckpt.items():
-        if key not in ("current_score", "dirpath", "monitor"):
-            if key in ["best_model_path", "last_model_path"]:
-                assert getattr(cb_restore, key) == val
-            else:
-                assert getattr(cb_restore, key) != val
+        should_match = expected_keys[key]
+        if should_match:
+            assert getattr(cb_restore, key) == val
         else:
             assert getattr(cb_restore, key) != val
 
