@@ -19,7 +19,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import memory
@@ -222,13 +221,7 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                parallel_device_ids = []
-                if isinstance(self.trainer.accelerator, GPUAccelerator):
-                    if isinstance(self.trainer.strategy, ParallelStrategy):
-                        parallel_device_ids = [i for i in range(len(self.trainer.strategy.parallel_devices))]
-                    elif isinstance(self.strategy, SingleDeviceStrategy):
-                        parallel_device_ids = [0]
-                if gpu_id in parallel_device_ids:
+                if gpu_id in self.trainer.data_parallel_device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )
