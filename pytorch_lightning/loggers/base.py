@@ -123,66 +123,6 @@ class LightningLoggerBase(ABC):
             "`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
         )
 
-    def _aggregate_metrics(
-        self, metrics: Dict[str, float], step: Optional[int] = None
-    ) -> Tuple[int, Optional[Dict[str, float]]]:
-        """Aggregates metrics.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-
-        Returns:
-            Step and aggregated metrics. The return value could be ``None``. In such case, metrics
-            are added to the aggregation list, but not aggregated yet.
-        """
-        # if you still receiving metric from the same step, just accumulate it
-        if step == self._prev_step:
-            self._metrics_to_agg.append(metrics)
-            return step, None
-
-        # compute the metrics
-        agg_step, agg_mets = self._reduce_agg_metrics()
-
-        # as new step received reset accumulator
-        self._metrics_to_agg = [metrics]
-        self._prev_step = step
-        return agg_step, agg_mets
-
-    def _reduce_agg_metrics(self):
-        """Aggregate accumulated metrics.
-
-        See deprecation warning below.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-        """
-        # compute the metrics
-        if not self._metrics_to_agg:
-            agg_mets = None
-        elif len(self._metrics_to_agg) == 1:
-            agg_mets = self._metrics_to_agg[0]
-        else:
-            agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
-        return self._prev_step, agg_mets
-
-    def _finalize_agg_metrics(self):
-        """This shall be called before save/close.
-
-        See deprecation warning below.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-        """
-        agg_step, metrics_to_log = self._reduce_agg_metrics()
-        self._metrics_to_agg = []
-
-        if metrics_to_log is not None:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
-
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
