@@ -178,7 +178,8 @@ def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_devic
 
     assert args.devices == expected_parsed
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_device_ids
+    with pytest.deprecated_call(match="`Trainer.data_parallel_device_ids` was deprecated in v1.6."):
+        assert trainer.data_parallel_device_ids == expected_device_ids
 
 
 @pytest.mark.parametrize(

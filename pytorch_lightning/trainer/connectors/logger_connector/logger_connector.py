@@ -221,7 +221,13 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer._accelerator_connector.parallel_device_ids:
+                parallel_device_ids = []
+                if isinstance(self.trainer.accelerator, GPUAccelerator):
+                    if isinstance(self.trainer.strategy, ParallelStrategy):
+                        parallel_device_ids = [i for i in range(len(self.trainer.strategy.parallel_devices))]
+                    elif isinstance(self.strategy, SingleDeviceStrategy):
+                        parallel_device_ids = [0]
+                if gpu_id in parallel_device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )

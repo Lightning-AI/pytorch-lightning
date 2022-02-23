@@ -820,10 +820,6 @@ class AcceleratorConnector:
         return self._gpus
 
     @property
-    def parallel_device_ids(self) -> List[int]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
-
-    @property
     def is_distributed(self) -> bool:
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.

@@ -192,7 +192,8 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_gpu
+    with pytest.deprecated_call(match="`Trainer.data_parallel_device_ids` was deprecated in v1.6."):
+        assert trainer.data_parallel_device_ids == expected_gpu
 
 
 @pytest.mark.skipif(
