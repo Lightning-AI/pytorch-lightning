@@ -2022,9 +2022,7 @@ class Trainer(
 
     @property
     def root_gpu(self) -> Optional[int]:
-        rank_zero_deprecation(
-            "Method `trainer.root_gpu` is deprecated please use `trainer.strategy.root_device`"
-        )
+        rank_zero_deprecation("Method `trainer.root_gpu` is deprecated please use `trainer.strategy.root_device`")
         return self._strategy.root_device
 
     @property
