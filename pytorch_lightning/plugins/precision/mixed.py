@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Union
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -21,6 +22,9 @@ if TYPE_CHECKING:
 
 class MixedPrecisionPlugin(PrecisionPlugin):
     """Base Class for mixed precision."""
+    @property
+    @abstractmethod
+    def backend() -> AMPType:
+        """Deprecatedin 1.7. Switch to instance checks instead"""
 
-    backend: "AMPType"
     precision: Union[str, int] = "mixed"

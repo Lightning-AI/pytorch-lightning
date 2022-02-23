@@ -23,6 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -38,8 +39,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
-
-    backend = AMPType.NATIVE
 
     def __init__(
         self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
@@ -129,3 +128,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         Lightning will auto-save NativeMixedPrecisionPlugin state with ``NativeMixedPrecisionPlugin.state_dict`` instead
         """
+
+    @property
+    def backend() -> AMPType:
+        rank_zero_deprecation(
+            "The AMPType is not longer actively supported and will be deprecated in 1.7."
+            "Please Switch to ``isinstance(X, ApexMixedPrecisionPlugin)`` checks instead."
+        )
+        return AMPType.NATIVE

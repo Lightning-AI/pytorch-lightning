@@ -27,7 +27,8 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, TPUAccelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy, SingleDeviceStrategy, DDPSpawnStrategy, DataParallelStrategy, DDPStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy
+            
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -446,24 +447,22 @@ class LightningLite(ABC):
         return DistributedSampler(dataloader.dataset, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Accelerator) -> None:
-        valid =
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
-        valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
         if not isinstance(accelerator, self._supported_accelerators()):
             raise MisconfigurationException(
-                f"`accelerator={repr(accelerator)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `Accelerator` instance."
+                f"`accelerator={repr(accelerator)}` is not a valid choice for LightningLite."
+                f" Choose one of {["auto", *(x.lower() for x in self._supported_device_types)]} or pass in a `Accelerator` instance."
             )
 
     def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
         supported = [t.lower() for t in self._supported_strategy_types()]
         valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
-        if not valid:
+        if not isinstance(strategy, self._supported_strategies()):
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `Strategy` instance."
+                f" Choose one of {[t.lower() for t in self._supported_strategy_types()]} or pass in a `Strategy` instance."
             )
 
+    @staticmethod
     def _supported_accelerators() -> Sequence[Accelerator]:
         return (
             CPUAccelerator,
@@ -471,8 +470,27 @@ class LightningLite(ABC):
             TPUAccelerator
         )
 
+    @staticmethod
+    def _supported_device_types() -> Sequence[_AcceleratorType]:
+        return (
+            _AcceleratorType.CPU,
+            _AcceleratorType.GPU,
+            _AcceleratorType.TPU,
+        )
+
+    @staticmethod
     def _supported_strategies() -> Sequence[Strategy]:
-        return 
+
+        # TODO: (@awaelchli: is FullySharded supported here?)
+        return (
+            SingleDeviceStrategy,
+            DataParallelStrategy,
+            DDPStrategy,
+            DDPSpawnStrategy,
+            DeepSpeedStrategy,
+            DDPShardedStrategy,
+            DDPSpawnShardedStrategy
+        ) 
 
     @staticmethod
     def _supported_strategy_types() -> Sequence[_StrategyType]:
@@ -484,6 +502,7 @@ class LightningLite(ABC):
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,
         )
+
 
     @staticmethod
     def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:

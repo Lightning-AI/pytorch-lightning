@@ -22,6 +22,7 @@ from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -30,7 +31,7 @@ if _APEX_AVAILABLE:
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
-    backend = AMPType.APEX
+    
 
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
@@ -111,3 +112,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         Lightning will auto-save ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.state_dict`` instead
         """
+
+    @property
+    def backend(self) -> AMPType:
+        rank_zero_deprecation(
+            "The AMPType is not longer actively supported and will be deprecated in 1.7."
+            "Please Switch to ``isinstance(X, ApexMixedPrecisionPlugin)`` checks instead."
+        )
+        return AMPType.APEX
