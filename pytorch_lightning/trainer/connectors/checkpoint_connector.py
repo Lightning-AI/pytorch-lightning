@@ -232,11 +232,11 @@ class CheckpointConnector:
             return
 
         fit_loop = self.trainer.fit_loop
-        # set the `global_step` value for old checkpoints without the progress tracking state.
+        # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
         optimizer_loop = fit_loop.epoch_loop.batch_loop.optimizer_loop
         optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint["global_step"]
-        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
         fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
