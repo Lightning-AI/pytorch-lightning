@@ -77,12 +77,12 @@ class GPUAccelerator(Accelerator):
         return get_nvidia_gpu_stats(device)
 
     @staticmethod
-    def parse_devices(devices: int | str | list[int]) -> int | list[int] | None:
+    def parse_devices(devices: int | str | list[int]) -> list[int]:
         """Accelerator Parsing logic."""
         return device_parser.parse_gpu_ids(devices)
 
     @staticmethod
-    def get_parallel_devices(devices: list[int] | str | int) -> list[torch.device] | list[int]:
+    def get_parallel_devices(devices: list[int]) -> list[torch.device]:
         """Gets parallel devices for the given Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 

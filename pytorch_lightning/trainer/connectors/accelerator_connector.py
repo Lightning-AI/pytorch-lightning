@@ -384,7 +384,7 @@ class AcceleratorConnector:
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
-        if self._devices_flag in ([], 0, "0", "0,"):
+        if self._devices_flag in ([], 0, "0"):
             rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
             self._accelerator_flag = "cpu"
 
@@ -406,7 +406,7 @@ class AcceleratorConnector:
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0", "0,"):
+        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
             if devices:
                 # TODO: @awaelchli improve error message
                 rank_zero_warn(
