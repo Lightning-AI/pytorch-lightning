@@ -249,7 +249,7 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     )
     model = BoringModel()
     # need to attach model to trainer for testing of `on_pretrain_routine_start`
-    trainer.fit(model)
+    trainer.strategy.connect(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
         with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
@@ -572,3 +572,39 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
         Trainer(logger=[logger, logger3])
     # Should have no deprecation warning
     Trainer(logger=[logger2, logger3])
+
+
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_pretrain_routine_start(self, trainer, pl_module):
+            print("on_pretrain_routine_start called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_pretrain_routine_end(self, trainer, pl_module):
+            print("on_pretrain_routine_end called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
