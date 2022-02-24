@@ -84,7 +84,14 @@ class BaseProfiler(AbstractProfiler):
             self.stop(action_name)
 
     def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
-        rank_zero_deprecation("`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed" " in v1.8.")
+        """Profiles over each value of an iterable.
+
+        See deprecation message below.
+
+        .. deprecated:: v1.6
+            `BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
         iterator = iter(iterable)
         while True:
             try:
