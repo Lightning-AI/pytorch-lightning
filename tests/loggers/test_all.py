@@ -216,9 +216,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     save_dir = tmpdir / "logs"
     weights_save_path = tmpdir / "weights"
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    with pytest.deprecated_call(
-        match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"
-    ):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
         trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
@@ -228,9 +226,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
 
     # no logger given
     weights_save_path = tmpdir / "weights"
-    with pytest.deprecated_call(
-        match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"
-    ):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
         trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
