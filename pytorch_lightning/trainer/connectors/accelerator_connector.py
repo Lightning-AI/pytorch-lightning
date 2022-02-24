@@ -348,13 +348,21 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
-            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ["auto", "cpu"]:
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ["auto", "gpu"]:
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "gpu"
 
         amp_type = amp_type if isinstance(amp_type, str) else None
