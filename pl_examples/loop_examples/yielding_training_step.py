@@ -64,11 +64,11 @@ class YieldLoop(OptimizerLoop):
         # We request the generator once and save it for later so we can call next() on it.
         self._generator = self._get_generator(kwargs)
 
-    def _make_step_fn(self, kwargs):
+    def _make_step_fn(self, *_):
         return partial(self._training_step, self._generator)
 
     def _get_generator(self, kwargs, opt_idx=0):
-        kwargs = self._build_kwargs(kwargs, opt_idx, opt_idx)
+        kwargs = self._build_kwargs(kwargs, opt_idx, hiddens=None)
 
         # Here we are basically calling `lightning_module.training_step()` and this returns a generator!
         # The `training_step` is handled by the accelerator to enable distributed training.
