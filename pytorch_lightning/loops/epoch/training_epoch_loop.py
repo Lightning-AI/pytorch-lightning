@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
 
 import numpy as np
@@ -164,6 +164,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         else:
             batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
+        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
+
         self.batch_progress.increment_ready()
 
         self.trainer.logger_connector.on_batch_start(batch, batch_idx)
@@ -196,7 +198,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.increment_started()
 
             with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(batch, batch_idx)
+                batch_output = self.batch_loop.run(kwargs)
 
         self.batch_progress.increment_processed()
 
@@ -511,6 +513,23 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = None
+
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
+        """Helper function to build the arguments for the current step.
+
+        Args:
+            kwargs: The kwargs passed down to the hooks.
+            batch: The current batch to run through the step.
+
+        Returns:
+            The kwargs passed down to the hooks.
+        """
+        kwargs["batch"] = batch
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        # the `batch_idx` is optional with inter-batch parallelism
+        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
+            kwargs["batch_idx"] = batch_idx
+        return kwargs
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:

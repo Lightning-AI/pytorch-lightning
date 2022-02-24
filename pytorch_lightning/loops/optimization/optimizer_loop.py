@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -166,7 +166,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
 
         self._outputs: _OUTPUTS_TYPE = {}
         self._skip_backward: bool = False
-        self._batch_idx: int = 0
         self._optimizers: Tuple[Optimizer, ...] = tuple()
         self._indices: Tuple[int, ...] = tuple()
         self._hiddens: Optional[Any] = None
@@ -192,20 +191,16 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._outputs = {}
 
     def on_run_start(  # type: ignore[override]
-        self, batch: Any, optimizers: List[Tuple[int, Optimizer]], batch_idx: int
+        self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict
     ) -> None:
-        self._batch_idx = batch_idx
         self._indices, self._optimizers = zip(*optimizers)
         if self.done:
             self.optim_progress.optimizer_position = 0
 
-    def advance(self, batch: Any, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        result = self._run_optimization(
-            batch,
-            self._batch_idx,
-            self._optimizers[self.optim_progress.optimizer_position],
-            self.optimizer_idx,
-        )
+    def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:  # type: ignore[override]
+        kwargs = self._build_kwargs(kwargs, self.optimizer_idx, self._hiddens)
+
+        result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])
         if result.loss is not None:
             # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
             # would be skipped otherwise
@@ -218,21 +213,19 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._optimizers = tuple()
         return outputs
 
-    def _run_optimization(
-        self, split_batch: Any, batch_idx: int, optimizer: torch.optim.Optimizer, opt_idx: int
-    ) -> ClosureResult:
+    def _run_optimization(self, kwargs: OrderedDict, optimizer: torch.optim.Optimizer) -> ClosureResult:
         """Runs closure (train step + backward) together with optimization if necessary.
 
         Args:
-            split_batch: the current tbptt split of the whole batch
-            batch_idx: the index of the current batch
+            kwargs: the kwargs passed down to the hooks.
             optimizer: the current optimizer
-            opt_idx: the index of the current optimizer
         """
+        opt_idx = kwargs.get("optimizer_idx", 0)
+
         # toggle model params
         self._run_optimization_start(opt_idx, optimizer)
 
-        closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer)
+        closure = self._make_closure(kwargs, optimizer)
 
         if (
             # when the training type plugin handles accumulation, we want to always call the optimizer step
@@ -253,7 +246,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            self._optimizer_step(optimizer, opt_idx, batch_idx, closure)
+            # the `batch_idx` is optional with inter-batch parallelism
+            self._optimizer_step(optimizer, opt_idx, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
 
@@ -267,17 +261,18 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._run_optimization_end(opt_idx)
         return result
 
-    def _make_closure(self, split_batch: Any, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Closure:
+    def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
         """Build a closure object that captures the given arguments and runs the `training_step` function and
         optionally other functions such as `backward` and `zero_grad`."""
-        step_fn = self._make_step_fn(split_batch, batch_idx, opt_idx)
+        opt_idx = kwargs.get("optimizer_idx", 0)
+        step_fn = self._make_step_fn(kwargs)
         backward_fn = self._make_backward_fn(optimizer, opt_idx)
-        zero_grad_fn = self._make_zero_grad_fn(batch_idx, opt_idx, optimizer)
+        zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), opt_idx, optimizer)
         return Closure(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
 
-    def _make_step_fn(self, split_batch: Any, batch_idx: int, opt_idx: int) -> Callable[[], ClosureResult]:
+    def _make_step_fn(self, kwargs: OrderedDict) -> Callable[[], ClosureResult]:
         """Build the step function that runs the `training_step` and processes its output."""
-        return partial(self._training_step, split_batch, batch_idx, opt_idx)
+        return partial(self._training_step, kwargs)
 
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
         """Build a `zero_grad` function that zeroes the gradients before back-propagation.
@@ -400,33 +395,24 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         )
         self.optim_progress.optimizer.zero_grad.increment_completed()
 
-    def _training_step(self, split_batch: Any, batch_idx: int, opt_idx: int) -> ClosureResult:
+    def _training_step(self, kwargs: OrderedDict) -> ClosureResult:
         """Performs the actual train step with the tied hooks.
 
         Args:
-            split_batch: the current tbptt split of the current batch
-            batch_idx: the index of the current batch
-            opt_idx: the index of the current optimizer
+            kwargs: the kwargs passed down to the hooks.
 
         Returns:
             A ``ClosureResult`` containing the training step output.
         """
-        # give the PL module a result for logging
-        lightning_module = self.trainer.lightning_module
-
-        step_kwargs = _build_training_step_kwargs(
-            lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, self._hiddens
-        )
-
         # manually capture logged metrics
-        training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+        training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()
 
         model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
 
-        self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+        self._hiddens = _extract_hiddens(training_step_output, self.trainer.lightning_module.truncated_bptt_steps)
 
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
@@ -441,3 +427,16 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.trainer._results.cpu()
 
         return result
+
+    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int, hiddens: Optional[Any]) -> OrderedDict:
+        """Helper function to build the arguments for the current step.
+
+        Args:
+            kwargs: The kwargs passed down to the hooks.
+            opt_idx: the index of the current optimizer.
+            hiddens: the hidden state of the previous RNN iteration.
+
+        Returns:
+            The kwargs passed down to the hooks.
+        """
+        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self._optimizers, opt_idx, hiddens)
