@@ -439,4 +439,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         Returns:
             The kwargs passed down to the hooks.
         """
-        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self._optimizers, opt_idx, hiddens)
+        return _build_training_step_kwargs(
+            kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx, hiddens
+        )

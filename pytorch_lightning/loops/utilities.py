@@ -172,7 +172,7 @@ def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
 
 
 def _get_active_optimizers(
-    optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
+    optimizers: List[Optimizer], frequencies: List[int], batch_idx
 ) -> List[Tuple[int, Optimizer]]:
     """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
     one of the optimizers is active at a time.
