@@ -638,6 +638,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Update `RichProgressBarTheme` styles after detecting light theme on colab ([#10993](https://github.com/PyTorchLightning/pytorch-lightning/pull/10993))
 
 
+- Fixed passing `_ddp_params_and_buffers_to_ignore` ([#11949](https://github.com/PyTorchLightning/pytorch-lightning/pull/11949))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed
