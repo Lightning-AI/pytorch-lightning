@@ -526,7 +526,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        # the `batch_idx` is optional with inter-batch parallelism
+        # the `batch_idx` is optional, however, when there's more than 1 argument we cannot differentiate whether the
+        # user wants the `batch_idx` or another key like `optimizer_idx` as we are not strict about the argument names
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
