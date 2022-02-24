@@ -22,7 +22,7 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -49,7 +49,7 @@ class ModelSummary(Callback):
     def __init__(self, max_depth: int = 1) -> None:
         self._max_depth: int = max_depth
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._max_depth:
             return None
 
