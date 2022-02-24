@@ -108,13 +108,13 @@ class EvaluationEpochLoop(Loop):
 
         assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
+            batch_idx = self.batch_progress.current.ready
             batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
         else:
             batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         # configure step_kwargs
-        kwargs = self._build_kwargs(kwargs, batch)
+        kwargs = self._build_kwargs(kwargs, batch, batch_idx)
 
         self.batch_progress.increment_ready()
 
@@ -266,7 +266,7 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-    def _build_kwargs(self, kwargs: OrderedDict, batch: Any) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper function to build the arguments for the current step.
 
         Args:
@@ -276,7 +276,7 @@ class EvaluationEpochLoop(Loop):
         Returns:
             The kwargs passed down to the hooks.
         """
-        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
+        kwargs.update({"batch": batch, "batch_idx": batch_idx})
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs
