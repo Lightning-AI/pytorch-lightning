@@ -1238,7 +1238,7 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
     #    `best_model_path` and `last_model_path` are tracked (tracking for others is stopped).
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
-    with pytest.warns(UserWarning, match="The dirpath was changed from*"):
+    with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.on_load_checkpoint("", "", written_ckpt)
 
     expected_keys = {
