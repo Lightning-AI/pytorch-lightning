@@ -2208,10 +2208,12 @@ class Trainer(
 
     @property
     def weights_save_path(self) -> str:
-        """.. deprecated:: v1.6 `Trainer.weights_save_path` is deprecated in v1.6 and will be removed in v1.8.
-
+        """
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
+
+        .. deprecated:: v1.6
+            `Trainer.weights_save_path` is deprecated in v1.6 and will be removed in v1.8.
         """
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
