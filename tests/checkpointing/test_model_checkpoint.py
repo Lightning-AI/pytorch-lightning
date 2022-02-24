@@ -1209,20 +1209,31 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
 
 
-def test_dirpath_dynamic(tmpdir):
-    before = ModelCheckpoint(dirpath=tmpdir)
-    # dirpath is not explicitly mentioned here, relies on __resolve_ckpt_dir
-    after = ModelCheckpoint()
-    assert after.dirpath != before.dirpath
-
-
 def test_model_checkpoint_saveload_ckpt(tmpdir):
+    def make_assertions(cb_restore, written_ckpt):
+        expected_keys = {
+            "dirpath": False,
+            "best_model_score": False,
+            "kth_best_model_path": False,
+            "kth_value": False,
+            "best_k_models": False,
+            "best_model_path": True,
+            "last_model_path": True,
+        }
+        for key, should_match in expected_keys.items():
+            if should_match:
+                assert getattr(cb_restore, key) == written_ckpt[key]
+            else:
+                assert getattr(cb_restore, key) != written_ckpt[key]
+
+    class CustomModelCheckpoint(ModelCheckpoint):
+        def on_load_checkpoint(self, *args, **kwargs):
+            assert self.dirpath is not None
+            return super().on_load_checkpoint(*args, **kwargs)
+
     ckpt = {
-        "monitor": "random_value",
         "best_model_path": "epoch=10-step=1436.ckpt",
         "best_model_score": torch.tensor(2.246),
-        "current_score": torch.tensor(1.5),
-        "dirpath": tmpdir,
         "best_k_models": {"epoch=10-step=1436.ckpt": torch.tensor(2.246)},
         "kth_best_model_path": "epoch=10-step=1436.ckpt",
         "kth_value": torch.tensor(2.246),
@@ -1230,13 +1241,14 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     }
 
     # test on_save_checkpoint
-    cb_write = ModelCheckpoint(save_top_k=-1, save_last=True)
+    cb_write = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, save_last=True)
     for key, val in ckpt.items():
         setattr(cb_write, key, val)
     written_ckpt = cb_write.on_save_checkpoint("", "", "")
     for state in ckpt:
         assert ckpt[state] == written_ckpt[state]
 
+    # Case - 1
     # test on_load_checkpoint
     # Notes:
     # 1. "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
@@ -1247,25 +1259,15 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.on_load_checkpoint("", "", written_ckpt)
+    make_assertions(cb_restore, written_ckpt)
 
-    expected_keys = {
-        "current_score": False,
-        "dirpath": False,
-        "monitor": False,
-        "best_model_score": False,
-        "kth_best_model_path": False,
-        "kth_value": False,
-        "best_k_models": False,
-        "best_model_path": True,
-        "last_model_path": True,
-    }
-
-    for key, val in written_ckpt.items():
-        should_match = expected_keys[key]
-        if should_match:
-            assert getattr(cb_restore, key) == val
-        else:
-            assert getattr(cb_restore, key) != val
+    # Case - 2
+    # Make sure that everything runs when dirpath is not initialized explicitly
+    cb_restore = CustomModelCheckpoint()
+    cb_restore.setup(Trainer(), BoringModel())
+    with pytest.warns(UserWarning, match="The dirpath has changed from*"):
+        cb_restore.on_load_checkpoint("", "", written_ckpt)
+    make_assertions(cb_restore, written_ckpt)
 
 
 def test_save_last_saves_correct_last_model_path(tmpdir):
