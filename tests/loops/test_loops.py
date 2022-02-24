@@ -952,8 +952,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     # totals are increased by 1 (the failed batch which never completed)
     expected = state_dict.copy()
 
-    # TODO: `is_last_batch` is not correct on reload, the next line should not be necessary
-    expected["epoch_loop.batch_progress"]["is_last_batch"] = val_check_interval == 1.0
     assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
 
     val_dl_progress = "epoch_loop.val_loop.dataloader_progress"

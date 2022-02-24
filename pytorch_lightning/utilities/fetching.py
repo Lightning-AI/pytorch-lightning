@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -79,6 +80,8 @@ class AbstractDataFetcher(ABC):
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
         self._dataloader = dataloader
+        _patch_dataloader_get_iterators()
+        self._attach_data_fetcher()
 
     @property
     def dataloader(self) -> Iterable:
@@ -172,8 +175,6 @@ class AbstractDataFetcher(ABC):
 
     def __iter__(self) -> "AbstractDataFetcher":
         self.reset()
-        self._attach_data_fetcher()
-        _patch_dataloader_get_iterators()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching()
@@ -214,11 +215,14 @@ class DataFetcher(AbstractDataFetcher):
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
         self.batches: List[Any] = []
+        # used to know whether we can access the dataloader length
+        self._has_len: bool = False
 
     def setup(  # type: ignore[override]
         self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
     ) -> None:
         super().setup(dataloader)
+        self._has_len = has_len(dataloader)
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
@@ -233,6 +237,9 @@ class DataFetcher(AbstractDataFetcher):
             try:
                 self._fetch_next_batch(iterator)
             except StopIteration:
+                # this would only happen when prefetch_batches > the number of batches available and makes
+                # `fetching_function` jump directly to the empty iteration return path
+                self.done = True
                 break
 
     def fetching_function(self) -> Tuple[Any, bool]:
@@ -266,6 +273,9 @@ class DataFetcher(AbstractDataFetcher):
         start_output = self.on_fetch_start()
         batch = next(iterator)
         self.fetched += 1
+        if not self.prefetch_batches and self._has_len:
+            # support `done` for non-iterable datasets
+            self.done = self.fetched >= len(self.dataloader)
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
