@@ -45,8 +45,8 @@ def test_num_optimization_steps_with_diff_multiple_grad_accum_factor():
         assert trainer.estimated_num_optimization_steps
 
 
-def test_num_optimization_steps_raises_warning_with_no_dataloaders_loaded(caplog):
-    """Test that a warning is raised when dataloaders are loaded explicitly if they are not already configured."""
+def test_num_optimization_steps_raises_info_with_no_dataloaders_loaded(caplog):
+    """Test that an info message is generated when dataloaders are loaded explicitly if they are not already configured."""
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
