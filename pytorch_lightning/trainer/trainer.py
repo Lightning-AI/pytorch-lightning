@@ -2618,9 +2618,21 @@ class Trainer(
     """
 
     @property
-    def estimated_num_optimization_steps(self) -> int:
-        """Total optimization steps inferred from DataLoaders, gradient accumulation factor and distributed
-        setup."""
+    def estimated_num_optimization_steps(self) -> Union[int, float]:
+        r"""
+        Estimated number of optimization steps for the complete training inferred from DataLoaders, gradient
+        accumulation factor and distributed setup.
+
+        Examples::
+
+            def configure_optimizers(self):
+                optimizer = ...
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_num_optimization_steps
+                )
+                return [optimizer], [scheduler]
+
+        """
         accumulation_scheduler = self.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:

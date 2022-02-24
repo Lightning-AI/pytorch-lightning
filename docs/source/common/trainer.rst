@@ -1703,6 +1703,7 @@ tune
 .. automethod:: pytorch_lightning.trainer.Trainer.tune
    :noindex:
 
+
 Properties
 ^^^^^^^^^^
 
@@ -1808,3 +1809,19 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics["a_val"] == 2
+
+
+estimated_num_optimization_steps
+********************************
+
+Calculates the estimated number of optimization steps for the complete training. The value is inferred from DataLoaders, gradient
+accumulation factor and distributed setting.
+
+.. code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_num_optimization_steps
+        )
+        return [optimizer], [scheduler]
