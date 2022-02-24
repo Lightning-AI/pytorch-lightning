@@ -51,7 +51,9 @@ def test_prefetch_iterator(use_combined_loader):
         iterator.setup(loader)
 
         def generate():
-            generated = [(iterator.fetched, *data) for i, data in enumerate(iterator, prefetch_batches + 1)]
+            generated = [
+                (iterator.fetched, data, iterator.done) for i, data in enumerate(iterator, prefetch_batches + 1)
+            ]
             assert iterator.fetched == 3
             assert iterator.done
             return generated
