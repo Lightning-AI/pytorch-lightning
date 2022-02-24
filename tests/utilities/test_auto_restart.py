@@ -1150,8 +1150,12 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
     )
-    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
-    assert os.path.exists(checkpoint_path)
+    # we saved a ft-checkpoint
+    signaled_ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(signaled_ckpt_path)
+    # load for later as the next fit call will delete it
+    checkpoint = torch.load(signaled_ckpt_path)["loops"]["fit_loop"]
+
     model_restarted = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
 
     # check the batches
@@ -1164,7 +1168,6 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert not torch.equal(model_total.layer.weight, model_signaled.layer.weight)
     assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
 
-    checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
     p = checkpoint["epoch_loop.batch_progress"]
     if p["is_last_batch"] and p["current"]["completed"] == 4:
         assert "dataloader_state_dict" not in checkpoint["epoch_loop.state_dict"]
