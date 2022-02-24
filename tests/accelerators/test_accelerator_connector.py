@@ -414,7 +414,9 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
 
 
 @pytest.mark.parametrize("trainer_kwargs", [{}, dict(strategy="dp", accelerator="gpu"), dict(accelerator="tpu")])
-def test_ipython_compatible_backend(trainer_kwargs, monkeypatch):
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+def test_ipython_compatible_backend(mock_gpuacc_avail, mock_tpuacc_avail, trainer_kwargs, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(**trainer_kwargs)
     assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
@@ -464,9 +466,8 @@ def test_accelerator_cpu(_):
 
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(gpus=1)
-    # TODO enable this test when add device availability check
-    # with pytest.raises(MisconfigurationException, match="You requested gpu, but gpu is not available"):
-    #     trainer = Trainer(accelerator="gpu")
+    with pytest.raises(MisconfigurationException, match="GPUAccelerator can not run on this hardware."):
+        trainer = Trainer(accelerator="gpu")
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
@@ -883,12 +884,11 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert trainer.strategy.local_rank == 0
 
 
-def test_unsupported_tpu_choice(monkeypatch):
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
+def test_unsupported_tpu_choice(mock_tpuacc_avail, monkeypatch):
     import pytorch_lightning.utilities.imports as imports
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
     monkeypatch.setattr(imports, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_tpu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
@@ -902,14 +902,13 @@ def test_unsupported_tpu_choice(monkeypatch):
             Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
-def test_unsupported_ipu_choice(monkeypatch):
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_unsupported_ipu_choice(mock_ipuacc_avail, monkeypatch):
     import pytorch_lightning.strategies.ipu as ipu
     import pytorch_lightning.utilities.imports as imports
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
     monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):

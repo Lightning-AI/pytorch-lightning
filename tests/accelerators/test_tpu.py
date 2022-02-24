@@ -13,6 +13,7 @@
 # limitations under the License
 import collections
 from copy import deepcopy
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -266,7 +267,8 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-def test_tpu_invalid_raises():
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
+def test_tpu_invalid_raises(mock_tpuacc_avail):
     strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy)
@@ -276,7 +278,8 @@ def test_tpu_invalid_raises():
         Trainer(strategy=strategy)
 
 
-def test_tpu_invalid_raises_set_precision_with_strategy():
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
+def test_tpu_invalid_raises_set_precision_with_strategy(mock_tpuacc_avail):
     accelerator = TPUAccelerator()
     strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
