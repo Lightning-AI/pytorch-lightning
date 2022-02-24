@@ -574,10 +574,10 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     Trainer(logger=[logger2, logger3])
 
 
-def test_v1_8_0_callback_on_pretrain_routune(tmpdir):
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     class TestCallback(Callback):
         def on_pretrain_routine_start(self, trainer, pl_module):
-            print("on_pretrain_routune_start called.")
+            print("on_pretrain_routine_start called.")
 
     model = BoringModel()
 
@@ -594,7 +594,7 @@ def test_v1_8_0_callback_on_pretrain_routune(tmpdir):
 
     class TestCallback(Callback):
         def on_pretrain_routine_end(self, trainer, pl_module):
-            print("on_pretrain_routune_end called.")
+            print("on_pretrain_routine_end called.")
 
     model = BoringModel()
 
