@@ -147,7 +147,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     """Test that Lightning can resume from a point where a training_step failed while in the middle of processing
     several optimizer steps for one batch.
 
-    The test asserts that we end up with the same trained weights as if no failure occured.
+    The test asserts that we end up with the same trained weights as if no failure occurred.
     """
 
     n_batches = 3

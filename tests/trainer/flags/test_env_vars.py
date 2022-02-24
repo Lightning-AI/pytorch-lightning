@@ -45,7 +45,7 @@ def test_passing_env_variables_defaults():
     assert trainer.max_steps == 42
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_DEVICES": "2"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_passing_env_variables_devices(cuda_available_mock, device_count_mock):

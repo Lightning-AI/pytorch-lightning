@@ -64,12 +64,6 @@ class CheckpointConnector:
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
 
-    @property
-    def _fault_tolerant_auto_resume_path(self) -> Optional[str]:
-        auto_saved_path = os.path.join(str(self.trainer.weights_save_path), ".pl_auto_save.ckpt")
-        fs = get_filesystem(auto_saved_path)
-        return auto_saved_path if fs.exists(auto_saved_path) else None
-
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
@@ -78,7 +72,7 @@ class CheckpointConnector:
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = self._hpc_resume_path or self._fault_tolerant_auto_resume_path or checkpoint_path
+        self.resume_checkpoint_path = self._hpc_resume_path or checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
             log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
@@ -296,17 +290,6 @@ class CheckpointConnector:
 
         # restore the optimizers
         self.trainer.strategy.load_optimizer_state_dict(self._loaded_checkpoint)
-        for optimizer in self.trainer.optimizers:
-            # move optimizer to GPU 1 weight at a time
-            # avoids OOM
-            if self.trainer.root_gpu is not None:
-                for param, state in optimizer.state.items():
-                    if isinstance(state, dict):
-                        for k, v in state.items():
-                            if isinstance(v, torch.Tensor):
-                                state[k] = v.cuda(self.trainer.root_gpu)
-                    elif isinstance(state, torch.Tensor):
-                        optimizer.state[param] = state.cuda(self.trainer.root_gpu)
 
     def restore_lr_schedulers(self) -> None:
         """Restores the learning rate scheduler states from the pre-loaded checkpoint."""
@@ -348,7 +331,7 @@ class CheckpointConnector:
         checkpoint = {
             # the epoch is saved for compatibility but it's not relevant for restoration
             "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step + 1,
+            "global_step": self.trainer.global_step + model.automatic_optimization,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
