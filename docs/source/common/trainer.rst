@@ -416,18 +416,20 @@ benchmark
 
 |
 
-If true enables cudnn.benchmark.
-This flag is likely to increase the speed of your system if your
-input sizes don't change. However, if it does, then it will likely
-make your system slower.
+Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
+This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
+`here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
-The speedup comes from allowing the cudnn auto-tuner to find the best
-algorithm for the hardware `[see discussion here]
-<https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
+might make your system slower. The CUDNN auto-tuner will try to find the best algorithm for the hardware when a new
+input size is encountered. Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
 Example::
 
-    # default used by the Trainer
+    # defaults to True if not deterministic (which is False by default)
+    trainer = Trainer()
+
+    # you can overwrite the value
     trainer = Trainer(benchmark=False)
 
 deterministic

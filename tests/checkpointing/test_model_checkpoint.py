@@ -1268,3 +1268,12 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
     assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
+
+
+def test_last_global_step_saved():
+    # this should not save anything
+    model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
+    trainer = Mock()
+    trainer.callback_metrics = {"foo": 123}
+    model_checkpoint.save_checkpoint(trainer)
+    assert model_checkpoint._last_global_step_saved == -1
