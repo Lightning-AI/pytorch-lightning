@@ -18,6 +18,7 @@ from typing import Any, Optional
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
+
 # TODO: Replace Any with AbstractProfiler
 def _prepare_filename(
     profiler: Any, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
