@@ -348,7 +348,7 @@ class AcceleratorConnector:
             if duplicated_plugin_key:
                 raise MisconfigurationException(
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
-                    " Expected one 1 value for each type at most"
+                    " Expected one value for each type at most"
                 )
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
