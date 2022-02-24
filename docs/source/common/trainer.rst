@@ -1583,7 +1583,7 @@ weights_save_path
 ^^^^^^^^^^^^^^^^^
 
 
-.. warning:: `weights_save_path` is deprecated in v1.6 and will be removed in v1.8. Please pass
+.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
    callback.
 

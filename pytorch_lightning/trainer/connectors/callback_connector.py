@@ -55,9 +55,8 @@ class CallbackConnector:
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         if weights_save_path:
             rank_zero_deprecation(
-                "Setting `Trainer(weights_save_path=)` is deprecated in v1.6 and will be removed in v1.8."
-                " Please pass ``dirpath`` directly to the"
-                " :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback."
+                "Setting `Trainer(weights_save_path=)` has been deprecated in v1.6 and will be"
+                " removed in v1.8. Please pass ``dirpath`` directly to the `ModelCheckpoint` callback"
             )
 
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
