@@ -270,11 +270,11 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 def test_tpu_invalid_raises():
     strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
-        Trainer(strategy=strategy, accelerator="tpu", devices=8)
+        Trainer(strategy=strategy, devices=8)
 
     strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        Trainer(strategy=strategy, accelerator="tpu", devices=8)
+        Trainer(strategy=strategy, devices=8)
 
 
 @RunIf(tpu=True)
@@ -282,14 +282,14 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
     accelerator = TPUAccelerator()
     strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
-        Trainer(strategy=strategy, accelerator="tpu", devices=8)
+        Trainer(strategy=strategy, devices=8)
 
     accelerator = TPUAccelerator()
     strategy = DDPStrategy(accelerator=accelerator, precision_plugin=TPUPrecisionPlugin())
     with pytest.raises(
         ValueError, match="The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy"
     ):
-        Trainer(strategy=strategy, accelerator="tpu", devices=8)
+        Trainer(strategy=strategy, devices=8)
 
 
 @RunIf(tpu=True)
