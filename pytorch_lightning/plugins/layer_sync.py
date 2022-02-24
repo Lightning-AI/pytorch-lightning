@@ -61,7 +61,28 @@ class NativeSyncBatchNorm(LayerSync):
         Return:
             LightningModule with regular batchnorm layers that will no longer sync across processes.
         """
-        return _revert_sync_batchnorm(model)
+        # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
+        # Original author: Kapil Yedidi (@kapily)
+        converted_module = model
+        if isinstance(model, torch.nn.modules.batchnorm.SyncBatchNorm):
+            # Unfortunately, LayerSync does not store the original class - if it did
+            # we could return the one that was originally created.
+            converted_module = _BatchNormXd(
+                model.num_features, model.eps, model.momentum, model.affine, model.track_running_stats
+            )
+            if model.affine:
+                with torch.no_grad():
+                    converted_module.weight = model.weight
+                    converted_module.bias = model.bias
+            converted_module.running_mean = model.running_mean
+            converted_module.running_var = model.running_var
+            converted_module.num_batches_tracked = model.num_batches_tracked
+            if hasattr(model, "qconfig"):
+                converted_module.qconfig = model.qconfig
+        for name, child in model.named_children():
+            converted_module.add_module(name, self.revert(child))
+        del model
+        return converted_module
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
@@ -71,28 +92,3 @@ class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
         # Here, we are bypassing some tensor sanity checks and trusting that the user
         # provides the right input dimensions at inference.
         return
-
-
-def _revert_sync_batchnorm(module: Module) -> Module:
-    # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
-    # Original author: Kapil Yedidi (@kapily)
-    converted_module = module
-    if isinstance(module, torch.nn.modules.batchnorm.SyncBatchNorm):
-        # Unfortunately, LayerSync does not store the original class - if it did
-        # we could return the one that was originally created.
-        converted_module = _BatchNormXd(
-            module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats
-        )
-        if module.affine:
-            with torch.no_grad():
-                converted_module.weight = module.weight
-                converted_module.bias = module.bias
-        converted_module.running_mean = module.running_mean
-        converted_module.running_var = module.running_var
-        converted_module.num_batches_tracked = module.num_batches_tracked
-        if hasattr(module, "qconfig"):
-            converted_module.qconfig = module.qconfig
-    for name, child in module.named_children():
-        converted_module.add_module(name, _revert_sync_batchnorm(child))
-    del module
-    return converted_module
