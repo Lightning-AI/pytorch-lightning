@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -21,7 +23,7 @@ from pytorch_lightning.callbacks.gradient_accumulation_scheduler import Gradient
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomIterableDataset
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import no_warning_call, pl_multi_process_test
+from tests.helpers.utils import pl_multi_process_test
 
 
 def test_num_optimization_steps_basic():
@@ -39,31 +41,33 @@ def test_num_optimization_steps_with_diff_multiple_grad_accum_factor():
     different epochs."""
     grad_scheduler = GradientAccumulationScheduler(scheduling={7: 2})
     trainer = Trainer(callbacks=[grad_scheduler])
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
     with pytest.raises(MisconfigurationException, match="cannot be computed with different"):
         assert trainer.estimated_num_optimization_steps
 
 
-def test_num_optimization_steps_raises_warning_with_no_dataloaders_loaded():
+def test_num_optimization_steps_raises_warning_with_no_dataloaders_loaded(caplog):
     """Test that a warning is raised when dataloaders are loaded explicitly if they are not already configured."""
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
 
+    message = "to estimate number of optimization steps"
     trainer.reset_train_dataloader()
-    with no_warning_call(UserWarning, match="to estimate number of optimization steps"):
+    with caplog.at_level(logging.INFO):
         assert trainer.estimated_num_optimization_steps == 64
+
+    assert message not in caplog.text
 
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
 
-    with pytest.warns(UserWarning, match="to estimate number of optimization steps"):
+    with caplog.at_level(logging.INFO):
         assert trainer.estimated_num_optimization_steps == 64
+
+    assert message in caplog.text
 
 
 def test_num_optimization_steps_iterable_dataset():
@@ -106,39 +110,28 @@ def test_num_optimization_steps_accumulate_gradients(accumulate_grad_batches, ex
     assert trainer.estimated_num_optimization_steps == expected_steps
 
 
-@pytest.mark.parametrize("num_nodes,estimated_steps", [(1, 10), (2, 5), (3, 4), (4, 3)])
-def test_num_optimization_steps_ddp(num_nodes, estimated_steps, monkeypatch):
-    """Test optimization steps with DDP."""
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "estimated_steps"],
+    [
+        ({"strategy": "ddp", "num_nodes": 1}, 10),
+        ({"strategy": "ddp", "num_nodes": 2}, 5),
+        ({"strategy": "ddp", "num_nodes": 3}, 4),
+        ({"strategy": "ddp", "num_nodes": 4}, 3),
+        ({"strategy": "dp"}, 64),
+        ({"strategy": "ddp2", "num_nodes": 1}, 64),
+        ({"strategy": "ddp2", "num_nodes": 2}, 32),
+        ({"strategy": "ddp2", "num_nodes": 3}, 22),
+    ],
+)
+def test_num_optimization_steps_gpu(trainer_kwargs, estimated_steps, monkeypatch):
+    """Test optimization steps with GPU strategies."""
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 7)
-    trainer = Trainer(max_epochs=1, num_nodes=num_nodes, devices=7, accelerator="gpu", strategy="ddp")
+    trainer = Trainer(max_epochs=1, devices=7, accelerator="gpu", **trainer_kwargs)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
     assert trainer.estimated_num_optimization_steps == estimated_steps
-
-
-@pytest.mark.parametrize("num_nodes,estimated_steps", [(1, 64), (2, 32), (3, 22)])
-def test_num_optimization_steps_ddp2(num_nodes, estimated_steps, monkeypatch):
-    """Test optimization steps with DDP2."""
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 7)
-    trainer = Trainer(max_epochs=1, num_nodes=num_nodes, devices=7, accelerator="gpu", strategy="ddp2")
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
-    assert trainer.estimated_num_optimization_steps == estimated_steps
-
-
-def test_num_optimization_steps_dp(monkeypatch):
-    """Test optimization steps with DP."""
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 7)
-    trainer = Trainer(max_epochs=1, devices=7, accelerator="gpu", strategy="dp")
-    model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
-    assert trainer.estimated_num_optimization_steps == 64
 
 
 @RunIf(tpu=True)

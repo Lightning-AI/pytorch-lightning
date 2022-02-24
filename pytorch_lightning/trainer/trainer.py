@@ -2619,7 +2619,7 @@ class Trainer(
 
     @property
     def estimated_num_optimization_steps(self) -> int:
-        """Total optimization steps inferred from dataloaders, gradient accumulation factor and distributed
+        """Total optimization steps inferred from DataLoaders, gradient accumulation factor and distributed
         setup."""
         accumulation_scheduler = self.accumulation_scheduler
 
@@ -2634,7 +2634,7 @@ class Trainer(
             return float("inf")
 
         if self.train_dataloader is None:
-            rank_zero_warn("Loading `train_dataloader` to estimate number of optimization steps.")
+            rank_zero_info("Loading `train_dataloader` to estimate number of optimization steps.")
             self.reset_train_dataloader()
 
         total_batches = self.num_training_batches
