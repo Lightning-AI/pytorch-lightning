@@ -69,25 +69,37 @@ class TestFSDPModel(BoringModel):
 
     def on_train_start(self) -> None:
         self._assert_layer_fsdp_instance()
+        print(f"train start layer: {self.layer.module.reshard_after_forward}")
+        print(f"train start layer: {self.layer.module[0].reshard_after_forward}")
+        print(f"train start layer: {self.layer.module[1].reshard_after_forward}")
 
     def on_test_start(self) -> None:
         self._assert_layer_fsdp_instance()
+        print(f"test start layer: {self.layer.module.reshard_after_forward}")
+        print(f"test start layer: {self.layer.module[0].reshard_after_forward}")
+        print(f"test start layer: {self.layer.module[1].reshard_after_forward}")
 
     def on_validation_start(self) -> None:
         self._assert_layer_fsdp_instance()
+        print(f"val start layer: {self.layer.module.reshard_after_forward}")
+        print(f"val start layer: {self.layer.module[0].reshard_after_forward}")
+        print(f"val start layer: {self.layer.module[1].reshard_after_forward}")
 
     def on_prediction_start(self) -> None:
         self._assert_layer_fsdp_instance()
+        print(f"pre start layer: {self.layer.module.reshard_after_forward}")
+        print(f"pre start layer: {self.layer.module[0].reshard_after_forward}")
+        print(f"re start layer: {self.layer.module[1].reshard_after_forward}")
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.layer.module[0], FullyShardedDataParallel)
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
-        # root should not be resharding
-        assert self.layer.module[0].disable_reshard_on_root is True
+        # # root should not be resharding
+        # assert self.layer.module[0].disable_reshard_on_root is True
         # Assert that the nested layers are set reshard_after_forward to True
-        assert self.layer.module[0].reshard_after_forward is True
-        assert self.layer.module[2].reshard_after_forward is True
+        # assert self.layer.module[0].reshard_after_forward is True
+        # assert self.layer.module[2].reshard_after_forward is True
 
 
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
@@ -97,6 +109,7 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
     model = TestFSDPModel()
     trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="fsdp", precision=16, max_epochs=1)
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+    assert False
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
