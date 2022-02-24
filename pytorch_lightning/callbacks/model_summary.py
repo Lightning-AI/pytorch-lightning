@@ -49,9 +49,7 @@ class ModelSummary(Callback):
     def __init__(self, max_depth: int = 1) -> None:
         self._max_depth: int = max_depth
 
-    def on_train_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None
-    ) -> None:
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if not self._max_depth:
             return None
 

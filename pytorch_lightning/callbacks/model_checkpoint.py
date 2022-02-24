@@ -249,7 +249,7 @@ class ModelCheckpoint(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self.__resolve_ckpt_dir(trainer)
-        if trainer.is_global_zero:
+        if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
         # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
