@@ -82,7 +82,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         # choose which loop will run the optimization
         if self.trainer.lightning_module.automatic_optimization:
             optimizers = _get_active_optimizers(
-                self.trainer.optimizers, self.trainer.optimizer_frequencies, kwargs["batch_idx"]
+                self.trainer.optimizers, self.trainer.optimizer_frequencies, kwargs.get("batch_idx", 0)
             )
             outputs = self.optimizer_loop.run(optimizers, kwargs)
         else:

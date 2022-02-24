@@ -141,7 +141,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     """Tests that training_step_end and training_epoch_end can log."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
+        def training_step(self, batch):
             loss = self.step(batch[0])
             self.log("a", loss, on_step=True, on_epoch=True)
             return loss

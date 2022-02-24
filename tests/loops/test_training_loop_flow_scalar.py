@@ -239,7 +239,7 @@ def test_train_step_no_return(tmpdir):
     automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
+        def training_step(self, batch):
             self.training_step_called = True
             loss = self.step(batch[0])
             self.log("a", loss, on_step=True, on_epoch=True)
