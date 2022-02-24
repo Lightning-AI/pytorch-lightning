@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput, DDPSpawnStrategy
+from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -75,9 +75,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
-    _AcceleratorType,
     _IPU_AVAILABLE,
-    _StrategyType,
     _TPU_AVAILABLE,
     AMPType,
     device_parser,
@@ -138,7 +136,7 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: int = 1,
+        num_processes: Optional[int] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
@@ -157,11 +155,11 @@ class Trainer(
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
-        limit_train_batches: Union[int, float] = 1.0,
-        limit_val_batches: Union[int, float] = 1.0,
-        limit_test_batches: Union[int, float] = 1.0,
-        limit_predict_batches: Union[int, float] = 1.0,
-        val_check_interval: Union[int, float] = 1.0,
+        limit_train_batches: Optional[Union[int, float]] = None,
+        limit_val_batches: Optional[Union[int, float]] = None,
+        limit_test_batches: Optional[Union[int, float]] = None,
+        limit_predict_batches: Optional[Union[int, float]] = None,
+        val_check_interval: Optional[Union[int, float]] = None,
         flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -189,7 +187,7 @@ class Trainer(
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags.
 
@@ -203,8 +201,10 @@ class Trainer(
                     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
+                Default: ``None``.
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
+                Default: ``'native''``.
 
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
@@ -213,23 +213,29 @@ class Trainer(
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
                 set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key set a string instead of True with the key name.
+                Default: ``False``.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+                Default: ``False``.
 
             auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
+                Default: ``False``.
 
-            benchmark: If true enables cudnn.benchmark.
+            benchmark: If ``True``, enables cudnn.benchmark.
+                Default: ``False``.
 
             callbacks: Add a callback or list of callbacks.
+                Default: ``None``.
 
             checkpoint_callback: If ``True``, enable checkpointing.
+                Default: ``None``.
 
                 .. deprecated:: v1.5
                     ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
@@ -238,14 +244,18 @@ class Trainer(
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
+                Default: ``True``.
 
             check_val_every_n_epoch: Check val every n train epochs.
+                Default: ``1``.
+
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
+                Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Default: ``False``.
@@ -255,6 +265,7 @@ class Trainer(
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
+                Default: ``False``.
 
             flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -263,27 +274,34 @@ class Trainer(
                     Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
+                Default: ``None``.
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
+                Default: ``None``.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
                 be set to ``"norm"``.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
+                Default: ``1.0``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
                 provided and the `save_dir` property of that logger is not set, local files (checkpoints,
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
+                Default: ``True``.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
 
@@ -291,7 +309,8 @@ class Trainer(
                     Deprecated in v1.5.0 and will be removed in v1.7.0
                     Please use the ``DeviceStatsMonitor`` callback directly instead.
 
-            log_every_n_steps: How often to log within steps (defaults to every 50 steps).
+            log_every_n_steps: How often to log within steps.
+                Default: ``50``.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -319,15 +338,20 @@ class Trainer(
                     pass ``enable_progress_bar = False`` to the Trainer.
 
             enable_progress_bar: Whether to enable to progress bar by default.
+                Default: ``False``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
+                Default: ``None``.
 
             overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+                Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
+                Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
                 Can be used on CPU, GPU, TPUs or IPUs.
+                Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
@@ -339,21 +363,25 @@ class Trainer(
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
                 ``max_epochs`` to ``-1``.
 
-            min_steps: Force training for at least these number of steps. Disabled by default (None).
+            min_steps: Force training for at least these number of steps. Disabled by default (``None``).
 
-            max_time: Stop training after this amount of time has passed. Disabled by default (None).
+            max_time: Stop training after this amount of time has passed. Disabled by default (``None``).
                 The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
             num_nodes: Number of GPU nodes for distributed training.
+                Default: ``1``.
 
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
+                Default: ``1``.
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
+                Default: ``2``.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
+                Default: ``0``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -370,8 +398,10 @@ class Trainer(
 
             strategy: Supports different training strategies with aliases
                 as well custom training type plugins.
+                Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+                Default: ``False``.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
@@ -381,18 +411,25 @@ class Trainer(
                     Please use ``detect_anomaly`` instead.
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
+                Default: ``False``.
 
-            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
+                Default: ``None``.
 
             ipus: How many IPUs to train on.
+                Default: ``None``.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
+                Default: ``-1``.
 
-            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
-                use int to check every n steps (batches).
+            val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
+                after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
+                batches.
+                Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
+                Default: ``True``.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -410,14 +447,17 @@ class Trainer(
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
+                Default: ``False``.
 
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
+                Default: ``"max_size_cycle"``.
 
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
+                Default: ``False``.
 
                 .. deprecated:: v1.5
                     ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
@@ -435,23 +475,23 @@ class Trainer(
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
         self._accelerator_connector = AcceleratorConnector(
-            num_processes,
-            devices,
-            tpu_cores,
-            ipus,
-            accelerator,
-            strategy,
-            gpus,
-            gpu_ids,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic,
-            precision,
-            amp_backend,
-            amp_level,
-            plugins,
+            num_processes=num_processes,
+            devices=devices,
+            tpu_cores=tpu_cores,
+            ipus=ipus,
+            accelerator=accelerator,
+            strategy=strategy,
+            gpus=gpus,
+            gpu_ids=gpu_ids,
+            num_nodes=num_nodes,
+            sync_batchnorm=sync_batchnorm,
+            benchmark=benchmark,
+            replace_sampler_ddp=replace_sampler_ddp,
+            deterministic=deterministic,
+            precision=precision,
+            amp_type=amp_backend,
+            amp_level=amp_level,
+            plugins=plugins,
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
@@ -512,6 +552,7 @@ class Trainer(
         self._call_callback_hooks("on_init_start")
 
         # init data flags
+        self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
@@ -565,10 +606,11 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self.logger: Optional[LightningLoggerBase]
+        self._loggers: List[LightningLoggerBase]
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_interval: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -584,14 +626,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
-        val_check_interval,
-        overfit_batches,
-        fast_dev_run,
-    ):
+        limit_train_batches: Optional[Union[int, float]],
+        limit_val_batches: Optional[Union[int, float]],
+        limit_test_batches: Optional[Union[int, float]],
+        limit_predict_batches: Optional[Union[int, float]],
+        val_check_interval: Optional[Union[int, float]],
+        overfit_batches: Union[int, float],
+        fast_dev_run: Union[int, bool],
+    ) -> None:
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
@@ -669,10 +711,8 @@ class Trainer(
             **kwargs: keyword arguments to be passed to `trainer_fn`
         """
         try:
-            if isinstance(self.strategy, DDPSpawnStrategy):
-                spawn_output: _SpawnOutput = self.strategy.spawn(trainer_fn, *args, **kwargs)
-                self.strategy._recover_results_in_main_process(spawn_output, self)
-                return spawn_output.trainer_results
+            if self.strategy.launcher is not None:
+                return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
         # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
@@ -688,7 +728,6 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
             # teardown might access the stage so we reset it after
@@ -761,7 +800,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -1120,6 +1159,8 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
+        self.__setup_profiler()
+
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
         # check if we should delay restoring checkpoint till later
@@ -1201,9 +1242,6 @@ class Trainer(
         self.state.status = TrainerStatus.FINISHED
         self.state.stage = None
 
-        if isinstance(self.strategy, DDPSpawnStrategy):
-            results = self.strategy._collect_rank_zero_results(self, results)
-
         return results
 
     def _log_hyperparams(self) -> None:
@@ -1248,7 +1286,6 @@ class Trainer(
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.post_dispatch(self)
         self.strategy.teardown()
-        self._data_connector.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
@@ -1266,7 +1303,6 @@ class Trainer(
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
-        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -1381,6 +1417,16 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        # fault-tolerance takes precedence
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        if ft_checkpoints:
+            ft_ckpt_path = ft_checkpoints[0].ckpt_path
+            fs = get_filesystem(ft_ckpt_path)
+            if fs.exists(ft_ckpt_path):
+                return ft_ckpt_path
+
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
@@ -1722,44 +1768,36 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
+        rank_zero_info(
+            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+        )
 
         num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
+        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                "GPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
+        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
-                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
-                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+                "TPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
-        if (
-            _IPU_AVAILABLE
-            and self._device_type != _AcceleratorType.IPU
-            and not isinstance(self.accelerator, IPUAccelerator)
-        ):
+        if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
-                "IPU available but not used. Set the `ipus` flag in your trainer"
-                " `Trainer(ipus=8)` or script `--ipus=8`."
+                "IPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
-
-    def _on_exception(self) -> None:
-        if not _fault_tolerant_training():
-            return
-        # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
-        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
-        self.save_checkpoint(file_path)
 
     """
     Data loading methods
@@ -1772,6 +1810,13 @@ class Trainer(
         Args:
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
+        source = self._data_connector._train_dataloader_source
+        pl_module = self.lightning_module or model
+        has_step = is_overridden("training_step", pl_module)
+        enable_training = self.limit_train_batches > 0
+        if not (source.is_defined() and has_step and enable_training):
+            return
+
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
@@ -1811,20 +1856,17 @@ class Trainer(
             else float("inf")
         )
 
-        if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
+        if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float("inf"):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies"
+                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
                 " `num_training_batches` to use."
             )
 
-        # determine when to check validation
-        # if int passed in, val checks that often
-        # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
             if self.val_check_batch > self.num_training_batches:
@@ -1867,7 +1909,8 @@ class Trainer(
         source = self._data_connector._val_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("validation_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_validation = self.limit_val_batches > 0
+        if source.is_defined() and has_step and enable_validation:
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
@@ -1884,7 +1927,8 @@ class Trainer(
         source = self._data_connector._test_dataloader_source
         pl_module = self.lightning_module or model
         has_step = is_overridden("test_step", pl_module)
-        if source.is_defined() and has_step:
+        enable_testing = self.limit_test_batches > 0
+        if source.is_defined() and has_step and enable_testing:
             self.num_test_batches, self.test_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.TESTING, model=pl_module
             )
@@ -1897,7 +1941,8 @@ class Trainer(
         """
         source = self._data_connector._predict_dataloader_source
         pl_module = self.lightning_module or model
-        if source.is_defined():
+        enable_prediction = self.limit_predict_batches > 0
+        if source.is_defined() and enable_prediction:
             self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )
@@ -1969,14 +2014,6 @@ class Trainer(
         )
 
     @property
-    def _strategy_type(self) -> _StrategyType:
-        return self._accelerator_connector._strategy_type
-
-    @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector._device_type
-
-    @property
     def num_nodes(self) -> int:
         return self._accelerator_connector.num_nodes
 
@@ -2006,10 +2043,13 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return self._accelerator_connector.parallel_device_ids
+        return (
+            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        )
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
+        # TODO: this is actually an optional return
         return self.strategy.lightning_module
 
     @property
@@ -2128,12 +2168,7 @@ class Trainer(
 
     @property
     def data_parallel(self) -> bool:
-        return self._strategy_type in (
-            _StrategyType.DP,
-            _StrategyType.DDP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP2,
-        )
+        return isinstance(self.strategy, ParallelStrategy)
 
     @property
     def progress_bar_dict(self) -> dict:
@@ -2439,7 +2474,7 @@ class Trainer(
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> Optional[int]:
+    def min_epochs(self) -> int:
         return self.fit_loop.min_epochs
 
     @property
@@ -2555,6 +2590,37 @@ class Trainer(
     """
 
     @property
+    def logger(self) -> Optional[LightningLoggerBase]:
+        if len(self.loggers) == 0:
+            return None
+        if len(self.loggers) == 1:
+            return self.loggers[0]
+        else:
+            rank_zero_warn(
+                "Using trainer.logger when Trainer is configured to use multiple loggers."
+                " This behavior will change in v1.8 when LoggerCollection is removed, and"
+                " trainer.logger will return the first logger in trainer.loggers"
+            )
+            return LoggerCollection(self.loggers)
+
+    @logger.setter
+    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+        if not logger:
+            self.loggers = []
+        elif isinstance(logger, LoggerCollection):
+            self.loggers = list(logger)
+        else:
+            self.loggers = [logger]
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        return self._loggers
+
+    @loggers.setter
+    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+        self._loggers = loggers if loggers else []
+
+    @property
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
 
@@ -2609,7 +2675,30 @@ class Trainer(
         self._terminate_on_nan = val  # : 212
 
 
-def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
+def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
+    if batches is None:
+        # batches is optional to know if the user passed a value so that we can show the above info messages only to the
+        # users that set a value explicitly
+        return 1.0
+
+    # differentiating based on the type can be error-prone for users. show a message describing the chosen behaviour
+    if isinstance(batches, int) and batches == 1:
+        if name == "limit_train_batches":
+            message = "1 batch per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run after every batch."
+        else:
+            message = "1 batch will be used."
+        rank_zero_info(f"`Trainer({name}=1)` was configured so {message}")
+    elif isinstance(batches, float) and batches == 1.0:
+        if name == "limit_train_batches":
+            message = "100% of the batches per epoch will be used."
+        elif name == "val_check_interval":
+            message = "validation will run at the end of the training epoch."
+        else:
+            message = "100% of the batches will be used."
+        rank_zero_info(f"`Trainer({name}=1.0)` was configured so {message}.")
+
     if 0 <= batches <= 1:
         return batches
     if batches > 1 and batches % 1.0 == 0:

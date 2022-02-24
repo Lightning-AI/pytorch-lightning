@@ -19,7 +19,7 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -55,6 +55,10 @@ class LightningLoggerBase(ABC):
             is not presented in the `agg_key_funcs` dictionary, then the
             `agg_default_func` will be used for aggregation.
 
+        .. deprecated:: v1.6
+            The parameters `agg_key_funcs` and `agg_default_func` are deprecated
+            in v1.6 and will be removed in v1.8.
+
     Note:
         The `agg_key_funcs` and `agg_default_func` arguments are used only when
         one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
@@ -63,12 +67,26 @@ class LightningLoggerBase(ABC):
     def __init__(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
     ):
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
-        self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
-        self._agg_default_func = agg_default_func
+        if agg_key_funcs:
+            self._agg_key_funcs = agg_key_funcs
+            rank_zero_deprecation(
+                "The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+                " and will be removed in v1.8."
+            )
+        else:
+            self._agg_key_funcs = {}
+        if agg_default_func:
+            self._agg_default_func = agg_default_func
+            rank_zero_deprecation(
+                "The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+                " and will be removed in v1.8."
+            )
+        else:
+            self._agg_default_func = np.mean
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
@@ -85,6 +103,9 @@ class LightningLoggerBase(ABC):
     ):
         """Update aggregation methods.
 
+        .. deprecated:: v1.6
+            `update_agg_funcs` is deprecated in v1.6 and will be removed in v1.8.
+
         Args:
             agg_key_funcs:
                 Dictionary which maps a metric name to a function, which will
@@ -98,64 +119,23 @@ class LightningLoggerBase(ABC):
             self._agg_key_funcs.update(agg_key_funcs)
         if agg_default_func:
             self._agg_default_func = agg_default_func
-
-    def _aggregate_metrics(
-        self, metrics: Dict[str, float], step: Optional[int] = None
-    ) -> Tuple[int, Optional[Dict[str, float]]]:
-        """Aggregates metrics.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-
-        Returns:
-            Step and aggregated metrics. The return value could be ``None``. In such case, metrics
-            are added to the aggregation list, but not aggregated yet.
-        """
-        # if you still receiving metric from the same step, just accumulate it
-        if step == self._prev_step:
-            self._metrics_to_agg.append(metrics)
-            return step, None
-
-        # compute the metrics
-        agg_step, agg_mets = self._reduce_agg_metrics()
-
-        # as new step received reset accumulator
-        self._metrics_to_agg = [metrics]
-        self._prev_step = step
-        return agg_step, agg_mets
-
-    def _reduce_agg_metrics(self):
-        """Aggregate accumulated metrics."""
-        # compute the metrics
-        if not self._metrics_to_agg:
-            agg_mets = None
-        elif len(self._metrics_to_agg) == 1:
-            agg_mets = self._metrics_to_agg[0]
-        else:
-            agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
-        return self._prev_step, agg_mets
-
-    def _finalize_agg_metrics(self):
-        """This shall be called before save/close."""
-        agg_step, metrics_to_log = self._reduce_agg_metrics()
-        self._metrics_to_agg = []
-
-        if metrics_to_log is not None:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
+        rank_zero_deprecation(
+            "`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+        )
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
+        .. deprecated:: v1.6
+            This method is deprecated in v1.6 and will be removed in v1.8.
+            Please use `LightningLoggerBase.log_metrics` instead.
+
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        agg_step, metrics_to_log = self._aggregate_metrics(metrics=metrics, step=step)
-
-        if metrics_to_log:
-            self.log_metrics(metrics=metrics_to_log, step=agg_step)
+        self.log_metrics(metrics=metrics, step=step)
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
@@ -178,7 +158,7 @@ class LightningLoggerBase(ABC):
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
-            kwargs: Optional keywoard arguments, depends on the specific logger being used
+            kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
     def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
@@ -190,23 +170,8 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_text(self, *args, **kwargs) -> None:
-        """Log text.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
-
-    def log_image(self, *args, **kwargs) -> None:
-        """Log image.
-
-        Arguments are directly passed to the logger.
-        """
-        raise NotImplementedError
-
     def save(self) -> None:
         """Save log data."""
-        self._finalize_agg_metrics()
 
     def finalize(self, status: str) -> None:
         """Do any processing that is necessary to finalize an experiment.
@@ -286,11 +251,11 @@ class LoggerCollection(LightningLoggerBase):
 
     def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
         for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics, step)
+            logger.agg_and_log_metrics(metrics=metrics, step=step)
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
-            logger.log_metrics(metrics, step)
+            logger.log_metrics(metrics=metrics, step=step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:

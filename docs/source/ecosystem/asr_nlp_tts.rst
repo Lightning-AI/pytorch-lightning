@@ -535,7 +535,7 @@ since every NeMo model is a Lightning Module.
             logits = self.classifier(hidden_states=hidden_states)
             return logits
 
-        # PTL-specfic methods
+        # PTL-specific methods
         def training_step(self, batch, batch_idx):
             """
             Lightning calls this inside the training loop with the data from the training dataloader
@@ -756,7 +756,7 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
             return l_mle, l_length, logdet, loss, attn
 
-        # PTL-specfic methods
+        # PTL-specific methods
         def training_step(self, batch, batch_idx):
             y, y_lengths, x, x_lengths = batch
 

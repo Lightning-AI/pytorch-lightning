@@ -54,7 +54,7 @@ class NestedLoop(Loop):
 
 @pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
 def test_connect_loops_direct(loop_name):
-    """Test Trainer referenes in loops on assignment."""
+    """Test Trainer references in loops on assignment."""
     loop = NestedLoop()
 
     with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
@@ -230,7 +230,6 @@ def test_loop_restore():
     assert loop.outputs == list(range(10))
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loop_hierarchy():
     @dataclass
     class SimpleProgress(BaseProgress):
@@ -513,6 +512,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": stop_optimizer,
@@ -562,8 +565,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.epoch_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
@@ -682,6 +683,10 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": n_optimizers,
@@ -720,7 +725,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     assert checkpoint["loops"]["fit_loop"] == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fit_loop_reset(tmpdir):
     """Test that the reset logic in fit- and epoch loop is aware of whether the loop is restarting from a completed
     loop or from a mid-epoch checkpoint."""

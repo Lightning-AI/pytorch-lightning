@@ -14,23 +14,19 @@
 import multiprocessing
 import os
 from dataclasses import dataclass
-from functools import partial
-from typing import Any, Collection, Iterable, List, Optional, Tuple, Union
+from typing import Any, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import (
-    _teardown_dataloader_get_iterators,
-    _validate_fault_tolerant_automatic,
-)
+from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
@@ -39,49 +35,22 @@ from pytorch_lightning.utilities.data import (
     has_iterable_dataset,
     has_len_all_ranks,
 )
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import (
-    AbstractDataFetcher,
-    DataFetcher,
-    DataLoaderIterDataFetcher,
-    InterBatchParallelDataFetcher,
-)
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 class DataConnector:
-    def __init__(
-        self,
-        trainer: "pl.Trainer",
-        multiple_trainloader_mode: str = "max_size_cycle",
-        train_data_fetcher: Optional[AbstractDataFetcher] = None,
-        validate_data_fetcher: Optional[AbstractDataFetcher] = None,
-        test_data_fetcher: Optional[AbstractDataFetcher] = None,
-    ):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
-
-        self.train_data_fetcher = train_data_fetcher
-        self.validate_data_fetcher = validate_data_fetcher
-        self.test_data_fetcher = test_data_fetcher
-        self.sanity_check_data_fetcher: Optional[AbstractDataFetcher] = None
-
         self._train_dataloader_source = _DataLoaderSource(None, "")
         self._val_dataloader_source = _DataLoaderSource(None, "")
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
-
-    @property
-    def evaluation_data_fetcher(self) -> Optional[AbstractDataFetcher]:
-        if self.trainer.sanity_checking:
-            return self.sanity_check_data_fetcher
-        return self.test_data_fetcher if self.trainer.testing else self.validate_data_fetcher
 
     @property
     def _should_reload_train_dl(self) -> bool:
@@ -125,33 +94,6 @@ class DataConnector:
 
         self.trainer.reload_dataloaders_every_n_epochs = reload_dataloaders_every_n_epochs
         self.trainer._is_data_prepared = False
-
-    def _select_data_fetcher(self) -> AbstractDataFetcher:
-        if not self.trainer.training:
-            return DataFetcher()
-
-        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-            rank_zero_warn(
-                "Found `dataloader_iter` argument in the `training_step`. Note that the support for "
-                "this signature is experimental and the behavior is subject to change."
-            )
-            return DataLoaderIterDataFetcher()
-        elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-            if not isinstance(self.trainer.accelerator, GPUAccelerator):
-                raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
-            return InterBatchParallelDataFetcher()
-        return DataFetcher()
-
-    def get_profiled_dataloader(self, dataloader: Iterable, dataloader_idx: int) -> Iterable:
-        stage: str = self.trainer.state.stage.value
-        data_fetcher = getattr(self, f"{stage}_data_fetcher", None) or self._select_data_fetcher()
-        data_fetcher.setup(
-            dataloader,
-            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
-        )
-        setattr(self, f"{stage}_data_fetcher", data_fetcher)
-        return data_fetcher
 
     def prepare_data(self) -> None:
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
@@ -275,7 +217,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
+        using_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -479,21 +421,21 @@ class DataConnector:
                 limit_eval_batches = getattr(self.trainer, f"limit_{mode.dataloader_prefix}_batches")
 
                 # limit num batches either as a percent or num steps
-                if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
+                if isinstance(limit_eval_batches, int):
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float("inf"):
                     num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `0.0`, `1.0` or an int. An int k"
+                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
                         f" specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
-                        f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
+                        f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
@@ -558,21 +500,6 @@ class DataConnector:
                 " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
-
-    def teardown(self) -> None:
-        if self.train_data_fetcher:
-            self.train_data_fetcher.teardown()
-            self.train_data_fetcher = None
-        if self.validate_data_fetcher:
-            self.validate_data_fetcher.teardown()
-            self.validate_data_fetcher = None
-        if self.test_data_fetcher:
-            self.test_data_fetcher.teardown()
-            self.test_data_fetcher = None
-        if self.sanity_check_data_fetcher:
-            self.sanity_check_data_fetcher.teardown()
-            self.sanity_check_data_fetcher = None
-        _teardown_dataloader_get_iterators()
 
 
 @dataclass

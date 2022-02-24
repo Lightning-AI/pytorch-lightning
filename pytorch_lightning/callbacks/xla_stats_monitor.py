@@ -21,8 +21,9 @@ Monitor and logs XLA stats during training.
 import time
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
@@ -72,7 +73,7 @@ class XLAStatsMonitor(Callback):
         if not trainer.logger:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != _AcceleratorType.TPU:
+        if isinstance(trainer.accelerator, TPUAccelerator):
             raise MisconfigurationException(
                 "You are using XLAStatsMonitor but are not running on TPU"
                 f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."

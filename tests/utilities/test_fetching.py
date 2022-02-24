@@ -184,7 +184,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            fetcher = trainer._data_connector.train_data_fetcher
+            fetcher = trainer.fit_loop._data_fetcher
             assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
             assert fetcher.prefetch_batches == 1
 
@@ -232,7 +232,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -255,7 +255,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_epoch_end(self, *_):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
+            assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
@@ -322,7 +322,7 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
 def test_stop_iteration(trigger_stop_iteration, tmpdir):
-    """Verify that StopIteration properly terminates the training when this is trigged from the current
+    """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
