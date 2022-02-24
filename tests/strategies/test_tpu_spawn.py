@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -24,8 +22,6 @@ from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests.helpers.runif import RunIf
-from tests.helpers.utils import pl_multi_process_test
 
 
 class BoringModelNoDataloaders(BoringModel):
@@ -83,20 +79,20 @@ def test_error_process_iterable_dataloader(_):
         TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
 
 
-class BoringModelTPU(BoringModel):
-    def on_train_start(self) -> None:
-        assert self.device == torch.device("xla", index=1)
-        assert os.environ.get("PT_XLA_DEBUG") == "1"
+# class BoringModelTPU(BoringModel):
+#     def on_train_start(self) -> None:
+#         assert self.device == torch.device("xla", index=1)
+#         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
-@RunIf(tpu=True)
-@pl_multi_process_test
-def test_model_tpu_one_core():
-    """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
-    trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
-    # assert training strategy attributes for device setting
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    # assert trainer.strategy.root_device == torch.device("xla", index=1)
-    model = BoringModelTPU()
-    trainer.fit(model)
-    assert "PT_XLA_DEBUG" not in os.environ
+# @RunIf(tpu=True)
+# @pl_multi_process_test
+# def test_model_tpu_one_core():
+#     """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
+#     trainer = Trainer(tpu_cores=1, fast_dev_run=True, strategy=TPUSpawnStrategy(debug=True))
+#     # assert training strategy attributes for device setting
+#     assert isinstance(trainer.strategy, TPUSpawnStrategy)
+#     # assert trainer.strategy.root_device == torch.device("xla", index=1)
+#     model = BoringModelTPU()
+#     trainer.fit(model)
+#     assert "PT_XLA_DEBUG" not in os.environ
