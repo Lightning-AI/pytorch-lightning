@@ -93,6 +93,12 @@ repos:
           - mdformat_frontmatter
         exclude: CHANGELOG.md
 
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v1.19.0
+    hooks:
+      - id: hadolint
+        args: [--ignore, DL3025, --ignore, DL3018]
+
   - repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
     hooks:
