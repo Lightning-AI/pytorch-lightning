@@ -202,3 +202,4 @@ def test_hiddens_multiple_optimizers(tmpdir):
         enable_progress_bar=False,
     )
     trainer.fit(model)
+    assert trainer.global_step == 1
