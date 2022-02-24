@@ -252,9 +252,9 @@ class ModelCheckpoint(Callback):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        self.__resolve_ckpt_dir(trainer)
         # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
         # because the attributes are part of the state_key which needs to be fully defined before reloading.
-        self.__resolve_ckpt_dir(trainer)
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end

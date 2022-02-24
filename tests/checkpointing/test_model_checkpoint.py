@@ -1209,6 +1209,13 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
 
 
+def test_dirpath_dynamic(tmpdir):
+    before = ModelCheckpoint(dirpath=tmpdir)
+    # dirpath is not explicitly mentioned here, relies on __resolve_ckpt_dir
+    after = ModelCheckpoint()
+    assert after.dirpath != before.dirpath
+
+
 def test_model_checkpoint_saveload_ckpt(tmpdir):
     ckpt = {
         "monitor": "random_value",
