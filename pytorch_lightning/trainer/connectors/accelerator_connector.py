@@ -304,6 +304,13 @@ class AcceleratorConnector:
             self._precision_flag = precision
 
         if plugins:
+            plugins_flags_count = {
+                "strategy": 0,
+                "precision_plugin": 0,
+                "precision": 0,
+                "checkpoint_io": 0,
+                "cluster_env": 0,
+            }
             for plugin in plugins:
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
                     self._strategy_flag = plugin
@@ -311,13 +318,17 @@ class AcceleratorConnector:
                         f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
                         f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
                     )
+                    plugins_flags_count["strategy"] += 1
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
+                    plugins_flags_count["precision_plugin"] += 1
                 elif isinstance(plugin, str) and plugin in self._precision_types:
                     self._precision_flag = plugin
+                    plugins_flags_count["precision"] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
+                    plugins_flags_count["checkpoint_io"] += 1
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
                 elif isinstance(plugin, LayerSync):
@@ -327,10 +338,18 @@ class AcceleratorConnector:
                             " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
+                    plugins_flags_count["cluster_env"] += 1
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
                     )
+
+            duplicated_plugin_key = [k for k, v in plugins_flags_count.items() if v > 1]
+            if duplicated_plugin_key:
+                raise MisconfigurationException(
+                    f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
+                    " Expected one 1 value for each type at most"
+                )
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up

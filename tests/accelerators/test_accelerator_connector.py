@@ -1019,3 +1019,15 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     assert strategy._layer_sync is None
     Trainer(strategy=strategy, sync_batchnorm=True)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+
+@pytest.mark.parametrize(
+    ["plugins", "expected"],
+    [
+        ([LightningEnvironment(), SLURMEnvironment()], "cluster_env"),
+        (["16", "32"], "precision"),
+        ([LightningEnvironment(), SLURMEnvironment(), "16", "32"], "precision, cluster_env"),
+    ],
+)
+def test_plugin_only_one_instance_for_one_type(plugins, expected):
+    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
+        Trainer(plugins=plugins)
