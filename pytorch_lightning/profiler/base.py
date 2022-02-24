@@ -36,6 +36,10 @@ class AbstractProfiler(ABC):
         """Defines how to record the duration once an action is complete."""
 
     @abstractmethod
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+
+    @abstractmethod
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
@@ -167,6 +171,9 @@ class PassThroughProfiler(BaseProfiler):
         pass
 
     def stop(self, action_name: str) -> None:
+        pass
+
+    def describe(self) -> None:
         pass
 
     def summary(self) -> str:

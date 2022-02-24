@@ -14,13 +14,13 @@
 """Utilities for profilers."""
 
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
-
+# TODO: Replace Any with AbstractProfiler
 def _prepare_filename(
-    profiler, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
+    profiler: Any, action_name: Optional[str] = None, extension: str = ".txt", split_token: str = "-"
 ) -> str:
     args = []
     if profiler._stage is not None:
@@ -35,7 +35,7 @@ def _prepare_filename(
     return filename
 
 
-def _prepare_streams(profiler) -> None:
+def _prepare_streams(profiler: Any) -> None:
     if profiler._write_stream is not None:
         return
     if profiler.filename:

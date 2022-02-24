@@ -26,7 +26,7 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
-from pytorch_lightning.utilities.profiler import _prepare_filename
+from pytorch_lightning.utilities.profiler import _prepare_filename, _prepare_streams
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -432,6 +432,16 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler.step()
             if _TORCH_GREATER_EQUAL_1_9:
                 self.profiler.add_metadata("Framework", "pytorch-lightning")
+
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+        _prepare_streams(self)
+        summary = self.summary()
+        if summary:
+            self._write_stream(summary)
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:

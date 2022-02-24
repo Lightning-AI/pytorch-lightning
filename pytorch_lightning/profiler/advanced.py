@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.utilities.profiler import _prepare_streams
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +69,16 @@ class AdvancedProfiler(BaseProfiler):
         if pr is None:
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         pr.disable()
+
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+        _prepare_streams(self)
+        summary = self.summary()
+        if summary:
+            self._write_stream(summary)
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
 
     def summary(self) -> str:
         recorded_stats = {}

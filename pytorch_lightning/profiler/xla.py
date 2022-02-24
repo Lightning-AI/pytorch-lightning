@@ -79,5 +79,15 @@ class XLAProfiler(BaseProfiler):
             self._step_recoding_map[action_name] += 1
         return self._step_recoding_map[action_name]
 
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+        self._write_stream = self._rank_zero_info
+        summary = self.summary()
+        if summary:
+            self._write_stream(summary)
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
+
     def summary(self) -> str:
         return ""

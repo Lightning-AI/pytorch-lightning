@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.utilities.profiler import _prepare_streams
 
 log = logging.getLogger(__name__)
 
@@ -91,6 +92,16 @@ class SimpleProfiler(BaseProfiler):
         report = [(action, np.mean(d), np.sum(d)) for action, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[1], reverse=True)
         return report
+
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+        _prepare_streams(self)
+        summary = self.summary()
+        if summary:
+            self._write_stream(summary)
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
 
     def summary(self) -> str:
         sep = os.linesep
