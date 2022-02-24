@@ -278,8 +278,8 @@ class EvaluationEpochLoop(Loop):
         """
         kwargs.update(batch=batch, batch_idx=batch_idx)
         # `dataloader_idx` should be last so we need to push these to the front
-        if "dataloader_idx" in kwargs:
-            kwargs.move_to_end("dataloader_idx")
+        kwargs.move_to_end("batch_idx", last=False)
+        kwargs.move_to_end("batch", last=False)
         return kwargs
 
     @lru_cache(1)
