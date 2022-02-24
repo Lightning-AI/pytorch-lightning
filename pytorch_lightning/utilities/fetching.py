@@ -238,7 +238,7 @@ class DataFetcher(AbstractDataFetcher):
                 self._fetch_next_batch(iterator)
             except StopIteration:
                 # this would only happen when prefetch_batches > the number of batches available and makes
-                # `fetching_function` jump directly to the empty iteration return path
+                # `fetching_function` jump directly to the empty iterator case without trying to fetch again
                 self.done = True
                 break
 
@@ -274,7 +274,7 @@ class DataFetcher(AbstractDataFetcher):
         batch = next(iterator)
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
-            # support `done` for non-iterable datasets
+            # this is for `done` with sized datasets
             self.done = self.fetched >= len(self.dataloader)
         self.on_fetch_end(batch, start_output)
 
