@@ -70,7 +70,6 @@ def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -100,7 +99,6 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
         enable_progress_bar=False,
@@ -117,7 +115,6 @@ def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -132,7 +129,6 @@ def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -183,7 +179,6 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
         enable_progress_bar=False,
@@ -206,7 +201,6 @@ def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -226,7 +220,6 @@ def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -246,7 +239,6 @@ def test_horovod_gather(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,

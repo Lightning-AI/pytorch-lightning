@@ -216,7 +216,10 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     save_dir = tmpdir / "logs"
     weights_save_path = tmpdir / "weights"
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(
+        match=r"Setting `Trainer\(weights_save_path=\)` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
     assert trainer.logger.save_dir == save_dir
@@ -225,7 +228,10 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
 
     # no logger given
     weights_save_path = tmpdir / "weights"
-    trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(
+        match=r"Setting `Trainer\(weights_save_path=\)` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"

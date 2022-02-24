@@ -572,3 +572,12 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
         Trainer(logger=[logger, logger3])
     # Should have no deprecation warning
     Trainer(logger=[logger2, logger3])
+
+
+def test_v1_8_0_weights_save_path(tmpdir):
+    with pytest.deprecated_call(
+        match=r"Setting `Trainer\(weights_save_path=\)` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        _ = Trainer(
+            weights_save_path=tmpdir,
+        )

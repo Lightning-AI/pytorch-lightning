@@ -570,7 +570,7 @@ class ModelCheckpoint(Callback):
 
         1.  Checkpoint callback's path (if passed in)
         2.  The default_root_dir from trainer if trainer has no logger
-        3.  The weights_save_path from trainer, if user provides it
+        3.  The weights_save_path from trainer, if user provides it (deprecated)
         4.  User provided weights_saved_path
 
         The base path gets extended with logger name and version (if these are available)
@@ -579,6 +579,7 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
+        # TODO: Remove weights_save_path logic here in v1.8
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything

@@ -168,7 +168,7 @@ class Trainer(
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
-        weights_save_path: Optional[str] = None,
+        weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
@@ -444,6 +444,11 @@ class Trainer(
                 stored in a different place than the logs written in `default_root_dir`.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
+
+                .. deprecated:: v1.6
+                    ``weights_save_path`` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+                    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+                    callback.
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
@@ -2203,7 +2208,8 @@ class Trainer(
 
     @property
     def weights_save_path(self) -> str:
-        """
+        """.. deprecated:: v1.6 `Trainer.weights_save_path` is deprecated in v1.6 and will be removed in v1.8.
+
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
