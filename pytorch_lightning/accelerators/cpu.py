@@ -41,7 +41,7 @@ class CPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def parse_devices(devices: int | str | list[int]) -> int | list[int]:
+    def parse_devices(devices: int | str | list[int]) -> int | str | list[int]:
         """Accelerator Parsing logic."""
         return devices
 

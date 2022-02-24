@@ -20,6 +20,7 @@ Each Accelerator gets two plugins upon initialization:
 One to handle differences from the training routine and one to handle different precisions.
 
 .. testcode::
+    :skipif: torch.cuda.device_count() < 2
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.accelerators import GPUAccelerator

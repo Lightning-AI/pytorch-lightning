@@ -460,14 +460,14 @@ class AcceleratorConnector:
                 "tpu": TPUAccelerator,
                 "ipu": IPUAccelerator,
             }
-            self._accelerator_flag = self._accelerator_flag.lower()
+            self._accelerator_flag = self._accelerator_flag.lower()  # type: ignore
             if self._accelerator_flag not in ACCELERATORS:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
                     f" it can only be one of {list(ACCELERATORS.keys())}."
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
-            self.accelerator = accelerator_class()
+            self.accelerator = accelerator_class()  # type: ignore
 
         self._set_devices_flag_if_auto_passed()
 
