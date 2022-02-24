@@ -368,12 +368,8 @@ class ModelCheckpoint(Callback):
         """
         self._validate_monitor_key(trainer)
 
-        # track epoch when ckpt was last checked
-        global_step = trainer.global_step
-        self._last_global_step_saved = global_step
-
         # what can be monitored
-        monitor_candidates = self._monitor_candidates(trainer, epoch=trainer.current_epoch, step=global_step)
+        monitor_candidates = self._monitor_candidates(trainer, epoch=trainer.current_epoch, step=trainer.global_step)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
@@ -638,6 +634,7 @@ class ModelCheckpoint(Callback):
     def _save_last_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if not self.save_last:
             return
+        self._last_global_step_saved = monitor_candidates.get("step", trainer.global_step)
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
         # set the last model path before saving because it will be part of the state.
@@ -649,9 +646,9 @@ class ModelCheckpoint(Callback):
     def _save_top_k_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.monitor is None or self.save_top_k == 0:
             return
+        self._last_global_step_saved = monitor_candidates.get("step", trainer.global_step)
 
         current = monitor_candidates.get(self.monitor)
-
         if self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, trainer, monitor_candidates)
         elif self.verbose:
@@ -662,6 +659,7 @@ class ModelCheckpoint(Callback):
     def _save_none_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.monitor is not None or self.save_top_k == 0:
             return
+        self._last_global_step_saved = monitor_candidates.get("step", trainer.global_step)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
         # set the best model path before saving because it will be part of the state.
