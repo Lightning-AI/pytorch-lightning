@@ -2086,14 +2086,14 @@ class Trainer(
         return self.num_devices
 
     @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        rank_zero_deprecation("`Trainer.data_parallel_device_ids` was deprecated in v1.6.")
+    def data_parallel_device_ids(self) -> List[int]:
+        rank_zero_deprecation("`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8.")
         if isinstance(self.accelerator, GPUAccelerator):
             if isinstance(self.strategy, ParallelStrategy):
-                return [i for i in range(len(self.strategy.parallel_devices))]
+                return [device.index for device in self.strategy.parallel_devices]
             elif isinstance(self.strategy, SingleDeviceStrategy):
                 return [0]
-        return None
+        return []
 
     @property
     def lightning_module(self) -> "pl.LightningModule":

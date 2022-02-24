@@ -162,7 +162,7 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected_parsed", "expected_device_ids"],
-    [("", None, None), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [0])],
+    [("", None, []), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [])],
 )
 def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_device_ids, monkeypatch):
     """Test multi type argument with bool."""
