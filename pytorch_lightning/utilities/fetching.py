@@ -205,7 +205,7 @@ class DataFetcher(AbstractDataFetcher):
 
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
-            whether a batch is the last one (available with :attr:`self.done`).
+            whether a batch is the last one (available with :attr:`self.done`) under any training setup.
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
@@ -360,7 +360,8 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 ...
     """
 
-    def __init__(self) -> None:
+    def __init__(self, prefetch_batches: int = 0) -> None:
+        # prefetch batches is not used for this class
         super().__init__()
         self.store_on_device = False
 
