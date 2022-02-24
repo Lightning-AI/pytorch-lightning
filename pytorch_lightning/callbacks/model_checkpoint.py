@@ -248,18 +248,16 @@ class ModelCheckpoint(Callback):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        self.__resolve_ckpt_dir(trainer)
+        if trainer.is_global_zero and stage == "fit":
+            self.__warn_if_dir_not_empty(self.dirpath)
+
         # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
         # because the attributes are part of the state_key which needs to be fully defined before reloading.
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
-
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we build the ckpt dir on the fly."""
-        self.__resolve_ckpt_dir(trainer)
-        if trainer.is_global_zero:
-            self.__warn_if_dir_not_empty(self.dirpath)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()

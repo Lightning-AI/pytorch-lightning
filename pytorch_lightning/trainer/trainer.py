@@ -172,7 +172,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
@@ -228,8 +228,9 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: If ``True``, enables cudnn.benchmark.
-                Default: ``False``.
+            benchmark: Sets ``torch.backends.cudnn.benchmark``.
+                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
+                is ``False``. Overwrite to manually set a different value. Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
