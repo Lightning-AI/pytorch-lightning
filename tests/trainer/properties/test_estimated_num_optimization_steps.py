@@ -46,7 +46,8 @@ def test_num_optimization_steps_with_diff_multiple_grad_accum_factor():
 
 
 def test_num_optimization_steps_raises_info_with_no_dataloaders_loaded(caplog):
-    """Test that an info message is generated when dataloaders are loaded explicitly if they are not already configured."""
+    """Test that an info message is generated when dataloaders are loaded explicitly if they are not already
+    configured."""
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
