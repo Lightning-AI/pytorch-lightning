@@ -366,7 +366,7 @@ class ModelCheckpoint(Callback):
             self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
         else:
             warnings.warn(
-                f"The dirpath has changed from {dirpath_from_ckpt} to {self.dirpath},"
+                f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
                 " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
                 " won't be tracked. Only `last_model_path` and `best_model_path` will be tracked."
             )
