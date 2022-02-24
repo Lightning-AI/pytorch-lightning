@@ -25,7 +25,14 @@ log = logging.getLogger(__name__)
 
 
 class AbstractProfiler(ABC):
-    """Specification of a profiler."""
+    """Specification of a profiler.
+
+    See deprecation message below
+
+    .. deprecated:: v1.6
+        `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
+        Please use `Profiler` instead
+    """
 
     @abstractmethod
     def start(self, action_name: str) -> None:
