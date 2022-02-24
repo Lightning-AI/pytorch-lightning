@@ -392,7 +392,13 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
-        super().on_validation_end(trainer, pl_module)
+        self.reset_dataloader_idx_tracker()
+
+    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self.reset_dataloader_idx_tracker()
+
+    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        self.reset_dataloader_idx_tracker()
 
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
@@ -426,7 +432,7 @@ class RichProgressBar(ProgressBarBase):
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
-                # TODO: Fix this in a follow-up
+                # TODO: Use total val_processed here just like TQDM in a follow-up
                 self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
             self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
         self.refresh()

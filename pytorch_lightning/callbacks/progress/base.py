@@ -139,20 +139,14 @@ class ProgressBarBase(Callback):
     @property
     def total_val_batches_current_epoch(self) -> Union[int, float]:
         assert self._trainer is not None
-        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._is_check_val_epoch() else 0
+        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
 
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
         self._current_eval_dataloader_idx = dataloader_idx
         return old_dataloader_idx != dataloader_idx
 
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._current_eval_dataloader_idx = None
-
-    def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._current_eval_dataloader_idx = None
-
-    def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def reset_dataloader_idx_tracker(self) -> None:
         self._current_eval_dataloader_idx = None
 
     def disable(self) -> None:

@@ -193,6 +193,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     @property
     def _val_processed(self) -> int:
+        # use total in case validation runs more than once per training epoch
         return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
 
     def disable(self) -> None:
@@ -273,7 +274,6 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_sanity_check_end(self, *_: Any) -> None:
         self.main_progress_bar.close()
-        self.main_progress_bar = None
         self.val_progress_bar.close()
 
     def on_train_start(self, *_: Any) -> None:
@@ -324,7 +324,7 @@ class TQDMProgressBar(ProgressBarBase):
         if self._main_progress_bar is not None and trainer.state.fn == "fit":
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
-        super().on_validation_end(trainer, pl_module)
+        self.reset_dataloader_idx_tracker()
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar = self.init_test_tqdm()
@@ -342,7 +342,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar.close()
-        super().on_test_end(trainer, pl_module)
+        self.reset_dataloader_idx_tracker()
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.predict_progress_bar = self.init_predict_tqdm()
@@ -360,7 +360,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.predict_progress_bar.close()
-        super().on_predict_end(trainer, pl_module)
+        self.reset_dataloader_idx_tracker()
 
     def print(self, *args: Any, sep: str = " ", **kwargs: Any) -> None:
         active_progress_bar = None
