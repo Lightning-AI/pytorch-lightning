@@ -28,7 +28,7 @@ class IPUAccelerator(Accelerator):
 
     @staticmethod
     def parse_devices(devices: int) -> int:
-        """Accelerator Parsing logic."""
+        """Accelerator device parsing logic."""
         return devices
 
     @staticmethod

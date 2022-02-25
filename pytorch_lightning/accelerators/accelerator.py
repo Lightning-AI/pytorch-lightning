@@ -58,7 +58,7 @@ class Accelerator(ABC):
     @staticmethod
     @abstractmethod
     def parse_devices(devices: Any) -> Any:
-        """Accelerator Parsing logic."""
+        """Accelerator device parsing logic."""
 
     @staticmethod
     @abstractmethod

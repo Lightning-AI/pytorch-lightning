@@ -40,7 +40,7 @@ class CPUAccelerator(Accelerator):
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, str, List[int]]:
-        """Accelerator Parsing logic."""
+        """Accelerator device parsing logic."""
         return devices
 
     @staticmethod

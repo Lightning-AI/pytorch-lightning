@@ -46,7 +46,7 @@ class TPUAccelerator(Accelerator):
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
-        """Accelerator Parsing logic."""
+        """Accelerator device parsing logic."""
         return device_parser.parse_tpu_cores(devices)
 
     @staticmethod

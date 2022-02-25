@@ -76,7 +76,7 @@ class GPUAccelerator(Accelerator):
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
-        """Accelerator Parsing logic."""
+        """Accelerator device parsing logic."""
         return device_parser.parse_gpu_ids(devices)
 
     @staticmethod
