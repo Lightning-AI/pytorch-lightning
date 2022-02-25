@@ -48,7 +48,9 @@ class CPUAccelerator(Accelerator):
         """Gets parallel devices for the Accelerator."""
         if isinstance(devices, int):
             return [torch.device("cpu")] * devices
-        rank_zero_warn(f"The flag `devices` must be an int with `accelerator='cpu'`, got `devices={devices!r}` instead.")
+        rank_zero_warn(
+            f"The flag `devices` must be an int with `accelerator='cpu'`, got `devices={devices!r}` instead."
+        )
         return []
 
     @staticmethod
