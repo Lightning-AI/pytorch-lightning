@@ -466,7 +466,9 @@ def test_accelerator_cpu(_):
 
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(gpus=1)
-    with pytest.raises(MisconfigurationException, match="GPUAccelerator can not run on this hardware, GPUs are not available."):
+    with pytest.raises(
+        MisconfigurationException, match="GPUAccelerator can not run on this hardware, GPUs are not available."
+    ):
         trainer = Trainer(accelerator="gpu")
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(accelerator="cpu", gpus=1)
