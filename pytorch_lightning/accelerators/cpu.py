@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, Union
 
 import torch
 
@@ -46,7 +46,7 @@ class CPUAccelerator(Accelerator):
         return devices
 
     @staticmethod
-    def get_parallel_devices(devices: list[int] | str | int) -> list[torch.device]:
+    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the given Accelerator."""
         if isinstance(devices, int):
             return [torch.device("cpu")] * devices

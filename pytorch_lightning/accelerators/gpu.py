@@ -17,7 +17,7 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any
+from typing import Any, List, Optional, Union
 
 import torch
 
@@ -82,7 +82,7 @@ class GPUAccelerator(Accelerator):
         return device_parser.parse_gpu_ids(devices)
 
     @staticmethod
-    def get_parallel_devices(devices: list[int]) -> list[torch.device]:
+    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the given Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
