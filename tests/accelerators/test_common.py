@@ -13,8 +13,6 @@
 # limitations under the License.
 from unittest import mock
 
-import torch
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.strategies import DDPStrategy
@@ -28,7 +26,7 @@ def test_auto_device_count(device_count_mock):
     assert IPUAccelerator.auto_device_count() == 4
 
 
-def test_pluggable_accelerator(tmpdir):
+def test_pluggable_accelerator():
     class TestAccelerator(Accelerator):
         @staticmethod
         def parse_devices(devices):
@@ -36,37 +34,22 @@ def test_pluggable_accelerator(tmpdir):
 
         @staticmethod
         def get_parallel_devices(devices):
-            return [torch.device("cpu")] * devices
+            return ["foo"] * devices
 
         @staticmethod
         def auto_device_count():
-            return 1
+            return 3
 
         @staticmethod
         def is_available():
             return True
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        accelerator=TestAccelerator(),
-        devices=2,
-        strategy="ddp",
-    )
-
+    trainer = Trainer(accelerator=TestAccelerator(), devices=2, strategy="ddp")
     assert isinstance(trainer.accelerator, TestAccelerator)
-    assert trainer._accelerator_connector.parallel_devices == [torch.device("cpu")] * 2
+    assert isinstance(trainer.strategy, DDPStrategy)
+    assert trainer._accelerator_connector.parallel_devices == ["foo"] * 2
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        strategy=DDPStrategy(TestAccelerator()),
-        devices=2,
-    )
-
+    trainer = Trainer(strategy=DDPStrategy(TestAccelerator()), devices="auto")
     assert isinstance(trainer.accelerator, TestAccelerator)
-    assert trainer._accelerator_connector.parallel_devices == [torch.device("cpu")] * 2
+    assert isinstance(trainer.strategy, DDPStrategy)
+    assert trainer._accelerator_connector.parallel_devices == ["foo"] * 3
