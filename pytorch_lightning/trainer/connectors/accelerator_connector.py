@@ -464,7 +464,7 @@ class AcceleratorConnector:
             if self._accelerator_flag not in ACCELERATORS:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {list(ACCELERATORS.keys())}."
+                    f" it can only be one of {list(ACCELERATORS)}."
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()  # type: ignore
