@@ -55,7 +55,7 @@ class AbstractProfiler(ABC):
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
 
-class Profiler:
+class BaseProfiler:
     """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
@@ -193,10 +193,6 @@ class Profiler:
     @property
     def local_rank(self) -> int:
         return 0 if self._local_rank is None else self._local_rank
-
-
-# alias to preserve backwards compatibility
-BaseProfiler = Profiler
 
 
 class PassThroughProfiler(BaseProfiler):
