@@ -944,14 +944,9 @@ def test_registries():
 
 
 def test_registries_register_automatically():
-    assert "BoringModel" not in MODEL_REGISTRY
     assert "SaveConfigCallback" not in CALLBACK_REGISTRY
-
-    with mock.patch("sys.argv", ["any.py", "--model=BoringModel"]):
-        cli = LightningCLI(run=False, register_automatically=True)
-    assert isinstance(cli.model, BoringModel)
-
-    assert "BoringModel" in MODEL_REGISTRY
+    with mock.patch("sys.argv", ["any.py"]):
+        LightningCLI(BoringModel, run=False, register_automatically=True)
     assert "SaveConfigCallback" in CALLBACK_REGISTRY
 
 
