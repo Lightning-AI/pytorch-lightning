@@ -32,7 +32,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.enums import PrecisionType
@@ -79,7 +79,6 @@ class DDPShardedStrategy(ParallelStrategy):
         )
         self._num_nodes: int = 1
         self._rank_0_will_call_children_scripts: bool = False
-        self.sync_batchnorm: bool = False
         self._kwargs = kwargs
         self.set_world_ranks()
 
@@ -125,8 +124,8 @@ class DDPShardedStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
@@ -334,8 +333,8 @@ class DDPShardedStrategy(ParallelStrategy):
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down DDP sharded plugin")
         super().teardown()
-        if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown
