@@ -366,7 +366,7 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f" will be removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
 
-                
+
 def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
         rank_zero_deprecation(

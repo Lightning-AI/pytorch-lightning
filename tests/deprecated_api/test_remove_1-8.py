@@ -609,7 +609,7 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     ):
         trainer.fit(model)
 
-        
+
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
@@ -639,4 +639,4 @@ def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
         match="`LightningDataModule.on_load_checkpoint` was deprecated in"
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
-        trainer.fit(model, datamodule=dm_load)     
+        trainer.fit(model, datamodule=dm_load)
