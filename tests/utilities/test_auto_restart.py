@@ -1467,6 +1467,7 @@ class RandomFaultTolerantSampler(RandomSampler):
         self.restarting = True
 
     def __len__(self):
+        # the `utilities.data.has_len` requires at least 1 sample
         return max(len(self.data_source) - self.counter, 1)
 
     def __iter__(self) -> Iterator[int]:
