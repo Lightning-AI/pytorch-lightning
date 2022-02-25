@@ -370,8 +370,9 @@ def test_manual_poptorch_dataloader(tmpdir):
     assert trainer.strategy.training_opts is other_options
     dataloader = trainer.train_dataloader.loaders
     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
-    assert dataloader.options is model_options  # exact objectis used, not recreated
-    assert dataloader.options is not other_options  # the strategy options are different
+    # dataloader uses the options in the model, not the strategy
+    assert dataloader.options is model_options
+    assert dataloader.options is not other_options
     assert dataloader.drop_last  # was kept
 
 
