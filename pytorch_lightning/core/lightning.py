@@ -1376,10 +1376,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        opts = self.optimizers(use_pl_optimizer=False)
-        if isinstance(opts, (Optimizer, LightningOptimizer)):
-            opts = [opts]
-        for opt in opts:
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
