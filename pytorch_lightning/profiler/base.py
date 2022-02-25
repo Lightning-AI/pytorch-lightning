@@ -80,6 +80,9 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
+    def summary(self) -> str:
+        return ""
+
     @contextmanager
     def profile(self, action_name: str) -> Generator:
         """Yields a context manager to encapsulate the scope of a profiled action.
@@ -211,6 +214,3 @@ class PassThroughProfiler(BaseProfiler):
 
     def stop(self, action_name: str) -> None:
         pass
-
-    def summary(self) -> str:
-        return ""
