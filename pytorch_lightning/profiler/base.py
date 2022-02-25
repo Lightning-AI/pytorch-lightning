@@ -80,9 +80,9 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
-    @abstractmethod
     def summary(self) -> str:
         """Create profiler summary in text format."""
+        raise NotImplementedError
 
     @contextmanager
     def profile(self, action_name: str) -> Generator:
