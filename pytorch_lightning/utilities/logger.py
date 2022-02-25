@@ -19,8 +19,6 @@ from typing import Any, Dict, Generator, List, MutableMapping, Optional, Union
 import numpy as np
 import torch
 
-from pytorch_lightning.loggers import LightningLoggerBase
-
 
 def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
@@ -150,7 +148,7 @@ def _add_prefix(metrics: Dict[str, float], prefix: str, separator: str) -> Dict[
     return metrics
 
 
-def _name(loggers: List[LightningLoggerBase]) -> str:
+def _name(loggers: List[Any]) -> str:
     if len(loggers) == 1:
         return loggers[0].name
     else:
@@ -158,7 +156,7 @@ def _name(loggers: List[LightningLoggerBase]) -> str:
         return "_".join(dict.fromkeys(str(logger.name) for logger in loggers))
 
 
-def _version(loggers: List[LightningLoggerBase]) -> Union[int, str]:
+def _version(loggers: List[Any]) -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
     else:
