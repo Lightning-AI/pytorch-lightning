@@ -857,9 +857,5 @@ class AcceleratorConnector:
         return isinstance(self.accelerator, IPUAccelerator)
 
     @property
-    def has_tpu(self) -> bool:
-        return isinstance(self.accelerator, TPUAccelerator)
-
-    @property
     def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
