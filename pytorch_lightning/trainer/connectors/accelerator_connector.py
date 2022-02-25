@@ -770,17 +770,6 @@ class AcceleratorConnector:
         return self._parallel_devices
 
     @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
-
-    @property
     def num_nodes(self) -> int:
         return self._num_nodes_flag
 
