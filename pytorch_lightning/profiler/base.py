@@ -31,7 +31,7 @@ class AbstractProfiler(ABC):
 
     .. deprecated:: v1.6
         `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead
+        Please use `BaseProfiler` instead
     """
 
     @abstractmethod
@@ -55,7 +55,7 @@ class AbstractProfiler(ABC):
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
 
-class BaseProfiler:
+class BaseProfiler(ABC):
     """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
