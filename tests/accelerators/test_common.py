@@ -18,7 +18,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.strategies import DDPStrategy
-from tests.helpers.boring_model import BoringModel
 
 
 @mock.patch("torch.cuda.device_count", return_value=2)
@@ -47,7 +46,6 @@ def test_pluggable_accelerator(tmpdir):
         def is_available():
             return True
 
-    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -57,7 +55,6 @@ def test_pluggable_accelerator(tmpdir):
         devices=2,
         strategy="ddp",
     )
-    trainer.fit(model)
 
     assert isinstance(trainer.accelerator, TestAccelerator)
     assert trainer._accelerator_connector.parallel_devices == [torch.device("cpu")] * 2
@@ -70,7 +67,6 @@ def test_pluggable_accelerator(tmpdir):
         strategy=DDPStrategy(TestAccelerator()),
         devices=2,
     )
-    trainer.fit(model)
 
     assert isinstance(trainer.accelerator, TestAccelerator)
     assert trainer._accelerator_connector.parallel_devices == [torch.device("cpu")] * 2
