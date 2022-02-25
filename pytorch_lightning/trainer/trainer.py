@@ -172,7 +172,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
@@ -228,8 +228,9 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: If ``True``, enables cudnn.benchmark.
-                Default: ``False``.
+            benchmark: Sets ``torch.backends.cudnn.benchmark``.
+                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
+                is ``False``. Overwrite to manually set a different value. Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -1782,20 +1783,21 @@ class Trainer(
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                "GPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
         if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
-                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
-                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+                "TPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
         if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
-                "IPU available but not used. Set the `ipus` flag in your trainer"
-                " `Trainer(ipus=8)` or script `--ipus=8`."
+                "IPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
 
     """
