@@ -2342,7 +2342,6 @@ class Trainer(
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
-                Define in your custom ``CheckpointIO`` plugin how you'd like to use any passed in ``storage_options``.
 
         """
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
