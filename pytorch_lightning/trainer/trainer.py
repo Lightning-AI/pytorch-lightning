@@ -2018,10 +2018,6 @@ class Trainer(
 
     @property
     def num_nodes(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-            ' Please use `getattr(Trainer.strategy, "num_nodes", 1)` instead.'
-        )
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
