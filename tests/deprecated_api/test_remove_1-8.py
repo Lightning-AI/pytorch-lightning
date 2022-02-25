@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+import time
 from unittest.mock import Mock
 
 import numpy as np
@@ -33,6 +34,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -615,3 +617,46 @@ def test_v1_8_0_weights_save_path(tmpdir):
         trainer = Trainer(weights_save_path=tmpdir)
     with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
         _ = trainer.weights_save_path
+
+
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
+    """Ensure the reported durations are reasonably accurate."""
+
+    def _sleep_generator(durations):
+        """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long
+        it takes to call __next__"""
+        for duration in durations:
+            time.sleep(duration)
+            yield duration
+
+    def _get_python_cprofile_total_duration(profile):
+        return sum(x.inlinetime for x in profile.getstats())
+
+    simple_profiler = SimpleProfiler()
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in simple_profiler.profile_iterable(iterable, action):
+            pass
+
+    # we exclude the last item in the recorded durations since that's when StopIteration is raised
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
+
+    advanced_profiler = AdvancedProfiler(dirpath=tmpdir, filename="profiler")
+
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in advanced_profiler.profile_iterable(iterable, action):
+            pass
+
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    expected_total_duration = np.sum(expected)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
+>>>>>>> f5304897cec970bb1cfaef901bbe12532242f1e3
