@@ -33,7 +33,7 @@ class IPUAccelerator(Accelerator):
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[int]:
-        """Gets parallel devices for the given Accelerator."""
+        """Gets parallel devices for the Accelerator."""
         return list(range(devices))
 
     @staticmethod

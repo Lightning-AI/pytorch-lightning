@@ -63,7 +63,7 @@ class Accelerator(ABC):
     @staticmethod
     @abstractmethod
     def get_parallel_devices(devices: Any) -> Any:
-        """Gets parallel devices for the given Accelerator."""
+        """Gets parallel devices for the Accelerator."""
 
     @staticmethod
     @abstractmethod

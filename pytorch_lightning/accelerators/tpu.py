@@ -51,7 +51,7 @@ class TPUAccelerator(Accelerator):
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[int]:
-        """Gets parallel devices for the given Accelerator."""
+        """Gets parallel devices for the Accelerator."""
         if isinstance(devices, int):
             return list(range(devices))
         return devices

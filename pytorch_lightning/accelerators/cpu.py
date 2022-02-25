@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
-
 from typing import Any, List, Union
 
 import torch
@@ -41,13 +39,13 @@ class CPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def parse_devices(devices: int | str | list[int]) -> int | str | list[int]:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, str, List[int]]:
         """Accelerator Parsing logic."""
         return devices
 
     @staticmethod
-    def get_parallel_devices(devices: int | str | list[int]) -> list[torch.device]:
-        """Gets parallel devices for the given Accelerator."""
+    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+        """Gets parallel devices for the Accelerator."""
         if isinstance(devices, int):
             return [torch.device("cpu")] * devices
         rank_zero_warn(f"The flag `devices` must be an int with `accelerator='cpu'`, got `devices={devices}` instead.")

@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
-
 import logging
 import os
 import shutil
@@ -77,13 +75,13 @@ class GPUAccelerator(Accelerator):
         return get_nvidia_gpu_stats(device)
 
     @staticmethod
-    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator Parsing logic."""
         return device_parser.parse_gpu_ids(devices)
 
     @staticmethod
-    def get_parallel_devices(devices: list[int]) -> list[torch.device]:
-        """Gets parallel devices for the given Accelerator."""
+    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
+        """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
