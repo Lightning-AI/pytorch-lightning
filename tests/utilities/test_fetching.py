@@ -196,7 +196,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
         def on_train_epoch_end(self, trainer, lightning_module):
             fetcher = trainer.fit_loop._data_fetcher
             assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
-            assert fetcher.prefetch_batches == 1
+            assert fetcher.prefetch_batches == int(self._check_inter_batch)
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -277,14 +277,19 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 @RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
     class TestModel(BoringModel):
-        def validation_step(self, dataloader_iter, batch_idx):
-            assert isinstance(self.trainer.validate_loop._data_fetcher, DataLoaderIterDataFetcher)
+        def fetch(self, data_fetcher, dataloader_iter, batch_idx):
+            assert isinstance(data_fetcher, DataLoaderIterDataFetcher)
+            assert data_fetcher.fetched == batch_idx
             batch = next(dataloader_iter)
+            assert data_fetcher.fetched == batch_idx + 1
+            return batch
+
+        def validation_step(self, dataloader_iter, batch_idx):
+            batch = self.fetch(self.trainer.validate_loop._data_fetcher, dataloader_iter, batch_idx)
             return super().validation_step(batch, batch_idx)
 
         def test_step(self, dataloader_iter, batch_idx):
-            assert isinstance(self.trainer.test_loop._data_fetcher, DataLoaderIterDataFetcher)
-            batch = next(dataloader_iter)
+            batch = self.fetch(self.trainer.test_loop._data_fetcher, dataloader_iter, batch_idx)
             return super().test_step(batch, batch_idx)
 
     model = TestModel()
