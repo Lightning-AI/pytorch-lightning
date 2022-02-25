@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
 import torch
 
@@ -34,7 +34,7 @@ class CPUAccelerator(Accelerator):
         if root_device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """CPU device stats aren't supported yet."""
         return {}
 
