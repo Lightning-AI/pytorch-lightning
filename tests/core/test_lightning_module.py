@@ -87,6 +87,28 @@ def test_property_loggers(tmpdir):
     assert model.loggers == [logger]
 
 
+def test_1_optimizer_toggle_model(tmpdir):
+    """Test toggle_model run without exceptions when only one optimizer is used."""
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+        def training_step(self, batch, batch_idx):
+            opt=self.optimizers()
+            assert not isinstance(opt, list)
+            with opt.toggle_model():
+                pass
+
+        def configure_optimizers(self):
+            opt =torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return opt
+
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1)
+    trainer.fit(model)
+
+
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx=None):
