@@ -44,7 +44,7 @@ def test_device_stats_gpu_from_torch(tmpdir):
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
             fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -74,10 +74,10 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
             fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
             for f in CPU_METRIC_KEYS:
-                assert not any(f in h for h in metrics.keys()), "CPU Stats should not be included"
+                assert not any(f in h for h in metrics), "CPU Stats should not be included"
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -112,7 +112,7 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
                 "utilization.memory",
             ] + CPU_METRIC_KEYS
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -139,7 +139,7 @@ def test_device_stats_cpu(tmpdir):
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
             fields = CPU_METRIC_KEYS
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(
@@ -195,7 +195,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
             fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
