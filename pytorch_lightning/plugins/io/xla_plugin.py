@@ -45,8 +45,8 @@ class XLACheckpointIO(TorchCheckpointIO):
         """
         if storage_options is not None:
             raise MisconfigurationException(
-                "`Trainer.save_checkpoint(storage_options)` with `storage_options` arg "
-                "is not supported for `XLACheckpointIO`. Please implement your custom `CheckpointIO`"
+                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg "
+                f"is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
                 "to define how you'd like to use `storage_options`."
             )
         fs = get_filesystem(path)
