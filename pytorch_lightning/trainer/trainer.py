@@ -2217,6 +2217,17 @@ class Trainer(
         .. deprecated:: v1.6
             `Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.
         """
+        rank_zero_deprecation("`Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.")
+        return self._weights_save_path_internal
+
+    # TODO: Remove _weights_save_path_internal in v1.8
+    @property
+    def _weights_save_path_internal(self) -> str:
+        """This is an internal implementation of weights_save_path which allows weights_save_path to be used
+        internally by the framework without emitting a deprecation warning.
+
+        To be removed in v1.8.
+        """
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path

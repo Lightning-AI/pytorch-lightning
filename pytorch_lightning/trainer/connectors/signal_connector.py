@@ -69,7 +69,7 @@ class SignalConnector:
         if self.trainer.logger:
             self.trainer.logger.finalize("finished")
         # TODO: in v1.8 change this to use self.trainer.default_root_dir
-        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
+        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer._weights_save_path_internal)
         self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:

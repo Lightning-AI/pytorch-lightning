@@ -575,9 +575,9 @@ class ModelCheckpoint(Callback):
 
         # TODO: Remove weights_save_path logic here in v1.8
         if trainer.logger is not None:
-            if trainer.weights_save_path != trainer.default_root_dir:
+            if trainer._weights_save_path_internal != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
-                save_dir = trainer.weights_save_path
+                save_dir = trainer._weights_save_path_internal
             else:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
@@ -588,7 +588,7 @@ class ModelCheckpoint(Callback):
             )
             ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
         else:
-            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
+            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 

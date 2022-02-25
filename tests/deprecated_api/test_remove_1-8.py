@@ -588,7 +588,7 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6" " and will be removed in v1.8"
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
 
@@ -605,11 +605,13 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6" " and will be removed in v1.8"
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
 
 
 def test_v1_8_0_weights_save_path(tmpdir):
     with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        _ = Trainer(weights_save_path=tmpdir)
+        trainer = Trainer(weights_save_path=tmpdir)
+    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
+        _ = trainer.weights_save_path
