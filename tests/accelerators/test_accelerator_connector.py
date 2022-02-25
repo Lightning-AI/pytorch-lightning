@@ -342,8 +342,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
         @staticmethod
-        def parse_devices(devices) -> int:
-            """Accelerator Parsing logic."""
+        def parse_devices(devices):
             return devices
 
         @staticmethod
