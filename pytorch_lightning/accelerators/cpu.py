@@ -25,9 +25,9 @@ if _PSUTIL_AVAILABLE:
     import psutil
 
 # CPU device metrics
-CPU_VM_PERCENT = "cpu_vm_percent"
-CPU_PERCENT = "cpu_percent"
-CPU_SWAP_PERCENT = "cpu_swap_percent"
+_CPU_VM_PERCENT = "cpu_vm_percent"
+_CPU_PERCENT = "cpu_percent"
+_CPU_SWAP_PERCENT = "cpu_swap_percent"
 
 
 class CPUAccelerator(Accelerator):
@@ -85,8 +85,8 @@ def get_cpu_process_metrics() -> dict[str, float]:
         )
 
     metrics = {
-        CPU_VM_PERCENT: psutil.virtual_memory().percent,
-        CPU_PERCENT: psutil.cpu_percent(),
-        CPU_SWAP_PERCENT: psutil.swap_memory().percent,
+        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
+        _CPU_PERCENT: psutil.cpu_percent(),
+        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
     }
     return metrics

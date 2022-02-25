@@ -27,9 +27,9 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 CPU_METRIC_KEYS = [
-    CPU_VM_PERCENT,
-    CPU_SWAP_PERCENT,
-    CPU_PERCENT,
+    _CPU_VM_PERCENT,
+    _CPU_SWAP_PERCENT,
+    _CPU_PERCENT,
 ]
 
 
