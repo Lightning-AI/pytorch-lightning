@@ -34,7 +34,8 @@ class DeviceStatsMonitor(Callback):
     is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
     Args:
-        cpu_stats: if True, will also record CPU stats in addition to accelerator stats (default: True).
+        cpu_stats: if True, will also record CPU stats in addition to accelerator stats.
+            Default: ``True``.
 
     Raises:
         MisconfigurationException:
