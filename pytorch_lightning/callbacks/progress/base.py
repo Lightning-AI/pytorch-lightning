@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.utilities.logger import _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
@@ -214,11 +215,7 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
     if trainer.loggers:
-        version = (
-            trainer.loggers[0].version
-            if len(trainer.loggers) == 1
-            else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
-        )
+        version = _version(trainer.loggers)
         if version is not None:
             if isinstance(version, str):
                 # show last 4 places of long version strings

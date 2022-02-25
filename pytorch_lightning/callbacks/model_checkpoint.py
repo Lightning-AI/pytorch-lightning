@@ -35,6 +35,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -588,16 +589,8 @@ class ModelCheckpoint(Callback):
             else:
                 save_dir = trainer.default_root_dir
 
-            name = (
-                trainer.loggers[0].name
-                if len(trainer.loggers) == 1
-                else "_".join(dict.fromkeys(str(logger.name) for logger in trainer.loggers))
-            )
-            version = (
-                trainer.loggers[0].version
-                if len(trainer.loggers) == 1
-                else "_".join(dict.fromkeys(str(logger.version) for logger in trainer.loggers))
-            )
+            name = _name(trainer.loggers)
+            version = _version(trainer.loggers)
             version = version if isinstance(version, str) else f"version_{version}"
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
