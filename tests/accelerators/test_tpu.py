@@ -312,6 +312,7 @@ def test_warning_if_tpus_not_used():
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
 
+
 @RunIf(tpu=True)
 def test_tpu_spawn_teardown(tmpdir):
     model = BoringModel()
