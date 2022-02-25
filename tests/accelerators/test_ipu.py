@@ -345,6 +345,36 @@ def test_autoreport(tmpdir):
 
 
 @RunIf(ipu=True)
+def test_manual_poptorch_dataloader(tmpdir):
+    class IPUTestModel(IPUModel):
+        def train_dataloader(self):
+            dataloader = super().train_dataloader()
+            # save to instance to compare the reference later
+            self.options = poptorch.Options()
+            self.poptorch_dataloader = poptorch.DataLoader(dataloader.dataset, drop_last=True, options=self.options)
+            return self.poptorch_dataloader
+
+    model = IPUTestModel()
+    other_options = poptorch.Options()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="ipu",
+        devices=2,
+        strategy=IPUStrategy(training_opts=other_options),
+    )
+    trainer.fit(model)
+
+    assert isinstance(trainer.strategy, IPUStrategy)
+    assert trainer.strategy.training_opts is other_options
+    dataloader = trainer.train_dataloader.loaders
+    assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
+    assert dataloader.options is model.options
+    assert dataloader.options is not other_options
+    assert dataloader.drop_last  # was kept
+
+
+@RunIf(ipu=True)
 def test_manual_poptorch_opts(tmpdir):
     """Ensure if the user passes manual poptorch Options, we run with the correct object."""
     model = IPUModel()
