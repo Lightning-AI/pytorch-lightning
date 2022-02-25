@@ -493,7 +493,13 @@ class AcceleratorConnector:
                     f" got `devices={self._devices_flag}` instead."
                 )
         if not self.accelerator.is_available():
-            raise MisconfigurationException(f"{self.accelerator.__class__.__qualname__} can not run on this hardware.")
+            if isinstance(self.accelerator, GPUAccelerator):
+                hardware_str = "GPU"
+            elif isinstance(self.accelerator, IPUAccelerator):
+                hardware_str = "IPU"
+            else:
+                hardware_str = "TPU"
+            raise MisconfigurationException(f"{self.accelerator.__class__.__qualname__} can not run on this hardware, " + hardware_str + "s are not available.")
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
