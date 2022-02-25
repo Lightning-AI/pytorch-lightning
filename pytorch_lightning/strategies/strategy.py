@@ -188,7 +188,7 @@ class Strategy(ABC):
             closure: closure calculating the loss value
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(self.model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(self.lightning_module, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
