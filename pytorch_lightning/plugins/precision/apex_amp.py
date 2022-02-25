@@ -94,18 +94,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return closure_result
 
     def state_dict(self) -> Dict[str, Any]:
-        """``ApexMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will automatically save ``ApexMixedPrecisionPlugin``'s state with
-        ``ApexMixedPrecisionPlugin.state_dict`` instead.
-        """
-
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """``ApexMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will automatically restore ``ApexMixedPrecisionPlugin``'s state with
-        ``ApexMixedPrecisionPlugin.load_state_dict`` instead
-        """
         amp.load_state_dict(state_dict)
