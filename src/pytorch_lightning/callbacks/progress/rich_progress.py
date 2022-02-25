@@ -454,10 +454,8 @@ class RichProgressBar(ProgressBarBase):
         if len(self.validation_description) > len(train_description):
             # Padding is required to avoid flickering due of uneven lengths of "Epoch X"
             # and "Validation" Bar description
-            num_digits = len(str(current_epoch))
-            required_padding = (len(self.validation_description) - len(train_description) + 1) - num_digits
-            for _ in range(required_padding):
-                train_description += " "
+            required_padding = len(self.validation_description) - len(train_description)
+            train_description += " " * required_padding
         return train_description
 
     def _stop_progress(self) -> None:
