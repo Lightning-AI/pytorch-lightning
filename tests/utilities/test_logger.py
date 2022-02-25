@@ -195,7 +195,7 @@ def test_name(tmpdir):
 
 
 def test_version(tmpdir):
-    """Verify names of loggers are concatenated properly."""
+    """Verify versions of loggers are concatenated properly."""
     logger1 = CSVLogger(tmpdir, version=0)
     logger2 = CSVLogger(tmpdir, version=2)
     logger3 = CSVLogger(tmpdir, version=1)

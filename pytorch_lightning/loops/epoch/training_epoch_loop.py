@@ -504,6 +504,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Flushes loggers to disk."""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
+        # TODO: is_global_zero check should be moved to logger.save() implementation
         if should_flush_logs and self.trainer.is_global_zero:
             for logger in self.trainer.loggers:
                 logger.save()
