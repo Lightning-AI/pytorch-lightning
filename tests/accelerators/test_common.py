@@ -32,8 +32,7 @@ def test_auto_device_count(device_count_mock):
 def test_pluggable_accelerator(tmpdir):
     class TestAccelerator(Accelerator):
         @staticmethod
-        def parse_devices(devices) -> int:
-            """Accelerator Parsing logic."""
+        def parse_devices(devices):
             return devices
 
         @staticmethod
@@ -41,12 +40,11 @@ def test_pluggable_accelerator(tmpdir):
             return [torch.device("cpu")] * devices
 
         @staticmethod
-        def auto_device_count() -> int:
-            """Get the devices when set to auto."""
+        def auto_device_count():
             return 1
 
         @staticmethod
-        def is_available() -> bool:
+        def is_available():
             return True
 
     model = BoringModel()
