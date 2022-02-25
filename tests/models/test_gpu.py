@@ -27,7 +27,6 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
@@ -192,13 +191,9 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
     trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     assert trainer.gpus == gpus
-    if rank_zero_only.rank == 0:
-        with pytest.deprecated_call(
-            match="Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-        ):
-            assert (trainer.data_parallel_device_ids or None) == device_parser.parse_gpu_ids(gpus)
-    else:
-        assert (trainer.data_parallel_device_ids or None) == device_parser.parse_gpu_ids(gpus)
+    # when use gpu
+    if device_parser.parse_gpu_ids(gpus) is not None:
+        assert trainer.device_ids == device_parser.parse_gpu_ids(gpus)
 
 
 @RunIf(min_gpus=1)

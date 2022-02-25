@@ -161,10 +161,10 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 
 @pytest.mark.parametrize(
-    ["cli_args", "expected_parsed", "expected_device_ids"],
-    [("", None, []), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [])],
+    ["cli_args", "expected_parsed"],
+    [("", None), ("--accelerator gpu --devices 1", "1"), ("--accelerator gpu --devices 0,", "0,")],
 )
-def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_device_ids, monkeypatch):
+def test_argparse_args_parsing_devices(cli_args, expected_parsed, monkeypatch):
     """Test multi type argument with bool."""
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
@@ -177,11 +177,7 @@ def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_devic
         args = Trainer.parse_argparser(parser)
 
     assert args.devices == expected_parsed
-    trainer = Trainer.from_argparse_args(args)
-    with pytest.deprecated_call(
-        match="Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        assert trainer.data_parallel_device_ids == expected_device_ids
+    assert Trainer.from_argparse_args(args)
 
 
 @pytest.mark.parametrize(

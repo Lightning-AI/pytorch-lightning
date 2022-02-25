@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
+from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -2087,13 +2087,11 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> List[int]:
-        rank_zero_deprecation("`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8.")
-        if isinstance(self.accelerator, GPUAccelerator):
-            if isinstance(self.strategy, ParallelStrategy):
-                return [device.index for device in self.strategy.parallel_devices]
-            elif isinstance(self.strategy, SingleDeviceStrategy):
-                return [0]
-        return []
+        rank_zero_deprecation(
+            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.device_ids` instead."
+        )
+        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
