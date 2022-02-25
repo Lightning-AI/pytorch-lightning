@@ -77,7 +77,7 @@ class GPUAccelerator(Accelerator):
         return get_nvidia_gpu_stats(device)
 
     @staticmethod
-    def parse_devices(devices: int | str | list[int]) -> list[int] | None:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator Parsing logic."""
         return device_parser.parse_gpu_ids(devices)
 
