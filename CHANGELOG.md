@@ -433,6 +433,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.profiler.AbstractProfiler` in favor of `pytorch_lightning.profiler.BaseProfiler` ([#12106](https://github.com/PyTorchLightning/pytorch-lightning/pull/12106))
 
 
+- Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -517,6 +520,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `DeepSpeedPlugin.{precision,amp_type,amp_level}` properties ([#10657](https://github.com/PyTorchLightning/pytorch-lightning/pull/10657))
 
 
+- Removed patching of `on_before_batch_transfer`, `transfer_batch_to_device` and `on_after_batch_transfer` hooks in `LightningModule` ([#10603](https://github.com/PyTorchLightning/pytorch-lightning/pull/10603))
+
+
 - Removed argument `return_result` from the `DDPSpawnPlugin.spawn()` method ([#10867](https://github.com/PyTorchLightning/pytorch-lightning/pull/10867))
 
 
@@ -592,6 +598,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `_aggregate_metrics`, `_reduce_agg_metrics`, and `_finalize_agg_metrics` from `LightningLoggerBase` ([#12053](https://github.com/PyTorchLightning/pytorch-lightning/pull/12053))
 
 
+- Removed the `AcceleratorConnector.device_type` property ([#12081](https://github.com/PyTorchLightning/pytorch-lightning/pull/12081))
+
+
 ### Fixed
 
 - Fixed an issue where `HorovodStrategy.teardown()` did not complete gracefully if an exception was thrown during callback setup [#11752](https://github.com/PyTorchLightning/pytorch-lightning/pull/11752)
@@ -624,6 +633,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed `SimpleProfiler` summary ([#11414](https://github.com/PyTorchLightning/pytorch-lightning/pull/11414))
+
+
+- No longer set a `DistributedSampler` to the `poptorch.DataLoader` when IPUs are used ([#12114](https://github.com/PyTorchLightning/pytorch-lightning/pull/12114))
 
 
 - Fixed bug where progress bar was not being disabled when not in rank zero during predict ([#11377](https://github.com/PyTorchLightning/pytorch-lightning/pull/11377))

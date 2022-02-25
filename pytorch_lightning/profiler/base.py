@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ log = logging.getLogger(__name__)
 class AbstractProfiler(ABC):
     """Specification of a profiler.
 
-    See deprecation message below
+    See deprecation warning below
 
     .. deprecated:: v1.6
         `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
@@ -102,6 +103,14 @@ class BaseProfiler(ABC):
             self.stop(action_name)
 
     def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
+        """Profiles over each value of an iterable.
+
+        See deprecation message below.
+
+        .. deprecated:: v1.6
+            `BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
         iterator = iter(iterable)
         while True:
             try:
