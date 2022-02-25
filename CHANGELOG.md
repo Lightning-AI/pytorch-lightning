@@ -583,7 +583,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `_aggregate_metrics`, `_reduce_agg_metrics`, and `_finalize_agg_metrics` from `LightningLoggerBase` ([#12053](https://github.com/PyTorchLightning/pytorch-lightning/pull/12053))
 
 
-- Removed deprecated `AcceleratorConnector.device_type` property ([#12081](https://github.com/PyTorchLightning/pytorch-lightning/pull/12081))
+- Removed the `AcceleratorConnector.device_type` property ([#12081](https://github.com/PyTorchLightning/pytorch-lightning/pull/12081))
 
 
 ### Fixed
