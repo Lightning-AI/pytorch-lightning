@@ -350,7 +350,7 @@ Subclass registration
 
 To use shorthand notation, the options need to be registered beforehand. This can be easily done with:
 
-.. testcode::
+.. code-block::
 
     LightningCLI(register_automatically=True)  # False by default
 
