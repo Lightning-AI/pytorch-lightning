@@ -21,6 +21,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -42,6 +43,7 @@ class ParallelStrategy(Strategy, ABC):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
+        self._layer_sync: Optional[LayerSync] = None
 
     @property
     @abstractmethod
