@@ -346,12 +346,13 @@ def test_autoreport(tmpdir):
 
 @RunIf(ipu=True)
 def test_manual_poptorch_dataloader(tmpdir):
+    model_options = poptorch.Options()
+
     class IPUTestModel(IPUModel):
         def train_dataloader(self):
             dataloader = super().train_dataloader()
             # save to instance to compare the reference later
-            self.options = poptorch.Options()
-            self.poptorch_dataloader = poptorch.DataLoader(self.options, dataloader.dataset, drop_last=True)
+            self.poptorch_dataloader = poptorch.DataLoader(model_options, dataloader.dataset, drop_last=True)
             return self.poptorch_dataloader
 
     model = IPUTestModel()
@@ -369,8 +370,8 @@ def test_manual_poptorch_dataloader(tmpdir):
     assert trainer.strategy.training_opts is other_options
     dataloader = trainer.train_dataloader.loaders
     assert dataloader is model.poptorch_dataloader  # exact object, was not recreated
-    assert dataloader.options is model.options
-    assert dataloader.options is not other_options
+    assert dataloader.options is model_options  # exact objectis used, not recreated
+    assert dataloader.options is not other_options  # the strategy options are different
     assert dataloader.drop_last  # was kept
 
 
