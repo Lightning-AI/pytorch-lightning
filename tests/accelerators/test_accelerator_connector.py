@@ -20,6 +20,7 @@ import pytest
 import torch
 import torch.distributed
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -42,7 +43,6 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -393,19 +393,31 @@ def test_dist_backend_accelerator_mapping(*_):
     assert trainer.strategy.local_rank == 0
 
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_ipython_incompatible_backend_error(*_):
+def test_ipython_incompatible_backend_error(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", gpus=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(strategy="ddp2", gpus=2)
 
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
+        Trainer(strategy="ddp_spawn")
 
-@mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
-def test_ipython_compatible_backend(*_):
-    Trainer(strategy="ddp_spawn", num_processes=2)
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+        Trainer(strategy="ddp_sharded_spawn")
+
+    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
+        Trainer(strategy="dp")
+
+
+@pytest.mark.parametrize("trainer_kwargs", [{}, dict(strategy="dp", accelerator="gpu"), dict(accelerator="tpu")])
+def test_ipython_compatible_backend(trainer_kwargs, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
 
 
 @pytest.mark.parametrize(["accelerator", "plugin"], [("ddp_spawn", "ddp_sharded"), (None, "ddp_sharded")])
@@ -447,10 +459,7 @@ def test_accelerator_choice_multi_node_gpu(
 
 @mock.patch("torch.cuda.is_available", return_value=False)
 def test_accelerator_cpu(_):
-
     trainer = Trainer(accelerator="cpu")
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
@@ -464,36 +473,25 @@ def test_accelerator_cpu(_):
 
 @RunIf(min_gpus=1)
 def test_accelerator_gpu():
-
     trainer = Trainer(accelerator="gpu", gpus=1)
-
-    assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="gpu")
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
     trainer = Trainer(accelerator="auto", gpus=1)
-
-    assert trainer._device_type == "gpu"
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
 @RunIf(min_gpus=1)
 def test_accelerator_cpu_with_gpus_flag():
-
     trainer = Trainer(accelerator="cpu", gpus=1)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(min_gpus=2)
 def test_accelerator_cpu_with_multiple_gpus():
-
     trainer = Trainer(accelerator="cpu", gpus=2)
-
-    assert trainer._device_type == "cpu"
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
@@ -532,10 +530,8 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 
 @RunIf(min_gpus=1)
 def test_accelerator_auto_with_devices_gpu():
-
     trainer = Trainer(accelerator="auto", devices=1)
-
-    assert trainer._device_type == "gpu"
+    assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.gpus == 1
 
 
@@ -580,11 +576,9 @@ def test_devices_with_cpu_only_supports_integer():
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_strategy_types_on_cpu(training_type):
-
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._strategy_type == _StrategyType.DDP
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
@@ -664,10 +658,8 @@ def test_strategy_choice_gpu_plugin(tmpdir, plugin):
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
-
     trainer = Trainer(strategy=plugin(), gpus=2)
     assert isinstance(trainer.strategy, plugin)
-    assert trainer._device_type == _AcceleratorType.GPU
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 

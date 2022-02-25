@@ -99,7 +99,7 @@ class AcceleratorConnector:
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
         num_processes: Optional[int] = None,  # deprecated
@@ -142,8 +142,14 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. TODO When multiple flag set to the same thing
         """
+        if benchmark and deterministic:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+        self.benchmark = not deterministic if benchmark is None else benchmark
         # TODO: move to gpu accelerator
-        torch.backends.cudnn.benchmark = benchmark
+        torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
@@ -735,19 +741,12 @@ class AcceleratorConnector:
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
-        # TODO move is_compatible logic to strategy API
-        interactive_compatible_strategy = (
-            DataParallelStrategy.strategy_name,
-            DDPSpawnStrategy.strategy_name,
-            DDPSpawnShardedStrategy.strategy_name,
-            TPUSpawnStrategy.strategy_name,
-        )
-        if _IS_INTERACTIVE and self.strategy.strategy_name not in interactive_compatible_strategy:
+        if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
                 f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
-                " environment. Run your code as a script, or choose one of the compatible backends:"
-                f" {', '.join(interactive_compatible_strategy)}."
+                " environment. Run your code as a script, or choose one of the compatible strategies:"
+                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
@@ -769,17 +768,6 @@ class AcceleratorConnector:
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         return self._parallel_devices
-
-    @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
 
     @property
     def num_nodes(self) -> int:
@@ -875,7 +863,3 @@ class AcceleratorConnector:
     @property
     def use_dp(self) -> bool:
         return isinstance(self.strategy, DataParallelStrategy)
-
-    @property
-    def _strategy_type(self) -> _StrategyType:
-        return self.strategy.strategy_name
