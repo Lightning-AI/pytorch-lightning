@@ -351,7 +351,7 @@ def test_manual_poptorch_dataloader(tmpdir):
             dataloader = super().train_dataloader()
             # save to instance to compare the reference later
             self.options = poptorch.Options()
-            self.poptorch_dataloader = poptorch.DataLoader(dataloader.dataset, drop_last=True, options=self.options)
+            self.poptorch_dataloader = poptorch.DataLoader(self.options, dataloader.dataset, drop_last=True)
             return self.poptorch_dataloader
 
     model = IPUTestModel()

@@ -220,7 +220,7 @@ class IPUStrategy(ParallelStrategy):
 
         dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
+        dataloader = poptorch.DataLoader(opts, **dl_kwargs)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:

@@ -177,7 +177,7 @@ def test_replace_dataloader_init_method():
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
-        def __init__(self, *args, options=None, **kwargs):
+        def __init__(self, options, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self._options = options
 
@@ -186,11 +186,11 @@ def test_replace_dataloader_init_method():
             return self._options
 
     # †his read-only property pattern is fine
-    dataloader = PoptorchDataLoader([1], options=123)
+    dataloader = PoptorchDataLoader(123, [1])
     assert dataloader.options == 123
     # still works with the init replacement
     with _replace_dataloader_init_method():
-        dataloader = PoptorchDataLoader([1], options=123)
+        dataloader = PoptorchDataLoader(123, [1])
     assert dataloader.options == 123
 
 
