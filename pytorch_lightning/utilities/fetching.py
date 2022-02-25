@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Sized, Tuple
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -215,8 +215,7 @@ class DataFetcher(AbstractDataFetcher):
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
         self.batches: List[Any] = []
-        # used to know whether we can access the dataloader length
-        self._has_len: bool = False
+        self._has_len = False
 
     def setup(  # type: ignore[override]
         self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
@@ -274,8 +273,10 @@ class DataFetcher(AbstractDataFetcher):
         batch = next(iterator)
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
-            # this is for `done` with sized datasets
-            self.done = self.fetched >= len(self.dataloader)
+            # when we don't prefetch but the dataloader is sized, we use the length for `done`
+            dataloader = self.dataloader
+            assert isinstance(dataloader, Sized)  # `_has_len` is True
+            self.done = self.fetched >= len(dataloader)
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
