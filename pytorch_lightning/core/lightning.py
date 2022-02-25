@@ -1400,10 +1400,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        opts = self.optimizers(use_pl_optimizer=False)
-        if isinstance(opts, (Optimizer, LightningOptimizer)):
-            opts = [opts]
-        for opt_idx, opt in enumerate(opts):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
