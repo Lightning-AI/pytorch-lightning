@@ -14,12 +14,13 @@
 """Test deprecated functionality which will be removed in v1.8.0."""
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -248,7 +249,7 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     )
     model = BoringModel()
     # need to attach model to trainer for testing of `on_pretrain_routine_start`
-    trainer.fit(model)
+    trainer.strategy.connect(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
         with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
@@ -503,6 +504,45 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_logger_agg_parameters():
+    class CustomLogger(LightningLoggerBase):
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            pass
+
+        @rank_zero_only
+        def log_metrics(self, metrics, step):
+            pass
+
+        @property
+        def name(self):
+            pass
+
+        @property
+        def version(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_key_funcs={"mean", np.mean})
+
+    with pytest.deprecated_call(
+        match="The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_default_func=np.mean)
+
+    # Should have no deprecation warning
+    logger = CustomLogger()
+
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        logger.update_agg_funcs()
+
+
 def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     class AggregationOverrideLogger(CSVLogger):
         @rank_zero_only
@@ -534,6 +574,42 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     Trainer(logger=[logger2, logger3])
 
 
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_pretrain_routine_start(self, trainer, pl_module):
+            print("on_pretrain_routine_start called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_pretrain_routine_end(self, trainer, pl_module):
+            print("on_pretrain_routine_end called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+        
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
@@ -563,4 +639,4 @@ def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
         match="`LightningDataModule.on_load_checkpoint` was deprecated in"
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
-        trainer.fit(model, datamodule=dm_load)
+        trainer.fit(model, datamodule=dm_load)     

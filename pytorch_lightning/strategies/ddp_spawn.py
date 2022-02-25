@@ -136,9 +136,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
-        return {"nprocs": self.num_processes}
-
     def _worker_setup(self, process_idx: int):
         reset_seed()
         self.set_world_ranks(process_idx)
