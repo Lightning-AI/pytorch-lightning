@@ -49,7 +49,6 @@ class DeviceStatsMonitor(Callback):
     """
 
     def __init__(self, cpu_stats: bool = True) -> None:
-        super().__init__()
         self.cpu_stats = cpu_stats
 
     def setup(
