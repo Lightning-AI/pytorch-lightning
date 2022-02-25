@@ -324,7 +324,7 @@ class AcceleratorConnector:
                     if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
                         raise MisconfigurationException(
                             f"You set `Trainer(sync_batchnorm=True)` and provided a `{plugin.__class__.__name__}`"
-                            f" plugin, but this is not allowed. Choose one or the other."
+                            " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
                 else:
