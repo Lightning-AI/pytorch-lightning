@@ -43,7 +43,7 @@ class GPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
         torch.cuda.set_device(root_device)
 
-    def setup(self, trainer: pl.Trainer) -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
         # clear cache before training
