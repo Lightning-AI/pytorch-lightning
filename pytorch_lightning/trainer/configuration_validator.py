@@ -355,7 +355,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
-
         for hook, alternative_hook in (
             ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
             ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
@@ -364,4 +363,10 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 rank_zero_deprecation(
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+                )
+        for hook in ("on_pretrain_routine_start", "on_pretrain_routine_end"):
+            if is_overridden(method_name=hook, instance=callback):
+                rank_zero_deprecation(
+                    f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
+                    f" will be removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
