@@ -222,7 +222,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
 @RunIf(min_torch="1.8.0")
-def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
+def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
             super().__init__(*args, **kwargs)
@@ -261,6 +261,28 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("fn", ("validate", "test"))
+@RunIf(min_torch="1.8.0")
+def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, dataloader_iter, batch_idx):
+            assert isinstance(self.trainer.validate_loop._data_fetcher, DataLoaderIterDataFetcher)
+            batch = next(dataloader_iter)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, dataloader_iter, batch_idx):
+            assert isinstance(self.trainer.test_loop._data_fetcher, DataLoaderIterDataFetcher)
+            batch = next(dataloader_iter)
+            return super().test_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    if fn == "validate":
+        trainer.validate(model)
+    elif fn == "test":
+        trainer.test(model)
 
 
 class DummyWaitable:
