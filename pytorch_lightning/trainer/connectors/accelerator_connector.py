@@ -47,7 +47,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import (
-    DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -859,7 +858,3 @@ class AcceleratorConnector:
     @property
     def has_tpu(self) -> bool:
         return isinstance(self.accelerator, TPUAccelerator)
-
-    @property
-    def use_dp(self) -> bool:
-        return isinstance(self.strategy, DataParallelStrategy)
