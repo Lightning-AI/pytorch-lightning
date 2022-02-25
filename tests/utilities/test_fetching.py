@@ -77,13 +77,21 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
     assert fetcher.fetched == 3
 
 
-def test_empty_prefetch_iterator():
-    class EmptyIterDataset(IterableDataset):
-        def __iter__(self):
-            return iter([])
+class EmptyIterDataset(IterableDataset):
+    def __iter__(self):
+        return iter([])
 
-    loader = DataLoader(EmptyIterDataset())
-    fetcher = DataFetcher()
+
+class EmptySizedDataset(Dataset):
+    def __len__(self):
+        return 0
+
+
+@pytest.mark.parametrize("dataset_cls", [EmptyIterDataset, EmptySizedDataset])
+@pytest.mark.parametrize("prefetch_batches", list(range(2)))
+def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
+    loader = DataLoader(dataset_cls())
+    fetcher = DataFetcher(prefetch_batches=prefetch_batches)
     fetcher.setup(loader)
 
     assert not fetcher.done
