@@ -13,8 +13,8 @@
 # limitations under the License.
 import multiprocessing
 import os
-from dataclasses import dataclass
-from typing import Any, Collection, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -40,7 +40,9 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+
+warning_cache = WarningCache()
 
 
 class DataConnector:
@@ -51,6 +53,8 @@ class DataConnector:
         self._val_dataloader_source = _DataLoaderSource(None, "")
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
+
+        self._datahook_selector = _DataHookSelector(None, None)
 
     @property
     def _should_reload_train_dl(self) -> bool:
@@ -192,6 +196,8 @@ class DataConnector:
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
+        self._datahook_selector = _DataHookSelector(model, datamodule)
+
         if datamodule is None:
             return
 
@@ -199,12 +205,6 @@ class DataConnector:
         self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
         self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
         self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
-
-        # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
-        for hook in batch_transfer_hooks:
-            if is_overridden(hook, datamodule):
-                setattr(model, hook, getattr(datamodule, hook))
 
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
@@ -555,3 +555,48 @@ class _DataLoaderSource:
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
+
+
+@dataclass
+class _DataHookSelector:
+    """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
+
+    The hook source can be
+
+    1. a method from the :class:`~pytorch_lightning.core.lightning.LightningModule`,
+    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+
+    Arguments:
+        model: A LightningModule
+        datamodule: A LightningDataModule
+    """
+
+    model: "pl.LightningModule"
+    datamodule: Optional["pl.LightningDataModule"]
+    _valid_hooks: Tuple[str] = field(
+        default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    )
+
+    def get_hook(self, hook_name: str) -> Callable:
+        if hook_name not in self._valid_hooks:
+            raise ValueError(
+                f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
+                f" Valid hooks are {self._valid_hooks}."
+            )
+
+        if self.datamodule is None:
+            return getattr(self.model, hook_name)
+
+        if is_overridden(hook_name, self.datamodule):
+            if is_overridden(hook_name, self.model):
+                warning_cache.warn(
+                    f"You have overridden `{hook_name}` in both `LightningModule` and `LightningDataModule`."
+                    " It will use the implementation from `LightningDataModule` instance."
+                )
+            return getattr(self.datamodule, hook_name)
+
+        warning_cache.warn(
+            f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
+            " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
+        )
+        return getattr(self.model, hook_name)
