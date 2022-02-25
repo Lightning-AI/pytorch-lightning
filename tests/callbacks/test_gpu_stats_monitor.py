@@ -47,7 +47,9 @@ def test_gpu_stats_monitor(tmpdir):
         logger=logger,
     )
 
-    with pytest.deprecated_call(match="`Trainer.data_parallel_device_ids` was deprecated in v1.6."):
+    with pytest.deprecated_call(
+        match="Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -87,7 +89,9 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
     )
     with mock.patch(
         "pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics"
-    ) as log_metrics_mock, pytest.deprecated_call(match="`Trainer.data_parallel_device_ids` was deprecated in v1.6."):
+    ) as log_metrics_mock, pytest.deprecated_call(
+        match="Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(model)
 
     assert log_metrics_mock.mock_calls[1:] == [

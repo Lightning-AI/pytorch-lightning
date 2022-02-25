@@ -193,10 +193,12 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     assert trainer.gpus == gpus
     if rank_zero_only.rank == 0:
-        with pytest.deprecated_call(match="`Trainer.data_parallel_device_ids` was deprecated in v1.6."):
+        with pytest.deprecated_call(
+            match="Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+        ):
             assert (trainer.data_parallel_device_ids or None) == device_parser.parse_gpu_ids(gpus)
     else:
-        assert trainer.data_parallel_device_ids == device_parser.parse_gpu_ids(gpus)
+        assert (trainer.data_parallel_device_ids or None) == device_parser.parse_gpu_ids(gpus)
 
 
 @RunIf(min_gpus=1)
