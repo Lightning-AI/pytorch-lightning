@@ -99,7 +99,7 @@ class AcceleratorConnector:
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
         num_processes: Optional[int] = None,  # deprecated
@@ -142,8 +142,14 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. TODO When multiple flag set to the same thing
         """
+        if benchmark and deterministic:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+        self.benchmark = not deterministic if benchmark is None else benchmark
         # TODO: move to gpu accelerator
-        torch.backends.cudnn.benchmark = benchmark
+        torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
@@ -762,17 +768,6 @@ class AcceleratorConnector:
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         return self._parallel_devices
-
-    @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
 
     @property
     def num_nodes(self) -> int:

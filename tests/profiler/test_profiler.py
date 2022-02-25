@@ -66,19 +66,6 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
-@pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
-    """Ensure the reported durations are reasonably accurate."""
-    iterable = _sleep_generator(expected)
-
-    for _ in simple_profiler.profile_iterable(iterable, action):
-        pass
-
-    # we exclude the last item in the recorded durations since that's when StopIteration is raised
-    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
-
-
 def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
@@ -283,20 +270,6 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
-    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
-    expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
-
-
-@pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
-    """Ensure the reported durations are reasonably accurate."""
-    iterable = _sleep_generator(expected)
-
-    for _ in advanced_profiler.profile_iterable(iterable, action):
-        pass
-
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
