@@ -609,7 +609,7 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     ):
         trainer.fit(model)
 
-        
+
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
