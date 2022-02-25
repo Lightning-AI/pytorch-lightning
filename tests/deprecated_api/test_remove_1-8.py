@@ -659,4 +659,3 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
->>>>>>> f5304897cec970bb1cfaef901bbe12532242f1e3
