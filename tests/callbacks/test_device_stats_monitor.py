@@ -42,7 +42,11 @@ def test_device_stats_gpu_from_torch(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
+            fields = [
+                "allocated_bytes.all.freed",
+                "inactive_split.all.peak",
+                "reserved_bytes.large_pool.peak",
+            ]
             for f in fields:
                 assert any(f in h for h in metrics)
 
@@ -72,7 +76,12 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
+            fields = [
+                "utilization.gpu",
+                "memory.used",
+                "memory.free",
+                "utilization.memory",
+            ]
             for f in fields:
                 assert any(f in h for h in metrics)
 
@@ -101,11 +110,10 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            # Just need to check one of the GPU metrics to make sure
+            # the GPU metrics are logged
             fields = [
-                "utilization.gpu",
-                "memory.used",
-                "memory.free",
-                "utilization.memory",
+                "allocated.all.current",
             ] + CPU_METRIC_KEYS
             for f in fields:
                 assert any(f in h for h in metrics)
@@ -125,6 +133,7 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
 
     trainer.fit(model)
 
+
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
     """Test only GPU stat stats are logged using a logger."""
@@ -134,15 +143,14 @@ def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+            # Just need to check one of the GPU metrics to make sure
+            # the GPU metrics are logged
             fields = [
-                "utilization.gpu",
-                "memory.used",
-                "memory.free",
-                "utilization.memory",
+                "allocated.all.current",
             ]
             for f in fields:
                 assert any(f in h for h in metrics)
-            
+
             for f in CPU_METRIC_KEYS:
                 assert not any(f in h for h in metrics), "CPU Stats should not be included"
 
@@ -160,7 +168,6 @@ def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
     )
 
     trainer.fit(model)
-
 
 
 def test_device_stats_cpu(tmpdir):
