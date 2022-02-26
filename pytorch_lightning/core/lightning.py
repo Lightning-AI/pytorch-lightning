@@ -253,7 +253,7 @@ class LightningModule(
 
     @property
     def loggers(self) -> List[LightningLoggerBase]:
-        """Reference to the loggers object in the Trainer."""
+        """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(

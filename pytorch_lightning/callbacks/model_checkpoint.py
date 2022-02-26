@@ -35,6 +35,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -379,8 +380,9 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
         # notify loggers
-        if trainer.is_global_zero and trainer.logger:
-            trainer.logger.after_save_checkpoint(proxy(self))
+        if trainer.is_global_zero:
+            for logger in trainer.loggers:
+                logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
@@ -573,20 +575,21 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
-        # TODO: Remove weights_save_path logic here in v1.8
-        if trainer.logger is not None:
+         # TODO: Remove weights_save_path logic here in v1.8
+        if trainer.loggers:
             if trainer._weights_save_path_internal != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer._weights_save_path_internal
-            else:
+            elif len(trainer.loggers) == 1:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
+            else:
+                save_dir = trainer.default_root_dir
 
-            version = (
-                trainer.logger.version
-                if isinstance(trainer.logger.version, str)
-                else f"version_{trainer.logger.version}"
-            )
-            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
+            name = _name(trainer.loggers)
+            version = _version(trainer.loggers)
+            version = version if isinstance(version, str) else f"version_{version}"
+
+            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
 

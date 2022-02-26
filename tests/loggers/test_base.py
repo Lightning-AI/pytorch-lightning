@@ -186,10 +186,11 @@ def test_multiple_loggers_pickle(tmpdir):
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0}, 0)
+    for logger in trainer2.loggers:
+        logger.log_metrics({"acc": 1.0}, 0)
 
-    assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
-    assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
+    for logger in trainer2.loggers:
+        assert logger.metrics_logged == {"acc": 1.0}
 
 
 def test_adding_step_key(tmpdir):
