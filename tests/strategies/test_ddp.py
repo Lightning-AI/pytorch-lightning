@@ -149,7 +149,7 @@ def test_ddp_wrapper(tmpdir, precision):
 
 
 @RunIf(min_gpus=1, standalone=True)
-def test_ddp_wrapper_teardown(tmpdir):
+def test_ddp_teardown(tmpdir):
     model = BoringModel()
     strategy = DDPStrategy()
     trainer = Trainer(
