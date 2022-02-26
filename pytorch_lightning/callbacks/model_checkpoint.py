@@ -575,7 +575,7 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
-         # TODO: Remove weights_save_path logic here in v1.8
+        # TODO: Remove weights_save_path logic here in v1.8
         if trainer.loggers:
             if trainer._weights_save_path_internal != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
