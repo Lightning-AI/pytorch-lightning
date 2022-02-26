@@ -107,11 +107,12 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches)
 
         assert self._dataloader_iter is not None
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            batch_idx = self.batch_progress.current.ready
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+        with self.trainer.profiler.profile("{}_dataloader_next"):
+            if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+                batch_idx = self.batch_progress.current.ready
+                batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            else:
+                batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch, batch_idx)
