@@ -495,11 +495,7 @@ class LightningLite(ABC):
 
     @staticmethod
     def _supported_accelerators() -> Sequence[Accelerator]:
-        return (
-            CPUAccelerator,
-            GPUAccelerator,
-            TPUAccelerator
-        )
+        return (CPUAccelerator, GPUAccelerator, TPUAccelerator)
 
     @staticmethod
     def _supported_device_types() -> Sequence[_AcceleratorType]:
@@ -520,7 +516,7 @@ class LightningLite(ABC):
             DDPSpawnStrategy,
             DeepSpeedStrategy,
             DDPShardedStrategy,
-            DDPSpawnShardedStrategy
+            DDPSpawnShardedStrategy,
         )
 
     @staticmethod
@@ -533,7 +529,6 @@ class LightningLite(ABC):
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,
         )
-
 
     @staticmethod
     def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
