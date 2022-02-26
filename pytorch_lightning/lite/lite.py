@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Type, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Type, Union
 
 import torch
 import torch.nn as nn
@@ -506,7 +506,9 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategies() -> Tuple[Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy]]:
+    def _supported_strategies() -> Tuple[
+        Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy]
+    ]:
 
         # TODO: (@awaelchli: is FullySharded supported here?)
         return (
