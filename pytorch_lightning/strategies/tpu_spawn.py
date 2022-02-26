@@ -286,6 +286,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def teardown(self) -> None:
         super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)
         self.accelerator.teardown()
 
     @classmethod

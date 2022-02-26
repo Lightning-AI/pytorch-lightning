@@ -80,3 +80,8 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def teardown(self) -> None:
+        super().teardown()
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)

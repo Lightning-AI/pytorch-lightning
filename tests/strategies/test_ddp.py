@@ -23,7 +23,6 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.strategies.ddp import DDPStrategy
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.strategies import ddp_model
@@ -146,19 +145,3 @@ def test_ddp_wrapper(tmpdir, precision):
         callbacks=CustomCallback(),
     )
     trainer.fit(model)
-
-
-@RunIf(min_gpus=1, standalone=True)
-def test_ddp_teardown(tmpdir):
-    model = BoringModel()
-    strategy = DDPStrategy()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        strategy="ddp",
-        gpus=1,
-    )
-
-    with patch.object(DDPStrategy, "teardown", wraps=strategy.teardown) as mock:
-        trainer.fit(model)
-        mock.assert_called_once()

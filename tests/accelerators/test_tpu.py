@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import collections
-import os
 from copy import deepcopy
 from unittest.mock import patch
 
@@ -311,16 +310,3 @@ def test_mp_device_dataloader_attribute(_):
 def test_warning_if_tpus_not_used():
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
-
-
-@RunIf(tpu=True)
-def test_tpu_spawn_teardown(tmpdir):
-    model = BoringModel()
-    strategy = TPUSpawnStrategy()
-    trainer = Trainer(strategy=strategy, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
-
-    with patch.object(TPUSpawnStrategy, "teardown", wraps=strategy.teardown) as mock:
-        trainer.fit(model)
-
-        mock.assert_called_once()
-        assert os.environ.get("PT_XLA_DEBUG") is None

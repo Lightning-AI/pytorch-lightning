@@ -72,3 +72,15 @@ def test_gpu_availability():
 def test_warning_if_gpus_not_used():
     with pytest.warns(UserWarning, match="GPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
+
+
+@RunIf(min_gpus=1)
+def test_gpu_teardown():
+    acc = GPUAccelerator()
+    tensor = torch.zeros(100).cuda()
+    del tensor
+    before_stats = torch.cuda.memory_stats()
+    acc.teardown()
+    after_stats = torch.cuda.memory_stats()
+    # test that reserved memory is freed after teardown
+    assert before_stats["reserved_bytes.all.current"] > after_stats["reserved_bytes.all.current"]
