@@ -102,7 +102,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
 
 @pytest.mark.parametrize("cpu_stats", [True, False])
-@RunIf(min_gpus=1)
+@RunIf(min_gpus=1, min_torch="1.8")
 def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
     """Test only CPU stats can be enabled/disabled when using GPU."""
     model = BoringModel()
