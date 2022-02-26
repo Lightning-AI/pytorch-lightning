@@ -34,7 +34,7 @@ class DeviceStatsMonitor(Callback):
     is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
     Args:
-        cpu_stats: if True, will also record CPU stats in addition to accelerator stats.
+        cpu_stats: if ``True``, will also record CPU stats in addition to accelerator stats.
 
     Raises:
         MisconfigurationException:
@@ -57,7 +57,9 @@ class DeviceStatsMonitor(Callback):
         stage: Optional[str] = None,
     ) -> None:
         if not trainer.loggers:
-            raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
+            raise MisconfigurationException(
+                "Cannot use `DeviceStatsMonitor` callback with `Trainer` that has no logger."
+            )
 
     def _get_and_log_device_stats(
         self,
