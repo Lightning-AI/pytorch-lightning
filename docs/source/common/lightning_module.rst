@@ -1225,9 +1225,6 @@ for more information.
         setup("fit")
         configure_optimizers()
 
-        on_pretrain_routine_start()
-        on_pretrain_routine_end()
-
         # the sanity check runs here
 
         on_train_start()
