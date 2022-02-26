@@ -506,9 +506,7 @@ class LightningLite(ABC):
         )
 
     @staticmethod
-    def _supported_strategies() -> Tuple[
-        Type[Strategy], ...
-    ]:
+    def _supported_strategies() -> Tuple[Type[Strategy], ...]:
 
         return (
             SingleDeviceStrategy,
