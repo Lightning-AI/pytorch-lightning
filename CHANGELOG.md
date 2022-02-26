@@ -134,6 +134,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Internal checks for PrecisionType, StrategyType and AcceleratorType have been removed in favor of instance-checks against the respective classes ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069))
+
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
 
 
@@ -312,6 +314,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Rewrote `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
 
 ### Deprecated
+
+- Deprecated `backend` property of `MixedPrecisionPlugin` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069))
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))
 
