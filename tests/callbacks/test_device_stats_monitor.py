@@ -101,44 +101,12 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.parametrize("cpu_stats", [True, False])
 @RunIf(min_gpus=1)
-def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
-    """Test GPU stats + CPU stats are logged using a logger."""
+def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
+    """Test only CPU stats can be enabled/disabled when using GPU."""
     model = BoringModel()
-    device_stats = DeviceStatsMonitor()
-
-    class DebugLogger(CSVLogger):
-        @rank_zero_only
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            # Just need to check one of the GPU metrics to make sure
-            # the GPU metrics are logged
-            fields = [
-                "active.all.allocated",
-            ] + CPU_METRIC_KEYS
-            for f in fields:
-                assert any(f in h for h in metrics)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=2,
-        log_every_n_steps=1,
-        accelerator="gpu",
-        devices=1,
-        callbacks=[device_stats],
-        logger=DebugLogger(tmpdir),
-        enable_checkpointing=False,
-        enable_progress_bar=False,
-    )
-
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1)
-def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
-    """Test only GPU stat stats are logged using a logger."""
-    model = BoringModel()
-    device_stats = DeviceStatsMonitor(cpu_stats=False)
+    device_stats = DeviceStatsMonitor(cpu_stats=cpu_stats)
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
@@ -148,10 +116,14 @@ def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
             fields = [
                 "active.all.allocated",
             ]
+
+            # If cpu stats, also check CPU metric keys are logged
+            fields += CPU_METRIC_KEYS if cpu_stats else []
             for f in fields:
                 assert any(f in h for h in metrics)
 
-            for f in CPU_METRIC_KEYS:
+            # If not cpu stats, make sure CPU metric keys aren't logged
+            if not cpu_stats:
                 assert not any(f in h for h in metrics), "CPU Stats should not be included"
 
     trainer = Trainer(
