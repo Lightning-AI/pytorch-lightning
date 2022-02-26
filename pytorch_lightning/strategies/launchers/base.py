@@ -26,6 +26,11 @@ class _Launcher(ABC):
     cluster environment, hardware, strategy, etc.
     """
 
+    @property
+    @abstractmethod
+    def is_interactive_compatible(self) -> bool:
+        """Returns whether this launcher can work in interactive environments such as Jupyter notebooks."""
+
     @abstractmethod
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches the processes."""
