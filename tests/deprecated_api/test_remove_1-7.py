@@ -522,17 +522,19 @@ def test_v1_7_0_post_dispatch_hook():
 
 def test_v1_7_0_trainer_amp_backend():
     trainer = Trainer()
-    with pytest.deprecated_call(match='amp_backend is deprecated and will be removed in 1.7.'):
+    with pytest.deprecated_call(match="amp_backend is deprecated and will be removed in 1.7."):
         trainer.amp_backend
 
+
 def test_v1_7_0_mixed_precision_plugin_backend_native():
-    plugin = NativeMixedPrecisionPlugin(16, 'cpu')
-    
-    with pytest.deprecated_call(match='The backend property has been deprecated in 1.6 and will be removed in 1.7.'):
+    plugin = NativeMixedPrecisionPlugin(16, "cpu")
+
+    with pytest.deprecated_call(match="The backend property has been deprecated in 1.6 and will be removed in 1.7."):
         plugin.backend
+
 
 @RunIf(amp_apex=True)
 def test_v1_7_0_mixed_precision_plugin_backend_apex():
     plugin = ApexMixedPrecisionPlugin()
-    with pytest.deprecated_call(match='The backend property has been deprecated in 1.6 and will be removed in 1.7.'):
+    with pytest.deprecated_call(match="The backend property has been deprecated in 1.6 and will be removed in 1.7."):
         plugin.backend

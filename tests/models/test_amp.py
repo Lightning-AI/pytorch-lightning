@@ -18,12 +18,12 @@ import pytest
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
-from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -169,11 +169,11 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
-    
-    assert not isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin) 
+
+    assert not isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
-    
+
     assert not isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
 
     trainer.fit(model)
