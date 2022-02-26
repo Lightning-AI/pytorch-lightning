@@ -80,8 +80,8 @@ class CPUAccelerator(Accelerator):
 def get_cpu_process_metrics() -> dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
-            "`get_cpu_process_metrics` requires `psutil` to be installed. "
-            + "Install it by running `pip install -U psutil`."
+            "`get_cpu_process_metrics` requires `psutil` to be installed."
+            " Install it by running `pip install -U psutil`."
         )
 
     metrics = {

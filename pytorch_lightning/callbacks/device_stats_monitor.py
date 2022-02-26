@@ -35,7 +35,6 @@ class DeviceStatsMonitor(Callback):
 
     Args:
         cpu_stats: if True, will also record CPU stats in addition to accelerator stats.
-            Default: ``True``.
 
     Raises:
         MisconfigurationException:
