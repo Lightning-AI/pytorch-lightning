@@ -17,6 +17,7 @@ from typing import Optional
 import pytest
 import torch
 import torch.nn.functional as F
+from torch.utils.data import DistributedSampler
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
@@ -114,9 +115,9 @@ def test_accelerator_selected(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_warning_if_ipus_not_used(tmpdir):
-    with pytest.warns(UserWarning, match="IPU available but not used. Set the `ipus` flag in your trainer"):
-        Trainer(default_root_dir=tmpdir, accelerator="cpu")
+def test_warning_if_ipus_not_used():
+    with pytest.warns(UserWarning, match="IPU available but not used. Set `accelerator` and `devices`"):
+        Trainer(accelerator="cpu")
 
 
 @RunIf(ipu=True)
@@ -352,7 +353,7 @@ def test_manual_poptorch_opts(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        ipus=1,
+        ipus=2,
         fast_dev_run=True,
         strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts),
     )
@@ -361,6 +362,12 @@ def test_manual_poptorch_opts(tmpdir):
     assert isinstance(trainer.strategy, IPUStrategy)
     assert trainer.strategy.training_opts == training_opts
     assert trainer.strategy.inference_opts == inference_opts
+
+    dataloader = trainer.train_dataloader.loaders
+    assert isinstance(dataloader, poptorch.DataLoader)
+    assert dataloader.options == training_opts
+    assert trainer.devices > 1  # testing this only makes sense in a distributed setting
+    assert not isinstance(dataloader.sampler, DistributedSampler)
 
 
 @RunIf(ipu=True)
