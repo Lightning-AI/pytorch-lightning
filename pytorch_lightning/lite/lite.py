@@ -485,12 +485,12 @@ class LightningLite(ABC):
             )
 
     def _check_strategy_type(self, strategy: Optional[Union[str, Strategy]]) -> None:
-        supported = [t.lower() for t in self._supported_strategy_types()]
-        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
+
         if not isinstance(strategy, self._supported_strategies()):
+            valid = [t.lower() for t in self._supported_strategy_types()]
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {[t.lower() for t in self._supported_strategy_types()]} or pass in a `Strategy` instance."
+                f" Choose one of {valid} or pass in a `Strategy` instance."
             )
 
     @staticmethod
