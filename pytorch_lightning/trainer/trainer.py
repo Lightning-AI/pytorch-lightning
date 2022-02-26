@@ -2018,13 +2018,6 @@ class Trainer(
 
     @property
     def num_nodes(self) -> int:
-<<<<<<< HEAD
-=======
-        rank_zero_deprecation(
-            "`Trainer.num_nodes` was deprecated in v1.6 and will be removed in v1.8."
-            ' Please use `getattr(Trainer.strategy, "num_nodes", 1)` instead.'
-        )
->>>>>>> 6040e065b (fix deprecation message)
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
