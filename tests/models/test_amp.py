@@ -18,6 +18,8 @@ import pytest
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
+from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
@@ -167,10 +169,13 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
-    assert trainer.amp_backend is None
+    
+    assert not isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin) 
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
-    assert trainer.amp_backend is None
+    
+    assert not isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
+
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert not bwd_mock.called
@@ -196,7 +201,8 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", gpus=1)
-    assert str(trainer.amp_backend) == "AMPType.APEX"
+
+    assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert bwd_mock.call_count == 10

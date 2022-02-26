@@ -34,6 +34,8 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
@@ -516,3 +518,21 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
+
+
+def test_v1_7_0_trainer_amp_backend():
+    trainer = Trainer()
+    with pytest.deprecated_call(match='amp_backend is deprecated and will be removed in 1.7.'):
+        trainer.amp_backend
+
+def test_v1_7_0_mixed_precision_plugin_backend_native():
+    plugin = NativeMixedPrecisionPlugin(16, 'cpu')
+    
+    with pytest.deprecated_call(match='The backend property has been deprecated in 1.6 and will be removed in 1.7.'):
+        plugin.backend
+
+@RunIf(amp_apex=True)
+def test_v1_7_0_mixed_precision_plugin_backend_apex():
+    plugin = ApexMixedPrecisionPlugin()
+    with pytest.deprecated_call(match='The backend property has been deprecated in 1.6 and will be removed in 1.7.'):
+        plugin.backend

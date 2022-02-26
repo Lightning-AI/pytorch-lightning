@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -114,7 +114,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def backend(self) -> AMPType:
         rank_zero_deprecation(
-            "The AMPType is not longer actively supported and will be deprecated in 1.7."
+            "The backend property has been deprecated in 1.6 and will be removed in 1.7."
             "Please Switch to ``isinstance(X, ApexMixedPrecisionPlugin)`` checks instead."
         )
         return AMPType.APEX

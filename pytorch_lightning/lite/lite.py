@@ -88,7 +88,10 @@ class LightningLite(ABC):
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
+        self._check_accelerator_flag(accelerator)
+        self._check_strategy_flag(strategy)
 
+        # breakpoint()
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=None,
@@ -113,8 +116,8 @@ class LightningLite(ABC):
         self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
 
-        self._check_accelerator_support(self._accelerator)
-        self._check_strategy_support(self._strategy)
+        self._check_accelerator_type(self._accelerator)
+        self._check_strategy_type(self._strategy)
 
         self._models_setup: int = 0
 
@@ -455,14 +458,33 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSampler(dataloader.dataset, **kwargs)
 
-    def _check_accelerator_support(self, accelerator: Accelerator) -> None:
-        if not isinstance(accelerator, self._supported_accelerators()):
+    def _check_accelerator_flag(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
+        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
+        if not valid:
             raise MisconfigurationException(
-                f"`accelerator={repr(accelerator)}` is not a valid choice for LightningLite."
-                f" Choose one of {["auto", *(x.lower() for x in self._supported_device_types)]} or pass in a `Accelerator` instance."
+                f"`accelerator={repr(accelerator)}` is not a valid choice."
+                f" Choose one of {supported} or pass in a `Accelerator` instance."
             )
 
-    def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
+    def _check_strategy_flag(self, strategy: Optional[Union[str, Strategy]]) -> None:
+        supported = [t.lower() for t in self._supported_strategy_types()]
+        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
+        if not valid:
+            raise MisconfigurationException(
+                f"`strategy={repr(strategy)}` is not a valid choice."
+                f" Choose one of {supported} or pass in a `Strategy` instance."
+            )
+
+    def _check_accelerator_type(self, accelerator: Accelerator) -> None:
+        if not isinstance(accelerator, self._supported_accelerators()):
+            supported_values = ["auto"] + [x.lower() for x in self._supported_device_types]
+            raise MisconfigurationException(
+                f"`accelerator={repr(accelerator)}` is not a valid choice for LightningLite."
+                f" Choose one of {supported_values} or pass in a `Accelerator` instance."
+            )
+
+    def _check_strategy_type(self, strategy: Optional[Union[str, Strategy]]) -> None:
         supported = [t.lower() for t in self._supported_strategy_types()]
         valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
         if not isinstance(strategy, self._supported_strategies()):

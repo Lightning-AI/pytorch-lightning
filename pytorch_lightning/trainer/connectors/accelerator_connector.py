@@ -72,6 +72,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
+from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,

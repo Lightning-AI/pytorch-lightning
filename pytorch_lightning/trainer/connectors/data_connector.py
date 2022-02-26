@@ -22,6 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -159,7 +160,7 @@ class DataConnector:
 
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
-            m.use_amp = self.trainer.amp_backend is not None
+            m.use_amp = isinstance(self.trainer.strategy.precision_plugin, MixedPrecisionPlugin)
             m.precision = self.trainer.precision
 
     def attach_dataloaders(

@@ -25,7 +25,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     @property
     @abstractmethod
     def backend() -> AMPType:
-        """Deprecated in 1.7.
+        """Deprecated in 1.6.
 
         Switch to instance checks instead
         """
