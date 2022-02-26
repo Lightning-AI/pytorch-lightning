@@ -23,7 +23,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
 
     @property
     @abstractmethod
-    def backend() -> AMPType:
+    def backend(self) -> AMPType:
         """Deprecated in 1.6.
 
         Switch to instance checks instead
