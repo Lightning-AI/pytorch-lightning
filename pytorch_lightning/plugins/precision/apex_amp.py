@@ -115,6 +115,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def backend(self) -> AMPType:
         rank_zero_deprecation(
             "The backend property has been deprecated in 1.6 and will be removed in 1.7."
-            "Please Switch to ``isinstance(X, ApexMixedPrecisionPlugin)`` checks instead."
+            " Please switch to `isinstance(X, ApexMixedPrecisionPlugin)` checks instead."
         )
         return AMPType.APEX

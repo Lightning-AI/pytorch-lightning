@@ -494,7 +494,7 @@ class LightningLite(ABC):
             )
 
     @staticmethod
-    def _supported_accelerators() -> Tuple[Type[Accelerator], Type[Accelerator], Type[Accelerator]]:
+    def _supported_accelerators() -> Tuple[Type[Accelerator], ...]:
         return (CPUAccelerator, GPUAccelerator, TPUAccelerator)
 
     @staticmethod
@@ -507,10 +507,9 @@ class LightningLite(ABC):
 
     @staticmethod
     def _supported_strategies() -> Tuple[
-        Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy], Type[Strategy]
+        Type[Strategy], ...
     ]:
 
-        # TODO: (@awaelchli: is FullySharded supported here?)
         return (
             SingleDeviceStrategy,
             DataParallelStrategy,

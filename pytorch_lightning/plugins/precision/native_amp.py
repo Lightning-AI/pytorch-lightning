@@ -133,6 +133,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def backend(self) -> AMPType:
         rank_zero_deprecation(
             "The backend property has been deprecated in 1.6 and will be removed in 1.7."
-            "Please Switch to ``isinstance(X, NativeMixedPrecisionPlugin)`` checks instead."
+            " Please switch to `isinstance(X, NativeMixedPrecisionPlugin)` checks instead."
         )
         return AMPType.NATIVE
