@@ -113,7 +113,7 @@ def test_device_stats_gpu_from_nvidia_and_cpu(tmpdir):
             # Just need to check one of the GPU metrics to make sure
             # the GPU metrics are logged
             fields = [
-                "allocated.all.current",
+                "active.all.allocated",
             ] + CPU_METRIC_KEYS
             for f in fields:
                 assert any(f in h for h in metrics)
@@ -146,7 +146,7 @@ def test_device_stats_gpu_from_nvidia_no_cpu(tmpdir):
             # Just need to check one of the GPU metrics to make sure
             # the GPU metrics are logged
             fields = [
-                "allocated.all.current",
+                "active.all.allocated",
             ]
             for f in fields:
                 assert any(f in h for h in metrics)
