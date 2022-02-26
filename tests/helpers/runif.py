@@ -37,6 +37,7 @@ from pytorch_lightning.utilities import (
 _HOROVOD_NCCL_AVAILABLE = False
 if _HOROVOD_AVAILABLE:
     import horovod
+
     try:
 
         # `nccl_built` returns an integer
