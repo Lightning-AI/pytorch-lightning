@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampl
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
@@ -269,6 +270,8 @@ class DataConnector:
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
+            # `DistributedSampler` is never used with `poptorch.DataLoader`
+            and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
     # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
@@ -303,7 +306,8 @@ class DataConnector:
             _fault_tolerant_training()  # injects components to track the state
             or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or self.trainer._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
+            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
+            or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
             if shuffle is None:
                 # for training, set to True always
