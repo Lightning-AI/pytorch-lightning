@@ -290,8 +290,8 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
 # TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
-        ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
-        ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
+        ("on_epoch_start", "on_<train/validation/test>_epoch_start"),
+        ("on_epoch_end", "on_<train/validation/test>_epoch_end"),
     )
 
     for hook, alternative_hook in hooks:
