@@ -216,10 +216,10 @@ class AcceleratorConnector:
         # Default to False if not set
         self.deterministic = deterministic or False
         if _TORCH_GREATER_EQUAL_1_8:
-            torch.use_deterministic_algorithms(deterministic)
+            torch.use_deterministic_algorithms(self.deterministic)
         else:
-            torch.set_deterministic(deterministic)
-        if deterministic:
+            torch.set_deterministic(self.deterministic)
+        if self.deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"
