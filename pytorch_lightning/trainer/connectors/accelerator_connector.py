@@ -849,10 +849,6 @@ class AcceleratorConnector:
         return is_distributed
 
     @property
-    def use_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
-
-    @property
     def has_tpu(self) -> bool:
         return isinstance(self.accelerator, TPUAccelerator)
 
