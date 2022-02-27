@@ -607,6 +607,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `AcceleratorConnector.has_tpu` property ([#12109](https://github.com/PyTorchLightning/pytorch-lightning/pull/12109))
 
 
+- Removed `AcceleratorConnector.use_dp` property ([#12112](https://github.com/PyTorchLightning/pytorch-lightning/pull/12112))
+
+
+
 ### Fixed
 
 - Fixed an issue where `HorovodStrategy.teardown()` did not complete gracefully if an exception was thrown during callback setup [#11752](https://github.com/PyTorchLightning/pytorch-lightning/pull/11752)
