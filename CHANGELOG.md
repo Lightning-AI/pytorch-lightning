@@ -658,6 +658,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed passing `_ddp_params_and_buffers_to_ignore` ([#11949](https://github.com/PyTorchLightning/pytorch-lightning/pull/11949))
 
+   
+- Prevent modification of `torch.backends.cudnn.benchmark` when `benchmark` not set on the `Trainer` ([#12020](https://github.com/PyTorchLightning/pytorch-lightning/pull/12020))
+
 
 ## [1.5.10] - 2022-02-08
 
