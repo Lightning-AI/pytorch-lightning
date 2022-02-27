@@ -240,7 +240,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         enable_progress_bar=False,
     )
 
-    with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
+    with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger."):
         trainer.fit(model)
 
 
