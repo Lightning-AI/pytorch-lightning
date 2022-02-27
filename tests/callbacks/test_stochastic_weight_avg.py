@@ -103,7 +103,13 @@ class SwaTestCallback(StochasticWeightAveraging):
             assert self.n_averaged == swa_epoch + 1
             assert self._swa_scheduler is not None
             # Scheduler is stepped once on initialization and then at the end of each epoch
-            assert self._swa_scheduler._step_count == swa_epoch + 2
+            expected_step_count = swa_epoch + 2
+            if trainer.fit_loop.restarting or (self.first_epoch is not None and self.first_epoch > self.swa_start):
+                # TODO: Remove this adjustment after fixing checkpoint resume behaviour.
+                # The number of scheduler steps is currently one less than expected as the scheduler isn't stepped on
+                # the first epoch after resuming.
+                expected_step_count -= 1
+            assert self._swa_scheduler._step_count == expected_step_count
         elif trainer.current_epoch > self.swa_end:
             assert self.n_averaged == self._max_epochs - self.swa_start
 
@@ -123,6 +129,12 @@ class SwaTestCallback(StochasticWeightAveraging):
 
         # check call counts
         first_swa_epoch = max(self.first_epoch, self.swa_start)
+        if first_swa_epoch > self.swa_start:
+            # TODO: Remove this adjustment after fixing checkpoint resume behaviour.
+            # When resuming from a checkpoint, first_epoch is currently incorrect as we resume with epoch set
+            # to the next epoch after the checkpoint.
+            # See https://github.com/PyTorchLightning/pytorch-lightning/pull/9938#discussion_r807441500
+            first_swa_epoch -= 1
         assert self.update_parameters_calls == trainer.max_epochs - first_swa_epoch
         assert self.transfer_weights_calls == 1
 
