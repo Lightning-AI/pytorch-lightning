@@ -151,8 +151,8 @@ class AcceleratorConnector:
             # Set benchmark to False to ensure determinism
             benchmark = False
         # TODO: move to gpu accelerator
-        if self.benchmark is not None:
-            torch.backends.cudnn.benchmark = self.benchmark
+        if benchmark is not None:
+            torch.backends.cudnn.benchmark = benchmark
         self.benchmark = torch.backends.cudnn.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
