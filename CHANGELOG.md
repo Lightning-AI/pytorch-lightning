@@ -604,6 +604,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `AcceleratorConnector.use_ipu` property ([#12110](https://github.com/PyTorchLightning/pytorch-lightning/pull/12110))
 
 
+- Removed `AcceleratorConnector.has_tpu` property ([#12109](https://github.com/PyTorchLightning/pytorch-lightning/pull/12109))
+
 
 ### Fixed
 
