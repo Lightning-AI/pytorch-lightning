@@ -641,12 +641,15 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
 @pytest.mark.parametrize(
     ["benchmark_", "deterministic", "expected"],
     [
-        (None, False, True),
+        (None, False, None),
         (None, True, False),
+        (None, None, None),
         (True, False, True),
         (True, True, True),
-        (False, True, False),
+        (True, None, True),
         (False, False, False),
+        (False, True, False),
+        (False, None, False),
     ],
 )
 def test_benchmark_option(benchmark_, deterministic, expected):
@@ -659,6 +662,7 @@ def test_benchmark_option(benchmark_, deterministic, expected):
             trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
     else:
         trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
+    expected = original_val if expected is None else expected
     assert torch.backends.cudnn.benchmark == expected
     assert trainer._accelerator_connector.benchmark == expected
 
