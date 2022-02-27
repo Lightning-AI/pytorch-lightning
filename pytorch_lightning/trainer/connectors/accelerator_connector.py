@@ -156,7 +156,6 @@ class AcceleratorConnector:
         self.benchmark = torch.backends.cudnn.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
-        # Default to deterministic = True
         self._init_deterministic(deterministic)
 
         # 1. Parsing flags
