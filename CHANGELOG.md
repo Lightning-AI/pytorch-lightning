@@ -598,6 +598,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the `AcceleratorConnector.device_type` property ([#12081](https://github.com/PyTorchLightning/pytorch-lightning/pull/12081))
 
 
+- Removed `AcceleratorConnector.has_ipu` property ([#12111](https://github.com/PyTorchLightning/pytorch-lightning/pull/12111))
+
+
+- Removed `AcceleratorConnector.use_ipu` property ([#12110](https://github.com/PyTorchLightning/pytorch-lightning/pull/12110))
+
+  
 - Removed `AcceleratorConnector.has_tpu` property ([#12109](https://github.com/PyTorchLightning/pytorch-lightning/pull/12109))
 
 
