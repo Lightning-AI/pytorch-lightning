@@ -128,8 +128,9 @@ def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
         limit_train_batches=2,
+        limit_val_batches=2,
         log_every_n_steps=1,
         accelerator="gpu",
         devices=1,
@@ -156,8 +157,9 @@ def test_device_stats_cpu(tmpdir):
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=7,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
@@ -188,9 +190,6 @@ def test_device_stats_cpu_queried_once(cpu_metrics_device_stats_mock, cpu_metric
 
     trainer.fit(model)
 
-    # Note that you need to mock where the function is imported
-    # (not where it is defined). Please see the following for
-    # an explanation: https://docs.python.org/3/library/unittest.mock.html#where-to-patch
     assert cpu_metrics_device_stats_mock.call_count == 0  # called inside DeviceStatsMonitor
     assert cpu_metrics_cpu_accelerator_mock.call_count == 2  # called inside CPUAccelerator
 
