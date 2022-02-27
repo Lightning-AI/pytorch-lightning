@@ -231,8 +231,8 @@ class Trainer(
             benchmark: Sets ``torch.backends.cudnn.benchmark``.
                 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified, the
                 value set in the current session will be used. However, if
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic` is ``True``, this defaults to
-                ``False`` to ensure determinism. Override to manually set a different value.
+                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic` is ``True``, ``benchmark`` defaults
+                to ``False`` to ensure determinism. Override to manually set a different value.
                 Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
